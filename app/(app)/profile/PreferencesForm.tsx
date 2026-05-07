@@ -16,7 +16,9 @@ import {
   LOCALE_LABELS,
   THEME_LABELS,
   type Profile,
+  type Theme,
 } from "@/lib/database.types";
+import { setThemeImmediate } from "@/components/ThemeProvider";
 import { updatePreferences, type PreferencesFormState } from "./actions";
 
 const INITIAL: PreferencesFormState = { status: "idle" };
@@ -78,7 +80,14 @@ export function PreferencesForm({ profile }: { profile: Profile }) {
         </header>
         <Field>
           <FieldLabel htmlFor="theme">Thème</FieldLabel>
-          <Select id="theme" name="theme" defaultValue={profile.theme}>
+          <Select
+            id="theme"
+            name="theme"
+            defaultValue={profile.theme}
+            onChange={(event) =>
+              setThemeImmediate(event.currentTarget.value as Theme)
+            }
+          >
             {Object.entries(THEME_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -86,8 +95,8 @@ export function PreferencesForm({ profile }: { profile: Profile }) {
             ))}
           </Select>
           <FieldHint>
-            Le thème sombre arrive bientôt. Pour l&apos;instant, on reste sur
-            le mode clair même si tu choisis sombre.
+            Le changement est appliqué immédiatement. Sauvegarde pour le
+            persister sur tous tes appareils.
           </FieldHint>
         </Field>
       </section>

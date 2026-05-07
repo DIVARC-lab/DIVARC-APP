@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/Toaster";
+import { themeBootstrapScript } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,9 +76,17 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-bg text-fg selection:bg-night selection:text-cream">
+      <head>
+        <script
+          // Bootstrap the theme before React hydrates so we never flash
+          // the wrong color scheme.
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col bg-bg text-fg">
         {children}
         <Toaster />
       </body>

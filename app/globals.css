@@ -1,21 +1,23 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #f8f9fb;
-  --color-bg-deep: #f1f3f8;
-  --color-fg: #0a0d18;
-  --color-night: #0a1f44;
-  --color-night-soft: #142a55;
-  --color-night-muted: #2a3d6b;
-  --color-night-dim: #4b5b87;
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-fg: var(--fg);
+  --color-night: var(--night);
+  --color-night-soft: var(--night-soft);
+  --color-night-muted: var(--night-muted);
+  --color-night-dim: var(--night-dim);
   --color-gold: #f4b942;
   --color-gold-soft: #f8cd76;
-  --color-gold-deep: #b88a2a;
+  --color-gold-deep: var(--gold-deep);
   --color-cream: #fff8e8;
-  --color-line: #e6e9f0;
-  --color-line-strong: #d2d7e2;
-  --color-muted: #6b7280;
-  --color-muted-strong: #4b5563;
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -35,16 +37,61 @@
   --ease-spring: cubic-bezier(0.22, 1.61, 0.36, 1);
 }
 
-:root {
-  --color-background: var(--color-bg);
-  --color-foreground: var(--color-fg);
+/* ===== Light theme (default) ===== */
+:root,
+[data-theme="light"] {
+  --bg: #f8f9fb;
+  --bg-deep: #f1f3f8;
+  --fg: #0a0d18;
+
+  --night: #0a1f44;
+  --night-soft: #142a55;
+  --night-muted: #2a3d6b;
+  --night-dim: #4b5b87;
+
+  --gold-deep: #b88a2a;
+
+  --line: #e6e9f0;
+  --line-strong: #d2d7e2;
+  --muted: #6b7280;
+  --muted-strong: #4b5563;
+
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+
   color-scheme: light;
 }
 
+/* ===== Dark theme ===== */
+[data-theme="dark"] {
+  --bg: #0a0d18;
+  --bg-deep: #050811;
+  --fg: #f1f3f8;
+
+  /* "night" devient clair pour rester lisible (titres, accents) */
+  --night: #f1f3f8;
+  --night-soft: #d2d7e2;
+  --night-muted: #a3b0c4;
+  --night-dim: #8696b0;
+
+  --gold-deep: #f8cd76;
+
+  --line: #1d2333;
+  --line-strong: #2a3148;
+  --muted: #8696b0;
+  --muted-strong: #a3b0c4;
+
+  --surface: #14182a;
+  --surface-2: #1d2333;
+
+  color-scheme: dark;
+}
+
+/* ===== Global element styles ===== */
 html,
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--color-bg);
+  color: var(--color-fg);
 }
 
 body {
@@ -54,9 +101,31 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Make `bg-white` adaptive in dark mode (cards, modals, headers, etc.) */
+[data-theme="dark"] .bg-white {
+  background-color: var(--color-surface) !important;
+}
+[data-theme="dark"] .bg-white\/90,
+[data-theme="dark"] .bg-white\/95 {
+  background-color: color-mix(in srgb, var(--color-surface) 92%, transparent) !important;
+}
+[data-theme="dark"] .bg-white\/60 {
+  background-color: color-mix(in srgb, var(--color-surface) 60%, transparent) !important;
+}
+[data-theme="dark"] .bg-white\/80 {
+  background-color: color-mix(in srgb, var(--color-surface) 80%, transparent) !important;
+}
+
+/* Bg-bg keeps adapting via the token */
+
 ::selection {
   background: var(--color-night);
-  color: var(--color-cream);
+  color: var(--color-bg);
+}
+
+[data-theme="dark"] ::selection {
+  background: var(--color-gold);
+  color: var(--color-bg);
 }
 
 ::-webkit-scrollbar {
@@ -76,7 +145,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-night);
+  outline: 2px solid var(--color-gold);
   outline-offset: 3px;
   border-radius: 4px;
 }
