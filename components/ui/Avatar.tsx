@@ -34,6 +34,7 @@ export function Avatar({
 }: AvatarProps) {
   const initials = computeInitials(fullName);
   const px = PIXEL_SIZE[size];
+  const validSrc = isValidImageSource(src) ? src : null;
 
   return (
     <div
@@ -44,22 +45,31 @@ export function Avatar({
       )}
       aria-label={fullName ? `Avatar de ${fullName}` : "Avatar"}
     >
-      {src ? (
+      <span
+        className="absolute inset-0 flex items-center justify-center font-bold text-night"
+        aria-hidden
+      >
+        {initials}
+      </span>
+      {validSrc ? (
         <Image
-          src={src}
+          src={validSrc}
           alt=""
           fill
           priority={priority}
           sizes={`${px}px`}
-          className="object-cover"
+          className="object-cover relative z-10"
+          unoptimized={validSrc.includes("?")}
         />
-      ) : (
-        <span className="font-bold text-night" aria-hidden>
-          {initials}
-        </span>
-      )}
+      ) : null}
     </div>
   );
+}
+
+function isValidImageSource(src: string | null): src is string {
+  if (!src || typeof src !== "string") return false;
+  if (!src.startsWith("https://") && !src.startsWith("/")) return false;
+  return true;
 }
 
 function computeInitials(fullName: string | null): string {
