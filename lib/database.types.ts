@@ -38,12 +38,21 @@ export type Profile = {
   show_email: boolean;
   show_location: boolean;
   founder_rank: number | null;
+  onboarded_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
 export type ProfileIdentityUpdate = Partial<
-  Pick<Profile, "username" | "full_name" | "bio" | "location" | "avatar_url">
+  Pick<
+    Profile,
+    | "username"
+    | "full_name"
+    | "bio"
+    | "location"
+    | "avatar_url"
+    | "onboarded_at"
+  >
 >;
 
 export type ProfilePreferencesUpdate = Partial<

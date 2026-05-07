@@ -11,6 +11,7 @@ const PROFILE_DEFAULTS: Omit<
   | "bio"
   | "location"
   | "founder_rank"
+  | "onboarded_at"
   | "created_at"
   | "updated_at"
 > = {
@@ -77,6 +78,8 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       PROFILE_DEFAULTS.show_location,
     founder_rank:
       (data as { founder_rank?: number | null }).founder_rank ?? null,
+    onboarded_at:
+      (data as { onboarded_at?: string | null }).onboarded_at ?? null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

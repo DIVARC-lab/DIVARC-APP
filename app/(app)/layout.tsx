@@ -47,6 +47,10 @@ export default async function DashboardLayout({
   }
 
   const profile = await getCurrentProfile();
+  if (profile && !profile.onboarded_at) {
+    redirect("/welcome");
+  }
+
   const fullName =
     profile?.full_name ?? (user.email?.split("@")[0] ?? "");
   const [unread, incomingRequests, unreadNotifications] = await Promise.all([
