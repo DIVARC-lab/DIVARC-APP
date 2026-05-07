@@ -24,8 +24,14 @@ export function ConversationItem({
     conversation.name ??
     "Conversation";
 
-  const lastBody =
-    conversation.last_message?.body ?? "Aucun message pour l'instant";
+  const lastBody = conversation.last_message
+    ? (conversation.last_message.body ??
+      (conversation.last_message.attachment_type === "image"
+        ? "📷 Photo"
+        : conversation.last_message.attachment_type
+          ? "📎 Pièce jointe"
+          : "Aucun message"))
+    : "Aucun message pour l'instant";
   const isOwnLastMessage =
     conversation.last_message?.sender_id === currentUserId;
 

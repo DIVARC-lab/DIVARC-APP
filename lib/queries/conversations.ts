@@ -109,6 +109,7 @@ export async function listConversationsForUser(
             body: lastMessage.body,
             sender_id: lastMessage.sender_id,
             created_at: lastMessage.created_at,
+            attachment_type: lastMessage.attachment_type,
           }
         : null,
     };

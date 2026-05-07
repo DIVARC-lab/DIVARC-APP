@@ -408,12 +408,20 @@ export type ConversationMember = {
   role: MemberRole;
 };
 
+export type AttachmentType = "image" | "audio" | "video" | "file";
+
 export type Message = {
   id: string;
   conversation_id: string;
   sender_id: string;
-  body: string;
+  body: string | null;
   type: MessageType;
+  attachment_url: string | null;
+  attachment_type: AttachmentType | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_width: number | null;
+  attachment_height: number | null;
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
@@ -435,9 +443,10 @@ export type ConversationListItem = {
     avatar_url: string | null;
   } | null;
   last_message: {
-    body: string;
+    body: string | null;
     sender_id: string;
     created_at: string;
+    attachment_type: AttachmentType | null;
   } | null;
 };
 
@@ -464,8 +473,21 @@ export type Database = {
       };
       messages: {
         Row: Message;
-        Insert: Omit<Message, "id" | "created_at" | "edited_at" | "deleted_at" | "type"> &
-          Partial<Pick<Message, "id" | "type">>;
+        Insert: Pick<Message, "conversation_id" | "sender_id"> &
+          Partial<
+            Pick<
+              Message,
+              | "id"
+              | "type"
+              | "body"
+              | "attachment_url"
+              | "attachment_type"
+              | "attachment_name"
+              | "attachment_size"
+              | "attachment_width"
+              | "attachment_height"
+            >
+          >;
         Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;
         Relationships: [];
       };
