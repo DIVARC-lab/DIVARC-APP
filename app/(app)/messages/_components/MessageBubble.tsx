@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Message } from "@/lib/database.types";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
+import { AudioPlayer } from "./AudioPlayer";
 
 type MessageBubbleProps = {
   message: Message;
@@ -36,9 +37,11 @@ export function MessageBubble({
   }
 
   const hasImage = message.attachment_type === "image" && message.attachment_url;
+  const hasAudio = message.attachment_type === "audio" && message.attachment_url;
   const hasFile =
     message.attachment_url &&
     message.attachment_type !== "image" &&
+    message.attachment_type !== "audio" &&
     message.attachment_type !== null;
 
   return (
@@ -63,6 +66,14 @@ export function MessageBubble({
             url={message.attachment_url!}
             width={message.attachment_width}
             height={message.attachment_height}
+            isOwn={isOwn}
+          />
+        ) : null}
+
+        {hasAudio ? (
+          <AudioPlayer
+            url={message.attachment_url!}
+            durationMs={message.attachment_duration_ms}
             isOwn={isOwn}
           />
         ) : null}

@@ -422,6 +422,7 @@ export type Message = {
   attachment_size: number | null;
   attachment_width: number | null;
   attachment_height: number | null;
+  attachment_duration_ms: number | null;
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
@@ -486,6 +487,7 @@ export type Database = {
               | "attachment_size"
               | "attachment_width"
               | "attachment_height"
+              | "attachment_duration_ms"
             >
           >;
         Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;

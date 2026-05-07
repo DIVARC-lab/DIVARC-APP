@@ -1,11 +1,19 @@
 "use client";
 
-import { Image as ImageIcon, Loader2, Paperclip, Send, X } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Loader2,
+  Mic,
+  Paperclip,
+  Send,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
+import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 
 const MAX_LENGTH = 4000;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -38,6 +46,7 @@ export function MessageComposer({
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [pending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -71,8 +80,8 @@ export function MessageComposer({
   }, [body, conversationId]);
 
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (!recording) textareaRef.current?.focus();
+  }, [recording]);
 
   function resize() {
     const ta = textareaRef.current;
@@ -183,6 +192,49 @@ export function MessageComposer({
     setAttachment(null);
   }
 
+  async function handleVoiceSend(audio: RecordedAudio) {
+    const supabase = createClient();
+    const ext = audio.mimeType.includes("mp4")
+      ? "m4a"
+      : audio.mimeType.includes("mpeg")
+        ? "mp3"
+        : "webm";
+    const storagePath = `${senderId}/${conversationId}/${crypto.randomUUID()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("chat-media")
+      .upload(storagePath, audio.blob, {
+        contentType: audio.mimeType || "audio/webm",
+        cacheControl: "3600",
+      });
+
+    if (uploadError) {
+      toast.error("Échec de l'envoi du message vocal.");
+      throw uploadError;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("chat-media").getPublicUrl(storagePath);
+
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      attachment_url: publicUrl,
+      attachment_type: "audio",
+      attachment_size: audio.blob.size,
+      attachment_duration_ms: Math.round(audio.durationMs),
+    });
+
+    if (error) {
+      await supabase.storage.from("chat-media").remove([storagePath]);
+      toast.error("Échec de l'envoi.");
+      throw error;
+    }
+
+    setRecording(false);
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = body.trim();
@@ -230,150 +282,173 @@ export function MessageComposer({
     !pending && !tooLong && (body.trim().length > 0 || attachment !== null);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="border-t border-line bg-white px-4 py-3 sm:px-6 sm:py-4"
-    >
+    <div className="border-t border-line bg-white px-4 py-3 sm:px-6 sm:py-4">
       <div className="max-w-3xl mx-auto">
-        {attachment ? (
-          <div className="mb-3 flex items-center gap-3 p-3 rounded-2xl bg-bg border border-line">
-            {attachment.type === "image" ? (
-              <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-night/5 shrink-0">
-                <Image
-                  src={attachment.url}
-                  alt=""
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                  unoptimized
-                />
+        {recording ? (
+          <VoiceRecorder
+            onCancel={() => setRecording(false)}
+            onSend={handleVoiceSend}
+          />
+        ) : (
+          <form onSubmit={handleSubmit}>
+            {attachment ? (
+              <div className="mb-3 flex items-center gap-3 p-3 rounded-2xl bg-bg border border-line">
+                {attachment.type === "image" ? (
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-night/5 shrink-0">
+                    <Image
+                      src={attachment.url}
+                      alt=""
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-night/5 flex items-center justify-center shrink-0">
+                    <Paperclip
+                      className="w-5 h-5 text-night-muted"
+                      aria-hidden
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-night truncate">
+                    {attachment.name}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {formatBytes(attachment.size)}
+                    {attachment.width && attachment.height
+                      ? ` · ${attachment.width}×${attachment.height}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeAttachment}
+                  aria-label="Retirer"
+                  className="w-8 h-8 rounded-full hover:bg-red-50 text-red-500 flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" aria-hidden />
+                </button>
               </div>
-            ) : (
-              <div className="w-12 h-12 rounded-xl bg-night/5 flex items-center justify-center shrink-0">
-                <Paperclip className="w-5 h-5 text-night-muted" aria-hidden />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-night truncate">
-                {attachment.name}
-              </p>
-              <p className="text-xs text-muted">
-                {formatBytes(attachment.size)}
-                {attachment.width && attachment.height
-                  ? ` · ${attachment.width}×${attachment.height}`
-                  : ""}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={removeAttachment}
-              aria-label="Retirer"
-              className="w-8 h-8 rounded-full hover:bg-red-50 text-red-500 flex items-center justify-center"
-            >
-              <X className="w-4 h-4" aria-hidden />
-            </button>
-          </div>
-        ) : null}
-
-        <div className="flex items-end gap-2">
-          <div className="flex items-center gap-1 pb-1">
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              disabled={uploading || attachment !== null}
-              aria-label="Ajouter une image"
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-                attachment !== null
-                  ? "text-muted/50 cursor-not-allowed"
-                  : "text-night-muted hover:bg-night/5 hover:text-night",
-              )}
-            >
-              {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-              ) : (
-                <ImageIcon className="w-5 h-5" aria-hidden />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || attachment !== null}
-              aria-label="Ajouter un fichier"
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-                attachment !== null
-                  ? "text-muted/50 cursor-not-allowed"
-                  : "text-night-muted hover:bg-night/5 hover:text-night",
-              )}
-            >
-              <Paperclip className="w-4 h-4" aria-hidden />
-            </button>
-          </div>
-
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={body}
-              onChange={(event) => {
-                setBody(event.currentTarget.value);
-                resize();
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Écris un message..."
-              rows={1}
-              maxLength={MAX_LENGTH + 100}
-              disabled={pending}
-              className="w-full resize-none rounded-2xl border border-line bg-bg px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15 disabled:opacity-60"
-              aria-label="Message"
-            />
-            {tooLong ? (
-              <p className="absolute -top-5 right-1 text-[10px] text-red-600">
-                {remaining}
-              </p>
             ) : null}
-          </div>
 
-          <button
-            type="submit"
-            disabled={!canSend}
-            aria-label="Envoyer"
-            className={cn(
-              "shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200",
-              canSend
-                ? "bg-night text-cream hover:bg-night-soft scale-100"
-                : "bg-night/30 text-cream scale-95",
-              "disabled:opacity-40 disabled:cursor-not-allowed",
-            )}
-          >
-            {pending ? (
-              <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" aria-hidden />
-            )}
-          </button>
-        </div>
+            <div className="flex items-end gap-2">
+              <div className="flex items-center gap-1 pb-1">
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploading || attachment !== null}
+                  aria-label="Ajouter une image"
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    attachment !== null
+                      ? "text-muted/50 cursor-not-allowed"
+                      : "text-night-muted hover:bg-night/5 hover:text-night",
+                  )}
+                >
+                  {uploading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                  ) : (
+                    <ImageIcon className="w-5 h-5" aria-hidden />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || attachment !== null}
+                  aria-label="Ajouter un fichier"
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    attachment !== null
+                      ? "text-muted/50 cursor-not-allowed"
+                      : "text-night-muted hover:bg-night/5 hover:text-night",
+                  )}
+                >
+                  <Paperclip className="w-4 h-4" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecording(true)}
+                  disabled={attachment !== null}
+                  aria-label="Enregistrer un message vocal"
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    attachment !== null
+                      ? "text-muted/50 cursor-not-allowed"
+                      : "text-night-muted hover:bg-night/5 hover:text-night",
+                  )}
+                >
+                  <Mic className="w-4 h-4" aria-hidden />
+                </button>
+              </div>
 
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept={IMAGE_MIME.join(",")}
-          onChange={handleImageSelect}
-          className="sr-only"
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          onChange={handleFileSelect}
-          className="sr-only"
-        />
+              <div className="flex-1 relative">
+                <textarea
+                  ref={textareaRef}
+                  value={body}
+                  onChange={(event) => {
+                    setBody(event.currentTarget.value);
+                    resize();
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Écris un message..."
+                  rows={1}
+                  maxLength={MAX_LENGTH + 100}
+                  disabled={pending}
+                  className="w-full resize-none rounded-2xl border border-line bg-bg px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15 disabled:opacity-60"
+                  aria-label="Message"
+                />
+                {tooLong ? (
+                  <p className="absolute -top-5 right-1 text-[10px] text-red-600">
+                    {remaining}
+                  </p>
+                ) : null}
+              </div>
 
-        <p className="mt-2 text-[10px] text-muted text-center">
-          Entrée pour envoyer · Maj+Entrée pour aller à la ligne · 10 Mo (image),
-          25 Mo (fichier)
-        </p>
+              <button
+                type="submit"
+                disabled={!canSend}
+                aria-label="Envoyer"
+                className={cn(
+                  "shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200",
+                  canSend
+                    ? "bg-night text-cream hover:bg-night-soft scale-100"
+                    : "bg-night/30 text-cream scale-95",
+                  "disabled:opacity-40 disabled:cursor-not-allowed",
+                )}
+              >
+                {pending ? (
+                  <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" aria-hidden />
+                )}
+              </button>
+            </div>
+
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept={IMAGE_MIME.join(",")}
+              onChange={handleImageSelect}
+              className="sr-only"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              className="sr-only"
+            />
+
+            <p className="mt-2 text-[10px] text-muted text-center">
+              Entrée pour envoyer · Maj+Entrée pour aller à la ligne · 10 Mo
+              (image), 25 Mo (fichier)
+            </p>
+          </form>
+        )}
       </div>
-    </form>
+    </div>
   );
 }
 
