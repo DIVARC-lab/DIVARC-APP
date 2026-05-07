@@ -699,6 +699,26 @@ export type Database = {
           created_at: string;
         }>;
       };
+      rank_feed_posts: {
+        Args: { feed_limit?: number };
+        Returns: Array<{
+          id: string;
+          author_id: string;
+          body: string | null;
+          visibility: string;
+          created_at: string;
+          likes_count: number;
+          comments_count: number;
+          is_friend: boolean;
+          is_viewed: boolean;
+          is_liked: boolean;
+          score: number;
+        }>;
+      };
+      record_post_view: {
+        Args: { target_post_id: string };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
