@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { changePassword, type PasswordFormState } from "./actions";
+import { MFASection } from "./_components/MFASection";
 
 const INITIAL: PasswordFormState = { status: "idle" };
 
@@ -86,6 +87,8 @@ export function SecurityPanel({ email, lastSignInAt }: SecurityPanelProps) {
         </form>
       </section>
 
+      <MFASection />
+
       <section className="p-6 sm:p-8 rounded-3xl bg-white border border-line shadow-soft">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
@@ -124,19 +127,6 @@ export function SecurityPanel({ email, lastSignInAt }: SecurityPanelProps) {
                   })
                 : "Jamais"}
             </p>
-          </article>
-          <article className="p-4 rounded-2xl border border-dashed border-line">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-night">2FA</p>
-                <p className="text-xs text-muted">
-                  Code à usage unique par appli mobile.
-                </p>
-              </div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-md bg-gold/15 text-gold-deep">
-                Bientôt
-              </span>
-            </div>
           </article>
           <article className="p-4 rounded-2xl border border-dashed border-line">
             <div className="flex items-center justify-between">

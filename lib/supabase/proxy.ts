@@ -30,7 +30,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAuthRoute = path.startsWith("/login") || path.startsWith("/signup");
+  const isPublicAuthRoute =
+    path === "/login" || path.startsWith("/signup");
+  const isMfaChallengeRoute = path.startsWith("/login/mfa");
   const isProtectedRoute =
     path.startsWith("/dashboard") ||
     path.startsWith("/profile") ||
@@ -46,16 +48,34 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/welcome") ||
     path.startsWith("/explore");
 
-  if (!user && isProtectedRoute) {
+  if (!user && (isProtectedRoute || isMfaChallengeRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+  if (user) {
+    // Step-up MFA : si le compte a la 2FA mais l'AAL courant est aal1,
+    // forcer la résolution sur /login/mfa avant tout accès protégé.
+    if (isProtectedRoute) {
+      const { data: aal } =
+        await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (
+        aal &&
+        aal.currentLevel === "aal1" &&
+        aal.nextLevel === "aal2"
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login/mfa";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (isPublicAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
