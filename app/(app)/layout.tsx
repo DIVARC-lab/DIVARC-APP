@@ -97,8 +97,13 @@ export default async function DashboardLayout({
       icon: Briefcase,
       available: true,
     },
+    {
+      href: "/wallet",
+      label: "Wallet",
+      icon: Wallet,
+      available: true,
+    },
     { href: "#", label: "Découvrir", icon: Compass, available: false },
-    { href: "#", label: "Paiements", icon: Wallet, available: false },
   ];
 
   return (

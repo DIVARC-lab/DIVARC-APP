@@ -222,6 +222,46 @@ export type JobWithDetails = Job & {
   > | null;
 };
 
+export type TransactionType =
+  | "transfer"
+  | "topup"
+  | "refund"
+  | "fee"
+  | "welcome_credit";
+
+export type TransactionStatus =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "refunded";
+
+export type Wallet = {
+  user_id: string;
+  currency: Currency;
+  balance: number;
+  updated_at: string;
+};
+
+export type Transaction = {
+  id: string;
+  type: TransactionType;
+  sender_id: string | null;
+  recipient_id: string | null;
+  currency: Currency;
+  amount: number;
+  description: string | null;
+  status: TransactionStatus;
+  created_at: string;
+};
+
+export type TransactionWithCounterparty = Transaction & {
+  counterparty: Pick<
+    Profile,
+    "id" | "full_name" | "username" | "avatar_url"
+  > | null;
+  direction: "incoming" | "outgoing" | "credit";
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -483,6 +523,19 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      wallets: {
+        Row: Wallet;
+        Insert: Wallet;
+        Update: Partial<Pick<Wallet, "balance" | "updated_at">>;
+        Relationships: [];
+      };
+      transactions: {
+        Row: Transaction;
+        Insert: Omit<Transaction, "id" | "created_at"> &
+          Partial<Pick<Transaction, "id" | "created_at" | "status">>;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -513,6 +566,15 @@ export type Database = {
       mark_conversation_notifications_read: {
         Args: { conv_id: string };
         Returns: void;
+      };
+      transfer_money: {
+        Args: {
+          recipient_user_id: string;
+          transfer_amount: number;
+          transfer_currency: Currency;
+          transfer_description?: string | null;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;
