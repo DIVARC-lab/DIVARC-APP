@@ -91,7 +91,12 @@ export default async function DashboardLayout({
       icon: Sparkle,
       available: true,
     },
-    { href: "#", label: "Emploi", icon: Briefcase, available: false },
+    {
+      href: "/jobs",
+      label: "Emploi",
+      icon: Briefcase,
+      available: true,
+    },
     { href: "#", label: "Découvrir", icon: Compass, available: false },
     { href: "#", label: "Paiements", icon: Wallet, available: false },
   ];

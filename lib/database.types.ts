@@ -127,6 +127,101 @@ export type CommentWithAuthor = PostComment & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
+export type JobType =
+  | "cdi"
+  | "cdd"
+  | "freelance"
+  | "mission"
+  | "alternance"
+  | "stage"
+  | "benevolat";
+
+export type WorkMode = "on_site" | "remote" | "hybrid";
+
+export type ExperienceLevel =
+  | "debutant"
+  | "junior"
+  | "intermediaire"
+  | "senior"
+  | "expert";
+
+export type SalaryPeriod = "hour" | "day" | "month" | "year" | "project";
+
+export type JobStatus = "draft" | "active" | "closed" | "archived";
+
+export type JobCategory =
+  | "tech"
+  | "design"
+  | "marketing"
+  | "ventes"
+  | "rh"
+  | "finance"
+  | "juridique"
+  | "conseil"
+  | "enseignement"
+  | "sante"
+  | "artisanat"
+  | "restauration"
+  | "transport"
+  | "service"
+  | "autre";
+
+export type Job = {
+  id: string;
+  poster_id: string;
+  title: string;
+  company_name: string | null;
+  description: string;
+  job_type: JobType;
+  work_mode: WorkMode;
+  category: JobCategory;
+  experience_level: ExperienceLevel;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: Currency | null;
+  salary_period: SalaryPeriod | null;
+  location: string | null;
+  status: JobStatus;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+};
+
+export type JobApplicationStatus =
+  | "pending"
+  | "reviewed"
+  | "accepted"
+  | "rejected"
+  | "withdrawn";
+
+export type JobApplication = {
+  id: string;
+  job_id: string;
+  applicant_id: string;
+  message: string | null;
+  status: JobApplicationStatus;
+  created_at: string;
+  responded_at: string | null;
+};
+
+export type JobApplicationWithApplicant = JobApplication & {
+  applicant: Pick<
+    Profile,
+    "id" | "full_name" | "username" | "avatar_url" | "bio" | "location"
+  > | null;
+};
+
+export type JobWithDetails = Job & {
+  poster: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  applications_count: number;
+  is_saved: boolean;
+  has_applied: boolean;
+  my_application: Pick<
+    JobApplication,
+    "id" | "status" | "created_at" | "message"
+  > | null;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -366,6 +461,26 @@ export type Database = {
         Insert: Omit<PostComment, "id" | "created_at" | "edited_at" | "deleted_at"> &
           Partial<Pick<PostComment, "id" | "edited_at" | "deleted_at">>;
         Update: Partial<Pick<PostComment, "body" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
+      jobs: {
+        Row: Job;
+        Insert: Omit<Job, "id" | "created_at" | "updated_at" | "closed_at"> &
+          Partial<Pick<Job, "id" | "status" | "closed_at">>;
+        Update: Partial<Omit<Job, "id" | "poster_id" | "created_at">>;
+        Relationships: [];
+      };
+      job_applications: {
+        Row: JobApplication;
+        Insert: Omit<JobApplication, "id" | "created_at" | "responded_at" | "status"> &
+          Partial<Pick<JobApplication, "id" | "status" | "responded_at">>;
+        Update: Partial<Pick<JobApplication, "status" | "responded_at" | "message">>;
+        Relationships: [];
+      };
+      saved_jobs: {
+        Row: { user_id: string; job_id: string; created_at: string };
+        Insert: { user_id: string; job_id: string };
+        Update: never;
         Relationships: [];
       };
     };

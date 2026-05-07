@@ -39,7 +39,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/notifications") ||
     path.startsWith("/marketplace") ||
     path.startsWith("/feed") ||
-    path.startsWith("/u/");
+    path.startsWith("/u/") ||
+    path.startsWith("/jobs");
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
