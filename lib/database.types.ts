@@ -78,6 +78,60 @@ export type NotificationType =
   | "new_message"
   | "system";
 
+export type ListingStatus = "draft" | "active" | "sold" | "archived";
+export type ListingCondition = "new" | "like_new" | "used" | "fair";
+export type ListingCategory =
+  | "mode"
+  | "mobilier"
+  | "electronique"
+  | "vehicules"
+  | "livres"
+  | "sport"
+  | "musique"
+  | "enfants"
+  | "jardinage"
+  | "alimentation"
+  | "artisanat"
+  | "services"
+  | "autre";
+
+export type Listing = {
+  id: string;
+  seller_id: string;
+  title: string;
+  description: string | null;
+  price_amount: number;
+  price_currency: Currency;
+  category: ListingCategory;
+  condition: ListingCondition;
+  location: string | null;
+  status: ListingStatus;
+  created_at: string;
+  updated_at: string;
+  sold_at: string | null;
+};
+
+export type ListingPhoto = {
+  id: string;
+  listing_id: string;
+  url: string;
+  position: number;
+  created_at: string;
+};
+
+export type Favorite = {
+  user_id: string;
+  listing_id: string;
+  created_at: string;
+};
+
+export type ListingWithDetails = Listing & {
+  photos: ListingPhoto[];
+  seller: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location"> | null;
+  is_favorited: boolean;
+  favorites_count: number;
+};
+
 export type Notification = {
   id: string;
   user_id: string;
@@ -203,6 +257,39 @@ export type Database = {
         Insert: Omit<Notification, "id" | "created_at" | "read_at"> &
           Partial<Pick<Notification, "id" | "created_at" | "read_at">>;
         Update: Partial<Pick<Notification, "read_at">>;
+        Relationships: [];
+      };
+      listings: {
+        Row: Listing;
+        Insert: Omit<Listing, "id" | "created_at" | "updated_at" | "sold_at"> &
+          Partial<Pick<Listing, "id" | "status" | "sold_at">>;
+        Update: Partial<
+          Pick<
+            Listing,
+            | "title"
+            | "description"
+            | "price_amount"
+            | "price_currency"
+            | "category"
+            | "condition"
+            | "location"
+            | "status"
+            | "sold_at"
+          >
+        >;
+        Relationships: [];
+      };
+      listing_photos: {
+        Row: ListingPhoto;
+        Insert: Omit<ListingPhoto, "id" | "created_at"> &
+          Partial<Pick<ListingPhoto, "id" | "created_at">>;
+        Update: Partial<Pick<ListingPhoto, "url" | "position">>;
+        Relationships: [];
+      };
+      favorites: {
+        Row: Favorite;
+        Insert: Pick<Favorite, "user_id" | "listing_id">;
+        Update: never;
         Relationships: [];
       };
     };

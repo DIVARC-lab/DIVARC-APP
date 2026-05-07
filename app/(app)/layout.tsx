@@ -77,7 +77,12 @@ export default async function DashboardLayout({
       available: true,
       badge: unread > 0 ? unread : undefined,
     },
-    { href: "#", label: "Marché", icon: ShoppingBag, available: false },
+    {
+      href: "/marketplace",
+      label: "Marché",
+      icon: ShoppingBag,
+      available: true,
+    },
     { href: "#", label: "Emploi", icon: Briefcase, available: false },
     { href: "#", label: "Découvrir", icon: Compass, available: false },
     { href: "#", label: "Paiements", icon: Wallet, available: false },

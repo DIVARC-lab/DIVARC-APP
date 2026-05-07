@@ -304,11 +304,12 @@ const ROADMAP: ReadonlyArray<{
   },
   {
     title: "Marché",
-    body: "Petites annonces locales : achète, vends, échange dans ta ville.",
+    body: "Annonces locales avec photos, multi-devise, contact via la messagerie.",
     sprint: 4,
     icon: ShoppingBag,
     iconBg: "bg-gold/15",
     iconColor: "text-gold-deep",
+    href: "/marketplace",
   },
   {
     title: "Paiements",
