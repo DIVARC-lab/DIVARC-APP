@@ -16,6 +16,7 @@ export default function GlobalError({
       message: error.message,
       digest: error.digest,
       stack: error.stack,
+      name: error.name,
     });
   }, [error]);
 
@@ -30,19 +31,17 @@ export default function GlobalError({
         revenir à l&apos;accueil.
       </p>
       {error.digest ? (
-        <details className="mt-3 text-xs text-muted max-w-md">
-          <summary className="cursor-pointer underline">
-            Détails techniques
-          </summary>
-          <p className="mt-2">
-            Code : <code className="font-mono">{error.digest}</code>
-          </p>
-          {error.message && process.env.NODE_ENV !== "production" ? (
-            <pre className="mt-2 text-left p-3 rounded-lg bg-night/5 overflow-auto whitespace-pre-wrap">
-              {error.message}
-            </pre>
-          ) : null}
-        </details>
+        <div className="mt-4 px-4 py-2 rounded-xl bg-night/5 border border-line text-xs">
+          <span className="text-muted">Code d&apos;erreur :</span>{" "}
+          <code className="font-mono font-bold text-night select-all">
+            {error.digest}
+          </code>
+        </div>
+      ) : null}
+      {error.message && error.message !== "An error occurred in the Server Components render. The specific message is omitted in production builds to avoid leaking sensitive details. A digest property is included on this error instance which may provide additional details about the nature of the error." ? (
+        <pre className="mt-3 text-left text-xs p-3 rounded-lg bg-night/5 max-w-lg overflow-auto whitespace-pre-wrap border border-line">
+          {error.message}
+        </pre>
       ) : null}
       <div className="mt-6 flex gap-2">
         <Button onClick={reset}>

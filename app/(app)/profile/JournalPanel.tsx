@@ -6,6 +6,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import type { Profile } from "@/lib/database.types";
+import { safeDate } from "@/lib/utils/date";
 
 type JournalEvent = {
   date: Date;
@@ -46,7 +47,7 @@ export function JournalPanel({
       done: true,
     },
     {
-      date: profile.updated_at ? new Date(profile.updated_at) : signupDate,
+      date: profile.updated_at ? safeDate(profile.updated_at) : signupDate,
       icon: Camera,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-700",
@@ -106,7 +107,11 @@ export function JournalPanel({
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-night">{event.title}</h4>
                 <time
-                  dateTime={event.date.toISOString()}
+                  dateTime={
+                    Number.isFinite(event.date.getTime())
+                      ? event.date.toISOString()
+                      : undefined
+                  }
                   className="text-xs text-muted shrink-0 ml-3"
                 >
                   {event.done
