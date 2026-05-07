@@ -1,0 +1,103 @@
+import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Avatar } from "@/components/ui/Avatar";
+import { cn } from "@/lib/utils/cn";
+import type { StoryGroup } from "@/lib/database.types";
+
+type StoriesRowProps = {
+  groups: StoryGroup[];
+  currentUserId: string;
+  currentUserAvatarUrl: string | null;
+  currentUserName: string | null;
+};
+
+export function StoriesRow({
+  groups,
+  currentUserId,
+  currentUserAvatarUrl,
+  currentUserName,
+}: StoriesRowProps) {
+  const myGroup = groups.find((g) => g.author.id === currentUserId);
+  const otherGroups = groups.filter((g) => g.author.id !== currentUserId);
+
+  return (
+    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 py-1 overflow-x-auto">
+      <ul className="flex items-start gap-4 min-w-max">
+        <li>
+          <Link
+            href="/stories/new"
+            aria-label="Ajouter une story"
+            className="flex flex-col items-center gap-1.5 group"
+          >
+            <span className="relative w-16 h-16 rounded-full bg-night/5 border-2 border-dashed border-night/20 flex items-center justify-center group-hover:border-night/40 transition-colors">
+              {myGroup && myGroup.stories.length > 0 ? (
+                <Avatar
+                  src={currentUserAvatarUrl}
+                  fullName={currentUserName}
+                  size="lg"
+                  className="!w-14 !h-14"
+                />
+              ) : (
+                <span className="w-10 h-10 rounded-full bg-night text-cream flex items-center justify-center">
+                  <Plus className="w-5 h-5" aria-hidden />
+                </span>
+              )}
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gold text-night flex items-center justify-center border-2 border-bg">
+                <Plus className="w-3 h-3" aria-hidden strokeWidth={3} />
+              </span>
+            </span>
+            <span className="text-[11px] font-medium text-night-muted">
+              Toi
+            </span>
+          </Link>
+        </li>
+
+        {myGroup && myGroup.stories.length > 0
+          ? null
+          : null /* Already shown via "Toi" button above */}
+
+        {otherGroups.map((group) => (
+          <li key={group.author.id}>
+            <StoryAvatarLink group={group} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StoryAvatarLink({ group }: { group: StoryGroup }) {
+  const firstStoryId = group.stories[0]?.id;
+  const displayName =
+    group.author.full_name?.split(" ")[0] ?? group.author.username ?? "—";
+
+  if (!firstStoryId) return null;
+
+  return (
+    <Link
+      href={`/stories/${firstStoryId}`}
+      className="flex flex-col items-center gap-1.5 group"
+    >
+      <span
+        className={cn(
+          "relative w-16 h-16 rounded-full p-0.5 transition-transform group-hover:scale-105",
+          group.has_unviewed
+            ? "bg-gradient-to-br from-gold via-gold-soft to-gold-deep"
+            : "bg-night/15",
+        )}
+      >
+        <span className="block w-full h-full rounded-full p-0.5 bg-bg">
+          <Avatar
+            src={group.author.avatar_url}
+            fullName={group.author.full_name ?? group.author.username}
+            size="lg"
+            className="!w-full !h-full"
+          />
+        </span>
+      </span>
+      <span className="text-[11px] font-medium text-night-muted truncate max-w-[64px]">
+        {displayName}
+      </span>
+    </Link>
+  );
+}

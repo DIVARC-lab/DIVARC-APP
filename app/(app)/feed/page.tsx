@@ -4,9 +4,14 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { listFeedPosts } from "@/lib/queries/posts";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import {
+  groupStoriesByAuthor,
+  listVisibleStories,
+} from "@/lib/queries/stories";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "./_components/PostCard";
 import { PostComposer } from "./_components/PostComposer";
+import { StoriesRow } from "./_components/StoriesRow";
 
 export const metadata = {
   title: "Feed",
@@ -22,7 +27,11 @@ export default async function FeedPage() {
   const profile = await getCurrentProfile();
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
-  const posts = await listFeedPosts(user.id, 30);
+  const [posts, stories] = await Promise.all([
+    listFeedPosts(user.id, 30),
+    listVisibleStories(user.id),
+  ]);
+  const storyGroups = groupStoriesByAuthor(stories, user.id);
 
   return (
     <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
@@ -37,6 +46,13 @@ export default async function FeedPage() {
           Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
         </p>
       </header>
+
+      <StoriesRow
+        groups={storyGroups}
+        currentUserId={user.id}
+        currentUserAvatarUrl={profile?.avatar_url ?? null}
+        currentUserName={fullName}
+      />
 
       <PostComposer
         userId={user.id}

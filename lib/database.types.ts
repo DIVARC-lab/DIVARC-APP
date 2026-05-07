@@ -262,6 +262,37 @@ export type TransactionWithCounterparty = Transaction & {
   direction: "incoming" | "outgoing" | "credit";
 };
 
+export type StoryType = "photo" | "text";
+
+export type Story = {
+  id: string;
+  author_id: string;
+  type: StoryType;
+  photo_url: string | null;
+  caption: string | null;
+  background: string | null;
+  created_at: string;
+  expires_at: string;
+};
+
+export type StoryView = {
+  story_id: string;
+  viewer_id: string;
+  viewed_at: string;
+};
+
+export type StoryWithAuthor = Story & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  is_viewed: boolean;
+  views_count: number;
+};
+
+export type StoryGroup = {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url">;
+  stories: StoryWithAuthor[];
+  has_unviewed: boolean;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -533,6 +564,19 @@ export type Database = {
         Row: Transaction;
         Insert: Omit<Transaction, "id" | "created_at"> &
           Partial<Pick<Transaction, "id" | "created_at" | "status">>;
+        Update: never;
+        Relationships: [];
+      };
+      stories: {
+        Row: Story;
+        Insert: Omit<Story, "id" | "created_at" | "expires_at"> &
+          Partial<Pick<Story, "id" | "expires_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      story_views: {
+        Row: StoryView;
+        Insert: Pick<StoryView, "story_id" | "viewer_id">;
         Update: never;
         Relationships: [];
       };
