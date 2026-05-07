@@ -59,8 +59,11 @@ export function ConversationListSidebar({
 function EmptyConversationList() {
   return (
     <div className="text-center py-12 px-4">
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-night/5 flex items-center justify-center mb-4">
-        <MessageSquarePlus className="w-6 h-6 text-night-muted" aria-hidden />
+      <div
+        aria-hidden
+        className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream to-gold/20 border border-gold/30 flex items-center justify-center mb-4 text-3xl leading-none"
+      >
+        💬
       </div>
       <h3 className="font-display text-lg text-night">Aucune discussion</h3>
       <p className="mt-1 text-xs text-muted leading-relaxed">
