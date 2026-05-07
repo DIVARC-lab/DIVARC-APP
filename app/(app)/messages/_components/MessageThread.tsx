@@ -5,7 +5,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/client";
 import type { Message } from "@/lib/database.types";
 import { formatDateSeparator, isSameDay } from "@/lib/utils/dateSeparator";
+import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
 import { MessageBubble } from "./MessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
 
 const TIME_GAP_MS = 5 * 60 * 1000;
 
@@ -41,6 +43,7 @@ export function MessageThread({
   );
   const scrollRef = useRef<HTMLDivElement>(null);
   const otherUserId = otherMember?.user_id ?? null;
+  const { typers } = useTypingChannel(conversationId, currentUserId, null);
 
   // Subscribe to messages and read receipts
   useEffect(() => {
@@ -219,6 +222,11 @@ export function MessageThread({
           );
         })}
       </div>
+      <TypingIndicator
+        typerIds={typers.map((t) => t.user_id)}
+        memberMap={memberMap ?? {}}
+        isGroup={isGroup}
+      />
     </div>
   );
 }

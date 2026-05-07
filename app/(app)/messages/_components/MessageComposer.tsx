@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
+import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 
 const MAX_LENGTH = 4000;
@@ -48,6 +49,7 @@ export function MessageComposer({
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [pending, startTransition] = useTransition();
+  const { notifyTyping } = useTypingChannel(conversationId, senderId, null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -391,6 +393,7 @@ export function MessageComposer({
                   onChange={(event) => {
                     setBody(event.currentTarget.value);
                     resize();
+                    notifyTyping();
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder="Écris un message..."
