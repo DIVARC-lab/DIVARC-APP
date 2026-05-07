@@ -423,9 +423,33 @@ export type Message = {
   attachment_width: number | null;
   attachment_height: number | null;
   attachment_duration_ms: number | null;
+  reply_to_message_id: string | null;
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+};
+
+export type MessageReaction = {
+  id: string;
+  message_id: string;
+  conversation_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+export type MessageReactionSummary = {
+  emoji: string;
+  count: number;
+  user_reacted: boolean;
+};
+
+export type MessageReplyContext = {
+  id: string;
+  sender_id: string;
+  sender_name: string | null;
+  body: string | null;
+  attachment_type: AttachmentType | null;
 };
 
 /** Aggregated view used in the conversation list — one row per conversation */
@@ -488,9 +512,17 @@ export type Database = {
               | "attachment_width"
               | "attachment_height"
               | "attachment_duration_ms"
+              | "reply_to_message_id"
             >
           >;
         Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
+      message_reactions: {
+        Row: MessageReaction;
+        Insert: Pick<MessageReaction, "message_id" | "user_id" | "emoji"> &
+          Partial<Pick<MessageReaction, "id" | "conversation_id" | "created_at">>;
+        Update: never;
         Relationships: [];
       };
       friendships: {

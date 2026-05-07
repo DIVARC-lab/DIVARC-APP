@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/client";
-import type { Message } from "@/lib/database.types";
+import type {
+  Message,
+  MessageReaction,
+  MessageReactionSummary,
+  MessageReplyContext,
+} from "@/lib/database.types";
 import { formatDateSeparator, isSameDay } from "@/lib/utils/dateSeparator";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
 import { MessageBubble } from "./MessageBubble";
@@ -18,26 +23,33 @@ type OtherMember = {
   avatar_url: string | null;
 };
 
+type ReactionsState = Record<string, MessageReactionSummary[]>;
+
 type MessageThreadProps = {
   conversationId: string;
   initialMessages: Message[];
+  initialReactions: ReactionsState;
   initialOtherLastReadAt: string | null;
   currentUserId: string;
   otherMember: OtherMember | null;
   memberMap?: Record<string, OtherMember>;
   isGroup?: boolean;
+  onReply: (ctx: MessageReplyContext) => void;
 };
 
 export function MessageThread({
   conversationId,
   initialMessages,
+  initialReactions,
   initialOtherLastReadAt,
   currentUserId,
   otherMember,
   memberMap,
   isGroup = false,
+  onReply,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [reactions, setReactions] = useState<ReactionsState>(initialReactions);
   const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(
     initialOtherLastReadAt,
   );
@@ -45,7 +57,31 @@ export function MessageThread({
   const otherUserId = otherMember?.user_id ?? null;
   const { typers } = useTypingChannel(conversationId, currentUserId, null);
 
-  // Subscribe to messages and read receipts
+  // Visible messages (filter soft-deleted on client side too)
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => m.deleted_at === null),
+    [messages],
+  );
+
+  // Quick lookup for reply context resolution
+  const messagesById = useMemo(() => {
+    const map = new Map<string, Message>();
+    for (const m of messages) map.set(m.id, m);
+    return map;
+  }, [messages]);
+
+  function resolveSenderName(senderId: string): string | null {
+    if (senderId === currentUserId) return "Toi";
+    if (memberMap?.[senderId]) {
+      return memberMap[senderId].full_name ?? null;
+    }
+    if (otherMember?.user_id === senderId) {
+      return otherMember.full_name ?? null;
+    }
+    return null;
+  }
+
+  // Subscribe to messages, deletions, read receipts, and reactions
   useEffect(() => {
     const supabase = createClient();
 
@@ -65,6 +101,57 @@ export function MessageThread({
             if (prev.some((m) => m.id === newMessage.id)) return prev;
             return [...prev, newMessage];
           });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updated.id ? updated : m)),
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "message_reactions",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const row = payload.new as MessageReaction;
+          setReactions((prev) =>
+            applyReactionInsert(prev, row, currentUserId),
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "message_reactions",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const row = payload.old as Partial<MessageReaction>;
+          if (!row.message_id || !row.emoji) return;
+          setReactions((prev) =>
+            applyReactionDelete(
+              prev,
+              row.message_id!,
+              row.emoji!,
+              row.user_id === currentUserId,
+            ),
+          );
         },
       )
       .on(
@@ -94,10 +181,10 @@ export function MessageThread({
 
   // Mark as read whenever new messages arrive
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (visibleMessages.length === 0) return;
     const supabase = createClient();
     void supabase.rpc("mark_conversation_read", { conv_id: conversationId });
-  }, [messages.length, conversationId]);
+  }, [visibleMessages.length, conversationId]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -107,9 +194,9 @@ export function MessageThread({
         behavior: "smooth",
       });
     });
-  }, [messages]);
+  }, [visibleMessages]);
 
-  if (messages.length === 0) {
+  if (visibleMessages.length === 0) {
     return (
       <div ref={scrollRef} className="flex-1 flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
@@ -139,7 +226,7 @@ export function MessageThread({
 
   // Find the last own message (for read receipt)
   const lastOwnMessageIndex = findLastIndex(
-    messages,
+    visibleMessages,
     (m) => m.sender_id === currentUserId,
   );
   const otherHasReadAt = otherLastReadAt
@@ -152,9 +239,9 @@ export function MessageThread({
       className="flex-1 overflow-y-auto px-4 sm:px-6 py-6"
     >
       <div className="max-w-3xl mx-auto w-full space-y-1.5">
-        {messages.map((message, idx) => {
-          const previous = messages[idx - 1];
-          const next = messages[idx + 1];
+        {visibleMessages.map((message, idx) => {
+          const previous = visibleMessages[idx - 1];
+          const next = visibleMessages[idx + 1];
           const isOwn = message.sender_id === currentUserId;
           const messageDate = new Date(message.created_at);
           const previousDate = previous ? new Date(previous.created_at) : null;
@@ -185,6 +272,24 @@ export function MessageThread({
           const otherHasRead =
             isLastOwn && otherHasReadAt >= messageDate.getTime();
 
+          let replyContext: MessageReplyContext | null = null;
+          if (message.reply_to_message_id) {
+            const target = messagesById.get(message.reply_to_message_id);
+            if (target) {
+              replyContext = {
+                id: target.id,
+                sender_id: target.sender_id,
+                sender_name: resolveSenderName(target.sender_id),
+                body: target.deleted_at ? null : target.body,
+                attachment_type: target.deleted_at
+                  ? null
+                  : target.attachment_type,
+              };
+            }
+          }
+
+          const messageReactions = reactions[message.id] ?? [];
+
           return (
             <div key={message.id}>
               {showDateSeparator ? (
@@ -208,6 +313,19 @@ export function MessageThread({
                 showTime={showTime}
                 senderName={senderName}
                 senderAvatarUrl={senderAvatar}
+                reactions={messageReactions}
+                replyContext={replyContext}
+                onReply={() =>
+                  onReply({
+                    id: message.id,
+                    sender_id: message.sender_id,
+                    sender_name: isOwn
+                      ? "Toi"
+                      : resolveSenderName(message.sender_id),
+                    body: message.body,
+                    attachment_type: message.attachment_type,
+                  })
+                }
               />
               {isLastOwn && !isGroup ? (
                 <div className="flex justify-end mt-1 pr-1">
@@ -229,6 +347,67 @@ export function MessageThread({
       />
     </div>
   );
+}
+
+function applyReactionInsert(
+  state: ReactionsState,
+  row: MessageReaction,
+  currentUserId: string,
+): ReactionsState {
+  const list = state[row.message_id] ?? [];
+  const existing = list.find((r) => r.emoji === row.emoji);
+  let nextList: MessageReactionSummary[];
+  if (existing) {
+    nextList = list.map((r) =>
+      r.emoji === row.emoji
+        ? {
+            ...r,
+            count: r.count + 1,
+            user_reacted: r.user_reacted || row.user_id === currentUserId,
+          }
+        : r,
+    );
+  } else {
+    nextList = [
+      ...list,
+      {
+        emoji: row.emoji,
+        count: 1,
+        user_reacted: row.user_id === currentUserId,
+      },
+    ];
+  }
+  nextList.sort((a, b) => b.count - a.count);
+  return { ...state, [row.message_id]: nextList };
+}
+
+function applyReactionDelete(
+  state: ReactionsState,
+  messageId: string,
+  emoji: string,
+  wasCurrentUser: boolean,
+): ReactionsState {
+  const list = state[messageId];
+  if (!list) return state;
+  const nextList: MessageReactionSummary[] = [];
+  for (const r of list) {
+    if (r.emoji !== emoji) {
+      nextList.push(r);
+      continue;
+    }
+    const nextCount = r.count - 1;
+    if (nextCount <= 0) continue;
+    nextList.push({
+      ...r,
+      count: nextCount,
+      user_reacted: wasCurrentUser ? false : r.user_reacted,
+    });
+  }
+  if (nextList.length === 0) {
+    const { [messageId]: _, ...rest } = state;
+    return rest;
+  }
+  return { ...state, [messageId]: nextList };
 }
 
 function ReadReceipt({

@@ -1,12 +1,22 @@
 "use client";
 
-import { Download, FileText, Sparkles } from "lucide-react";
+import { Download, FileText, Reply, Sparkles, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
-import type { Message } from "@/lib/database.types";
+import type {
+  Message,
+  MessageReplyContext,
+  MessageReactionSummary,
+} from "@/lib/database.types";
+import { cn } from "@/lib/utils/cn";
+import { createClient } from "@/lib/supabase/client";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
 import { AudioPlayer } from "./AudioPlayer";
+import { MessageReactions } from "./MessageReactions";
+import { ReactionPicker } from "./ReactionPicker";
+import { ReplyPreview } from "./ReplyPreview";
 
 type MessageBubbleProps = {
   message: Message;
@@ -15,6 +25,9 @@ type MessageBubbleProps = {
   showTime: boolean;
   senderName: string | null;
   senderAvatarUrl: string | null;
+  reactions: MessageReactionSummary[];
+  replyContext: MessageReplyContext | null;
+  onReply: () => void;
 };
 
 export function MessageBubble({
@@ -24,7 +37,12 @@ export function MessageBubble({
   showTime,
   senderName,
   senderAvatarUrl,
+  reactions,
+  replyContext,
+  onReply,
 }: MessageBubbleProps) {
+  const [pendingDelete, startDelete] = useTransition();
+
   if (message.type === "system") {
     return (
       <div className="flex justify-center my-3">
@@ -36,17 +54,62 @@ export function MessageBubble({
     );
   }
 
-  const hasImage = message.attachment_type === "image" && message.attachment_url;
-  const hasAudio = message.attachment_type === "audio" && message.attachment_url;
+  const hasImage =
+    message.attachment_type === "image" && message.attachment_url;
+  const hasAudio =
+    message.attachment_type === "audio" && message.attachment_url;
   const hasFile =
     message.attachment_url &&
     message.attachment_type !== "image" &&
     message.attachment_type !== "audio" &&
     message.attachment_type !== null;
 
+  async function handleQuickReact(emoji: string) {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const existing = reactions.find(
+      (r) => r.emoji === emoji && r.user_reacted,
+    );
+
+    if (existing) {
+      await supabase
+        .from("message_reactions")
+        .delete()
+        .eq("message_id", message.id)
+        .eq("user_id", user.id)
+        .eq("emoji", emoji);
+    } else {
+      const { error } = await supabase.from("message_reactions").insert({
+        message_id: message.id,
+        user_id: user.id,
+        emoji,
+      });
+      if (error) toast.error("Impossible de réagir.");
+    }
+  }
+
+  function handleDelete() {
+    if (!confirm("Supprimer ce message pour tout le monde ?")) return;
+    startDelete(async () => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("messages")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", message.id);
+      if (error) toast.error("Suppression impossible.");
+    });
+  }
+
   return (
     <div
-      className={`flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}
+      className={cn(
+        "group flex items-end gap-2",
+        isOwn ? "justify-end" : "justify-start",
+      )}
     >
       {!isOwn ? (
         <div className="w-8 shrink-0">
@@ -57,47 +120,114 @@ export function MessageBubble({
       ) : null}
 
       <div
-        className={`max-w-[78%] sm:max-w-[60%] flex flex-col ${
-          isOwn ? "items-end" : "items-start"
-        }`}
+        className={cn(
+          "max-w-[78%] sm:max-w-[60%] flex flex-col relative",
+          isOwn ? "items-end" : "items-start",
+        )}
       >
-        {hasImage ? (
-          <ImageAttachment
-            url={message.attachment_url!}
-            width={message.attachment_width}
-            height={message.attachment_height}
-            isOwn={isOwn}
-          />
-        ) : null}
+        <div className="flex items-end gap-1.5 group/actions">
+          {isOwn ? (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mb-1">
+              <ReactionPicker onPick={handleQuickReact} align="end" />
+              <button
+                type="button"
+                onClick={onReply}
+                aria-label="Répondre"
+                className="w-7 h-7 rounded-full bg-white/95 border border-line text-night-muted hover:text-night hover:border-night/30 flex items-center justify-center shadow-soft"
+              >
+                <Reply className="w-3.5 h-3.5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={pendingDelete}
+                aria-label="Supprimer"
+                className="w-7 h-7 rounded-full bg-white/95 border border-line text-red-500 hover:bg-red-50 flex items-center justify-center shadow-soft"
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            </div>
+          ) : null}
 
-        {hasAudio ? (
-          <AudioPlayer
-            url={message.attachment_url!}
-            durationMs={message.attachment_duration_ms}
-            isOwn={isOwn}
-          />
-        ) : null}
-
-        {hasFile ? (
-          <FileAttachment
-            url={message.attachment_url!}
-            name={message.attachment_name ?? "fichier"}
-            size={message.attachment_size}
-            isOwn={isOwn}
-          />
-        ) : null}
-
-        {message.body ? (
           <div
-            className={`mt-${hasImage || hasFile ? "1.5" : "0"} px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm ${
-              isOwn
-                ? "bg-night text-cream rounded-br-md"
-                : "bg-white text-night border border-line rounded-bl-md"
-            }`}
+            className={cn(
+              "flex flex-col",
+              isOwn ? "items-end" : "items-start",
+            )}
           >
-            <p className="whitespace-pre-wrap break-words">{message.body}</p>
+            {replyContext ? (
+              <ReplyPreview
+                senderName={replyContext.sender_name}
+                body={replyContext.body}
+                attachmentType={replyContext.attachment_type}
+                variant="bubble"
+                isOwnBubble={isOwn}
+              />
+            ) : null}
+
+            {hasImage ? (
+              <ImageAttachment
+                url={message.attachment_url!}
+                width={message.attachment_width}
+                height={message.attachment_height}
+                isOwn={isOwn}
+              />
+            ) : null}
+
+            {hasAudio ? (
+              <AudioPlayer
+                url={message.attachment_url!}
+                durationMs={message.attachment_duration_ms}
+                isOwn={isOwn}
+              />
+            ) : null}
+
+            {hasFile ? (
+              <FileAttachment
+                url={message.attachment_url!}
+                name={message.attachment_name ?? "fichier"}
+                size={message.attachment_size}
+                isOwn={isOwn}
+              />
+            ) : null}
+
+            {message.body ? (
+              <div
+                className={cn(
+                  "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm",
+                  hasImage || hasFile || hasAudio ? "mt-1.5" : "",
+                  isOwn
+                    ? "bg-night text-cream rounded-br-md"
+                    : "bg-white text-night border border-line rounded-bl-md",
+                )}
+              >
+                <p className="whitespace-pre-wrap break-words">
+                  {message.body}
+                </p>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+
+          {!isOwn ? (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mb-1">
+              <ReactionPicker onPick={handleQuickReact} align="start" />
+              <button
+                type="button"
+                onClick={onReply}
+                aria-label="Répondre"
+                className="w-7 h-7 rounded-full bg-white/95 border border-line text-night-muted hover:text-night hover:border-night/30 flex items-center justify-center shadow-soft"
+              >
+                <Reply className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        <MessageReactions
+          messageId={message.id}
+          reactions={reactions}
+          isOwn={isOwn}
+        />
 
         {showTime ? (
           <time
@@ -134,9 +264,10 @@ function ImageAttachment({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`overflow-hidden rounded-3xl bg-night/5 border max-w-xs w-full ${
-          isOwn ? "border-night/30" : "border-line"
-        }`}
+        className={cn(
+          "overflow-hidden rounded-3xl bg-night/5 border max-w-xs w-full",
+          isOwn ? "border-night/30" : "border-line",
+        )}
       >
         <span
           className="relative block w-full"
@@ -197,16 +328,18 @@ function FileAttachment({
       target="_blank"
       rel="noopener noreferrer"
       download={name}
-      className={`flex items-center gap-3 px-4 py-3 rounded-3xl text-sm shadow-sm ${
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 rounded-3xl text-sm shadow-sm",
         isOwn
           ? "bg-night text-cream rounded-br-md"
-          : "bg-white text-night border border-line rounded-bl-md"
-      }`}
+          : "bg-white text-night border border-line rounded-bl-md",
+      )}
     >
       <span
-        className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
-          isOwn ? "bg-cream/15" : "bg-night/5"
-        }`}
+        className={cn(
+          "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0",
+          isOwn ? "bg-cream/15" : "bg-night/5",
+        )}
       >
         <FileText className="w-4 h-4" aria-hidden />
       </span>

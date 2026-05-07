@@ -11,9 +11,11 @@ import {
 import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import type { MessageReplyContext } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
+import { ReplyPreview } from "./ReplyPreview";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 
 const MAX_LENGTH = 4000;
@@ -34,6 +36,8 @@ type Attachment = {
 type MessageComposerProps = {
   conversationId: string;
   senderId: string;
+  replyTo: MessageReplyContext | null;
+  onClearReply: () => void;
 };
 
 function draftKey(conversationId: string) {
@@ -43,6 +47,8 @@ function draftKey(conversationId: string) {
 export function MessageComposer({
   conversationId,
   senderId,
+  replyTo,
+  onClearReply,
 }: MessageComposerProps) {
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<Attachment | null>(null);
@@ -84,6 +90,10 @@ export function MessageComposer({
   useEffect(() => {
     if (!recording) textareaRef.current?.focus();
   }, [recording]);
+
+  useEffect(() => {
+    if (replyTo) textareaRef.current?.focus();
+  }, [replyTo]);
 
   function resize() {
     const ta = textareaRef.current;
@@ -226,6 +236,7 @@ export function MessageComposer({
       attachment_type: "audio",
       attachment_size: audio.blob.size,
       attachment_duration_ms: Math.round(audio.durationMs),
+      reply_to_message_id: replyTo?.id ?? null,
     });
 
     if (error) {
@@ -235,6 +246,7 @@ export function MessageComposer({
     }
 
     setRecording(false);
+    onClearReply();
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -244,8 +256,10 @@ export function MessageComposer({
 
     const previousBody = body;
     const previousAttachment = attachment;
+    const previousReply = replyTo;
     setBody("");
     setAttachment(null);
+    onClearReply();
     requestAnimationFrame(resize);
 
     startTransition(async () => {
@@ -260,6 +274,7 @@ export function MessageComposer({
         attachment_size: previousAttachment?.size ?? null,
         attachment_width: previousAttachment?.width ?? null,
         attachment_height: previousAttachment?.height ?? null,
+        reply_to_message_id: previousReply?.id ?? null,
       });
 
       if (error) {
@@ -293,6 +308,17 @@ export function MessageComposer({
           />
         ) : (
           <form onSubmit={handleSubmit}>
+            {replyTo ? (
+              <div className="mb-3">
+                <ReplyPreview
+                  senderName={replyTo.sender_name}
+                  body={replyTo.body}
+                  attachmentType={replyTo.attachment_type}
+                  variant="composer"
+                  onCancel={onClearReply}
+                />
+              </div>
+            ) : null}
             {attachment ? (
               <div className="mb-3 flex items-center gap-3 p-3 rounded-2xl bg-bg border border-line">
                 {attachment.type === "image" ? (

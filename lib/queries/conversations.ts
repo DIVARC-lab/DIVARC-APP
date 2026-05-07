@@ -4,6 +4,7 @@ import type {
   Conversation,
   ConversationListItem,
   Message,
+  MessageReactionSummary,
   Profile,
 } from "@/lib/database.types";
 
@@ -185,6 +186,50 @@ export async function getMessagesForConversation(
 
   if (error || !data) return [];
   return [...data].reverse();
+}
+
+export async function getReactionsForConversation(
+  conversationId: string,
+): Promise<Record<string, MessageReactionSummary[]>> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data, error } = await supabase
+    .from("message_reactions")
+    .select("message_id, emoji, user_id")
+    .eq("conversation_id", conversationId);
+
+  if (error || !data) return {};
+
+  const aggregated = new Map<string, Map<string, { count: number; userReacted: boolean }>>();
+
+  for (const row of data) {
+    let perMessage = aggregated.get(row.message_id);
+    if (!perMessage) {
+      perMessage = new Map();
+      aggregated.set(row.message_id, perMessage);
+    }
+    const entry = perMessage.get(row.emoji) ?? { count: 0, userReacted: false };
+    entry.count += 1;
+    if (row.user_id === user.id) entry.userReacted = true;
+    perMessage.set(row.emoji, entry);
+  }
+
+  const result: Record<string, MessageReactionSummary[]> = {};
+  for (const [messageId, perMessage] of aggregated.entries()) {
+    result[messageId] = Array.from(perMessage.entries())
+      .map(([emoji, { count, userReacted }]) => ({
+        emoji,
+        count,
+        user_reacted: userReacted,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+  return result;
 }
 
 export async function getTotalUnreadCount(userId: string): Promise<number> {

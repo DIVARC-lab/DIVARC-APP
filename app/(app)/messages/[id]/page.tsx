@@ -5,11 +5,11 @@ import { Avatar } from "@/components/ui/Avatar";
 import {
   getConversationDetails,
   getMessagesForConversation,
+  getReactionsForConversation,
 } from "@/lib/queries/conversations";
 import { getGroupDetails } from "@/lib/queries/groups";
 import { createClient } from "@/lib/supabase/server";
-import { MessageComposer } from "../_components/MessageComposer";
-import { MessageThread } from "../_components/MessageThread";
+import { ConversationView } from "../_components/ConversationView";
 
 type Params = Promise<{ id: string }>;
 
@@ -29,7 +29,10 @@ export default async function ConversationPage({ params }: { params: Params }) {
   const isGroup = conversation.type === "group";
 
   const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
-  const initialMessages = await getMessagesForConversation(id);
+  const [initialMessages, initialReactions] = await Promise.all([
+    getMessagesForConversation(id),
+    getReactionsForConversation(id),
+  ]);
 
   // Mark as read in the background
   await supabase.rpc("mark_conversation_read", { conv_id: id });
@@ -111,11 +114,12 @@ export default async function ConversationPage({ params }: { params: Params }) {
         ) : null}
       </header>
 
-      <MessageThread
+      <ConversationView
         conversationId={id}
-        initialMessages={initialMessages}
-        initialOtherLastReadAt={otherLastReadAt}
         currentUserId={user.id}
+        initialMessages={initialMessages}
+        initialReactions={initialReactions}
+        initialOtherLastReadAt={otherLastReadAt}
         otherMember={otherMember
           ? {
               user_id: otherMember.id,
@@ -127,8 +131,6 @@ export default async function ConversationPage({ params }: { params: Params }) {
         memberMap={memberMap}
         isGroup={isGroup}
       />
-
-      <MessageComposer conversationId={id} senderId={user.id} />
     </>
   );
 }
