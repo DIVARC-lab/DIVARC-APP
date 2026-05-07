@@ -65,6 +65,27 @@ export type ProfileUpdate = ProfileIdentityUpdate & ProfilePreferencesUpdate;
 export type ConversationType = "direct" | "group";
 export type MemberRole = "owner" | "member";
 export type MessageType = "text" | "system";
+export type FriendshipStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "cancelled";
+
+export type Friendship = {
+  id: string;
+  requester_id: string;
+  recipient_id: string;
+  status: FriendshipStatus;
+  intro_message: string | null;
+  created_at: string;
+  responded_at: string | null;
+};
+
+/** Friendship enriched with the *other* user's profile for UI rendering */
+export type FriendshipWithProfile = Friendship & {
+  other: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location">;
+  direction: "incoming" | "outgoing";
+};
 
 export type Conversation = {
   id: string;
@@ -145,6 +166,13 @@ export type Database = {
         Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;
         Relationships: [];
       };
+      friendships: {
+        Row: Friendship;
+        Insert: Pick<Friendship, "requester_id" | "recipient_id"> &
+          Partial<Pick<Friendship, "intro_message" | "status">>;
+        Update: Partial<Pick<Friendship, "status" | "intro_message" | "responded_at">>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -158,6 +186,14 @@ export type Database = {
       };
       is_conversation_member: {
         Args: { conv_id: string };
+        Returns: boolean;
+      };
+      send_friend_request: {
+        Args: { recipient_user_id: string; intro?: string | null };
+        Returns: string;
+      };
+      are_friends: {
+        Args: { user_a: string; user_b: string };
         Returns: boolean;
       };
     };

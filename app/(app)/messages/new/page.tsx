@@ -18,9 +18,9 @@ export default function NewConversationPage() {
           <ArrowLeft className="w-4 h-4 text-night" aria-hidden />
         </Link>
         <div>
-          <h1 className="font-semibold text-night">Nouvelle discussion</h1>
+          <h1 className="font-semibold text-night">Trouver des proches</h1>
           <p className="text-xs text-muted">
-            Trouve quelqu&apos;un par son nom ou son pseudo.
+            Envoie une demande d&apos;ami. La conversation s&apos;ouvre dès l&apos;acceptation.
           </p>
         </div>
       </header>

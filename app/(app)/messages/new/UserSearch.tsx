@@ -1,11 +1,26 @@
 "use client";
 
-import { Loader2, MapPin, Search, UserPlus } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Loader2,
+  MapPin,
+  MessageSquareText,
+  Search,
+  UserPlus,
+} from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
-import { startDirectConversation } from "../actions";
+import { createClient } from "@/lib/supabase/client";
+import {
+  acceptFriendRequest,
+  sendFriendRequest,
+} from "@/app/(app)/friends/actions";
 
 type SearchResult = {
   id: string;
@@ -13,15 +28,22 @@ type SearchResult = {
   username: string | null;
   avatar_url: string | null;
   location: string | null;
+  friendship: {
+    state: "none" | "self" | "friends" | "outgoing" | "incoming";
+    friendshipId: string | null;
+  };
 };
 
 export function UserSearch() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query.trim(), 300);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
-  const [starting, startTransition] = useTransition();
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [intros, setIntros] = useState<Record<string, string>>({});
+  const [introOpen, setIntroOpen] = useState<string | null>(null);
 
   useEffect(() => {
     if (debounced.length < 2) {
@@ -52,14 +74,66 @@ export function UserSearch() {
     return () => controller.abort();
   }, [debounced]);
 
-  function handleStart(userId: string) {
+  function handleSendRequest(userId: string) {
+    setActiveUserId(userId);
+    const intro = intros[userId];
+    startTransition(async () => {
+      const result = await sendFriendRequest(userId, intro);
+      if (result.ok) {
+        toast.success("Demande envoyée. Tu recevras un message dès qu'elle sera acceptée.");
+        setIntroOpen(null);
+        setIntros((prev) => ({ ...prev, [userId]: "" }));
+        // Update local result state optimistically
+        setResults((prev) =>
+          prev.map((r) =>
+            r.id === userId
+              ? { ...r, friendship: { state: "outgoing", friendshipId: null } }
+              : r,
+          ),
+        );
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Demande impossible.");
+      }
+      setActiveUserId(null);
+    });
+  }
+
+  function handleAccept(userId: string, friendshipId: string | null) {
+    if (!friendshipId) return;
     setActiveUserId(userId);
     startTransition(async () => {
-      const result = await startDirectConversation(userId);
-      if (result?.error) {
-        toast.error(result.error);
-        setActiveUserId(null);
+      const result = await acceptFriendRequest(friendshipId);
+      if (result.ok) {
+        toast.success("Demande acceptée. La conversation est ouverte.");
+        // Open the conversation
+        const supabase = createClient();
+        const { data } = await supabase.rpc(
+          "get_or_create_direct_conversation",
+          { other_user_id: userId },
+        );
+        if (data) router.push(`/messages/${data}`);
+      } else {
+        toast.error(result.error ?? "Acceptation impossible.");
       }
+      setActiveUserId(null);
+    });
+  }
+
+  function handleOpenChat(userId: string) {
+    setActiveUserId(userId);
+    startTransition(async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc(
+        "get_or_create_direct_conversation",
+        { other_user_id: userId },
+      );
+      if (error || !data) {
+        toast.error("Impossible d'ouvrir la conversation.");
+        setActiveUserId(null);
+        return;
+      }
+      router.push(`/messages/${data}`);
     });
   }
 
@@ -86,18 +160,19 @@ export function UserSearch() {
         ) : null}
       </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-3">
         {results.map((result) => {
-          const displayName = result.full_name ?? result.username ?? "Utilisateur";
-          const isStarting = activeUserId === result.id && starting;
+          const displayName =
+            result.full_name ?? result.username ?? "Utilisateur";
+          const isBusy = activeUserId === result.id && pending;
+          const introOpenForThis = introOpen === result.id;
+
           return (
-            <li key={result.id}>
-              <button
-                type="button"
-                onClick={() => handleStart(result.id)}
-                disabled={starting}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white border border-line hover:border-night/30 hover:shadow-soft transition-all text-left disabled:opacity-60"
-              >
+            <li
+              key={result.id}
+              className="rounded-3xl bg-white border border-line p-4 sm:p-5"
+            >
+              <div className="flex items-start gap-4">
                 <Avatar
                   src={result.avatar_url}
                   fullName={displayName}
@@ -118,15 +193,69 @@ export function UserSearch() {
                     ) : null}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs font-semibold text-night-muted flex items-center gap-1">
-                  {isStarting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-                  ) : (
-                    <UserPlus className="w-4 h-4" aria-hidden />
-                  )}
-                  {isStarting ? "Ouverture..." : "Discuter"}
-                </span>
-              </button>
+                <div className="shrink-0">
+                  <ActionForState
+                    state={result.friendship.state}
+                    busy={isBusy}
+                    onSend={() => {
+                      if (introOpenForThis) {
+                        handleSendRequest(result.id);
+                      } else {
+                        setIntroOpen(result.id);
+                      }
+                    }}
+                    onAccept={() =>
+                      handleAccept(result.id, result.friendship.friendshipId)
+                    }
+                    onOpenChat={() => handleOpenChat(result.id)}
+                  />
+                </div>
+              </div>
+
+              {introOpenForThis && result.friendship.state === "none" ? (
+                <div className="mt-4 pt-4 border-t border-line space-y-3">
+                  <label
+                    htmlFor={`intro-${result.id}`}
+                    className="block text-xs font-semibold text-night-muted uppercase tracking-widest"
+                  >
+                    Message d&apos;introduction (facultatif)
+                  </label>
+                  <textarea
+                    id={`intro-${result.id}`}
+                    rows={2}
+                    maxLength={280}
+                    value={intros[result.id] ?? ""}
+                    onChange={(event) =>
+                      setIntros((prev) => ({
+                        ...prev,
+                        [result.id]: event.currentTarget.value,
+                      }))
+                    }
+                    placeholder={`Présente-toi à ${displayName.split(" ")[0]}...`}
+                    className="w-full rounded-xl border border-line bg-bg px-4 py-2.5 text-sm focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15 resize-none"
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIntroOpen(null)}
+                      disabled={isBusy}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleSendRequest(result.id)}
+                      loading={isBusy}
+                    >
+                      {!isBusy ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
+                      Envoyer la demande
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </li>
           );
         })}
@@ -144,5 +273,50 @@ export function UserSearch() {
         </p>
       ) : null}
     </div>
+  );
+}
+
+function ActionForState({
+  state,
+  busy,
+  onSend,
+  onAccept,
+  onOpenChat,
+}: {
+  state: SearchResult["friendship"]["state"];
+  busy: boolean;
+  onSend: () => void;
+  onAccept: () => void;
+  onOpenChat: () => void;
+}) {
+  if (state === "friends") {
+    return (
+      <Button size="sm" onClick={onOpenChat} loading={busy}>
+        {!busy ? <MessageSquareText className="w-4 h-4" aria-hidden /> : null}
+        Discuter
+      </Button>
+    );
+  }
+  if (state === "outgoing") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-night/5 text-xs font-semibold text-night-muted">
+        <Clock className="w-3.5 h-3.5" aria-hidden />
+        En attente
+      </span>
+    );
+  }
+  if (state === "incoming") {
+    return (
+      <Button size="sm" onClick={onAccept} loading={busy}>
+        {!busy ? <Check className="w-4 h-4" aria-hidden /> : null}
+        Accepter
+      </Button>
+    );
+  }
+  return (
+    <Button size="sm" variant="secondary" onClick={onSend} disabled={busy}>
+      <UserPlus className="w-4 h-4" aria-hidden />
+      Demander
+    </Button>
   );
 }

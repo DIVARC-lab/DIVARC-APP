@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import type { Message } from "@/lib/database.types";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
@@ -19,6 +20,17 @@ export function MessageBubble({
   senderName,
   senderAvatarUrl,
 }: MessageBubbleProps) {
+  if (message.type === "system") {
+    return (
+      <div className="flex justify-center my-3">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cream via-bg to-gold/10 border border-gold/30 text-xs text-night-muted">
+          <Sparkles className="w-3.5 h-3.5 text-gold-deep" aria-hidden />
+          <span>{message.body}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`flex items-end gap-2 ${isOwn ? "justify-end" : "justify-start"}`}

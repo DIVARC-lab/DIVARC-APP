@@ -8,11 +8,13 @@ import {
   Sparkles,
   ShoppingBag,
   User,
+  Users,
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getTotalUnreadCount } from "@/lib/queries/conversations";
+import { countIncomingRequests } from "@/lib/queries/friendships";
 import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -42,11 +44,21 @@ export default async function DashboardLayout({
   const profile = await getCurrentProfile();
   const fullName =
     profile?.full_name ?? (user.email?.split("@")[0] ?? "");
-  const unread = await getTotalUnreadCount(user.id);
+  const [unread, incomingRequests] = await Promise.all([
+    getTotalUnreadCount(user.id),
+    countIncomingRequests(user.id),
+  ]);
 
   const navItems: ReadonlyArray<NavItem> = [
     { href: "/dashboard", label: "Accueil", icon: Home, available: true },
     { href: "/profile", label: "Profil", icon: User, available: true },
+    {
+      href: "/friends",
+      label: "Amis",
+      icon: Users,
+      available: true,
+      badge: incomingRequests > 0 ? incomingRequests : undefined,
+    },
     {
       href: "/messages",
       label: "Discussions",
