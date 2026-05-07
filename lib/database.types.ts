@@ -677,6 +677,28 @@ export type Database = {
         };
         Returns: void;
       };
+      is_current_user_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      admin_stats: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      admin_recent_users: {
+        Args: { items_limit?: number };
+        Returns: Array<{
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          username: string | null;
+          avatar_url: string | null;
+          founder_rank: number | null;
+          is_admin: boolean;
+          onboarded_at: string | null;
+          created_at: string;
+        }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
