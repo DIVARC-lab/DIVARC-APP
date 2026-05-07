@@ -62,6 +62,61 @@ export type ProfilePreferencesUpdate = Partial<
 
 export type ProfileUpdate = ProfileIdentityUpdate & ProfilePreferencesUpdate;
 
+export type ConversationType = "direct" | "group";
+export type MemberRole = "owner" | "member";
+export type MessageType = "text" | "system";
+
+export type Conversation = {
+  id: string;
+  type: ConversationType;
+  name: string | null;
+  avatar_url: string | null;
+  created_by: string | null;
+  created_at: string;
+  last_message_at: string;
+};
+
+export type ConversationMember = {
+  conversation_id: string;
+  user_id: string;
+  joined_at: string;
+  last_read_at: string;
+  role: MemberRole;
+};
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  type: MessageType;
+  created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+/** Aggregated view used in the conversation list — one row per conversation */
+export type ConversationListItem = {
+  id: string;
+  type: ConversationType;
+  name: string | null;
+  avatar_url: string | null;
+  last_message_at: string;
+  last_read_at: string;
+  unread_count: number;
+  other_member: {
+    user_id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  } | null;
+  last_message: {
+    body: string;
+    sender_id: string;
+    created_at: string;
+  } | null;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -71,9 +126,41 @@ export type Database = {
         Update: ProfileUpdate;
         Relationships: [];
       };
+      conversations: {
+        Row: Conversation;
+        Insert: Partial<Conversation> & Pick<Conversation, "type">;
+        Update: Partial<Conversation>;
+        Relationships: [];
+      };
+      conversation_members: {
+        Row: ConversationMember;
+        Insert: ConversationMember;
+        Update: Partial<ConversationMember>;
+        Relationships: [];
+      };
+      messages: {
+        Row: Message;
+        Insert: Omit<Message, "id" | "created_at" | "edited_at" | "deleted_at" | "type"> &
+          Partial<Pick<Message, "id" | "type">>;
+        Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_or_create_direct_conversation: {
+        Args: { other_user_id: string };
+        Returns: string;
+      };
+      mark_conversation_read: {
+        Args: { conv_id: string };
+        Returns: void;
+      };
+      is_conversation_member: {
+        Args: { conv_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

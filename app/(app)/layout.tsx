@@ -12,29 +12,18 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import { getTotalUnreadCount } from "@/lib/queries/conversations";
 import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
-const NAV_ITEMS: ReadonlyArray<{
+type NavItem = {
   href: string;
   label: string;
   icon: typeof Home;
   available: boolean;
-}> = [
-  { href: "/dashboard", label: "Accueil", icon: Home, available: true },
-  { href: "/profile", label: "Profil", icon: User, available: true },
-  {
-    href: "#",
-    label: "Discussions",
-    icon: MessageSquareText,
-    available: false,
-  },
-  { href: "#", label: "Marché", icon: ShoppingBag, available: false },
-  { href: "#", label: "Emploi", icon: Briefcase, available: false },
-  { href: "#", label: "Découvrir", icon: Compass, available: false },
-  { href: "#", label: "Paiements", icon: Wallet, available: false },
-];
+  badge?: number;
+};
 
 export default async function DashboardLayout({
   children,
@@ -53,6 +42,23 @@ export default async function DashboardLayout({
   const profile = await getCurrentProfile();
   const fullName =
     profile?.full_name ?? (user.email?.split("@")[0] ?? "");
+  const unread = await getTotalUnreadCount(user.id);
+
+  const navItems: ReadonlyArray<NavItem> = [
+    { href: "/dashboard", label: "Accueil", icon: Home, available: true },
+    { href: "/profile", label: "Profil", icon: User, available: true },
+    {
+      href: "/messages",
+      label: "Discussions",
+      icon: MessageSquareText,
+      available: true,
+      badge: unread > 0 ? unread : undefined,
+    },
+    { href: "#", label: "Marché", icon: ShoppingBag, available: false },
+    { href: "#", label: "Emploi", icon: Briefcase, available: false },
+    { href: "#", label: "Découvrir", icon: Compass, available: false },
+    { href: "#", label: "Paiements", icon: Wallet, available: false },
+  ];
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
@@ -65,7 +71,7 @@ export default async function DashboardLayout({
         </div>
 
         <nav className="flex-1 px-3 py-6 space-y-0.5" aria-label="Navigation principale">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
@@ -80,6 +86,11 @@ export default async function DashboardLayout({
               >
                 <Icon className="w-4 h-4 shrink-0" aria-hidden />
                 <span className="flex-1">{item.label}</span>
+                {item.badge ? (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-night text-cream text-[10px] font-bold flex items-center justify-center">
+                    {item.badge}
+                  </span>
+                ) : null}
                 {!item.available ? (
                   <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-gold/15 text-gold-deep">
                     Bientôt

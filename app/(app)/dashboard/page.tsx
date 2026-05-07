@@ -234,11 +234,8 @@ export default async function DashboardPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ROADMAP.map((item) => {
             const Icon = item.icon;
-            return (
-              <article
-                key={item.title}
-                className="group relative p-6 rounded-3xl bg-white border border-line hover:border-night/30 hover:shadow-soft transition-all"
-              >
+            const innerContent = (
+              <>
                 <div className="flex items-center justify-between">
                   <div
                     className={`w-11 h-11 rounded-2xl flex items-center justify-center ${item.iconBg}`}
@@ -248,8 +245,14 @@ export default async function DashboardPage() {
                       aria-hidden
                     />
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-night-muted">
-                    Sprint {item.sprint}
+                  <span
+                    className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                      item.href
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-night/5 text-night-muted"
+                    }`}
+                  >
+                    {item.href ? "Disponible" : `Sprint ${item.sprint}`}
                   </span>
                 </div>
                 <h3 className="mt-5 font-display text-2xl text-night">
@@ -258,6 +261,20 @@ export default async function DashboardPage() {
                 <p className="mt-2 text-sm text-muted leading-relaxed">
                   {item.body}
                 </p>
+              </>
+            );
+            const className =
+              "group relative p-6 rounded-3xl bg-white border border-line hover:border-night/30 hover:shadow-soft transition-all block";
+            if (item.href) {
+              return (
+                <Link key={item.title} href={item.href} className={className}>
+                  {innerContent}
+                </Link>
+              );
+            }
+            return (
+              <article key={item.title} className={className}>
+                {innerContent}
               </article>
             );
           })}
@@ -274,14 +291,16 @@ const ROADMAP: ReadonlyArray<{
   icon: typeof MessageSquareText;
   iconBg: string;
   iconColor: string;
+  href?: string;
 }> = [
   {
     title: "Discussions",
-    body: "Messagerie 1-1, groupes, médias, audios. Notifications push partout.",
+    body: "Messagerie chiffrée 1-1, accusés de lecture en temps réel, brouillons sauvegardés.",
     sprint: 3,
     icon: MessageSquareText,
     iconBg: "bg-night/10",
     iconColor: "text-night",
+    href: "/messages",
   },
   {
     title: "Marché",
