@@ -78,6 +78,55 @@ export type NotificationType =
   | "new_message"
   | "system";
 
+export type PostVisibility = "public" | "friends" | "private";
+
+export type Post = {
+  id: string;
+  author_id: string;
+  body: string | null;
+  visibility: PostVisibility;
+  created_at: string;
+  updated_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+export type PostPhoto = {
+  id: string;
+  post_id: string;
+  url: string;
+  position: number;
+  created_at: string;
+};
+
+export type PostLike = {
+  post_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type PostComment = {
+  id: string;
+  post_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+export type PostWithDetails = Post & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  photos: PostPhoto[];
+  likes_count: number;
+  comments_count: number;
+  is_liked: boolean;
+};
+
+export type CommentWithAuthor = PostComment & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -290,6 +339,33 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      posts: {
+        Row: Post;
+        Insert: Omit<Post, "id" | "created_at" | "updated_at" | "edited_at" | "deleted_at"> &
+          Partial<Pick<Post, "id" | "edited_at" | "deleted_at">>;
+        Update: Partial<Pick<Post, "body" | "visibility" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
+      post_photos: {
+        Row: PostPhoto;
+        Insert: Omit<PostPhoto, "id" | "created_at"> &
+          Partial<Pick<PostPhoto, "id" | "created_at">>;
+        Update: Partial<Pick<PostPhoto, "url" | "position">>;
+        Relationships: [];
+      };
+      post_likes: {
+        Row: PostLike;
+        Insert: Pick<PostLike, "post_id" | "user_id">;
+        Update: never;
+        Relationships: [];
+      };
+      post_comments: {
+        Row: PostComment;
+        Insert: Omit<PostComment, "id" | "created_at" | "edited_at" | "deleted_at"> &
+          Partial<Pick<PostComment, "id" | "edited_at" | "deleted_at">>;
+        Update: Partial<Pick<PostComment, "body" | "edited_at" | "deleted_at">>;
         Relationships: [];
       };
     };
