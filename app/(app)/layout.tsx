@@ -19,6 +19,7 @@ import { getTotalUnreadCount } from "@/lib/queries/conversations";
 import { countIncomingRequests } from "@/lib/queries/friendships";
 import { countUnreadNotifications } from "@/lib/queries/notifications";
 import { NotificationsRealtime } from "@/components/NotificationsRealtime";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -98,11 +99,12 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="hidden lg:flex flex-col border-r border-line bg-white/60 backdrop-blur-md sticky top-0 h-screen">
-        <div className="px-6 py-6 border-b border-line">
+        <div className="px-6 py-5 border-b border-line space-y-3">
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={36} />
             <span className="font-display text-2xl text-night">DIVARC</span>
           </Link>
+          <GlobalSearch />
         </div>
 
         <nav className="flex-1 px-3 py-6 space-y-0.5" aria-label="Navigation principale">
@@ -168,6 +170,9 @@ export default async function DashboardLayout({
             <span className="font-display text-xl text-night">DIVARC</span>
           </Link>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:block w-56">
+              <GlobalSearch />
+            </div>
             <Link href="/profile">
               <Avatar
                 src={profile?.avatar_url ?? null}
