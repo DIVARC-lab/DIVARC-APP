@@ -84,6 +84,8 @@ export default async function ProfilePage({
 
       <Tabs
         tabs={[...TABS]}
+        activeId={activeTab}
+        pathname="/profile"
         defaultTab="identite"
         paramName="tab"
         className="mx-auto"

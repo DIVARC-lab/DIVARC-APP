@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 
 type Tab = {
@@ -12,6 +9,8 @@ type Tab = {
 
 type TabsProps = {
   tabs: ReadonlyArray<Tab>;
+  activeId: string;
+  pathname: string;
   paramName?: string;
   defaultTab?: string;
   className?: string;
@@ -19,14 +18,12 @@ type TabsProps = {
 
 export function Tabs({
   tabs,
+  activeId,
+  pathname,
   paramName = "tab",
   defaultTab,
   className,
 }: TabsProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const active = searchParams.get(paramName) ?? defaultTab ?? tabs[0]?.id;
-
   return (
     <nav
       aria-label="Sections"
@@ -36,14 +33,11 @@ export function Tabs({
       )}
     >
       {tabs.map((tab) => {
-        const isActive = tab.id === active;
-        const params = new URLSearchParams(searchParams);
-        if (tab.id === defaultTab) {
-          params.delete(paramName);
-        } else {
-          params.set(paramName, tab.id);
-        }
-        const href = params.toString() ? `${pathname}?${params}` : pathname;
+        const isActive = tab.id === activeId;
+        const href =
+          tab.id === defaultTab
+            ? pathname
+            : `${pathname}?${paramName}=${encodeURIComponent(tab.id)}`;
         const Icon = tab.icon;
         return (
           <Link

@@ -18,7 +18,7 @@ export function Switch({
   description,
   disabled,
 }: SwitchProps) {
-  const [checked, setChecked] = useState(defaultChecked);
+  const [checked, setChecked] = useState<boolean>(defaultChecked);
   const id = useId();
 
   return (
@@ -37,11 +37,12 @@ export function Switch({
           </p>
         ) : null}
       </div>
-      <span className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
+      <span
+        aria-hidden
+        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
         style={{ backgroundColor: checked ? "#0A1F44" : "#d2d7e2" }}
       >
         <span
-          aria-hidden
           className={cn(
             "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
             checked && "translate-x-5",
@@ -52,9 +53,8 @@ export function Switch({
         id={id}
         type="checkbox"
         name={name}
-        defaultChecked={defaultChecked}
         checked={checked}
-        onChange={(e) => setChecked(e.currentTarget.checked)}
+        onChange={(event) => setChecked(event.currentTarget.checked)}
         disabled={disabled}
         className="sr-only"
       />
