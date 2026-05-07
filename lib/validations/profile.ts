@@ -33,6 +33,45 @@ export const profileFormSchema = z.object({
 
 export type ProfileFormInput = z.infer<typeof profileFormSchema>;
 
+export const localeSchema = z.enum([
+  "fr-FR",
+  "fr-CA",
+  "fr-BE",
+  "fr-CH",
+  "fr-MA",
+  "fr-SN",
+  "fr-CI",
+  "fr-CM",
+  "fr-DZ",
+  "fr-TN",
+]);
+
+export const currencySchema = z.enum([
+  "EUR",
+  "XAF",
+  "XOF",
+  "MAD",
+  "TND",
+  "DZD",
+  "CAD",
+  "CHF",
+]);
+
+export const themeSchema = z.enum(["light", "dark", "system"]);
+
+export const preferencesFormSchema = z.object({
+  locale: localeSchema,
+  currency: currencySchema,
+  theme: themeSchema,
+  email_notifications: z.boolean(),
+  push_notifications: z.boolean(),
+  discoverable: z.boolean(),
+  show_email: z.boolean(),
+  show_location: z.boolean(),
+});
+
+export type PreferencesFormInput = z.infer<typeof preferencesFormSchema>;
+
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
 export function flattenZodErrors<T>(

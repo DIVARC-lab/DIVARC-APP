@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   flattenZodErrors,
+  preferencesFormSchema,
   profileFormSchema,
   type FieldErrors,
+  type PreferencesFormInput,
   type ProfileFormInput,
 } from "@/lib/validations/profile";
 
@@ -15,7 +17,16 @@ export type ProfileFormState = {
   fieldErrors?: FieldErrors<ProfileFormInput>;
 };
 
-const IDLE: ProfileFormState = { status: "idle" };
+export type PreferencesFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  fieldErrors?: FieldErrors<PreferencesFormInput>;
+};
+
+export type PasswordFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
 
 export async function updateProfile(
   _prev: ProfileFormState | undefined,
@@ -97,8 +108,81 @@ export async function updateProfile(
   };
 }
 
-export async function getInitialProfileFormState(): Promise<ProfileFormState> {
-  return IDLE;
+export async function updatePreferences(
+  _prev: PreferencesFormState | undefined,
+  formData: FormData,
+): Promise<PreferencesFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Tu dois être connecté." };
+  }
+
+  const parsed = preferencesFormSchema.safeParse({
+    locale: formData.get("locale"),
+    currency: formData.get("currency"),
+    theme: formData.get("theme"),
+    email_notifications: formData.get("email_notifications") === "on",
+    push_notifications: formData.get("push_notifications") === "on",
+    discoverable: formData.get("discoverable") === "on",
+    show_email: formData.get("show_email") === "on",
+    show_location: formData.get("show_location") === "on",
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Vérifie les champs.",
+      fieldErrors: flattenZodErrors(parsed.error),
+    };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(parsed.data)
+    .eq("id", user.id);
+
+  if (error) {
+    return {
+      status: "error",
+      message: "Impossible d'enregistrer tes préférences.",
+    };
+  }
+
+  revalidatePath("/profile");
+  return { status: "success", message: "Préférences enregistrées." };
+}
+
+export async function changePassword(
+  _prev: PasswordFormState | undefined,
+  formData: FormData,
+): Promise<PasswordFormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { status: "error", message: "Tu dois être connecté." };
+  }
+
+  const newPassword = String(formData.get("newPassword") ?? "");
+  if (newPassword.length < 8) {
+    return {
+      status: "error",
+      message: "Le mot de passe doit contenir au moins 8 caractères.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  return { status: "success", message: "Mot de passe mis à jour." };
 }
 
 function traduireErreurSupabase(message: string): string {

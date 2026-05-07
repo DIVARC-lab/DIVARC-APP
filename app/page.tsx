@@ -1,29 +1,41 @@
 import {
   ArrowRight,
   Briefcase,
+  Globe2,
   MessageSquareText,
-  Sparkles,
   ShoppingBag,
+  Sparkles,
   Wallet,
-  Users,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
 import { Logo, Wordmark } from "@/components/Logo";
 import { ArcMark } from "@/components/marketing/ArcMark";
-import { PhoneMock } from "@/components/marketing/PhoneMock";
+import { ComparisonTable } from "@/components/marketing/ComparisonTable";
+import { FAQ } from "@/components/marketing/FAQ";
 import { Marquee } from "@/components/marketing/Marquee";
+import { PaymentReceipt } from "@/components/marketing/PaymentReceipt";
+import { PersonaCard } from "@/components/marketing/PersonaCard";
+import { PhoneMockChat } from "@/components/marketing/PhoneMockChat";
+import { PhoneMockMarket } from "@/components/marketing/PhoneMockMarket";
+import { RoadmapTimeline } from "@/components/marketing/RoadmapTimeline";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 
 export default function Home() {
   return (
     <div className="flex flex-col">
       <SiteNav />
       <Hero />
-      <SocialProof />
+      <ProofBar />
+      <Manifesto />
       <Pillars />
-      <ProductShowcase />
-      <CommunityMarquee />
-      <CTA />
+      <Personas />
+      <Vs />
+      <Roadmap />
+      <Vision />
+      <Marquee items={CITIES} className="py-12" />
+      <FAQSection />
+      <CTASection />
       <SiteFooter />
     </div>
   );
@@ -34,15 +46,18 @@ function SiteNav() {
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-bg/80 border-b border-line">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
         <Wordmark />
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-night-muted">
-          <a href="#vision" className="hover:text-night transition-colors">
-            Vision
-          </a>
+        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-night-muted">
           <a href="#produit" className="hover:text-night transition-colors">
             Produit
           </a>
-          <a href="#communaute" className="hover:text-night transition-colors">
-            Communauté
+          <a href="#vs" className="hover:text-night transition-colors">
+            Comparaison
+          </a>
+          <a href="#roadmap" className="hover:text-night transition-colors">
+            Roadmap
+          </a>
+          <a href="#faq" className="hover:text-night transition-colors">
+            FAQ
           </a>
         </nav>
         <div className="flex items-center gap-2">
@@ -66,19 +81,21 @@ function Hero() {
       <div className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-gold/40 via-gold/10 to-transparent blur-3xl halo-drift" />
       <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-night/20 via-night/5 to-transparent blur-3xl halo-drift" />
 
-      <div className="relative max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-24 sm:pt-32 sm:pb-32 grid lg:grid-cols-12 gap-10 items-center">
+      <div className="relative max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-28 sm:pt-32 sm:pb-40 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
         <div className="lg:col-span-7 reveal-up">
           <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-night text-cream text-[11px] font-semibold tracking-widest uppercase">
             <Sparkles className="w-3.5 h-3.5 text-gold" aria-hidden />
-            Bientôt — Beta privée
+            Beta privée — places limitées
           </span>
 
-          <h1 className="mt-6 text-[clamp(2.6rem,7vw,5.6rem)] font-bold tracking-[-0.04em] leading-[0.95] text-night text-balance">
-            Tout. <em className="font-display italic font-normal text-night-soft">au même</em>{" "}
-            <span className="relative inline-block">
-              endroit.
+          <h1 className="mt-6 text-[clamp(2.8rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.92] text-night text-balance">
+            Une <em className="font-display italic font-normal text-night-soft">seule</em>{" "}
+            app pour
+            <br />
+            ta vie <span className="relative inline-block">
+              entière.
               <svg
-                className="absolute -bottom-2 left-0 w-full"
+                className="absolute -bottom-3 left-0 w-full"
                 viewBox="0 0 300 12"
                 fill="none"
                 aria-hidden
@@ -95,33 +112,31 @@ function Hero() {
           </h1>
 
           <p className="mt-8 text-lg sm:text-xl text-muted-strong max-w-xl text-pretty leading-relaxed">
-            DIVARC réunit ce que tu utilises chaque jour — discussions,
-            marketplace, emploi, contenu, paiements — dans une seule
-            application pensée pour les{" "}
+            DIVARC réunit{" "}
+            <strong className="text-night font-semibold">
+              messagerie, marketplace, emploi, contenu et paiements
+            </strong>{" "}
+            dans une seule application — pensée pour les{" "}
             <strong className="text-night font-semibold">
               320 millions de francophones
             </strong>{" "}
-            du monde entier.
+            répartis entre Paris, Dakar, Abidjan, Casablanca et Montréal.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Button size="lg" asChild>
               <Link href="/signup">
-                Créer mon compte
+                Devenir fondateur
                 <ArrowRight className="w-4 h-4" aria-hidden />
               </Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
-              <Link href="#produit">Découvrir l&apos;app</Link>
+              <Link href="#produit">Voir le produit</Link>
             </Button>
           </div>
 
-          <dl className="mt-12 grid grid-cols-3 gap-6 max-w-md">
-            {[
-              { value: "320M", label: "Francophones" },
-              { value: "54", label: "Pays" },
-              { value: "1", label: "Application" },
-            ].map((stat) => (
+          <dl className="mt-14 grid grid-cols-3 gap-6 max-w-md">
+            {HERO_STATS.map((stat) => (
               <div key={stat.label}>
                 <dt className="font-display text-4xl text-night">
                   {stat.value}
@@ -136,27 +151,25 @@ function Hero() {
 
         <div className="lg:col-span-5 relative flex justify-center reveal-up [animation-delay:200ms]">
           <div className="relative">
-            <ArcMark size={420} className="absolute -top-8 -right-12 opacity-90" />
+            <ArcMark
+              size={460}
+              className="absolute -top-12 -right-16 opacity-90"
+            />
             <div className="relative z-10 translate-y-6">
-              <PhoneMock />
+              <PhoneMockChat />
             </div>
-            {/* Floating cards */}
-            <div className="absolute -left-12 top-20 z-20 hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-white border border-line shadow-[0_20px_60px_-20px_rgba(10,31,68,0.45)]">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                <Wallet className="w-4 h-4 text-emerald-700" aria-hidden />
-              </div>
-              <div className="leading-tight">
-                <p className="text-[11px] text-muted">Reçu de Maman</p>
-                <p className="text-sm font-bold text-night">+ 50 000 XAF</p>
+            <div className="absolute -left-16 top-32 z-20 hidden md:block">
+              <div className="rotate-[-6deg] scale-90 origin-bottom-right">
+                <PaymentReceipt />
               </div>
             </div>
-            <div className="absolute -right-6 bottom-32 z-20 hidden sm:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-night text-cream shadow-[0_20px_60px_-20px_rgba(10,31,68,0.55)]">
+            <div className="absolute -right-10 bottom-12 z-20 hidden lg:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-night text-cream shadow-[0_20px_60px_-20px_rgba(10,31,68,0.55)]">
               <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-night font-bold">
-                A
+                Y
               </div>
               <div className="leading-tight">
-                <p className="text-[11px] text-cream/70">Aïssatou</p>
-                <p className="text-sm font-medium">À tout de suite ✨</p>
+                <p className="text-[11px] text-cream/70">Yann · Paris</p>
+                <p className="text-sm font-medium">Vu ton annonce ✨</p>
               </div>
             </div>
           </div>
@@ -166,21 +179,59 @@ function Hero() {
   );
 }
 
-function SocialProof() {
+const HERO_STATS = [
+  { value: "320M", label: "Francophones" },
+  { value: "54", label: "Pays" },
+  { value: "1", label: "Application" },
+];
+
+function ProofBar() {
   return (
     <section className="border-y border-line bg-white">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-10 items-center">
-        <p className="text-sm font-medium text-muted">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10">
+        <p className="text-sm font-medium text-muted shrink-0">
           Bâtir <em className="font-display not-italic text-night">ce qui manquait</em> à
-          l&apos;Internet francophone.
+          l&apos;internet francophone.
         </p>
-        {["Paris", "Dakar", "Yaoundé", "Abidjan"].map((city) => (
-          <div key={city} className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-            <span className="text-sm font-semibold text-night">{city}</span>
-            <span className="text-xs text-muted">— Beta</span>
-          </div>
-        ))}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          {["Paris", "Dakar", "Yaoundé", "Abidjan", "Montréal", "Casablanca"].map(
+            (city) => (
+              <div key={city} className="flex items-center gap-2 text-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                <span className="font-semibold text-night">{city}</span>
+              </div>
+            ),
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Manifesto() {
+  return (
+    <section className="relative py-28 sm:py-36 bg-night text-cream overflow-hidden grain">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,185,66,0.18),transparent_60%)]" />
+      <div className="relative max-w-5xl mx-auto px-6 sm:px-10">
+        <span className="text-xs font-semibold tracking-widest uppercase text-gold">
+          Manifeste
+        </span>
+        <p className="mt-6 font-display text-[clamp(2rem,5vw,4rem)] leading-[1.1] text-balance">
+          Pendant que la Silicon Valley pense pour New York,
+          <em className="italic block sm:inline text-gold-soft">
+            {" "}
+            personne ne pense pour Paris-Dakar.
+          </em>
+        </p>
+        <p className="mt-6 max-w-2xl text-cream/75 text-lg leading-relaxed">
+          Les apps américaines traitent la francophonie comme un{" "}
+          <em className="text-cream font-semibold not-italic">marché secondaire</em>.
+          Une traduction approximative, des paiements qui ne marchent qu&apos;en
+          dollar, des modérateurs qui ne comprennent pas nos références.
+          DIVARC inverse l&apos;équation : on construit{" "}
+          <em className="text-gold not-italic font-semibold">d&apos;abord</em>
+          {" "}pour nous.
+        </p>
       </div>
     </section>
   );
@@ -190,44 +241,32 @@ const PILLARS = [
   {
     icon: MessageSquareText,
     title: "Discuter",
-    body: "Messagerie chiffrée pour tes proches et ta communauté. Photos, audios, groupes, appels.",
-    accent: "from-night to-night-soft",
-    text: "text-cream",
+    body: "Messagerie chiffrée pour tes proches. Photos, audios, groupes, appels.",
   },
   {
     icon: ShoppingBag,
     title: "Vendre & acheter",
-    body: "Une marketplace de quartier. Vide-dressing, mobilier, services. Comme Vinted, mais autour de toi.",
-    accent: "from-gold to-gold-deep",
-    text: "text-night",
+    body: "Marketplace de quartier. Vinted, mais autour de toi.",
   },
   {
     icon: Briefcase,
     title: "Travailler",
-    body: "Profil pro, annonces d'emploi, missions courtes. Pour les freelances, étudiants et entrepreneurs.",
-    accent: "from-bg-deep to-bg",
-    text: "text-night",
-  },
-  {
-    icon: Users,
-    title: "Partager",
-    body: "Stories, posts, vidéos courtes. Sans algorithme toxique. Tu vois ce que tes proches publient.",
-    accent: "from-cream to-bg",
-    text: "text-night",
+    body: "Profil pro, annonces d'emploi, missions courtes.",
   },
   {
     icon: Wallet,
     title: "Payer",
-    body: "Stripe en Europe, Mobile Money en Afrique. Envoie de l'argent à ta famille en un clic.",
-    accent: "from-emerald-700 to-emerald-900",
-    text: "text-cream",
+    body: "Stripe, Wave, Orange Money. Sans frais, instantané.",
+  },
+  {
+    icon: Globe2,
+    title: "Partager",
+    body: "Stories, posts, vidéos. Sans algorithme toxique.",
   },
   {
     icon: Sparkles,
-    title: "Et bien plus",
-    body: "Mini-apps, services locaux, divertissement. DIVARC grandit avec sa communauté.",
-    accent: "from-night-muted to-night",
-    text: "text-cream",
+    title: "Découvrir",
+    body: "Mini-apps, services locaux, divertissement.",
   },
 ];
 
@@ -235,58 +274,93 @@ function Pillars() {
   return (
     <section id="produit" className="py-24 sm:py-32">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
-        <div className="max-w-2xl">
+        <header className="max-w-3xl">
           <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
             Le produit
           </span>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance">
-            Une <em className="italic">seule</em> app pour ce qui compte.
+          <h2 className="mt-3 font-display text-5xl sm:text-7xl text-night text-balance leading-[1.02]">
+            Six piliers, <em className="italic">un seul écosystème</em>.
           </h2>
-          <p className="mt-4 text-lg text-muted-strong max-w-xl">
-            Six piliers qui couvrent ta vie sociale, économique et
-            professionnelle. Pensés pour la diaspora, la France, le Maghreb et
-            l&apos;Afrique francophone.
+          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+            Chaque pilier de DIVARC remplace une app que tu utilises déjà — et
+            les fait dialoguer entre elles, ce qui n&apos;est pas possible
+            ailleurs.
           </p>
-        </div>
+        </header>
 
-        <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {PILLARS.map((pillar, idx) => {
+        <div className="mt-16 grid lg:grid-cols-12 gap-4 lg:gap-5">
+          {/* Big chat showcase */}
+          <article className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-night via-night-soft to-night text-cream p-8 sm:p-12 grain min-h-[420px]">
+            <div className="pointer-events-none absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-gold/30 blur-3xl halo-drift" />
+            <div className="relative grid sm:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cream/10 text-cream text-[10px] font-bold uppercase tracking-widest">
+                  Pilier 1
+                </div>
+                <h3 className="mt-4 font-display text-4xl text-balance">
+                  Discuter, comme une <em className="italic">vraie</em>{" "}
+                  conversation.
+                </h3>
+                <p className="mt-4 text-cream/80 leading-relaxed">
+                  Messagerie chiffrée bout-en-bout, audios, photos haute
+                  qualité, groupes familiaux, appels gratuits.
+                </p>
+                <ul className="mt-6 space-y-2 text-sm">
+                  {[
+                    "Indicateurs de lecture optionnels",
+                    "Multi-appareils synchronisés",
+                    "Réactions emoji + threads",
+                  ].map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="hidden sm:flex justify-center">
+                <div className="scale-90">
+                  <PhoneMockChat tone="dark" />
+                </div>
+              </div>
+            </div>
+          </article>
+
+          {/* Marketplace */}
+          <article className="lg:col-span-5 relative overflow-hidden rounded-3xl bg-gradient-to-br from-cream to-gold/10 border border-gold/20 p-8 grain min-h-[420px]">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-night text-cream text-[10px] font-bold uppercase tracking-widest">
+              Pilier 2
+            </div>
+            <h3 className="mt-4 font-display text-3xl text-night text-balance">
+              Marketplace de <em className="italic">quartier</em>.
+            </h3>
+            <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-sm">
+              Vends, achète, échange. Avec ta vraie communauté, autour de toi.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <div className="scale-90 origin-top">
+                <PhoneMockMarket />
+              </div>
+            </div>
+          </article>
+
+          {/* Mini cards */}
+          {PILLARS.slice(2).map((pillar) => {
             const Icon = pillar.icon;
             return (
               <article
                 key={pillar.title}
-                className={`group relative overflow-hidden rounded-3xl p-7 bg-gradient-to-br ${pillar.accent} ${pillar.text} ${
-                  idx === 0 ? "lg:row-span-2 min-h-[280px] lg:min-h-[420px]" : ""
-                } border border-night/5 shadow-soft hover:shadow-[0_30px_60px_-20px_rgba(10,31,68,0.35)] transition-all duration-500`}
+                className="lg:col-span-3 p-7 rounded-3xl bg-white border border-line hover:border-night/30 hover:shadow-soft transition-all"
               >
-                <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                <div className="relative">
-                  <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                    <Icon className="w-5 h-5" aria-hidden />
-                  </div>
-                  <h3 className="mt-6 font-display text-3xl">{pillar.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed opacity-85 max-w-sm">
-                    {pillar.body}
-                  </p>
-                  {idx === 0 ? (
-                    <div className="mt-10 hidden lg:block">
-                      <div className="space-y-2">
-                        {[
-                          "Aïssatou : Tu peux passer ?",
-                          "Famille 🏡 : Maman a appelé",
-                          "Yann : Ton annonce m'intéresse",
-                        ].map((m) => (
-                          <div
-                            key={m}
-                            className="px-4 py-2.5 rounded-2xl bg-white/10 backdrop-blur-sm text-sm font-medium"
-                          >
-                            {m}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+                <div className="w-11 h-11 rounded-2xl bg-night/5 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-night" aria-hidden />
                 </div>
+                <h3 className="mt-5 font-display text-2xl text-night">
+                  {pillar.title}
+                </h3>
+                <p className="mt-2 text-sm text-night-muted leading-relaxed">
+                  {pillar.body}
+                </p>
               </article>
             );
           })}
@@ -296,36 +370,122 @@ function Pillars() {
   );
 }
 
-function ProductShowcase() {
+function Personas() {
   return (
-    <section id="vision" className="py-24 sm:py-32 bg-night text-cream relative overflow-hidden grain">
+    <section className="py-24 sm:py-32 bg-bg-deep">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10">
+        <header className="max-w-3xl">
+          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
+            Pour qui
+          </span>
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
+            Construit <em className="italic">avec</em> celles et ceux qui
+            l&apos;utilisent.
+          </h2>
+        </header>
+
+        <div className="mt-14 grid md:grid-cols-3 gap-4">
+          <PersonaCard
+            name="Aïssatou Diop"
+            role="Étudiante en mode"
+            city="Dakar"
+            quote="Je commande mon tissu wax à Belleville et je le reçois chez ma cousine à Paris en 3 jours."
+            accent="gold"
+          />
+          <PersonaCard
+            name="Yann Mvondo"
+            role="Freelance vidéaste"
+            city="Yaoundé"
+            quote="Je trouve mes contrats à Paris, je suis payé en EUR, mon père reçoit en XAF en 3 secondes."
+            accent="night"
+          />
+          <PersonaCard
+            name="Nadia Benhaddou"
+            role="Mère de famille"
+            city="Casablanca"
+            quote="Toute la famille est sur DIVARC : mes enfants à Marseille, ma sœur à Montréal, mes parents à Tanger."
+            accent="cream"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Vs() {
+  return (
+    <section id="vs" className="py-24 sm:py-32">
+      <div className="max-w-6xl mx-auto px-6 sm:px-10">
+        <header className="max-w-3xl mb-12">
+          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
+            Comparaison
+          </span>
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
+            Pourquoi pas <em className="italic">une seule</em> app, mais{" "}
+            <em className="italic">la bonne</em>.
+          </h2>
+          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+            Les autres ont été pensées ailleurs, pour quelqu&apos;un
+            d&apos;autre. Voici ce que ça change concrètement.
+          </p>
+        </header>
+        <ComparisonTable />
+      </div>
+    </section>
+  );
+}
+
+function Roadmap() {
+  return (
+    <section id="roadmap" className="py-24 sm:py-32 bg-bg-deep">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10">
+        <header className="max-w-3xl mb-14">
+          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
+            Roadmap publique
+          </span>
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
+            Construit <em className="italic">en transparence</em>, sprint après
+            sprint.
+          </h2>
+          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+            Tu peux suivre exactement où nous en sommes. Chaque sprint = 4 à 6
+            semaines. Un livrable visible à chaque fois.
+          </p>
+        </header>
+        <RoadmapTimeline />
+      </div>
+    </section>
+  );
+}
+
+function Vision() {
+  return (
+    <section className="py-24 sm:py-32 bg-night text-cream relative overflow-hidden grain">
       <div className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-gold/30 via-gold/5 to-transparent blur-3xl halo-drift" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-12 items-center">
-        <div className="lg:col-span-6 lg:col-start-1">
+        <div className="lg:col-span-6">
           <span className="text-xs font-semibold tracking-widest uppercase text-gold">
             Notre vision
           </span>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance">
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
             Le pont entre <em className="italic">deux mondes</em>.
           </h2>
           <p className="mt-6 text-lg text-cream/80 max-w-xl leading-relaxed">
-            Pendant que les géants américains pensent leurs apps pour New York
-            et que les chinois conçoivent pour Shenzhen, personne ne construit
-            pour <strong className="text-gold">Paris-Dakar-Abidjan-Montréal</strong>.
-            DIVARC, c&apos;est cette app-là.
+            DIVARC n&apos;est pas une app pour la France ni une app pour
+            l&apos;Afrique. C&apos;est <strong className="text-gold">la</strong>{" "}
+            app qui connecte les deux — et tous les territoires francophones du
+            monde, du Québec à la Suisse.
           </p>
 
           <ul className="mt-10 space-y-4">
-            {[
-              "Mobile Money intégré dès le jour 1",
-              "Multi-devise (EUR, XAF, XOF, MAD, CAD)",
-              "Interface en français — pas une traduction",
-              "Modération adaptée à nos cultures",
-            ].map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-gold shrink-0" />
-                <span className="text-cream/90">{point}</span>
+            {VISION_POINTS.map((point) => (
+              <li key={point.title} className="flex items-start gap-4">
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-gold shrink-0" />
+                <div>
+                  <p className="font-semibold text-cream">{point.title}</p>
+                  <p className="text-sm text-cream/70 mt-0.5">{point.body}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -339,73 +499,135 @@ function ProductShowcase() {
   );
 }
 
-function CommunityMarquee() {
+const VISION_POINTS = [
+  {
+    title: "Mobile Money intégré dès le sprint 5",
+    body: "Wave, Orange Money, MTN — au même titre que Stripe.",
+  },
+  {
+    title: "Multi-devise réelle",
+    body: "EUR, XAF, XOF, MAD, CAD. Conversion en temps réel.",
+  },
+  {
+    title: "Interface en français — pas une traduction",
+    body: "Pensée en français, écrite par des francophones.",
+  },
+  {
+    title: "Modération adaptée à nos cultures",
+    body: "Nos références, nos sujets, notre humour.",
+  },
+];
+
+const CITIES = [
+  "Paris", "·", "Dakar", "·", "Abidjan", "·", "Yaoundé", "·",
+  "Montréal", "·", "Casablanca", "·", "Bruxelles", "·", "Cotonou", "·",
+  "Lomé", "·", "Kinshasa", "·", "Tunis", "·", "Lausanne", "·", "Bamako",
+];
+
+function FAQSection() {
   return (
-    <section id="communaute" className="py-20 sm:py-28">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-8">
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          La communauté
-        </span>
-        <h2 className="mt-3 font-display text-4xl sm:text-5xl text-night max-w-2xl text-balance">
-          Une seule app, <em className="italic">tous</em> les francophones.
-        </h2>
+    <section id="faq" className="py-24 sm:py-32">
+      <div className="max-w-3xl mx-auto px-6 sm:px-10">
+        <header className="mb-10">
+          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
+            Questions fréquentes
+          </span>
+          <h2 className="mt-3 font-display text-5xl text-night text-balance leading-[1.05]">
+            Ce que tu te demandes <em className="italic">peut-être</em>.
+          </h2>
+        </header>
+        <FAQ
+          items={[
+            {
+              question: "Pourquoi une nouvelle app ? On en a déjà trop.",
+              answer:
+                "Justement. Aujourd'hui, tu jongles entre WhatsApp, Vinted, LinkedIn, Instagram, Lydia, Wave, Indeed... DIVARC les remplace toutes en une seule, mieux pensée pour les francophones. Moins d'apps, plus de cohérence.",
+            },
+            {
+              question: "Mes données restent-elles en Europe ?",
+              answer:
+                "Oui. Notre infrastructure (Supabase + Vercel) est hébergée en Europe avec conformité RGPD stricte. Tu peux exporter ou supprimer toutes tes données à tout moment.",
+            },
+            {
+              question: "C'est gratuit ?",
+              answer:
+                "L'app est gratuite. Aucune publicité algorithmique. Le modèle économique repose sur des frais minimes (1%) sur certaines transactions marketplace, et un abonnement DIVARC Premium optionnel (à venir).",
+            },
+            {
+              question: "Quand sortira la version finale ?",
+              answer:
+                "La beta privée est en cours. Le lancement public est prévu après le sprint 5 (paiements). Suis la roadmap ci-dessus pour les jalons.",
+            },
+            {
+              question: "Comment être beta-testeur ?",
+              answer:
+                "Crée un compte. Les premiers inscrits reçoivent automatiquement le badge 'Fondateur' et accèdent à toutes les fonctionnalités au fur et à mesure de leur sortie.",
+            },
+            {
+              question: "Qui est derrière DIVARC ?",
+              answer:
+                "DIVARC Lab, une équipe française avec des racines dans la diaspora africaine et maghrébine. Bâtie à Paris pour le monde francophone.",
+            },
+          ]}
+        />
       </div>
-      <Marquee
-        items={[
-          "Paris",
-          "·",
-          "Dakar",
-          "·",
-          "Abidjan",
-          "·",
-          "Yaoundé",
-          "·",
-          "Montréal",
-          "·",
-          "Casablanca",
-          "·",
-          "Bruxelles",
-          "·",
-          "Cotonou",
-          "·",
-          "Lomé",
-          "·",
-          "Kinshasa",
-          "·",
-          "Tunis",
-          "·",
-          "Lausanne",
-          "·",
-          "Bamako",
-        ]}
-      />
     </section>
   );
 }
 
-function CTA() {
+function CTASection() {
   return (
     <section className="px-6 sm:px-10 pb-24">
       <div className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain">
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
-        <div className="relative max-w-2xl">
-          <h2 className="font-display text-5xl sm:text-6xl text-balance">
-            Rejoins la <em className="italic">beta privée</em>.
-          </h2>
-          <p className="mt-5 text-lg text-cream/80 max-w-xl">
-            Sois parmi les premiers à façonner DIVARC. Accès anticipé, badge
-            fondateur permanent, voix dans la roadmap produit.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" variant="primary" asChild className="bg-gold text-night hover:bg-gold-soft">
-              <Link href="/signup">
-                Créer mon compte fondateur
-                <ArrowRight className="w-4 h-4" aria-hidden />
-              </Link>
-            </Button>
-            <Button size="lg" variant="ghost" asChild className="text-cream hover:bg-white/10">
-              <Link href="/login">J&apos;ai déjà un compte</Link>
-            </Button>
+        <div className="relative grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <span className="text-xs font-semibold tracking-widest uppercase text-gold">
+              Beta privée
+            </span>
+            <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
+              Rejoins le <em className="italic">cercle des fondateurs</em>.
+            </h2>
+            <p className="mt-5 text-lg text-cream/80 max-w-xl">
+              Accès anticipé à toutes les nouveautés. Badge fondateur permanent.
+              Voix dans la roadmap. Et la satisfaction d&apos;avoir construit
+              cette app avec nous.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button
+                size="lg"
+                asChild
+                className="bg-gold text-night hover:bg-gold-soft"
+              >
+                <Link href="/signup">
+                  Créer mon compte fondateur
+                  <ArrowRight className="w-4 h-4" aria-hidden />
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="ghost"
+                asChild
+                className="text-cream hover:bg-white/10"
+              >
+                <Link href="/login">J&apos;ai déjà un compte</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="hidden lg:flex flex-col items-center gap-4">
+            <div className="flex -space-x-2">
+              {["Aïssatou", "Yann", "Nadia", "Pierre", "Fatou"].map((name) => (
+                <div key={name} className="ring-4 ring-night-soft rounded-full">
+                  <Avatar src={null} fullName={name} size="md" />
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-cream/60 text-center">
+              <strong className="text-cream">Plusieurs centaines</strong> de
+              fondateurs déjà inscrits.
+              <br />
+              Sois parmi les premiers de ta ville.
+            </p>
           </div>
         </div>
       </div>
@@ -416,7 +638,7 @@ function CTA() {
 function SiteFooter() {
   return (
     <footer className="border-t border-line bg-white">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-14">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
@@ -431,9 +653,10 @@ function SiteFooter() {
           <FooterColumn
             title="Produit"
             links={[
-              ["Vision", "#vision"],
               ["Piliers", "#produit"],
-              ["Communauté", "#communaute"],
+              ["Comparaison", "#vs"],
+              ["Roadmap", "#roadmap"],
+              ["FAQ", "#faq"],
             ]}
           />
           <FooterColumn
