@@ -39,11 +39,15 @@ export async function listConversationsForUser(
     .select("conversation_id, user_id")
     .in("conversation_id", conversationIds);
 
+  // For direct conversations only, find the single "other" member.
+  const conversationTypeById = new Map(
+    conversations.map((c) => [c.id, c.type]),
+  );
   const otherUserIdsByConv = new Map<string, string>();
   for (const member of allMembers ?? []) {
-    if (member.user_id !== userId) {
-      otherUserIdsByConv.set(member.conversation_id, member.user_id);
-    }
+    if (member.user_id === userId) continue;
+    if (conversationTypeById.get(member.conversation_id) !== "direct") continue;
+    otherUserIdsByConv.set(member.conversation_id, member.user_id);
   }
 
   const otherUserIds = Array.from(new Set(otherUserIdsByConv.values()));

@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
@@ -6,6 +6,7 @@ import {
   getConversationDetails,
   getMessagesForConversation,
 } from "@/lib/queries/conversations";
+import { getGroupDetails } from "@/lib/queries/groups";
 import { createClient } from "@/lib/supabase/server";
 import { MessageComposer } from "../_components/MessageComposer";
 import { MessageThread } from "../_components/MessageThread";
@@ -25,18 +26,52 @@ export default async function ConversationPage({ params }: { params: Params }) {
   if (!details) notFound();
 
   const { conversation, otherMember, otherLastReadAt } = details;
+  const isGroup = conversation.type === "group";
+
+  const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
   const initialMessages = await getMessagesForConversation(id);
 
   // Mark as read in the background
   await supabase.rpc("mark_conversation_read", { conv_id: id });
 
-  const displayName =
-    otherMember?.full_name ?? otherMember?.username ?? conversation.name ?? "Conversation";
-  const subtitle = otherMember?.username
-    ? `@${otherMember.username}`
-    : conversation.type === "direct"
-      ? "Conversation directe"
-      : "Groupe";
+  // Build a member map (id → profile) used by MessageThread for groups
+  const memberMap: Record<
+    string,
+    {
+      user_id: string;
+      full_name: string | null;
+      username: string | null;
+      avatar_url: string | null;
+    }
+  > = {};
+  if (groupDetails) {
+    for (const member of groupDetails.members) {
+      if (member.profile) {
+        memberMap[member.user_id] = {
+          user_id: member.user_id,
+          full_name: member.profile.full_name,
+          username: member.profile.username,
+          avatar_url: member.profile.avatar_url,
+        };
+      }
+    }
+  } else if (otherMember) {
+    memberMap[otherMember.id] = {
+      user_id: otherMember.id,
+      full_name: otherMember.full_name,
+      username: otherMember.username,
+      avatar_url: otherMember.avatar_url,
+    };
+  }
+
+  const displayName = isGroup
+    ? (conversation.name ?? "Groupe")
+    : (otherMember?.full_name ?? otherMember?.username ?? "Conversation");
+  const subtitle = isGroup
+    ? `${groupDetails?.members.length ?? 0} membres`
+    : otherMember?.username
+      ? `@${otherMember.username}`
+      : "Conversation directe";
 
   return (
     <>
@@ -54,9 +89,26 @@ export default async function ConversationPage({ params }: { params: Params }) {
           size="md"
         />
         <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-night truncate">{displayName}</h1>
+          <h1 className="font-semibold text-night truncate flex items-center gap-1.5">
+            {displayName}
+            {isGroup ? (
+              <Users
+                className="w-3.5 h-3.5 text-night-muted shrink-0"
+                aria-hidden
+              />
+            ) : null}
+          </h1>
           <p className="text-xs text-muted truncate">{subtitle}</p>
         </div>
+        {isGroup ? (
+          <Link
+            href={`/messages/${id}/settings`}
+            aria-label="Réglages du groupe"
+            className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night"
+          >
+            <Settings className="w-4 h-4" aria-hidden />
+          </Link>
+        ) : null}
       </header>
 
       <MessageThread
@@ -72,6 +124,8 @@ export default async function ConversationPage({ params }: { params: Params }) {
               avatar_url: otherMember.avatar_url,
             }
           : null}
+        memberMap={memberMap}
+        isGroup={isGroup}
       />
 
       <MessageComposer conversationId={id} senderId={user.id} />

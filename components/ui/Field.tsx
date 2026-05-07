@@ -9,21 +9,21 @@ export function Field({ className, ...props }: FieldRootProps) {
 
 type FieldLabelProps = React.LabelHTMLAttributes<HTMLLabelElement> & {
   required?: boolean;
+  as?: "label" | "span";
 };
 
 export function FieldLabel({
   className,
   children,
   required,
+  as = "label",
   ...props
 }: FieldLabelProps) {
+  const Component = as as "label" | "span";
   return (
-    <label
-      className={cn(
-        "block text-sm font-medium text-night",
-        className,
-      )}
-      {...props}
+    <Component
+      className={cn("block text-sm font-medium text-night", className)}
+      {...(props as React.HTMLAttributes<HTMLElement>)}
     >
       {children}
       {required ? (
@@ -31,7 +31,7 @@ export function FieldLabel({
           *
         </span>
       ) : null}
-    </label>
+    </Component>
   );
 }
 

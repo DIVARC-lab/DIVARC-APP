@@ -22,6 +22,8 @@ type MessageThreadProps = {
   initialOtherLastReadAt: string | null;
   currentUserId: string;
   otherMember: OtherMember | null;
+  memberMap?: Record<string, OtherMember>;
+  isGroup?: boolean;
 };
 
 export function MessageThread({
@@ -30,6 +32,8 @@ export function MessageThread({
   initialOtherLastReadAt,
   currentUserId,
   otherMember,
+  memberMap,
+  isGroup = false,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [otherLastReadAt, setOtherLastReadAt] = useState<string | null>(
@@ -107,21 +111,23 @@ export function MessageThread({
       <div ref={scrollRef} className="flex-1 flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream to-gold/20 flex items-center justify-center mb-5 border border-gold/30">
-            <Avatar
-              src={otherMember?.avatar_url ?? null}
-              fullName={otherMember?.full_name ?? null}
-              size="lg"
-            />
+            {isGroup ? (
+              <span aria-hidden className="text-3xl leading-none">👥</span>
+            ) : (
+              <Avatar
+                src={otherMember?.avatar_url ?? null}
+                fullName={otherMember?.full_name ?? null}
+                size="lg"
+              />
+            )}
           </div>
           <h3 className="font-display text-2xl text-night">
             Lance la conversation
           </h3>
           <p className="mt-2 text-sm text-muted">
-            Aucun message pour l&apos;instant. Dis bonjour à{" "}
-            <strong className="text-night">
-              {otherMember?.full_name?.split(" ")[0] ?? "ton interlocuteur"}
-            </strong>
-            .
+            {isGroup
+              ? "Aucun message dans ce groupe pour l'instant. À toi de l'animer !"
+              : `Aucun message pour l'instant. Dis bonjour à ${otherMember?.full_name?.split(" ")[0] ?? "ton interlocuteur"}.`}
           </p>
         </div>
       </div>
@@ -164,8 +170,13 @@ export function MessageThread({
 
           const showAvatar = !sameNextSender;
           const showTime = !samePrevSender;
-          const senderName = isOwn ? null : otherMember?.full_name ?? null;
-          const senderAvatar = isOwn ? null : otherMember?.avatar_url ?? null;
+          const senderProfile = isGroup
+            ? memberMap?.[message.sender_id] ?? null
+            : otherMember;
+          const senderName = isOwn ? null : senderProfile?.full_name ?? null;
+          const senderAvatar = isOwn ? null : senderProfile?.avatar_url ?? null;
+          const showSenderLabel =
+            isGroup && !isOwn && !samePrevSender;
 
           const isLastOwn = idx === lastOwnMessageIndex;
           const otherHasRead =
@@ -182,6 +193,11 @@ export function MessageThread({
                   <span className="flex-1 h-px bg-line" />
                 </div>
               ) : null}
+              {showSenderLabel ? (
+                <p className="text-[11px] font-semibold text-night-muted mt-3 pl-10">
+                  {senderName ?? "Un membre"}
+                </p>
+              ) : null}
               <MessageBubble
                 message={message}
                 isOwn={isOwn}
@@ -190,7 +206,7 @@ export function MessageThread({
                 senderName={senderName}
                 senderAvatarUrl={senderAvatar}
               />
-              {isLastOwn ? (
+              {isLastOwn && !isGroup ? (
                 <div className="flex justify-end mt-1 pr-1">
                   <ReadReceipt
                     delivered={true}

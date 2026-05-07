@@ -1,4 +1,4 @@
-import { MessageSquarePlus, Search } from "lucide-react";
+import { MessageSquarePlus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { ConversationItem } from "./ConversationItem";
 import type { ConversationListItem } from "@/lib/database.types";
@@ -15,15 +15,26 @@ export function ConversationListSidebar({
   return (
     <aside className="flex flex-col border-r border-line bg-bg h-full">
       <header className="px-5 py-5 border-b border-line">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <h2 className="font-display text-2xl text-night">Discussions</h2>
-          <Link
-            href="/messages/new"
-            aria-label="Nouvelle conversation"
-            className="w-9 h-9 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition-colors"
-          >
-            <MessageSquarePlus className="w-4 h-4" aria-hidden />
-          </Link>
+          <div className="flex items-center gap-1.5">
+            <Link
+              href="/messages/new-group"
+              aria-label="Nouveau groupe"
+              title="Nouveau groupe"
+              className="w-9 h-9 rounded-full bg-white border border-line text-night-muted flex items-center justify-center hover:border-night/30 hover:text-night transition-colors"
+            >
+              <Users className="w-4 h-4" aria-hidden />
+            </Link>
+            <Link
+              href="/messages/new"
+              aria-label="Nouvelle conversation"
+              title="Nouvelle discussion"
+              className="w-9 h-9 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition-colors"
+            >
+              <MessageSquarePlus className="w-4 h-4" aria-hidden />
+            </Link>
+          </div>
         </div>
         <div className="relative">
           <Search

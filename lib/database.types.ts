@@ -651,6 +651,30 @@ export type Database = {
         };
         Returns: string;
       };
+      create_group_conversation: {
+        Args: {
+          group_name: string;
+          member_ids: string[];
+          group_avatar_url?: string | null;
+        };
+        Returns: string;
+      };
+      add_group_member: {
+        Args: { conv_id: string; new_member_id: string };
+        Returns: void;
+      };
+      remove_group_member: {
+        Args: { conv_id: string; target_user_id: string };
+        Returns: void;
+      };
+      update_group_info: {
+        Args: {
+          conv_id: string;
+          new_name?: string | null;
+          new_avatar_url?: string | null;
+        };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
