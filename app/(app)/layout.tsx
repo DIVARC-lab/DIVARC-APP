@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  Bell,
   Briefcase,
   Compass,
   Home,
@@ -15,6 +16,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getTotalUnreadCount } from "@/lib/queries/conversations";
 import { countIncomingRequests } from "@/lib/queries/friendships";
+import { countUnreadNotifications } from "@/lib/queries/notifications";
+import { NotificationsRealtime } from "@/components/NotificationsRealtime";
 import { Logo } from "@/components/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -44,14 +47,22 @@ export default async function DashboardLayout({
   const profile = await getCurrentProfile();
   const fullName =
     profile?.full_name ?? (user.email?.split("@")[0] ?? "");
-  const [unread, incomingRequests] = await Promise.all([
+  const [unread, incomingRequests, unreadNotifications] = await Promise.all([
     getTotalUnreadCount(user.id),
     countIncomingRequests(user.id),
+    countUnreadNotifications(user.id),
   ]);
 
   const navItems: ReadonlyArray<NavItem> = [
     { href: "/dashboard", label: "Accueil", icon: Home, available: true },
     { href: "/profile", label: "Profil", icon: User, available: true },
+    {
+      href: "/notifications",
+      label: "Notifications",
+      icon: Bell,
+      available: true,
+      badge: unreadNotifications > 0 ? unreadNotifications : undefined,
+    },
     {
       href: "/friends",
       label: "Amis",
@@ -165,6 +176,7 @@ export default async function DashboardLayout({
 
         <main className="flex-1">{children}</main>
       </div>
+      <NotificationsRealtime userId={user.id} />
     </div>
   );
 }

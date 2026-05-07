@@ -71,6 +71,31 @@ export type FriendshipStatus =
   | "rejected"
   | "cancelled";
 
+export type NotificationType =
+  | "friend_request_received"
+  | "friend_request_accepted"
+  | "friend_request_rejected"
+  | "new_message"
+  | "system";
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  related_user_id: string | null;
+  related_conversation_id: string | null;
+  related_friendship_id: string | null;
+  href: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type NotificationWithActor = Notification & {
+  actor: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+};
+
 export type Friendship = {
   id: string;
   requester_id: string;
@@ -173,6 +198,13 @@ export type Database = {
         Update: Partial<Pick<Friendship, "status" | "intro_message" | "responded_at">>;
         Relationships: [];
       };
+      notifications: {
+        Row: Notification;
+        Insert: Omit<Notification, "id" | "created_at" | "read_at"> &
+          Partial<Pick<Notification, "id" | "created_at" | "read_at">>;
+        Update: Partial<Pick<Notification, "read_at">>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -195,6 +227,14 @@ export type Database = {
       are_friends: {
         Args: { user_a: string; user_b: string };
         Returns: boolean;
+      };
+      mark_all_notifications_read: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
+      mark_conversation_notifications_read: {
+        Args: { conv_id: string };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;
