@@ -12,7 +12,11 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[divarc:error-boundary]", error);
+    console.error("[divarc:error-boundary]", {
+      message: error.message,
+      digest: error.digest,
+      stack: error.stack,
+    });
   }, [error]);
 
   return (
@@ -26,7 +30,19 @@ export default function GlobalError({
         revenir à l&apos;accueil.
       </p>
       {error.digest ? (
-        <p className="mt-3 text-xs text-muted">Code : {error.digest}</p>
+        <details className="mt-3 text-xs text-muted max-w-md">
+          <summary className="cursor-pointer underline">
+            Détails techniques
+          </summary>
+          <p className="mt-2">
+            Code : <code className="font-mono">{error.digest}</code>
+          </p>
+          {error.message && process.env.NODE_ENV !== "production" ? (
+            <pre className="mt-2 text-left p-3 rounded-lg bg-night/5 overflow-auto whitespace-pre-wrap">
+              {error.message}
+            </pre>
+          ) : null}
+        </details>
       ) : null}
       <div className="mt-6 flex gap-2">
         <Button onClick={reset}>

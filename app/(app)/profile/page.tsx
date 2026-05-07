@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Tabs } from "@/components/ui/Tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import { safeDate, safeDaysSince } from "@/lib/utils/date";
 import { AvatarUpload } from "./AvatarUpload";
 import { JournalPanel } from "./JournalPanel";
 import { PreferencesForm } from "./PreferencesForm";
@@ -68,13 +69,8 @@ export default async function ProfilePage({
   const activeTab: TabId =
     (TABS.find((t) => t.id === tab)?.id as TabId) ?? "identite";
 
-  const signupDate = new Date(user.created_at);
-  const daysAsMember = Math.max(
-    1,
-    Math.floor(
-      (Date.now() - signupDate.getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1,
-  );
+  const signupDate = safeDate(user.created_at);
+  const daysAsMember = safeDaysSince(user.created_at);
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">

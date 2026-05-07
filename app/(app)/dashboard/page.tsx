@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { ArcMark } from "@/components/marketing/ArcMark";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import { safeFormatDate } from "@/lib/utils/date";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -60,7 +61,7 @@ export default async function DashboardPage() {
   const completed = checklist.filter((step) => step.done).length;
   const completion = Math.round((completed / checklist.length) * 100);
 
-  const memberSince = new Date(user.created_at).toLocaleDateString("fr-FR", {
+  const memberSince = safeFormatDate(user.created_at, {
     day: "numeric",
     month: "long",
     year: "numeric",
