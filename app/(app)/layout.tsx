@@ -108,7 +108,12 @@ export default async function DashboardLayout({
       icon: Wallet,
       available: true,
     },
-    { href: "#", label: "Découvrir", icon: Compass, available: false },
+    {
+      href: "/explore",
+      label: "Découvrir",
+      icon: Compass,
+      available: true,
+    },
   ];
 
   return (
