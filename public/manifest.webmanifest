@@ -1,0 +1,49 @@
+{
+  "name": "DIVARC — Tout. Au même endroit.",
+  "short_name": "DIVARC",
+  "description": "La super-app francophone : messagerie, marketplace, emploi, contenu et paiements.",
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a1f44",
+  "background_color": "#f8f9fb",
+  "categories": ["social", "communication", "productivity", "shopping"],
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discussions",
+      "short_name": "Chat",
+      "url": "/messages",
+      "description": "Tes conversations en cours"
+    },
+    {
+      "name": "Marketplace",
+      "short_name": "Marché",
+      "url": "/marketplace",
+      "description": "Annonces locales"
+    },
+    {
+      "name": "Wallet",
+      "short_name": "Wallet",
+      "url": "/wallet",
+      "description": "Multi-devise & transferts"
+    },
+    {
+      "name": "Feed",
+      "short_name": "Feed",
+      "url": "/feed",
+      "description": "Posts de tes proches"
+    }
+  ],
+  "prefer_related_applications": false
+}

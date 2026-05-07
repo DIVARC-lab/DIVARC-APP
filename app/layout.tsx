@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/Toaster";
 import { themeBootstrapScript } from "@/components/ThemeProvider";
+import { PWARegister } from "@/components/PWARegister";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +61,12 @@ export const metadata: Metadata = {
       "La super-app francophone : messagerie, marketplace, emploi, contenu et paiements.",
   },
   robots: { index: true, follow: true },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DIVARC",
+  },
 };
 
 export const viewport: Viewport = {
@@ -89,6 +97,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-bg text-fg">
         {children}
         <Toaster />
+        <PWARegister />
+        <PWAInstallPrompt />
       </body>
     </html>
   );
