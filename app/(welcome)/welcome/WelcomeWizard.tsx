@@ -36,25 +36,32 @@ import { cn } from "@/lib/utils/cn";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Logo } from "@/components/Logo";
 import { AvatarStep } from "./_components/AvatarStep";
+import { FirstPostStep } from "./_components/FirstPostStep";
 import { FriendsStep } from "./_components/FriendsStep";
+import { InterestsStep } from "./_components/InterestsStep";
 import { StepProgress } from "./_components/StepProgress";
 import {
   completeOnboarding,
   saveIdentityStep,
+  saveInterestsStep,
   savePreferencesStep,
   type IdentityStepState,
+  type InterestsStepState,
   type PreferencesStepState,
 } from "./actions";
 
 const STEPS = [
   { id: "intro", label: "Bienvenue" },
   { id: "identite", label: "Identité" },
+  { id: "interets", label: "Intérêts" },
   { id: "preferences", label: "Région" },
   { id: "amis", label: "Amis" },
+  { id: "premier-post", label: "Premier post" },
 ] as const;
 
 const IDENTITY_INITIAL: IdentityStepState = { status: "idle" };
 const PREFERENCES_INITIAL: PreferencesStepState = { status: "idle" };
+const INTERESTS_INITIAL: InterestsStepState = { status: "idle" };
 
 type WelcomeWizardProps = {
   profile: Profile;
@@ -76,6 +83,11 @@ export function WelcomeWizard({
       saveIdentityStep,
       IDENTITY_INITIAL,
     );
+  const [interestsState, interestsAction, interestsPending] =
+    useActionState<InterestsStepState, FormData>(
+      saveInterestsStep,
+      INTERESTS_INITIAL,
+    );
   const [preferencesState, preferencesAction, preferencesPending] =
     useActionState<PreferencesStepState, FormData>(
       savePreferencesStep,
@@ -93,8 +105,19 @@ export function WelcomeWizard({
   }, [identityState]);
 
   useEffect(() => {
-    if (preferencesState.status === "success") {
+    if (interestsState.status === "success") {
       setStepIndex(3);
+    } else if (
+      interestsState.status === "error" &&
+      interestsState.message
+    ) {
+      toast.error(interestsState.message);
+    }
+  }, [interestsState]);
+
+  useEffect(() => {
+    if (preferencesState.status === "success") {
+      setStepIndex(4);
     } else if (
       preferencesState.status === "error" &&
       preferencesState.message
@@ -161,18 +184,39 @@ export function WelcomeWizard({
           />
         ) : null}
 
+        {visibleStep.id === "interets" ? (
+          <InterestsStep
+            initial={profile.interests ?? []}
+            state={interestsState}
+            action={interestsAction}
+            pending={interestsPending}
+            onBack={() => setStepIndex(1)}
+          />
+        ) : null}
+
         {visibleStep.id === "preferences" ? (
           <Preferences
             profile={profile}
             state={preferencesState}
             action={preferencesAction}
             pending={preferencesPending}
-            onBack={() => setStepIndex(1)}
+            onBack={() => setStepIndex(2)}
           />
         ) : null}
 
         {visibleStep.id === "amis" ? (
-          <FriendsScreen onFinish={handleFinish} completing={completing} />
+          <FriendsScreen onNext={() => setStepIndex(5)} onBack={() => setStepIndex(3)} />
+        ) : null}
+
+        {visibleStep.id === "premier-post" ? (
+          <FirstPostStep
+            fullName={fullName}
+            avatarUrl={avatarUrl}
+            location={profile.location}
+            onBack={() => setStepIndex(4)}
+            onComplete={handleFinish}
+            completing={completing}
+          />
         ) : null}
       </section>
     </div>
@@ -504,17 +548,17 @@ function Preferences({
 }
 
 function FriendsScreen({
-  onFinish,
-  completing,
+  onNext,
+  onBack,
 }: {
-  onFinish: () => void;
-  completing: boolean;
+  onNext: () => void;
+  onBack: () => void;
 }) {
   return (
     <div className="space-y-7">
       <div>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-          · Étape 3 · Tes premières connexions
+          · Étape 4 · Tes premières connexions
         </span>
         <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Voici qui est <span className="text-gold-deep">déjà</span> chez toi
@@ -527,20 +571,14 @@ function FriendsScreen({
 
       <FriendsStep />
 
-      <div className="flex items-center justify-end pt-2 gap-2">
-        <Button
-          type="button"
-          onClick={onFinish}
-          loading={completing}
-          size="lg"
-          className={cn(completing ? "" : "bg-night text-cream")}
-        >
-          {completing ? (
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-          ) : (
-            <PartyPopper className="w-4 h-4" aria-hidden />
-          )}
-          Terminer
+      <div className="flex items-center justify-between pt-2">
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4" aria-hidden />
+          Retour
+        </Button>
+        <Button type="button" onClick={onNext} size="lg">
+          <ArrowRight className="w-4 h-4" aria-hidden />
+          Continuer
         </Button>
       </div>
     </div>

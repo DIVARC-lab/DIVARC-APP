@@ -55,6 +55,7 @@ export type Profile = {
   intro_video_thumbnail_url: string | null;
   intro_video_duration_ms: number | null;
   intro_video_uploaded_at: string | null;
+  interests: string[];
   created_at: string;
   updated_at: string;
 };
@@ -99,6 +100,7 @@ export type ProfilePreferencesUpdate = Partial<
     | "show_location"
     | "custom_status"
     | "presence_visibility"
+    | "interests"
   >
 >;
 

@@ -116,6 +116,61 @@ export async function savePreferencesStep(
   return { status: "success" };
 }
 
+export type InterestsStepState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
+/* List source-of-truth pour les options et leur emoji. La validation
+   ci-dessous filtre les inputs sur ce set. */
+export const INTEREST_SLUGS = [
+  "bons-plans",
+  "jardinage",
+  "velo",
+  "cuisine",
+  "tech",
+  "musique",
+  "sport",
+  "art",
+  "famille",
+  "animaux",
+  "lecture",
+  "cinema",
+  "voyage",
+  "mode",
+  "photo",
+  "ecolo",
+] as const;
+
+export async function saveInterestsStep(
+  _prev: InterestsStepState | undefined,
+  formData: FormData,
+): Promise<InterestsStepState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Non authentifié." };
+
+  const raw = formData.getAll("interests").map(String);
+  const allowed = new Set<string>(INTEREST_SLUGS);
+  const interests = Array.from(new Set(raw)).filter((s) => allowed.has(s));
+
+  /* Le step est "passable" — on accepte 0 intérêt. La règle "min 3"
+     du handoff reste un nudge UX (côté client) pas une contrainte
+     bloquante côté serveur. */
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ interests })
+    .eq("id", user.id);
+
+  if (error) return { status: "error", message: error.message };
+
+  revalidatePath("/welcome");
+  return { status: "success" };
+}
+
 export async function completeOnboarding() {
   const supabase = await createClient();
   const {

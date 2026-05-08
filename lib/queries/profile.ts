@@ -35,6 +35,7 @@ const PROFILE_DEFAULTS: Omit<
   open_to_work: false,
   open_to_hiring: false,
   discrete_search: false,
+  interests: [],
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -124,6 +125,8 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     intro_video_uploaded_at:
       (data as { intro_video_uploaded_at?: string | null })
         .intro_video_uploaded_at ?? null,
+    interests:
+      (data as { interests?: string[] | null }).interests ?? [],
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:
