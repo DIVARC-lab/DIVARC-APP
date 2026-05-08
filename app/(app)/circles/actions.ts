@@ -346,6 +346,179 @@ export async function attendCircleEvent(
   return { ok: true as const };
 }
 
+/* Crypto-strong URL-safe token (24 chars). */
+function generateInvitationToken(length = 24): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += alphabet[bytes[i]! % alphabet.length];
+  }
+  return out;
+}
+
+const createInvitationSchema = z.object({
+  circle_id: z.string().uuid(),
+  max_uses: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (!v) return null;
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 && n <= 1000 ? n : null;
+    }),
+  expires_in_days: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (!v) return null;
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n > 0 && n <= 365 ? n : null;
+    }),
+});
+
+export async function createCircleInvitation(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const parsed = createInvitationSchema.safeParse({
+    circle_id: formData.get("circle_id"),
+    max_uses: formData.get("max_uses"),
+    expires_in_days: formData.get("expires_in_days"),
+  });
+  if (!parsed.success) {
+    return { ok: false as const, error: "Données invalides." };
+  }
+
+  const { data: canMod } = await supabase.rpc("can_moderate_circle", {
+    p_circle_id: parsed.data.circle_id,
+    p_user_id: user.id,
+  });
+  if (!canMod) {
+    return {
+      ok: false as const,
+      error: "Tu dois être admin ou modérateur pour créer une invitation.",
+    };
+  }
+
+  const expiresAt = parsed.data.expires_in_days
+    ? new Date(
+        Date.now() + parsed.data.expires_in_days * 24 * 3600 * 1000,
+      ).toISOString()
+    : null;
+
+  /* Retry token collision up to 5 times. */
+  let attempt = 0;
+  while (attempt < 5) {
+    const token = generateInvitationToken();
+    const { data, error } = await supabase
+      .from("circle_invitations")
+      .insert({
+        circle_id: parsed.data.circle_id,
+        token,
+        created_by: user.id,
+        max_uses: parsed.data.max_uses,
+        expires_at: expiresAt,
+      })
+      .select("token")
+      .single();
+    if (!error && data) {
+      const { data: circle } = await supabase
+        .from("circles")
+        .select("slug")
+        .eq("id", parsed.data.circle_id)
+        .maybeSingle();
+      if (circle?.slug) revalidatePath(`/circles/${circle.slug}/invite`);
+      return { ok: true as const, token: data.token };
+    }
+    if (error?.code !== "23505") {
+      return { ok: false as const, error: "Création impossible." };
+    }
+    attempt++;
+  }
+  return { ok: false as const, error: "Réessaie." };
+}
+
+export async function revokeCircleInvitation(invitationId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  /* Lookup circle_id to verify mod rights and revalidate. */
+  const { data: inv } = await supabase
+    .from("circle_invitations")
+    .select("circle_id")
+    .eq("id", invitationId)
+    .maybeSingle();
+  if (!inv) return { ok: false as const, error: "Invitation introuvable." };
+
+  const { data: canMod } = await supabase.rpc("can_moderate_circle", {
+    p_circle_id: inv.circle_id,
+    p_user_id: user.id,
+  });
+  if (!canMod) {
+    return { ok: false as const, error: "Action non autorisée." };
+  }
+
+  const { error } = await supabase
+    .from("circle_invitations")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", invitationId);
+  if (error) return { ok: false as const, error: "Action impossible." };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", inv.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}/invite`);
+
+  return { ok: true as const };
+}
+
+export async function acceptCircleInvitation(token: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const { data, error } = await supabase.rpc("accept_circle_invitation", {
+    p_token: token,
+  });
+  if (error || !data) {
+    return {
+      ok: false as const,
+      error: error?.message?.includes("expirée")
+        ? "Cette invitation a expiré."
+        : error?.message?.includes("révoquée")
+          ? "Invitation révoquée."
+          : error?.message?.includes("épuisée")
+            ? "Toutes les places sont prises."
+            : "Invitation invalide.",
+    };
+  }
+
+  /* Get slug for redirect. */
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", data)
+    .maybeSingle();
+
+  revalidatePath("/circles");
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+
+  return { ok: true as const, slug: circle?.slug ?? null };
+}
+
 export async function pinCirclePost(postId: string) {
   const supabase = await createClient();
   const {

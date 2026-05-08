@@ -151,6 +151,17 @@ export default async function CircleDetailPage({
         </section>
       ) : null}
 
+      {canModerate ? (
+        <div className="mt-6 flex items-center gap-3 flex-wrap">
+          <Link
+            href={`/circles/${slug}/invite`}
+            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night text-cream text-xs font-semibold hover:bg-night-soft transition-colors"
+          >
+            Inviter →
+          </Link>
+        </div>
+      ) : null}
+
       {circle.is_member ? (
         <section className="mt-10" aria-label="Discussions">
           <div className="flex items-center gap-2 mb-4">

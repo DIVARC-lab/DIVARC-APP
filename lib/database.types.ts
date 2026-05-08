@@ -797,6 +797,31 @@ export type CircleEventWithRsvp = CircleEvent & {
   my_status: CircleEventAttendanceStatus | null;
 };
 
+export type CircleInvitation = {
+  id: string;
+  circle_id: string;
+  token: string;
+  created_by: string;
+  max_uses: number | null;
+  uses: number;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+export type CircleInvitationPreview = {
+  circle_id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  color: CircleColor | null;
+  is_private: boolean;
+  members_count: number;
+  invitation_id: string;
+  expires_at: string | null;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -1397,6 +1422,25 @@ export type Database = {
         Update: Partial<Pick<CircleEventAttendance, "status">>;
         Relationships: [];
       };
+      circle_invitations: {
+        Row: CircleInvitation;
+        Insert: Pick<CircleInvitation, "circle_id" | "token" | "created_by"> &
+          Partial<
+            Pick<
+              CircleInvitation,
+              | "id"
+              | "max_uses"
+              | "uses"
+              | "expires_at"
+              | "revoked_at"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<CircleInvitation, "max_uses" | "expires_at" | "revoked_at">
+        >;
+        Relationships: [];
+      };
       companies: {
         Row: Company;
         Insert: Pick<Company, "slug" | "name" | "owner_id"> &
@@ -1594,6 +1638,14 @@ export type Database = {
       is_circle_member: {
         Args: { p_circle_id: string; p_user_id: string };
         Returns: boolean;
+      };
+      preview_circle_invitation: {
+        Args: { p_token: string };
+        Returns: CircleInvitationPreview[];
+      };
+      accept_circle_invitation: {
+        Args: { p_token: string };
+        Returns: string;
       };
       mark_all_notifications_read: {
         Args: Record<string, never>;
