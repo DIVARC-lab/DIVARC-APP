@@ -30,6 +30,7 @@ import {
   UserActionBar,
   type FriendshipState,
 } from "./_components/UserActionBar";
+import { IntroVideoPlayer } from "./_components/IntroVideoPlayer";
 import { PublicProProfile } from "./_components/PublicProProfile";
 
 type Params = Promise<{ username: string }>;
@@ -143,6 +144,28 @@ export default async function PublicProfilePage({
           />
         }
       />
+
+      {profile.intro_video_url ? (
+        <section className="rounded-3xl border border-line bg-white p-6 sm:p-8 shadow-soft flex flex-col sm:flex-row items-center gap-6">
+          <IntroVideoPlayer
+            url={profile.intro_video_url}
+            thumbnailUrl={profile.intro_video_thumbnail_url}
+            durationMs={profile.intro_video_duration_ms}
+          />
+          <div className="flex-1 text-center sm:text-left">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gold-deep">
+              Vidéo de présentation
+            </span>
+            <h2 className="mt-2 font-display text-3xl sm:text-4xl text-night text-balance leading-tight">
+              {profile.full_name?.split(" ")[0] ?? "Iel"} se présente.
+            </h2>
+            <p className="mt-2 text-muted-strong leading-relaxed max-w-md">
+              60 secondes pour comprendre qui iel est, vraiment. Touche le
+              cercle 🔇 pour activer le son.
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       <Tabs
         tabs={[...TABS]}

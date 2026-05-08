@@ -16,6 +16,10 @@ const PROFILE_DEFAULTS: Omit<
   | "updated_at"
   | "last_seen_at"
   | "headline"
+  | "intro_video_url"
+  | "intro_video_thumbnail_url"
+  | "intro_video_duration_ms"
+  | "intro_video_uploaded_at"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -109,6 +113,17 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     discrete_search:
       (data as { discrete_search?: boolean }).discrete_search ??
       PROFILE_DEFAULTS.discrete_search,
+    intro_video_url:
+      (data as { intro_video_url?: string | null }).intro_video_url ?? null,
+    intro_video_thumbnail_url:
+      (data as { intro_video_thumbnail_url?: string | null })
+        .intro_video_thumbnail_url ?? null,
+    intro_video_duration_ms:
+      (data as { intro_video_duration_ms?: number | null })
+        .intro_video_duration_ms ?? null,
+    intro_video_uploaded_at:
+      (data as { intro_video_uploaded_at?: string | null })
+        .intro_video_uploaded_at ?? null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

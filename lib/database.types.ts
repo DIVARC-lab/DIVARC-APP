@@ -51,6 +51,10 @@ export type Profile = {
   open_to_work: boolean;
   open_to_hiring: boolean;
   discrete_search: boolean;
+  intro_video_url: string | null;
+  intro_video_thumbnail_url: string | null;
+  intro_video_duration_ms: number | null;
+  intro_video_uploaded_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -75,6 +79,10 @@ export type ProfileIdentityUpdate = Partial<
     | "open_to_work"
     | "open_to_hiring"
     | "discrete_search"
+    | "intro_video_url"
+    | "intro_video_thumbnail_url"
+    | "intro_video_duration_ms"
+    | "intro_video_uploaded_at"
   >
 >;
 

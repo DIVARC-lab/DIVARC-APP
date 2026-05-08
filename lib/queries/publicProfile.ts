@@ -17,6 +17,9 @@ export type PublicProfile = Pick<
   | "headline"
   | "open_to_work"
   | "open_to_hiring"
+  | "intro_video_url"
+  | "intro_video_thumbnail_url"
+  | "intro_video_duration_ms"
   | "created_at"
 > & {
   email?: string | null;
@@ -29,20 +32,35 @@ export async function getPublicProfileByUsername(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, username, full_name, avatar_url, bio, location, founder_rank, show_email, show_location, discoverable, headline, open_to_work, open_to_hiring, created_at",
+      "id, username, full_name, avatar_url, bio, location, founder_rank, show_email, show_location, discoverable, headline, open_to_work, open_to_hiring, intro_video_url, intro_video_thumbnail_url, intro_video_duration_ms, created_at",
     )
     .eq("username", username.toLowerCase())
     .maybeSingle();
 
   if (error || !data) return null;
   return {
-    ...(data as Omit<PublicProfile, "headline" | "open_to_work" | "open_to_hiring">),
-    headline:
-      (data as { headline?: string | null }).headline ?? null,
+    ...(data as Omit<
+      PublicProfile,
+      | "headline"
+      | "open_to_work"
+      | "open_to_hiring"
+      | "intro_video_url"
+      | "intro_video_thumbnail_url"
+      | "intro_video_duration_ms"
+    >),
+    headline: (data as { headline?: string | null }).headline ?? null,
     open_to_work:
       (data as { open_to_work?: boolean }).open_to_work ?? false,
     open_to_hiring:
       (data as { open_to_hiring?: boolean }).open_to_hiring ?? false,
+    intro_video_url:
+      (data as { intro_video_url?: string | null }).intro_video_url ?? null,
+    intro_video_thumbnail_url:
+      (data as { intro_video_thumbnail_url?: string | null })
+        .intro_video_thumbnail_url ?? null,
+    intro_video_duration_ms:
+      (data as { intro_video_duration_ms?: number | null })
+        .intro_video_duration_ms ?? null,
   };
 }
 

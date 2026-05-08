@@ -8,6 +8,88 @@ export type ActionResult =
   | { ok: true }
   | { ok: false; error: string };
 
+// ============================================================
+// Vidéo de présentation (CV vidéo, 60s max)
+// ============================================================
+
+const introVideoSchema = z.object({
+  url: z.string().trim().url(),
+  thumbnail_url: z.string().trim().url(),
+  duration_ms: z
+    .number()
+    .int()
+    .positive()
+    .max(65000, "Vidéo trop longue (60 s max)."),
+});
+
+export async function setIntroVideo(args: {
+  url: string;
+  thumbnail_url: string;
+  duration_ms: number;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Connexion requise." };
+
+  const parsed = introVideoSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Vidéo invalide.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      intro_video_url: parsed.data.url,
+      intro_video_thumbnail_url: parsed.data.thumbnail_url,
+      intro_video_duration_ms: parsed.data.duration_ms,
+      intro_video_uploaded_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) return { ok: false, error: "Enregistrement impossible." };
+
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+export async function removeIntroVideo(args: {
+  videoStoragePath: string | null;
+  thumbnailStoragePath: string | null;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Connexion requise." };
+
+  const toDelete = [args.videoStoragePath, args.thumbnailStoragePath].filter(
+    (p): p is string => Boolean(p),
+  );
+  if (toDelete.length > 0) {
+    await supabase.storage.from("profile-videos").remove(toDelete);
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      intro_video_url: null,
+      intro_video_thumbnail_url: null,
+      intro_video_duration_ms: null,
+      intro_video_uploaded_at: null,
+    })
+    .eq("id", user.id);
+
+  if (error) return { ok: false, error: "Suppression impossible." };
+
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
 async function requireUser() {
   const supabase = await createClient();
   const {

@@ -24,6 +24,7 @@ import { PreferencesForm } from "./PreferencesForm";
 import { ProfileForm } from "./ProfileForm";
 import { PublicPreview } from "./PublicPreview";
 import { SecurityPanel } from "./SecurityPanel";
+import { IntroVideoCard } from "./_components/IntroVideoCard";
 import { ProHeaderForm } from "./_components/ProHeaderForm";
 import { ProSectionsPanel } from "./_components/ProSectionsPanel";
 
@@ -134,6 +135,14 @@ export default async function ProfilePage({
               >
                 <ProHeaderForm profile={profile} />
               </SectionCard>
+              <IntroVideoCard
+                profile={{
+                  id: profile.id,
+                  intro_video_url: profile.intro_video_url,
+                  intro_video_thumbnail_url: profile.intro_video_thumbnail_url,
+                  intro_video_duration_ms: profile.intro_video_duration_ms,
+                }}
+              />
               <ProSectionsPanel
                 experiences={proProfile.experiences}
                 education={proProfile.education}
