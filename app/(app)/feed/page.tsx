@@ -23,14 +23,14 @@ import { PostComposer } from "./_components/PostComposer";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
 import { TrendingHashtagsRow } from "./_components/TrendingHashtagsRow";
-import { FeedTabs, type FeedTabId } from "./_components/FeedTabs";
 import type { PostWithDetails } from "@/lib/database.types";
 
 export const metadata = {
   title: "Feed",
 };
 
-const VALID_TABS: FeedTabId[] = ["for-you", "friends", "latest"];
+const VALID_TABS = ["for-you", "friends", "latest"] as const;
+type FeedTabId = (typeof VALID_TABS)[number];
 
 type SearchParams = Promise<{ tab?: string }>;
 
@@ -45,9 +45,12 @@ export default async function FeedPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  /* Default flow = chronological (matches handoff Sage screenshot:
+     "Ordre chronologique strict. Pas d'algo, pas de pub."). The
+     ?tab= param still works (deeplink-friendly) but no UI to switch. */
   const { tab: tabParam } = await searchParams;
   const tab: FeedTabId = (VALID_TABS.find((t) => t === tabParam) ??
-    "for-you") as FeedTabId;
+    "latest") as FeedTabId;
 
   const profile = await getCurrentProfile();
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
@@ -69,34 +72,19 @@ export default async function FeedPage({
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-6xl mx-auto w-full">
+    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full">
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-10">
         {/* Main column */}
         <div className="space-y-6 max-w-2xl mx-auto w-full lg:mx-0">
-          <header className="flex items-end justify-between gap-3">
-            <div>
+          <header className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <KickerLabel>Feed</KickerLabel>
               <DisplayHeading size="lg" className="mt-2">
-                {tab === "for-you" ? (
-                  <>
-                    Pour <em className="italic text-gold-deep">toi</em>.
-                  </>
-                ) : tab === "friends" ? (
-                  <>
-                    Tes <em className="italic text-gold-deep">proches</em>.
-                  </>
-                ) : (
-                  <>
-                    Ce qui se <em className="italic text-gold-deep">passe</em>.
-                  </>
-                )}
+                Ce que tes proches{" "}
+                <em className="italic text-gold-deep">racontent</em>.
               </DisplayHeading>
               <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
-                {tab === "for-you"
-                  ? "Algorithme transparent : engagement × récence × proximité, sans pub."
-                  : tab === "friends"
-                    ? "Tes amis uniquement, ordre chronologique."
-                    : "Tous les posts publics, par date."}
+                Ordre chronologique strict. Pas d&apos;algo, pas de pub.
               </p>
             </div>
             <Link
@@ -105,7 +93,7 @@ export default async function FeedPage({
               title="Mes posts sauvegardés"
             >
               <Bookmark className="w-4 h-4" aria-hidden />
-              Sauvegardés
+              <span className="hidden sm:inline">Sauvegardés</span>
             </Link>
           </header>
 
@@ -121,8 +109,6 @@ export default async function FeedPage({
             authorName={fullName}
             authorAvatarUrl={profile?.avatar_url ?? null}
           />
-
-          <FeedTabs active={tab} />
 
           {trendingTags.length > 0 ? (
             <TrendingHashtagsRow tags={trendingTags} />
@@ -176,7 +162,7 @@ function FeedEmptyState({ tab }: { tab: FeedTabId }) {
         kicker="Le feed va se construire"
         title={
           <>
-            L'algo te <em className="italic text-gold-deep">apprend</em>
+            L&apos;algo te <em className="italic text-gold-deep">apprend</em>
           </>
         }
         body="Plus tu interagis, plus l'algorithme te connaît. Publie un post, ajoute des amis, like ce qui te plaît."
@@ -191,13 +177,13 @@ function FeedEmptyState({ tab }: { tab: FeedTabId }) {
   return (
     <EmptyState
       icon={Compass}
-      kicker="Récents"
+      kicker="Premier coup d'œil"
       title={
         <>
           Pas encore de posts <em className="italic text-gold-deep">publics</em>
         </>
       }
-      body="Les posts publics apparaîtront ici dès que la communauté en publiera."
+      body="Les posts apparaîtront ici dès que tes amis ou la communauté publient."
       ctaHref="/explore"
       ctaLabel="Découvrir"
     />

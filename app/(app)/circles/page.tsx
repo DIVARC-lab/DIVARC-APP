@@ -1,7 +1,7 @@
-import { Compass, Lock, Plus, Users2 } from "lucide-react";
+import { Lock, Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { ArcMark } from "@/components/marketing/ArcMark";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -26,44 +26,69 @@ export default async function CirclesPage() {
 
   const [mine, discoverable] = await Promise.all([
     listMyCircles(user.id),
-    listDiscoverableCircles(user.id, 8),
+    listDiscoverableCircles(user.id, 14),
   ]);
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-5xl mx-auto w-full">
-      <header className="mb-8 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <KickerLabel>Cercles</KickerLabel>
-          <DisplayHeading size="lg" className="mt-2">
-            {mine.length > 0 ? (
-              <>
-                Tes{" "}
-                <em className="italic text-gold-deep">
-                  {mine.length} cercle{mine.length > 1 ? "s" : ""}
-                </em>
-              </>
-            ) : (
-              <>
-                Trouve ton <em className="italic text-gold-deep">quartier</em>
-              </>
-            )}
-          </DisplayHeading>
-          <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
-            Des espaces plus calmes que le feed. Discussions, entraide,
-            voisinage.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/circles/new">
-            <Plus className="w-4 h-4" aria-hidden />
-            Créer un cercle
-          </Link>
-        </Button>
+    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
+      <header className="mb-6">
+        <KickerLabel>Cercles</KickerLabel>
+        <DisplayHeading size="lg" className="mt-2">
+          {mine.length > 0 ? (
+            <>
+              Tes{" "}
+              <em className="italic text-gold-deep">
+                {mine.length} cercle{mine.length > 1 ? "s" : ""}
+              </em>
+            </>
+          ) : (
+            <>
+              Trouve ton <em className="italic text-gold-deep">quartier</em>
+            </>
+          )}
+        </DisplayHeading>
+        <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
+          Des espaces plus calmes que le feed. Discussions, événements,
+          entraide.
+        </p>
       </header>
+
+      {/* Search (visual only for V1, no client logic yet) */}
+      <div className="mb-4">
+        <div className="h-11 rounded-full bg-white border border-line flex items-center gap-2.5 px-4 text-sm text-muted-strong">
+          <Search className="w-4 h-4 text-night-muted" aria-hidden />
+          <span>Chercher un cercle…</span>
+        </div>
+      </div>
+
+      {/* Filter chips (visual scaffolding — links toggle nothing yet, V2). */}
+      <nav
+        aria-label="Filtres cercles"
+        className="mb-6 -mx-1 px-1 flex gap-2 overflow-x-auto scrollbar-none"
+      >
+        {[
+          { l: "Tous", active: true },
+          { l: "Modéré par toi" },
+          { l: "Privés" },
+          { l: "Publics" },
+        ].map((f) => (
+          <span
+            key={f.l}
+            className={cn(
+              "shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold inline-flex items-center transition-colors",
+              f.active
+                ? "bg-night text-cream"
+                : "bg-white border border-line text-night-muted",
+            )}
+          >
+            {f.l}
+          </span>
+        ))}
+      </nav>
 
       {mine.length === 0 ? (
         <EmptyState
-          icon={Users2}
+          emoji="🏘️"
           kicker="Aucun cercle"
           title={
             <>
@@ -76,30 +101,39 @@ export default async function CirclesPage() {
           tone="soft"
         />
       ) : (
-        <section aria-label="Mes cercles" className="mb-12">
-          <div className="grid sm:grid-cols-2 gap-3">
-            {mine.map((circle) => (
-              <CircleCard key={circle.id} circle={circle} />
-            ))}
-          </div>
-        </section>
+        <ul className="space-y-3 mb-8">
+          {mine.map((circle) => (
+            <li key={circle.id}>
+              <CircleCard circle={circle} />
+            </li>
+          ))}
+        </ul>
       )}
 
+      {/* Discover banner — navy with ArcDeco watermark */}
       {discoverable.length > 0 ? (
-        <section aria-label="Découvrir" className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Compass className="w-4 h-4 text-gold-deep" aria-hidden />
-            <KickerLabel>Découvrir</KickerLabel>
+        <Link
+          href="/explore"
+          className="relative block rounded-3xl bg-night text-cream p-5 sm:p-6 overflow-hidden hover:bg-night-soft transition-colors"
+        >
+          <div
+            aria-hidden
+            className="absolute -right-10 -bottom-12 opacity-25 pointer-events-none"
+          >
+            <ArcMark size={220} animate={false} />
           </div>
-          <h2 className="font-display italic text-2xl text-night leading-tight mb-4">
-            Près de chez toi
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {discoverable.map((circle) => (
-              <CircleCard key={circle.id} circle={circle} discover />
-            ))}
+          <div className="relative">
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold">
+              · Découvrir
+            </span>
+            <p className="mt-1 font-display italic text-2xl sm:text-3xl leading-tight">
+              {discoverable.length} cercles près de chez toi
+            </p>
+            <span className="mt-3 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold text-night text-xs font-extrabold">
+              Explorer →
+            </span>
           </div>
-        </section>
+        </Link>
       ) : null}
     </div>
   );
@@ -114,24 +148,18 @@ const COLOR_BG: Record<CircleColor, string> = {
   cream: "bg-gradient-to-br from-cream via-bg to-gold/30 text-night",
 };
 
-function CircleCard({
-  circle,
-  discover = false,
-}: {
-  circle: CircleWithMembership;
-  discover?: boolean;
-}) {
+function CircleCard({ circle }: { circle: CircleWithMembership }) {
   const tone = COLOR_BG[circle.color ?? "gold"];
 
   return (
     <Link
       href={`/circles/${circle.slug}`}
-      className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-line hover:border-gold/40 hover:bg-gold/[0.02] transition-colors group"
+      className="flex items-center gap-3.5 p-3 rounded-2xl bg-white border border-line hover:border-gold/40 hover:bg-gold/[0.02] transition-colors"
     >
       <span
         aria-hidden
         className={cn(
-          "shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-display italic shadow-soft",
+          "shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-soft",
           tone,
         )}
       >
@@ -152,14 +180,20 @@ function CircleCard({
         <p className="mt-1 text-[11px] text-muted">
           {circle.members_count.toLocaleString("fr-FR")} membre
           {circle.members_count > 1 ? "s" : ""}
-          {circle.my_role && circle.my_role !== "member"
-            ? ` · ${circle.my_role === "admin" ? "Admin" : "Mod"}`
-            : ""}
         </p>
       </div>
-      <span className="text-[11px] font-semibold text-gold-deep group-hover:text-night transition-colors whitespace-nowrap">
-        {discover ? "Voir →" : "Ouvrir →"}
-      </span>
+      {circle.my_role && circle.my_role !== "member" ? (
+        <span
+          className={cn(
+            "shrink-0 text-[10px] font-extrabold tracking-[0.06em] uppercase px-2 py-1 rounded-full",
+            circle.my_role === "admin"
+              ? "bg-night text-cream"
+              : "bg-gold text-night",
+          )}
+        >
+          {circle.my_role === "admin" ? "Admin" : "Mod"}
+        </span>
+      ) : null}
     </Link>
   );
 }

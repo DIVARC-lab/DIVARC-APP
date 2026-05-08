@@ -23,6 +23,7 @@ import { getCurrentProfile } from "@/lib/queries/profile";
 import { getTotalUnreadCount } from "@/lib/queries/conversations";
 import { countIncomingRequests } from "@/lib/queries/friendships";
 import { countUnreadNotifications } from "@/lib/queries/notifications";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { NotificationsRealtime } from "@/components/NotificationsRealtime";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { GlobalSearch } from "@/components/GlobalSearch";
@@ -253,8 +254,9 @@ export default async function DashboardLayout({
           </p>
         </div>
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-20 lg:pb-0">{children}</main>
       </div>
+      <MobileBottomNav />
       <NotificationsRealtime userId={user.id} />
       <PresenceHeartbeat />
       <ThemeProvider initialTheme={profile?.theme ?? "system"} />
