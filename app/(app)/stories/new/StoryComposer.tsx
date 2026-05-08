@@ -1,9 +1,10 @@
 "use client";
 
-import { ImagePlus, Loader2, Send, Type, X } from "lucide-react";
+import { Camera, ImagePlus, Loader2, Send, Type, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { CameraCapture } from "@/components/stories/CameraCapture";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
 import type { StoryFilter } from "@/lib/database.types";
@@ -37,8 +38,44 @@ export function StoryComposer({ userId }: StoryComposerProps) {
   const [background, setBackground] = useState<string>(BACKGROUNDS[0]!.id);
   const [filter, setFilter] = useState<StoryFilter>("original");
   const [uploading, setUploading] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /* Reuse the same Supabase upload pipeline whether the photo comes from
+     a file picker (handleFile) or a live camera capture (handleCameraBlob)
+     so both end with { url, storagePath } that the form action consumes. */
+  async function uploadBlob(blob: Blob, ext: string) {
+    setUploading(true);
+    const supabase = createClient();
+    const storagePath = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("stories")
+      .upload(storagePath, blob, {
+        contentType: blob.type || "image/jpeg",
+        cacheControl: "3600",
+      });
+
+    if (error) {
+      toast.error("Échec du téléversement.");
+      setUploading(false);
+      return;
+    }
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("stories").getPublicUrl(storagePath);
+    setPhoto({ url: publicUrl, storagePath });
+    setUploading(false);
+  }
+
+  async function handleCameraBlob(blob: Blob) {
+    if (blob.size > MAX_SIZE_BYTES) {
+      toast.error("Photo trop lourde, recommence.");
+      return;
+    }
+    setShowCamera(false);
+    await uploadBlob(blob, "jpg");
+  }
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -114,6 +151,12 @@ export function StoryComposer({ userId }: StoryComposerProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {showCamera ? (
+        <CameraCapture
+          onCapture={handleCameraBlob}
+          onClose={() => setShowCamera(false)}
+        />
+      ) : null}
       <div className="inline-flex p-1.5 rounded-2xl bg-night/5 border border-line">
         <button
           type="button"
@@ -166,22 +209,35 @@ export function StoryComposer({ userId }: StoryComposerProps) {
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={uploading}
-              className="w-full max-w-sm mx-auto aspect-[4/5] sm:aspect-square rounded-3xl border-2 border-dashed border-line bg-night/[0.02] flex flex-col items-center justify-center gap-3 text-night-muted hover:border-night/30 hover:bg-night/5 transition-colors"
-            >
-              {uploading ? (
-                <Loader2 className="w-7 h-7 animate-spin" aria-hidden />
-              ) : (
-                <ImagePlus className="w-8 h-8" aria-hidden />
-              )}
-              <span className="text-sm font-semibold">
-                {uploading ? "Téléversement..." : "Choisir une photo"}
-              </span>
-              <span className="text-xs text-muted">JPG, PNG, WebP · 8 Mo max</span>
-            </button>
+            <div className="w-full max-w-sm mx-auto">
+              <button
+                type="button"
+                onClick={() => setShowCamera(true)}
+                disabled={uploading}
+                className="w-full aspect-[4/5] sm:aspect-square rounded-3xl bg-gradient-to-br from-night via-night-soft to-night-muted text-cream flex flex-col items-center justify-center gap-3 hover:from-night-soft hover:to-night transition-colors shadow-[0_24px_60px_-28px_rgba(10,31,68,0.5)] relative overflow-hidden"
+              >
+                {uploading ? (
+                  <Loader2 className="w-8 h-8 animate-spin" aria-hidden />
+                ) : (
+                  <Camera className="w-9 h-9 text-gold" aria-hidden />
+                )}
+                <span className="font-display italic text-2xl">
+                  {uploading ? "Téléversement…" : "Prendre une photo"}
+                </span>
+                <span className="text-xs text-cream/60">
+                  Caméra avant ou arrière
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                disabled={uploading}
+                className="mt-3 w-full h-11 rounded-full border border-line bg-white text-night-muted text-sm font-semibold flex items-center justify-center gap-2 hover:border-night/30 hover:text-night transition-colors"
+              >
+                <ImagePlus className="w-4 h-4" aria-hidden />
+                Choisir depuis la galerie · JPG, PNG, WebP · 8 Mo
+              </button>
+            </div>
           )}
           <input
             ref={inputRef}
