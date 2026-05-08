@@ -71,6 +71,32 @@ export default async function FeedPage({
   ]);
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
+  /* "X nouveaux posts depuis ta dernière visite" — proxy : posts <24h.
+     Quand on aura un last_seen_at sur le profil, on basculera dessus. */
+  const dayMs = 24 * 60 * 60 * 1000;
+  const newPostsCount = posts.filter(
+    (p) => Date.now() - new Date(p.created_at).getTime() < dayMs,
+  ).length;
+
+  /* Date du jour façon "7 mai" pour le kicker (handoff desktop). */
+  const today = new Date();
+  const todayKicker = `${today.getDate()} ${
+    [
+      "JANV.",
+      "FÉVR.",
+      "MARS",
+      "AVR.",
+      "MAI",
+      "JUIN",
+      "JUIL.",
+      "AOÛT",
+      "SEPT.",
+      "OCT.",
+      "NOV.",
+      "DÉC.",
+    ][today.getMonth()]
+  }`;
+
   return (
     <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full">
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-10">
@@ -78,13 +104,27 @@ export default async function FeedPage({
         <div className="space-y-6 max-w-2xl mx-auto w-full lg:mx-0">
           <header className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <KickerLabel>Feed</KickerLabel>
-              <DisplayHeading size="lg" className="mt-2">
+              <KickerLabel>Le feed · {todayKicker}</KickerLabel>
+              <DisplayHeading
+                size="xl"
+                className="mt-3 !leading-[1.02] sm:!text-[64px]"
+              >
                 Ce que tes proches{" "}
-                <em className="italic text-gold-deep">racontent</em>.
+                <em className="italic text-gold-deep">racontent</em>{" "}
+                aujourd&apos;hui.
               </DisplayHeading>
-              <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
-                Ordre chronologique strict. Pas d&apos;algo, pas de pub.
+              <p className="mt-3 text-night-muted text-base sm:text-[15px] leading-relaxed max-w-xl">
+                Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
+                {newPostsCount > 0 ? (
+                  <>
+                    {" "}
+                    <span className="font-semibold text-night">
+                      {newPostsCount} nouveau{newPostsCount > 1 ? "x" : ""} post
+                      {newPostsCount > 1 ? "s" : ""}
+                    </span>{" "}
+                    depuis ta dernière visite.
+                  </>
+                ) : null}
               </p>
             </div>
             <Link

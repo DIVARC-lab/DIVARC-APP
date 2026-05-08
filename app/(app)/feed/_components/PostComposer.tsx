@@ -361,11 +361,20 @@ export function PostComposer({
               setBody(event.currentTarget.value);
               autosize();
             }}
-            placeholder="Quoi de neuf ?"
+            placeholder={
+              authorName
+                ? `Quoi de neuf, ${authorName.split(" ")[0]} ?`
+                : "Quoi de neuf ?"
+            }
             rows={2}
             maxLength={4000}
-            className="w-full resize-none border-0 bg-transparent text-night text-base placeholder:text-muted focus:outline-none"
+            className="w-full resize-none border-0 bg-transparent text-night text-lg leading-snug font-display italic placeholder:text-muted-strong focus:outline-none"
           />
+          {body.length === 0 ? (
+            <p className="text-xs text-muted -mt-1">
+              Photo, pensée, annonce, un moment de ta journée…
+            </p>
+          ) : null}
 
           {photos.length > 0 ? (
             <div
@@ -446,7 +455,7 @@ export function PostComposer({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading || photos.length >= MAX_PHOTOS || video !== null}
-          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night/5 text-night-muted hover:bg-night/10 hover:text-night text-sm font-semibold disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold/15 text-gold-deep hover:bg-gold/25 text-sm font-semibold disabled:opacity-60 border border-gold/30"
         >
           {uploading ? (
             <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
@@ -478,10 +487,10 @@ export function PostComposer({
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-semibold text-sm transition",
+            "inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-extrabold text-sm transition shadow-sm",
             canSubmit
-              ? "bg-night text-cream hover:bg-night-soft"
-              : "bg-night/30 text-cream cursor-not-allowed",
+              ? "bg-gold text-night hover:bg-gold-soft"
+              : "bg-gold/40 text-night/60 cursor-not-allowed",
           )}
         >
           {pending ? (
