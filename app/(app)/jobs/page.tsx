@@ -1,4 +1,11 @@
-import { BellRing, Briefcase, Plus, Bookmark, Send } from "lucide-react";
+import {
+  BellRing,
+  Briefcase,
+  Plus,
+  Bookmark,
+  Send,
+  Users2,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -90,6 +97,12 @@ export default async function JobsPage({
             <Link href="/jobs/saved">
               <Bookmark className="w-4 h-4" aria-hidden />
               Sauvegardés
+            </Link>
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link href="/jobs/referrals">
+              <Users2 className="w-4 h-4" aria-hidden />
+              Cooptations
             </Link>
           </Button>
           <Button variant="secondary" asChild>

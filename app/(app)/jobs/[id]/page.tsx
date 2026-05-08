@@ -24,9 +24,15 @@ import { formatRelative } from "@/lib/utils/relativeTime";
 import { getJobById } from "@/lib/queries/jobs";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getProProfile } from "@/lib/queries/profilePro";
+import { listFriendsForUser } from "@/lib/queries/friendships";
+import {
+  listMyExistingReferrals,
+  listReferralsOnJob,
+} from "@/lib/queries/referrals";
 import { createClient } from "@/lib/supabase/server";
 import { buildApplicationDraft } from "@/lib/utils/applicationDraft";
 import { ApplyDialog } from "./_components/ApplyDialog";
+import { ReferDialog } from "./_components/ReferDialog";
 
 type Params = Promise<{ id: string }>;
 
@@ -61,6 +67,24 @@ export default async function JobDetailPage({
   if (!job) notFound();
 
   const isOwn = job.poster_id === user.id;
+
+  // Cooptation : amis + déjà cooptés (uniquement si offre active)
+  const canRefer = job.status === "active" && !isOwn;
+  const [friendsRaw, alreadyReferred, referralsOnThisJob] = canRefer
+    ? await Promise.all([
+        listFriendsForUser(user.id),
+        listMyExistingReferrals({ userId: user.id, jobId: job.id }),
+        isOwn ? Promise.resolve([]) : Promise.resolve([]),
+      ])
+    : [[], [], []];
+  const friends = friendsRaw.map((f) => ({
+    user_id: f.other.id,
+    full_name: f.other.full_name,
+    username: f.other.username,
+    avatar_url: f.other.avatar_url,
+  }));
+  // Pour le poster du job : voir qui a coopté qui
+  const referralsForOwner = isOwn ? await listReferralsOnJob(job.id) : [];
 
   // Préremplissage du message de candidature depuis le profil pro
   const canApply = !isOwn && !job.has_applied && job.status === "active";
@@ -249,6 +273,62 @@ export default async function JobDetailPage({
                   ) : null}
                 </div>
               </Link>
+            </article>
+          ) : null}
+
+          {canRefer && friends.length > 0 ? (
+            <article className="p-6 rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/10 border-2 border-gold/30 shadow-soft">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gold-deep mb-2">
+                Cooptation
+              </h2>
+              <p className="text-sm text-night-muted leading-relaxed mb-4">
+                Tu connais quelqu&apos;un qui ferait l&apos;affaire ? Recommande-le
+                en 1 clic — il recevra une notif personnalisée.
+              </p>
+              <ReferDialog
+                jobId={job.id}
+                jobTitle={job.title}
+                friends={friends}
+                alreadyReferredIds={alreadyReferred}
+              />
+            </article>
+          ) : null}
+
+          {isOwn && referralsForOwner.length > 0 ? (
+            <article className="p-6 rounded-3xl bg-white border border-line shadow-soft">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-gold-deep mb-3">
+                Cooptations reçues ({referralsForOwner.length})
+              </h2>
+              <ul className="space-y-2">
+                {referralsForOwner.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center gap-2 text-sm text-night-muted"
+                  >
+                    <Avatar
+                      src={r.referrer?.avatar_url ?? null}
+                      fullName={r.referrer?.full_name ?? null}
+                      size="sm"
+                      className="!w-6 !h-6 !text-[10px]"
+                    />
+                    <span className="truncate">
+                      <strong className="text-night">
+                        {r.referrer?.full_name ?? "Un membre"}
+                      </strong>{" "}
+                      coopte{" "}
+                      <strong className="text-night">
+                        {r.referred?.full_name ?? "@" + (r.referred?.username ?? "")}
+                      </strong>
+                      {r.application_id ? (
+                        <span className="text-emerald-700 font-semibold">
+                          {" "}
+                          · a postulé ✓
+                        </span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </article>
           ) : null}
 

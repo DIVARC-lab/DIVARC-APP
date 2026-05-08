@@ -407,6 +407,25 @@ export type JobSavedSearch = {
   created_at: string;
 };
 
+// =============== Job referrals (cooptation) ===============
+
+export type JobReferral = {
+  id: string;
+  job_id: string;
+  referrer_id: string;
+  referred_id: string;
+  message: string | null;
+  created_at: string;
+  acknowledged_at: string | null;
+  application_id: string | null;
+};
+
+export type JobReferralWithDetails = JobReferral & {
+  referrer: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  referred: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  job: Pick<Job, "id" | "title" | "company_name"> | null;
+};
+
 // =============== Profile views ===============
 
 export type ProfileView = {
@@ -987,6 +1006,24 @@ export type Database = {
         Row: ProfileView;
         Insert: never;
         Update: never;
+        Relationships: [];
+      };
+      job_referrals: {
+        Row: JobReferral;
+        Insert: Pick<JobReferral, "job_id" | "referrer_id" | "referred_id"> &
+          Partial<
+            Pick<
+              JobReferral,
+              | "id"
+              | "message"
+              | "acknowledged_at"
+              | "application_id"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<JobReferral, "message" | "acknowledged_at" | "application_id">
+        >;
         Relationships: [];
       };
     };
