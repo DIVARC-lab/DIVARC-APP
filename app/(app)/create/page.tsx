@@ -84,8 +84,11 @@ export default async function CreatePage() {
 
         <header className="flex items-start justify-between gap-3 mb-5 px-1">
           <div className="min-w-0">
-            <KickerLabel>Que veux-tu créer ?</KickerLabel>
-            <DisplayHeading size="md" className="mt-1">
+            <KickerLabel>· Que veux-tu créer ?</KickerLabel>
+            <DisplayHeading
+              size="lg"
+              className="mt-2 !leading-[1.05] !text-[32px] sm:!text-[40px]"
+            >
               Choisis un <em className="italic text-gold-deep">format</em>.
             </DisplayHeading>
           </div>
