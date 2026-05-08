@@ -194,7 +194,27 @@ export async function listCirclePosts(
     .select("*")
     .eq("circle_id", circleId)
     .is("deleted_at", null)
+    .is("pinned_at", null)
     .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return attachDetails(data, currentUserId);
+}
+
+export async function listCirclePinnedPosts(
+  circleId: string,
+  currentUserId: string,
+  limit: number = 5,
+): Promise<PostWithDetails[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("circle_id", circleId)
+    .is("deleted_at", null)
+    .not("pinned_at", "is", null)
+    .order("pinned_at", { ascending: false })
     .limit(limit);
 
   if (error || !data) return [];

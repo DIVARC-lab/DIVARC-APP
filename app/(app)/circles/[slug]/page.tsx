@@ -2,13 +2,15 @@ import { ArrowLeft, Lock, MessageSquareText, Users2 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
-import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import {
   getCircleBySlug,
   listCircleMembers,
 } from "@/lib/queries/circles";
-import { listCirclePosts } from "@/lib/queries/posts";
+import {
+  listCirclePinnedPosts,
+  listCirclePosts,
+} from "@/lib/queries/posts";
 import { listUpcomingCircleEvents } from "@/lib/queries/circle_events";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +19,7 @@ import type { CircleColor } from "@/lib/database.types";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { CircleEventsSection } from "./CircleEventsSection";
 import { CircleMembershipButton } from "./CircleMembershipButton";
+import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
 type Params = Promise<{ slug: string }>;
@@ -56,14 +59,19 @@ export default async function CircleDetailPage({
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
 
-  const [members, profile, posts, events] = await Promise.all([
+  const [members, profile, posts, pinnedPosts, events] = await Promise.all([
     listCircleMembers(circle.id, 12),
     getCurrentProfile(),
     circle.is_member ? listCirclePosts(circle.id, user.id, 30) : Promise.resolve([]),
+    circle.is_member
+      ? listCirclePinnedPosts(circle.id, user.id, 5)
+      : Promise.resolve([]),
     listUpcomingCircleEvents(circle.id, user.id, 5),
   ]);
   const tone = COLOR_HERO[circle.color ?? "gold"];
   const isOwner = circle.owner_id === user.id;
+  const canModerate =
+    isOwner || circle.my_role === "admin" || circle.my_role === "mod";
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
   return (
@@ -156,19 +164,45 @@ export default async function CircleDetailPage({
             authorAvatarUrl={profile?.avatar_url ?? null}
           />
 
-          {posts.length === 0 ? (
-            <p className="mt-6 text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
-              Aucun message pour l'instant. <span className="italic font-display text-night">Lance la conversation.</span>
-            </p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {posts.map((post) => (
+          {pinnedPosts.length > 0 ? (
+            <ul className="mt-6 space-y-5">
+              {pinnedPosts.map((post) => (
                 <li key={post.id}>
-                  <PostCard post={post} currentUserId={user.id} />
+                  <CircleModeratablePost
+                    post={post}
+                    currentUserId={user.id}
+                    canModerate={canModerate}
+                  />
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
+
+          {posts.length === 0 && pinnedPosts.length === 0 ? (
+            <p className="mt-6 text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
+              Aucun message pour l'instant. <span className="italic font-display text-night">Lance la conversation.</span>
+            </p>
+          ) : null}
+
+          {posts.length > 0 ? (
+            <ul className="mt-4 space-y-4">
+              {posts.map((post) =>
+                canModerate ? (
+                  <li key={post.id}>
+                    <CircleModeratablePost
+                      post={post}
+                      currentUserId={user.id}
+                      canModerate
+                    />
+                  </li>
+                ) : (
+                  <li key={post.id}>
+                    <PostCard post={post} currentUserId={user.id} />
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : null}
         </section>
       ) : null}
 
@@ -228,16 +262,6 @@ export default async function CircleDetailPage({
         events={events}
         isMember={circle.is_member}
       />
-
-      {/* Future : annonces épinglées (V4) */}
-      <section className="mt-12">
-        <DisplayHeading size="md">
-          Bientôt : <em className="italic text-gold-deep">épinglés</em>
-        </DisplayHeading>
-        <p className="mt-2 text-sm text-muted-strong max-w-md leading-relaxed">
-          Les annonces de modos en haut de la page — dans la prochaine release.
-        </p>
-      </section>
     </div>
   );
 }

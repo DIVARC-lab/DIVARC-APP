@@ -133,6 +133,8 @@ export type Post = {
   video_width: number | null;
   video_height: number | null;
   circle_id: string | null;
+  pinned_at: string | null;
+  pinned_by: string | null;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -1085,7 +1087,16 @@ export type Database = {
             >
           >;
         Update: Partial<
-          Pick<Post, "body" | "visibility" | "circle_id" | "edited_at" | "deleted_at">
+          Pick<
+            Post,
+            | "body"
+            | "visibility"
+            | "circle_id"
+            | "pinned_at"
+            | "pinned_by"
+            | "edited_at"
+            | "deleted_at"
+          >
         >;
         Relationships: [];
       };
@@ -1574,6 +1585,14 @@ export type Database = {
       };
       are_friends: {
         Args: { user_a: string; user_b: string };
+        Returns: boolean;
+      };
+      can_moderate_circle: {
+        Args: { p_circle_id: string; p_user_id: string };
+        Returns: boolean;
+      };
+      is_circle_member: {
+        Args: { p_circle_id: string; p_user_id: string };
         Returns: boolean;
       };
       mark_all_notifications_read: {

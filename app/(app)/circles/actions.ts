@@ -346,6 +346,89 @@ export async function attendCircleEvent(
   return { ok: true as const };
 }
 
+export async function pinCirclePost(postId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  /* Verify post is in a circle and user can moderate it. */
+  const { data: post } = await supabase
+    .from("posts")
+    .select("circle_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post?.circle_id) {
+    return { ok: false as const, error: "Post introuvable ou hors cercle." };
+  }
+  const { data: canMod } = await supabase.rpc("can_moderate_circle", {
+    p_circle_id: post.circle_id,
+    p_user_id: user.id,
+  });
+  if (!canMod) {
+    return {
+      ok: false as const,
+      error: "Tu dois être admin ou modérateur pour épingler.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ pinned_at: new Date().toISOString(), pinned_by: user.id })
+    .eq("id", postId);
+  if (error) return { ok: false as const, error: "Épinglage impossible." };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", post.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  return { ok: true as const };
+}
+
+export async function unpinCirclePost(postId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("circle_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post?.circle_id) {
+    return { ok: false as const, error: "Post introuvable." };
+  }
+  const { data: canMod } = await supabase.rpc("can_moderate_circle", {
+    p_circle_id: post.circle_id,
+    p_user_id: user.id,
+  });
+  if (!canMod) {
+    return {
+      ok: false as const,
+      error: "Tu dois être admin ou modérateur.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ pinned_at: null, pinned_by: null })
+    .eq("id", postId);
+  if (error) return { ok: false as const, error: "Action impossible." };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", post.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  return { ok: true as const };
+}
+
 export async function cancelEventRsvp(eventId: string) {
   const supabase = await createClient();
   const {

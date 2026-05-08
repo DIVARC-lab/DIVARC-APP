@@ -137,6 +137,8 @@ async function attachPhotos(
       edited_at: null,
       deleted_at: null,
       circle_id: null,
+      pinned_at: null,
+      pinned_by: null,
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],
