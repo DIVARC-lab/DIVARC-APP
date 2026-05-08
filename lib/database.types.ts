@@ -725,6 +725,45 @@ export type StoryGroup = {
   has_unviewed: boolean;
 };
 
+export type CircleColor =
+  | "gold"
+  | "navy"
+  | "emerald"
+  | "rose"
+  | "violet"
+  | "cream";
+
+export type CircleRole = "admin" | "mod" | "member";
+
+export type Circle = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  color: CircleColor | null;
+  is_private: boolean;
+  owner_id: string;
+  members_count: number;
+  created_at: string;
+};
+
+export type CircleMember = {
+  circle_id: string;
+  user_id: string;
+  role: CircleRole;
+  joined_at: string;
+};
+
+export type CircleWithMembership = Circle & {
+  is_member: boolean;
+  my_role: CircleRole | null;
+};
+
+export type CircleMemberWithProfile = CircleMember & {
+  profile: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -1241,6 +1280,36 @@ export type Database = {
         Row: StoryView;
         Insert: Pick<StoryView, "story_id" | "viewer_id">;
         Update: never;
+        Relationships: [];
+      };
+      circles: {
+        Row: Circle;
+        Insert: Pick<Circle, "slug" | "name" | "owner_id"> &
+          Partial<
+            Pick<
+              Circle,
+              | "id"
+              | "description"
+              | "emoji"
+              | "color"
+              | "is_private"
+              | "members_count"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            Circle,
+            "name" | "description" | "emoji" | "color" | "is_private"
+          >
+        >;
+        Relationships: [];
+      };
+      circle_members: {
+        Row: CircleMember;
+        Insert: Pick<CircleMember, "circle_id" | "user_id"> &
+          Partial<Pick<CircleMember, "role" | "joined_at">>;
+        Update: Partial<Pick<CircleMember, "role">>;
         Relationships: [];
       };
       companies: {

@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   User,
   Users,
+  Users2,
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -80,6 +81,12 @@ export default async function DashboardLayout({
       icon: Users,
       available: true,
       badge: incomingRequests > 0 ? incomingRequests : undefined,
+    },
+    {
+      href: "/circles",
+      label: "Cercles",
+      icon: Users2,
+      available: true,
     },
     {
       href: "/messages",
