@@ -783,6 +783,8 @@ export type CircleEvent = {
   ends_at: string | null;
   capacity: number | null;
   attendance_count: number;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 
@@ -1398,6 +1400,8 @@ export type Database = {
               | "ends_at"
               | "capacity"
               | "attendance_count"
+              | "lat"
+              | "lng"
               | "created_at"
             >
           >;
@@ -1411,6 +1415,8 @@ export type Database = {
             | "starts_at"
             | "ends_at"
             | "capacity"
+            | "lat"
+            | "lng"
           >
         >;
         Relationships: [];

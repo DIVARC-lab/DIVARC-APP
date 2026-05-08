@@ -241,6 +241,22 @@ const createEventSchema = z.object({
       return Number.isFinite(n) ? n : null;
     })
     .pipe(z.number().int().min(1).max(5000).nullable()),
+  lat: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (!v) return null;
+      const n = parseFloat(v);
+      return Number.isFinite(n) && n >= -90 && n <= 90 ? n : null;
+    }),
+  lng: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (!v) return null;
+      const n = parseFloat(v);
+      return Number.isFinite(n) && n >= -180 && n <= 180 ? n : null;
+    }),
 });
 
 export async function createCircleEvent(formData: FormData) {
@@ -259,6 +275,8 @@ export async function createCircleEvent(formData: FormData) {
     starts_at: formData.get("starts_at"),
     ends_at: formData.get("ends_at"),
     capacity: formData.get("capacity"),
+    lat: formData.get("lat"),
+    lng: formData.get("lng"),
   });
   if (!parsed.success) {
     return {
@@ -276,6 +294,16 @@ export async function createCircleEvent(formData: FormData) {
     }
   }
 
+  /* lat/lng : tous les deux ou aucun (DB constraint backup côté client). */
+  if (
+    (parsed.data.lat === null) !== (parsed.data.lng === null)
+  ) {
+    return {
+      ok: false as const,
+      error: "Coordonnées : remplis lat ET lng, ou laisse les deux vides.",
+    };
+  }
+
   const { error } = await supabase.from("circle_events").insert({
     circle_id: parsed.data.circle_id,
     author_id: user.id,
@@ -286,6 +314,8 @@ export async function createCircleEvent(formData: FormData) {
     starts_at: parsed.data.starts_at,
     ends_at: parsed.data.ends_at,
     capacity: parsed.data.capacity,
+    lat: parsed.data.lat,
+    lng: parsed.data.lng,
   });
 
   if (error) {

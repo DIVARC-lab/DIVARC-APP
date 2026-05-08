@@ -40,6 +40,8 @@ export function CircleEventCreateForm({
   const [startsAt, setStartsAt] = useState(localISO(24));
   const [endsAt, setEndsAt] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [lat, setLat] = useState("");
+  const [lng, setLng] = useState("");
   const [pending, startTransition] = useTransition();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -52,6 +54,27 @@ export function CircleEventCreateForm({
     const startsAtIso = new Date(startsAt).toISOString();
     const endsAtIso = endsAt ? new Date(endsAt).toISOString() : "";
 
+    /* Validate lat/lng pair: both or neither. */
+    if ((lat && !lng) || (!lat && lng)) {
+      toast.error("Coordonnées : remplis lat ET lng, ou laisse vide.");
+      return;
+    }
+    if (lat && lng) {
+      const latN = parseFloat(lat);
+      const lngN = parseFloat(lng);
+      if (
+        !Number.isFinite(latN) ||
+        !Number.isFinite(lngN) ||
+        latN < -90 ||
+        latN > 90 ||
+        lngN < -180 ||
+        lngN > 180
+      ) {
+        toast.error("Coordonnées invalides.");
+        return;
+      }
+    }
+
     const formData = new FormData();
     formData.set("circle_id", circleId);
     formData.set("title", title);
@@ -61,6 +84,8 @@ export function CircleEventCreateForm({
     formData.set("starts_at", startsAtIso);
     formData.set("ends_at", endsAtIso);
     formData.set("capacity", capacity);
+    formData.set("lat", lat);
+    formData.set("lng", lng);
 
     startTransition(async () => {
       const result = await createCircleEvent(formData);
@@ -181,6 +206,47 @@ export function CircleEventCreateForm({
           placeholder="Pas de limite"
           className="w-full sm:w-48 h-12 rounded-xl border border-line bg-white px-4 text-sm focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-night mb-2">
+          Coordonnées GPS (facultatif)
+        </label>
+        <p className="text-xs text-muted mb-3">
+          Ouvre{" "}
+          <a
+            href="https://www.openstreetmap.org/"
+            target="_blank"
+            rel="noreferrer"
+            className="text-gold-deep underline"
+          >
+            openstreetmap.org
+          </a>
+          , clic-droit sur le lieu → "Voir l'adresse" → copie la latitude et la
+          longitude. L'événement apparaîtra alors sur la carte DIVARC.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <input
+            type="number"
+            step="any"
+            value={lat}
+            onChange={(event) => setLat(event.currentTarget.value)}
+            placeholder="Latitude (ex: 48.8606)"
+            min={-90}
+            max={90}
+            className="w-full h-12 rounded-xl border border-line bg-white px-4 text-sm focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
+          />
+          <input
+            type="number"
+            step="any"
+            value={lng}
+            onChange={(event) => setLng(event.currentTarget.value)}
+            placeholder="Longitude (ex: 2.3376)"
+            min={-180}
+            max={180}
+            className="w-full h-12 rounded-xl border border-line bg-white px-4 text-sm focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
+          />
+        </div>
       </div>
 
       <div className="flex justify-end pt-2">

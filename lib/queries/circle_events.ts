@@ -48,6 +48,34 @@ export async function listUpcomingCircleEvents(
   return attachRsvp(data, currentUserId);
 }
 
+/** Événements géolocalisés à venir des cercles dont l'utilisateur est membre. */
+export async function listGeolocatedEventsForUser(
+  currentUserId: string,
+  limit: number = 50,
+): Promise<CircleEventWithRsvp[]> {
+  const supabase = await createClient();
+  /* Lookup user's circles. */
+  const { data: memberships } = await supabase
+    .from("circle_members")
+    .select("circle_id")
+    .eq("user_id", currentUserId);
+  if (!memberships || memberships.length === 0) return [];
+
+  const circleIds = memberships.map((m) => m.circle_id);
+  const { data, error } = await supabase
+    .from("circle_events")
+    .select("*")
+    .in("circle_id", circleIds)
+    .gte("starts_at", new Date().toISOString())
+    .not("lat", "is", null)
+    .not("lng", "is", null)
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return attachRsvp(data, currentUserId);
+}
+
 export async function getCircleEventById(
   eventId: string,
   currentUserId: string,

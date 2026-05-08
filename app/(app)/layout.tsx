@@ -7,6 +7,7 @@ import {
   Compass,
   GraduationCap,
   Home,
+  Map as MapIcon,
   MessageSquareText,
   Network,
   Sparkles,
@@ -86,6 +87,12 @@ export default async function DashboardLayout({
       href: "/circles",
       label: "Cercles",
       icon: Users2,
+      available: true,
+    },
+    {
+      href: "/map",
+      label: "Carte",
+      icon: MapIcon,
       available: true,
     },
     {
