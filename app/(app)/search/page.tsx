@@ -77,8 +77,12 @@ export default async function SearchPage() {
 
       {/* Tendances cette semaine */}
       <section className="mb-8">
-        <KickerLabel>Tendances</KickerLabel>
-        <DisplayHeading size="md" italicAll className="mt-1 mb-4">
+        <KickerLabel>· Tendances</KickerLabel>
+        <DisplayHeading
+          size="lg"
+          italicAll
+          className="mt-2 mb-4 !leading-[1.05]"
+        >
           Cette semaine
         </DisplayHeading>
         {trends.length === 0 ? (
@@ -117,8 +121,12 @@ export default async function SearchPage() {
 
       {/* À découvrir : personnes près de toi */}
       <section className="mb-8">
-        <KickerLabel>À découvrir</KickerLabel>
-        <DisplayHeading size="md" italicAll className="mt-1 mb-4">
+        <KickerLabel>· À découvrir</KickerLabel>
+        <DisplayHeading
+          size="lg"
+          italicAll
+          className="mt-2 mb-4 !leading-[1.05]"
+        >
           Personnes près de toi
         </DisplayHeading>
         {suggestions.length === 0 ? (
@@ -170,7 +178,7 @@ export default async function SearchPage() {
 
       {/* Recherches récentes (placeholder, future : persistance par user) */}
       <section>
-        <KickerLabel>Recherches récentes</KickerLabel>
+        <KickerLabel>· Recherches récentes</KickerLabel>
         <ul className="mt-3">
           {RECENT_PLACEHOLDERS.map((q, idx) => (
             <li

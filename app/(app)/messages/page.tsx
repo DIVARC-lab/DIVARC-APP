@@ -12,8 +12,8 @@ export default function MessagesEmptyState() {
         >
           💬
         </div>
-        <h1 className="font-display text-4xl text-night text-balance">
-          Bienvenue dans tes discussions.
+        <h1 className="font-display italic text-[36px] sm:text-[48px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Bienvenue dans tes <span className="text-gold-deep">discussions</span>.
         </h1>
         <p className="mt-3 text-muted-strong leading-relaxed">
           Choisis une conversation à gauche, ou démarre-en une nouvelle. Tes

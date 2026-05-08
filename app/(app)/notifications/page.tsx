@@ -35,8 +35,12 @@ export default async function NotificationsPage() {
     <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <header className="flex items-start justify-between gap-3 mb-5">
         <div className="min-w-0">
-          <KickerLabel>Activité</KickerLabel>
-          <DisplayHeading size="lg" italicAll className="mt-2">
+          <KickerLabel>· Activité</KickerLabel>
+          <DisplayHeading
+            size="xl"
+            italicAll
+            className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+          >
             Notifications
           </DisplayHeading>
           {unreadCount > 0 ? (

@@ -106,8 +106,12 @@ export default async function SettingsPage() {
     <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-2xl mx-auto w-full pb-12">
       <header className="flex items-start justify-between gap-3 mb-6">
         <div>
-          <KickerLabel>Réglages</KickerLabel>
-          <DisplayHeading size="lg" italicAll className="mt-2">
+          <KickerLabel>· Réglages</KickerLabel>
+          <DisplayHeading
+            size="xl"
+            italicAll
+            className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+          >
             Paramètres
           </DisplayHeading>
         </div>

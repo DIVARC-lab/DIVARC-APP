@@ -20,8 +20,8 @@ export function ConversationListSidebar({
       <header className="px-5 pt-6 pb-5 border-b border-line">
         <div className="flex items-start justify-between mb-4 gap-2">
           <div className="min-w-0">
-            <KickerLabel>Messages</KickerLabel>
-            <h2 className="mt-1 font-display italic text-3xl text-night leading-none">
+            <KickerLabel>· Messages</KickerLabel>
+            <h2 className="mt-2 font-display italic text-[34px] sm:text-[42px] text-night leading-[1.05] tracking-[-0.02em]">
               Discussions
             </h2>
           </div>
