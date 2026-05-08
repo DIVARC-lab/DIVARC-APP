@@ -162,7 +162,7 @@ export default async function JobDetailPage({
                     </span>
                   ) : null}
                 </div>
-                <h1 className="mt-3 font-display text-3xl sm:text-4xl text-night text-balance leading-tight">
+                <h1 className="mt-3 font-display italic text-[32px] sm:text-5xl text-night text-balance leading-[1.05] tracking-[-0.02em]">
                   {job.title}
                 </h1>
                 {job.company_name ? (
@@ -210,7 +210,7 @@ export default async function JobDetailPage({
                 max={job.salary_max}
                 currency={job.salary_currency}
                 period={job.salary_period}
-                className="font-display text-xl text-night"
+                className="font-display italic text-2xl text-night"
               />
               {!isOwn && !isClosed ? (
                 myApplication && myApplication.status !== "withdrawn" ? (

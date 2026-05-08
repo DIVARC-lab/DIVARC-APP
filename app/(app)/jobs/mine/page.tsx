@@ -34,11 +34,11 @@ export default async function MyJobsPage() {
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Emploi
           </Link>
-          <KickerLabel>Mes offres</KickerLabel>
-          <h1 className="mt-2 font-display text-4xl text-night">
-            Tes <em className="italic text-gold-deep">offres</em>.
+          <KickerLabel>· Mes offres</KickerLabel>
+          <h1 className="mt-3 font-display italic text-[40px] sm:text-[54px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+            Tes <span className="text-gold-deep">offres</span>.
           </h1>
-          <p className="mt-1 text-muted-strong">
+          <p className="mt-3 text-night-muted leading-relaxed">
             {jobs.length} offre{jobs.length > 1 ? "s" : ""} · {active.length}{" "}
             active{active.length > 1 ? "s" : ""}
           </p>

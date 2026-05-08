@@ -41,11 +41,11 @@ export default async function MyApplicationsPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Emploi
         </Link>
-        <KickerLabel>Mes candidatures</KickerLabel>
-        <h1 className="mt-2 font-display text-4xl text-night">
-          Tes <em className="italic text-gold-deep">candidatures</em>.
+        <KickerLabel>· Mes candidatures</KickerLabel>
+        <h1 className="mt-3 font-display italic text-[40px] sm:text-[54px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Tes <span className="text-gold-deep">candidatures</span>.
         </h1>
-        <p className="mt-1 text-muted-strong">
+        <p className="mt-3 text-night-muted leading-relaxed">
           {applications.length} candidature{applications.length > 1 ? "s" : ""}{" "}
           envoyée{applications.length > 1 ? "s" : ""}
         </p>

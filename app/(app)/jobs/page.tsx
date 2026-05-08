@@ -85,11 +85,12 @@ export default async function JobsPage({
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <KickerLabel>Emploi</KickerLabel>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Trouve ton prochain <em className="italic text-gold-deep">job</em>.
+          <KickerLabel>· Emploi</KickerLabel>
+          <h1 className="mt-3 font-display italic text-[40px] sm:text-[56px] text-night text-balance leading-[1.02] tracking-[-0.02em]">
+            Trouve ton prochain{" "}
+            <span className="text-gold-deep">job</span>.
           </h1>
-          <p className="mt-2 text-muted-strong max-w-xl">
+          <p className="mt-3 text-night-muted max-w-xl leading-relaxed">
             CDI, CDD, freelance, missions. Postule en un clic, le recruteur
             voit ton profil DIVARC.
           </p>
