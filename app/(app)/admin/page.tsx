@@ -51,11 +51,14 @@ export default async function AdminPage() {
     <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full space-y-10">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <KickerLabel>Admin</KickerLabel>
-          <DisplayHeading size="lg" className="mt-2">
+          <KickerLabel>· Admin</KickerLabel>
+          <DisplayHeading
+            size="xl"
+            className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+          >
             Bonjour <em className="italic text-gold-deep">{firstName}</em>.
           </DisplayHeading>
-          <p className="mt-2 text-muted-strong">
+          <p className="mt-3 text-night-muted leading-relaxed">
             Vue d&apos;ensemble du produit, modération et stats.
           </p>
         </div>
@@ -64,8 +67,13 @@ export default async function AdminPage() {
       {stats ? (
         <section>
           <header className="mb-4">
-            <h2 className="font-display text-2xl text-night">Vue d&apos;ensemble</h2>
-            <p className="text-sm text-muted">
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+              · Stats
+            </span>
+            <h2 className="mt-1 font-display italic text-[28px] sm:text-[34px] text-night leading-[1.05] tracking-[-0.015em]">
+              Vue d&apos;<span className="text-gold-deep">ensemble</span>
+            </h2>
+            <p className="mt-2 text-sm text-night-muted">
               Tous les chiffres clés du produit.
             </p>
           </header>
@@ -130,10 +138,14 @@ export default async function AdminPage() {
       <section>
         <header className="mb-4 flex items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl text-night">
-              Profils récents ({users.length})
+            <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+              · Communauté
+            </span>
+            <h2 className="mt-1 font-display italic text-[28px] sm:text-[34px] text-night leading-[1.05] tracking-[-0.015em]">
+              Profils <span className="text-gold-deep">récents</span> ·{" "}
+              {users.length}
             </h2>
-            <p className="text-sm text-muted">
+            <p className="mt-2 text-sm text-night-muted">
               Les 50 derniers fondateurs DIVARC.
             </p>
           </div>
@@ -249,7 +261,7 @@ function StatCard({
         </span>
       </div>
       <dd
-        className={`mt-3 font-display ${isText ? "text-xl" : "text-3xl"} text-night truncate`}
+        className={`mt-3 font-display italic ${isText ? "text-xl" : "text-3xl sm:text-[34px]"} text-night truncate leading-none`}
       >
         {value}
       </dd>
