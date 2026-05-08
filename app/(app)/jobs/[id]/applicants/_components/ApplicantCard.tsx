@@ -1,6 +1,14 @@
 "use client";
 
-import { Check, Eye, MapPin, MessageSquareText, X } from "lucide-react";
+import {
+  CalendarCheck,
+  Check,
+  Eye,
+  MapPin,
+  MessageSquareText,
+  Star,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -22,6 +30,7 @@ const TONE_CLASSES: Record<string, string> = {
   red: "bg-red-50 text-red-600",
   neutral: "bg-night/[0.04] text-night-muted",
   muted: "bg-night/[0.04] text-muted",
+  gold: "bg-gold/15 text-gold-deep",
 };
 
 type ApplicantCardProps = {
@@ -66,8 +75,9 @@ export function ApplicantCard({ application }: ApplicantCardProps) {
     });
   }
 
-  const canDecide =
-    application.status === "pending" || application.status === "reviewed";
+  const isOpen = !["accepted", "rejected", "withdrawn"].includes(
+    application.status,
+  );
 
   return (
     <article className="p-5 sm:p-6 rounded-3xl bg-white border border-line">
@@ -127,20 +137,46 @@ export function ApplicantCard({ application }: ApplicantCardProps) {
       <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
         <span>Reçue {formatRelative(application.created_at)}</span>
         <div className="flex flex-wrap gap-2">
-          {application.status === "pending" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => handleReview("reviewed")}
-              loading={pending}
-            >
-              {!pending ? <Eye className="w-3.5 h-3.5" aria-hidden /> : null}
-              Marquer lue
-            </Button>
-          ) : null}
-          {canDecide ? (
+          {isOpen ? (
             <>
+              {application.status === "pending" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleReview("reviewed")}
+                  loading={pending}
+                >
+                  {!pending ? <Eye className="w-3.5 h-3.5" aria-hidden /> : null}
+                  Marquer lue
+                </Button>
+              ) : null}
+              {application.status !== "shortlisted" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleReview("shortlisted")}
+                  loading={pending}
+                  className="text-gold-deep border-gold/40 bg-gold/5 hover:bg-gold/10"
+                >
+                  <Star className="w-3.5 h-3.5" aria-hidden />
+                  Présélectionner
+                </Button>
+              ) : null}
+              {application.status !== "interview" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleReview("interview")}
+                  loading={pending}
+                  className="text-gold-deep border-gold/40 bg-gold/5 hover:bg-gold/10"
+                >
+                  <CalendarCheck className="w-3.5 h-3.5" aria-hidden />
+                  Entretien
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
@@ -159,7 +195,7 @@ export function ApplicantCard({ application }: ApplicantCardProps) {
                 loading={pending}
               >
                 {!pending ? <Check className="w-3.5 h-3.5" aria-hidden /> : null}
-                Accepter
+                Embaucher
               </Button>
             </>
           ) : null}

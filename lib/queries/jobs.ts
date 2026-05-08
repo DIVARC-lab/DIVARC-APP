@@ -158,6 +158,32 @@ export async function listMyJobs(
   return attachDetails(data, userId);
 }
 
+export async function listSavedJobs(
+  userId: string,
+): Promise<JobWithDetails[]> {
+  const supabase = await createClient();
+  const { data: saved } = await supabase
+    .from("saved_jobs")
+    .select("job_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (!saved || saved.length === 0) return [];
+
+  const jobIds = saved.map((s) => s.job_id);
+  const { data: jobs } = await supabase
+    .from("jobs")
+    .select("*")
+    .in("id", jobIds);
+  if (!jobs) return [];
+
+  const jobById = new Map(jobs.map((j) => [j.id, j]));
+  const orderedJobs = jobIds
+    .map((id) => jobById.get(id))
+    .filter((j): j is NonNullable<typeof j> => Boolean(j));
+
+  return attachDetails(orderedJobs, userId);
+}
+
 export async function listMyApplications(
   userId: string,
 ): Promise<

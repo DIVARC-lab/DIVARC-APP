@@ -9,12 +9,14 @@ import {
   Shield,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tabs } from "@/components/ui/Tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getProProfile } from "@/lib/queries/profilePro";
+import { countMyProfileViews } from "@/lib/queries/profileViews";
 import { safeDate, safeDaysSince } from "@/lib/utils/date";
 import { AvatarUpload } from "./AvatarUpload";
 import { JournalPanel } from "./JournalPanel";
@@ -79,6 +81,7 @@ export default async function ProfilePage({
 
   const proProfile =
     activeTab === "pro" ? await getProProfile(user.id) : null;
+  const profileViewsCount = await countMyProfileViews(user.id);
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
@@ -88,6 +91,7 @@ export default async function ProfilePage({
         founderRank={profile.founder_rank}
         daysAsMember={daysAsMember}
         signupDate={signupDate}
+        profileViewsCount={profileViewsCount}
       />
 
       <Tabs
@@ -268,10 +272,12 @@ function StatsBar({
   founderRank,
   daysAsMember,
   signupDate,
+  profileViewsCount,
 }: {
   founderRank: number | null;
   daysAsMember: number;
   signupDate: Date;
+  profileViewsCount: number;
 }) {
   return (
     <dl className="grid sm:grid-cols-4 gap-3 sm:gap-4">
@@ -294,10 +300,11 @@ function StatsBar({
       />
       <Stat
         icon={Mail}
-        label="Connexions"
-        value="0"
-        helper="dispo au sprint 3"
+        label="Vues du profil"
+        value={String(profileViewsCount)}
+        helper="Cliquer pour voir"
         accent="bg-emerald-50 text-emerald-700"
+        href="/profile/views"
       />
       <Stat
         icon={Sparkles}
@@ -316,15 +323,17 @@ function Stat({
   value,
   helper,
   accent,
+  href,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   helper?: string;
   accent: string;
+  href?: string;
 }) {
-  return (
-    <article className="p-5 rounded-2xl bg-white border border-line">
+  const body = (
+    <>
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-muted">
           {label}
@@ -337,7 +346,20 @@ function Stat({
       </div>
       <dd className="mt-3 font-display text-2xl text-night">{value}</dd>
       {helper ? <p className="text-xs text-muted mt-0.5">{helper}</p> : null}
-    </article>
+    </>
+  );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block p-5 rounded-2xl bg-white border border-line hover:border-night/30 transition-colors"
+      >
+        {body}
+      </Link>
+    );
+  }
+  return (
+    <article className="p-5 rounded-2xl bg-white border border-line">{body}</article>
   );
 }
 
