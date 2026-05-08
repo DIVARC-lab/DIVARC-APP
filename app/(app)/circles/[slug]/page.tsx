@@ -1,6 +1,7 @@
 import { ArrowLeft, Lock, MessageSquareText, Users2 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import {
@@ -87,17 +88,34 @@ export default async function CircleDetailPage({
       {/* Hero */}
       <header
         className={cn(
-          "rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-5 shadow-soft",
+          "relative overflow-hidden rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-5 shadow-soft",
           tone,
         )}
       >
+        <div
+          aria-hidden
+          className="absolute -right-12 -top-16 pointer-events-none"
+        >
+          <ArcDeco
+            size={260}
+            tone={
+              circle.color === "navy"
+                ? "gold"
+                : circle.color === "cream"
+                  ? "navy"
+                  : "night"
+            }
+            opacity={0.4}
+            stroke={1.25}
+          />
+        </div>
         <span
           aria-hidden
-          className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl shrink-0"
+          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl sm:text-5xl shrink-0 border-2 border-white/30"
         >
           {circle.emoji ?? circle.name.charAt(0).toUpperCase()}
         </span>
-        <div className="flex-1 min-w-0">
+        <div className="relative flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span
               className={cn(
@@ -116,7 +134,7 @@ export default async function CircleDetailPage({
               <Lock className="w-3 h-3" aria-hidden />
             ) : null}
           </div>
-          <h1 className="mt-1 font-display italic text-3xl sm:text-4xl leading-tight">
+          <h1 className="mt-2 font-display italic text-[32px] sm:text-5xl leading-[1.05] tracking-[-0.02em]">
             {circle.name}
           </h1>
           <p
@@ -135,11 +153,13 @@ export default async function CircleDetailPage({
             {circle.members_count > 1 ? "s" : ""}
           </p>
         </div>
-        <CircleMembershipButton
-          circleId={circle.id}
-          isMember={circle.is_member}
-          isOwner={isOwner}
-        />
+        <div className="relative">
+          <CircleMembershipButton
+            circleId={circle.id}
+            isMember={circle.is_member}
+            isOwner={isOwner}
+          />
+        </div>
       </header>
 
       {circle.description ? (

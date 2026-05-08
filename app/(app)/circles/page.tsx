@@ -1,7 +1,7 @@
 import { Lock, Search } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArcMark } from "@/components/marketing/ArcMark";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -32,22 +32,26 @@ export default async function CirclesPage() {
   return (
     <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <header className="mb-6">
-        <KickerLabel>Cercles</KickerLabel>
-        <DisplayHeading size="lg" className="mt-2">
+        <KickerLabel>· Cercles</KickerLabel>
+        <DisplayHeading
+          size="xl"
+          italicAll
+          className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+        >
           {mine.length > 0 ? (
             <>
               Tes{" "}
-              <em className="italic text-gold-deep">
+              <span className="text-gold-deep">
                 {mine.length} cercle{mine.length > 1 ? "s" : ""}
-              </em>
+              </span>
             </>
           ) : (
             <>
-              Trouve ton <em className="italic text-gold-deep">quartier</em>
+              Trouve ton <span className="text-gold-deep">quartier</span>
             </>
           )}
         </DisplayHeading>
-        <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
+        <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-md">
           Des espaces plus calmes que le feed. Discussions, événements,
           entraide.
         </p>
@@ -118,9 +122,9 @@ export default async function CirclesPage() {
         >
           <div
             aria-hidden
-            className="absolute -right-10 -bottom-12 opacity-25 pointer-events-none"
+            className="absolute -right-12 -bottom-16 pointer-events-none"
           >
-            <ArcMark size={220} animate={false} />
+            <ArcDeco size={240} tone="gold" opacity={0.45} stroke={1.25} />
           </div>
           <div className="relative">
             <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold">
