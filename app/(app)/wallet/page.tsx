@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArcMark } from "@/components/marketing/ArcMark";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { listTransactions, listWallets } from "@/lib/queries/wallet";
 import { createClient } from "@/lib/supabase/server";
 import { BalanceCard } from "./_components/BalanceCard";
@@ -74,9 +74,15 @@ export default async function WalletPage() {
         <article className="relative overflow-hidden rounded-3xl bg-night text-cream p-6 sm:p-7 mb-5 shadow-[0_24px_60px_-28px_rgba(10,31,68,0.5)]">
           <div
             aria-hidden
-            className="absolute -right-16 -top-16 opacity-30 pointer-events-none"
+            className="absolute -right-16 -top-20 pointer-events-none"
           >
-            <ArcMark size={300} animate={false} />
+            <ArcDeco size={320} tone="gold" opacity={0.55} stroke={1.25} />
+          </div>
+          <div
+            aria-hidden
+            className="absolute -left-12 -bottom-16 pointer-events-none"
+          >
+            <ArcDeco size={200} tone="gold" opacity={0.25} stroke={1} />
           </div>
           <div className="relative">
             <div className="flex items-center justify-between gap-3">

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { Tabs } from "@/components/ui/Tabs";
@@ -307,106 +308,91 @@ function Hero({
   const fullName = profile.full_name ?? `@${profile.username}`;
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-line bg-white">
-      <div className="h-32 sm:h-44 relative bg-gradient-to-br from-night via-night-soft to-night-muted grain">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-15"
-          viewBox="0 0 800 200"
-          fill="none"
+    <section className="relative overflow-hidden rounded-[28px] border border-line bg-white shadow-soft">
+      {/* Hero cover navy + ArcDeco gold visible (handoff /u/aissata) */}
+      <div className="h-44 sm:h-52 relative bg-night overflow-hidden">
+        <div
           aria-hidden
+          className="absolute -right-16 -top-20 pointer-events-none"
         >
-          <defs>
-            <pattern
-              id="public-arc-pattern"
-              x="0"
-              y="0"
-              width="80"
-              height="80"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 0 40 Q 40 0 80 40 Q 40 80 0 40 Z"
-                stroke="#F4B942"
-                strokeWidth="1"
-                fill="none"
-              />
-            </pattern>
-          </defs>
-          <rect width="800" height="200" fill="url(#public-arc-pattern)" />
-        </svg>
-      </div>
-      <div className="px-6 sm:px-10 pb-7 -mt-12 sm:-mt-14 flex flex-col sm:flex-row sm:items-end gap-5 sm:justify-between">
-        <div className="flex items-end gap-5">
-          <div className="rounded-full ring-4 ring-white p-1 bg-gradient-to-br from-gold via-gold-soft to-gold-deep">
-            <div className="rounded-full bg-white">
-              <Avatar
-                src={profile.avatar_url}
-                fullName={fullName}
-                size="xl"
-                priority
-              />
-            </div>
-          </div>
-          <div className="pb-2">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              {profile.founder_rank ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/15 text-gold-deep text-[10px] font-extrabold uppercase tracking-[0.16em] border border-gold/30">
-                  <Award className="w-3 h-3" aria-hidden />
-                  Fondateur · # {profile.founder_rank}
-                </span>
-              ) : null}
-              {profile.open_to_work ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest border border-emerald-200">
-                  Ouvert aux opportunités
-                </span>
-              ) : null}
-              {profile.open_to_hiring ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest border border-blue-200">
-                  Recrute
-                </span>
-              ) : null}
-            </div>
-            <h1 className="font-display italic text-3xl sm:text-4xl text-night text-balance leading-tight">
-              {fullName}
-            </h1>
-            <p className="text-sm text-muted mt-0.5">@{profile.username}</p>
-            {profile.headline ? (
-              <p className="mt-1.5 text-sm text-night-muted max-w-md">
-                {profile.headline}
-              </p>
-            ) : null}
-          </div>
+          <ArcDeco size={340} tone="gold" opacity={0.55} stroke={1.25} />
         </div>
-        <div className="sm:pb-2">{actionBar}</div>
+        <div
+          aria-hidden
+          className="absolute -left-24 bottom-0 pointer-events-none"
+        >
+          <ArcDeco size={260} tone="gold" opacity={0.3} stroke={1} />
+        </div>
       </div>
 
-      <div className="px-6 sm:px-10 pb-7 grid grid-cols-3 gap-3 sm:gap-4 border-t border-line pt-6">
+      <div className="px-6 sm:px-10 pb-7 -mt-16 sm:-mt-20 relative">
+        {/* Avatar overlap, ring gold épais (handoff) */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          <div className="rounded-full ring-[5px] ring-gold ring-offset-4 ring-offset-white shrink-0 self-start">
+            <Avatar
+              src={profile.avatar_url}
+              fullName={fullName}
+              size="xl"
+              priority
+            />
+          </div>
+          <div className="sm:pb-2 sm:ml-auto">{actionBar}</div>
+        </div>
+
+        {/* Badge fondateur centré au-dessus du nom */}
+        <div className="mt-5 flex flex-wrap items-center gap-1.5">
+          {profile.founder_rank ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold/15 text-gold-deep text-[10px] font-extrabold uppercase tracking-[0.16em] border border-gold/30">
+              <Award className="w-3 h-3" aria-hidden />
+              Fondateur · # {profile.founder_rank}
+            </span>
+          ) : null}
+          {profile.open_to_work ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest border border-emerald-200">
+              Ouvert aux opportunités
+            </span>
+          ) : null}
+          {profile.open_to_hiring ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest border border-blue-200">
+              Recrute
+            </span>
+          ) : null}
+        </div>
+
+        <h1 className="mt-2 font-display italic text-[32px] sm:text-5xl text-night text-balance leading-[1.05]">
+          {fullName}
+        </h1>
+        <p className="text-sm text-muted-strong mt-1">@{profile.username}</p>
+        {profile.bio ? (
+          <p className="mt-3 text-night-muted leading-relaxed text-pretty max-w-2xl">
+            {profile.bio}
+          </p>
+        ) : profile.headline ? (
+          <p className="mt-3 text-sm text-night-muted max-w-md">
+            {profile.headline}
+          </p>
+        ) : null}
+
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
+          {profile.show_location && profile.location ? (
+            <>
+              <MapPin className="w-3.5 h-3.5" aria-hidden />
+              {profile.location}
+              <span className="text-night-muted">·</span>
+            </>
+          ) : (
+            <Calendar className="w-3.5 h-3.5" aria-hidden />
+          )}
+          <span>Membre depuis {memberSince}</span>
+        </p>
+      </div>
+
+      {/* Stats : grille 3 cards italic display (handoff) */}
+      <div className="px-6 sm:px-10 pb-7 grid grid-cols-3 gap-3 sm:gap-4">
         <Stat label="Posts" value={stats.postsCount} />
         <Stat label="Annonces" value={stats.listingsCount} />
         <Stat label="Amis" value={stats.friendsCount} />
       </div>
-
-      {profile.bio ? (
-        <div className="px-6 sm:px-10 pb-7 -mt-2">
-          <p className="text-night-muted leading-relaxed text-pretty max-w-2xl">
-            {profile.bio}
-          </p>
-        </div>
-      ) : null}
-
-      {profile.show_location && profile.location ? (
-        <div className="px-6 sm:px-10 pb-6 flex items-center gap-1.5 text-sm text-muted">
-          <MapPin className="w-3.5 h-3.5" aria-hidden />
-          {profile.location}
-          <span className="text-night-muted">·</span>
-          <span>Sur DIVARC depuis {memberSince}</span>
-        </div>
-      ) : (
-        <div className="px-6 sm:px-10 pb-6 flex items-center gap-1.5 text-sm text-muted">
-          <Calendar className="w-3.5 h-3.5" aria-hidden />
-          Sur DIVARC depuis {memberSince}
-        </div>
-      )}
     </section>
   );
 }

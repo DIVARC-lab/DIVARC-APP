@@ -11,8 +11,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
+import { Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getProProfile } from "@/lib/queries/profilePro";
@@ -215,62 +218,77 @@ function ProfileHero({
   fullName: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-line bg-white">
-      <div className="h-40 sm:h-56 relative bg-gradient-to-br from-night via-night-soft to-night-muted grain">
-        <svg
-          className="absolute inset-0 w-full h-full opacity-15"
-          viewBox="0 0 800 200"
-          fill="none"
+    <section className="relative overflow-hidden rounded-[28px] border border-line bg-white shadow-soft">
+      {/* Cover navy + ArcDeco gold (handoff Profil toi mobile) */}
+      <div className="h-44 sm:h-56 relative bg-night overflow-hidden">
+        <div
           aria-hidden
+          className="absolute -right-20 -top-24 pointer-events-none"
         >
-          <defs>
-            <pattern
-              id="arc-pattern"
-              x="0"
-              y="0"
-              width="80"
-              height="80"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 0 40 Q 40 0 80 40 Q 40 80 0 40 Z"
-                stroke="#F4B942"
-                strokeWidth="1"
-                fill="none"
-              />
-            </pattern>
-          </defs>
-          <rect width="800" height="200" fill="url(#arc-pattern)" />
-        </svg>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-night via-transparent to-transparent" />
+          <ArcDeco size={380} tone="gold" opacity={0.5} stroke={1.25} />
+        </div>
+        <div
+          aria-hidden
+          className="absolute -left-16 -bottom-12 pointer-events-none"
+        >
+          <ArcDeco size={240} tone="gold" opacity={0.3} stroke={1} />
+        </div>
       </div>
-      <div className="px-6 sm:px-10 pb-7 -mt-14 sm:-mt-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
-        <div className="flex items-end gap-5">
-          <div className="relative rounded-full ring-4 ring-white p-1 bg-gradient-to-br from-gold via-gold-soft to-gold-deep">
-            <div className="rounded-full bg-white">
-              <Avatar
-                src={profile.avatar_url}
-                fullName={fullName}
-                size="xl"
-              />
-            </div>
+
+      <div className="px-6 sm:px-10 pb-7 -mt-16 sm:-mt-20 relative">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+          {/* Avatar gros, ring gold épais */}
+          <div className="rounded-full ring-[5px] ring-gold ring-offset-4 ring-offset-white shrink-0 self-start">
+            <Avatar
+              src={profile.avatar_url}
+              fullName={fullName}
+              size="xl"
+            />
           </div>
-          <div className="pb-2">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/20 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
-                <Award className="w-3 h-3" aria-hidden />
-                Fondateur
-              </span>
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl text-night text-balance">
-              {fullName}
-            </h1>
-            {profile.username ? (
-              <p className="text-sm text-muted">@{profile.username}</p>
-            ) : (
-              <p className="text-sm italic text-muted">Pseudo à choisir</p>
-            )}
+
+          {/* Boutons Modifier / Partager (handoff Profil toi) */}
+          <div className="sm:pb-2 flex items-center gap-2">
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/profile?tab=identite">Modifier</Link>
+            </Button>
+            <button
+              type="button"
+              aria-label="Partager mon profil"
+              className="w-9 h-9 rounded-full bg-white border border-line text-night-muted hover:border-gold/50 hover:text-gold-deep flex items-center justify-center transition-colors"
+            >
+              <Share2 className="w-4 h-4" aria-hidden />
+            </button>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold/15 text-gold-deep text-[10px] font-extrabold uppercase tracking-[0.16em] border border-gold/30">
+            <Award className="w-3 h-3" aria-hidden />
+            Fondateur
+          </span>
+          <h1 className="mt-2 font-display italic text-[32px] sm:text-5xl text-night text-balance leading-[1.05]">
+            {fullName}
+          </h1>
+          {profile.username ? (
+            <p className="text-sm text-muted-strong mt-1">
+              @{profile.username}
+              {profile.location ? (
+                <>
+                  {" · "}
+                  {profile.location}
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <p className="text-sm italic text-muted mt-1">
+              Pseudo à choisir
+            </p>
+          )}
+          {profile.bio ? (
+            <p className="mt-3 text-night-muted leading-relaxed text-pretty max-w-2xl">
+              {profile.bio}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

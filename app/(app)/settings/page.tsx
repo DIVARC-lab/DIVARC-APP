@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArcMark } from "@/components/marketing/ArcMark";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -127,9 +127,9 @@ export default async function SettingsPage() {
       >
         <div
           aria-hidden
-          className="absolute -right-8 -bottom-10 opacity-25 pointer-events-none"
+          className="absolute -right-12 -top-12 pointer-events-none"
         >
-          <ArcMark size={180} animate={false} />
+          <ArcDeco size={200} tone="gold" opacity={0.45} stroke={1} />
         </div>
         <div className="relative flex items-center gap-3">
           <Avatar
