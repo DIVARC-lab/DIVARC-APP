@@ -83,11 +83,15 @@ export default async function MapPage() {
   return (
     <div className="px-4 sm:px-10 py-10 max-w-6xl mx-auto w-full">
       <header className="mb-5">
-        <KickerLabel>Carte</KickerLabel>
-        <DisplayHeading size="lg" className="mt-2">
-          Ce qui se passe <em className="italic text-gold-deep">près de toi</em>.
+        <KickerLabel>· Carte · vue géo</KickerLabel>
+        <DisplayHeading
+          size="xl"
+          className="mt-3 !leading-[1.02] !text-[40px] sm:!text-[56px]"
+        >
+          Ce qui se passe{" "}
+          <em className="italic text-gold-deep">près de toi</em>.
         </DisplayHeading>
-        <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
+        <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-md">
           Les événements géolocalisés des cercles dont tu fais partie.
         </p>
       </header>
@@ -189,10 +193,16 @@ export default async function MapPage() {
           </section>
 
           <section aria-label="Événements">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display italic text-2xl text-night leading-tight">
-                {events.length} événement{events.length > 1 ? "s" : ""} à venir
-              </h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+                  · {events.length} résultat{events.length > 1 ? "s" : ""}
+                </span>
+                <h2 className="mt-1 font-display italic text-[28px] sm:text-[34px] text-night leading-[1.05] tracking-[-0.015em]">
+                  Autour de{" "}
+                  <span className="text-gold-deep">toi</span>
+                </h2>
+              </div>
               <span className="text-xs text-muted">
                 triés par date croissante
               </span>
