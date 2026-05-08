@@ -1,5 +1,6 @@
 import { MessageSquarePlus, Search, Users } from "lucide-react";
 import Link from "next/link";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 import { ConversationItem } from "./ConversationItem";
 import type { ConversationListItem, PresenceInfo } from "@/lib/database.types";
 
@@ -16,10 +17,15 @@ export function ConversationListSidebar({
 }: ConversationListSidebarProps) {
   return (
     <aside className="flex flex-col border-r border-line bg-bg h-full">
-      <header className="px-5 py-5 border-b border-line">
-        <div className="flex items-center justify-between mb-4 gap-2">
-          <h2 className="font-display text-2xl text-night">Discussions</h2>
-          <div className="flex items-center gap-1.5">
+      <header className="px-5 pt-6 pb-5 border-b border-line">
+        <div className="flex items-start justify-between mb-4 gap-2">
+          <div className="min-w-0">
+            <KickerLabel>Messages</KickerLabel>
+            <h2 className="mt-1 font-display italic text-3xl text-night leading-none">
+              Discussions
+            </h2>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
             <Link
               href="/messages/new-group"
               aria-label="Nouveau groupe"
@@ -32,7 +38,7 @@ export function ConversationListSidebar({
               href="/messages/new"
               aria-label="Nouvelle conversation"
               title="Nouvelle discussion"
-              className="w-9 h-9 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition-colors"
+              className="w-9 h-9 rounded-full bg-gold text-night flex items-center justify-center hover:bg-gold-soft transition-colors shadow-[0_4px_12px_-4px_rgba(244,185,66,0.5)]"
             >
               <MessageSquarePlus className="w-4 h-4" aria-hidden />
             </Link>
@@ -40,14 +46,14 @@ export function ConversationListSidebar({
         </div>
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
             aria-hidden
           />
           <input
             type="search"
-            placeholder="Rechercher une discussion..."
+            placeholder="Rechercher une discussion…"
             disabled
-            className="w-full h-10 rounded-xl border border-line bg-white pl-9 pr-3 text-sm placeholder:text-muted/70 disabled:opacity-70"
+            className="w-full h-10 rounded-full border border-line bg-white pl-10 pr-3 text-sm placeholder:text-muted/70 disabled:opacity-70"
           />
         </div>
       </header>
