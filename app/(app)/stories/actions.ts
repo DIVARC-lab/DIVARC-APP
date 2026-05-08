@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
+const storyFilterSchema = z
+  .enum(["original", "dore", "creme", "nuit", "pellicule", "argent"])
+  .optional()
+  .transform((v) => (v && v !== "original" ? v : null));
+
 const storySchema = z
   .object({
     type: z.enum(["photo", "text"]),
@@ -16,6 +21,7 @@ const storySchema = z
       .optional()
       .transform((v) => (v && v.length > 0 ? v : null)),
     background: z.string().max(80).optional().transform((v) => v ?? null),
+    filter: storyFilterSchema,
   })
   .refine(
     (value) =>
@@ -40,6 +46,7 @@ export async function createStory(formData: FormData) {
     photo_url: formData.get("photo_url"),
     caption: formData.get("caption"),
     background: formData.get("background"),
+    filter: formData.get("filter"),
   });
 
   if (!parsed.success) {
@@ -55,6 +62,7 @@ export async function createStory(formData: FormData) {
     photo_url: parsed.data.photo_url ?? null,
     caption: parsed.data.caption,
     background: parsed.data.background,
+    filter: parsed.data.filter,
   });
 
   if (error) {

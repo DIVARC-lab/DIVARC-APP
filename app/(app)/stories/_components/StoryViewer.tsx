@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Eye, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Heart, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import type { StoryGroup, StoryWithAuthor } from "@/lib/database.types";
+import { getFilterCss } from "@/lib/stories/filters";
 import { deleteStory, recordStoryView } from "../actions";
 
 const STORY_DURATION_MS = 6_000;
@@ -153,18 +154,20 @@ export function StoryViewer({
 
         {/* Header */}
         <header className="absolute top-7 left-3 right-3 z-20 flex items-center gap-3 pt-3">
-          <Avatar
-            src={author?.avatar_url ?? null}
-            fullName={displayName}
-            size="md"
-            className="ring-2 ring-cream/30"
-          />
+          <span className="block rounded-full p-[2px] bg-[conic-gradient(from_200deg,_#F4B942,_#F8CD76,_#B88A2A,_#F4B942)] shadow-[0_4px_14px_-4px_rgba(244,185,66,0.45)]">
+            <Avatar
+              src={author?.avatar_url ?? null}
+              fullName={displayName}
+              size="md"
+              className="ring-2 ring-night"
+            />
+          </span>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-cream truncate">
               {displayName}
             </p>
-            <p className="text-[11px] text-cream/60">
-              {formatRelative(currentStory.created_at)}
+            <p className="text-[10px] uppercase tracking-[0.16em] font-extrabold text-gold/80">
+              · {formatRelative(currentStory.created_at)}
             </p>
           </div>
           {isOwn ? (
@@ -212,6 +215,7 @@ export function StoryViewer({
               priority
               sizes="(max-width: 480px) 100vw, 480px"
               className="object-contain"
+              style={{ filter: getFilterCss(currentStory.filter) || undefined }}
               unoptimized={currentStory.photo_url.includes("?")}
             />
           ) : (
@@ -229,20 +233,57 @@ export function StoryViewer({
         </div>
 
         {currentStory.type === "photo" && currentStory.caption ? (
-          <div className="absolute bottom-16 left-3 right-3 z-10 px-4 py-2 rounded-2xl bg-night/60 backdrop-blur-sm">
-            <p className="text-cream text-sm leading-relaxed text-center">
+          <div className="absolute bottom-20 left-4 right-4 z-10 px-4 py-3 rounded-2xl bg-night/55 backdrop-blur-md">
+            <p className="font-display italic text-cream text-base leading-snug text-center">
               {currentStory.caption}
             </p>
           </div>
         ) : null}
 
         {isOwn ? (
-          <footer className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm text-cream text-xs">
-            <Eye className="w-3.5 h-3.5" aria-hidden />
-            {currentStory.views_count} vue
-            {currentStory.views_count > 1 ? "s" : ""}
+          <footer className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white/12 backdrop-blur-md text-cream text-xs font-semibold">
+              <Eye className="w-3.5 h-3.5 text-gold" aria-hidden />
+              {currentStory.views_count} vue
+              {currentStory.views_count > 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push("/stories/archive");
+              }}
+              className="px-3 h-9 rounded-full bg-gold text-night text-xs font-extrabold tracking-wide hover:bg-gold-soft transition-colors"
+            >
+              Archive
+            </button>
           </footer>
-        ) : null}
+        ) : (
+          <footer
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              placeholder={`Réponds à ${displayName.split(" ")[0] ?? displayName}…`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setPaused(true);
+              }}
+              onBlur={() => setPaused(false)}
+              className="flex-1 h-11 px-4 rounded-full bg-white/12 backdrop-blur-md text-cream placeholder:text-cream/55 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 border border-cream/15"
+            />
+            <button
+              type="button"
+              aria-label="J'aime"
+              className="w-11 h-11 rounded-full bg-white/12 backdrop-blur-md text-cream hover:text-gold flex items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Heart className="w-5 h-5" aria-hidden />
+            </button>
+          </footer>
+        )}
 
         {/* Nav indicator hidden but uses these icons for visual */}
         <ChevronLeft className="hidden" />

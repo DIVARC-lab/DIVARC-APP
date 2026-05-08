@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
@@ -19,18 +19,19 @@ export function StoriesRow({
 }: StoriesRowProps) {
   const myGroup = groups.find((g) => g.author.id === currentUserId);
   const otherGroups = groups.filter((g) => g.author.id !== currentUserId);
+  const hasMyStories = !!myGroup && myGroup.stories.length > 0;
 
   return (
     <div className="-mx-4 sm:mx-0 px-4 sm:px-0 py-1 overflow-x-auto">
       <ul className="flex items-start gap-4 min-w-max">
-        <li>
+        <li className="flex flex-col items-center gap-1">
           <Link
-            href="/stories/new"
-            aria-label="Ajouter une story"
+            href={hasMyStories ? `/stories/${myGroup!.stories[0]!.id}` : "/stories/new"}
+            aria-label={hasMyStories ? "Voir mes stories" : "Ajouter une story"}
             className="flex flex-col items-center gap-1.5 group"
           >
             <span className="relative w-16 h-16 rounded-full bg-night/[0.04] border-2 border-dashed border-night/20 flex items-center justify-center group-hover:border-gold/50 transition-colors">
-              {myGroup && myGroup.stories.length > 0 ? (
+              {hasMyStories ? (
                 <Avatar
                   src={currentUserAvatarUrl}
                   fullName={currentUserName}
@@ -50,6 +51,15 @@ export function StoriesRow({
               Toi
             </span>
           </Link>
+          {hasMyStories ? (
+            <Link
+              href="/stories/archive"
+              className="text-[10px] font-semibold text-gold-deep hover:underline inline-flex items-center gap-1"
+            >
+              <Eye className="w-3 h-3" aria-hidden />
+              Archive
+            </Link>
+          ) : null}
         </li>
 
         {otherGroups.map((group) => (

@@ -127,6 +127,21 @@ export async function getStoryById(
   return enriched ?? null;
 }
 
+export async function listMyActiveStories(
+  userId: string,
+): Promise<StoryWithAuthor[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stories")
+    .select("*")
+    .eq("author_id", userId)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return attachAuthorsAndViews(data, userId);
+}
+
 export async function listStoryViewers(
   storyId: string,
 ): Promise<Array<StoryView & { viewer: AuthorRow | null }>> {

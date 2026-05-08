@@ -6,7 +6,9 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
+import type { StoryFilter } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
+import { STORY_FILTERS, getFilterCss } from "@/lib/stories/filters";
 import { createStory } from "../actions";
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
@@ -33,6 +35,7 @@ export function StoryComposer({ userId }: StoryComposerProps) {
   );
   const [caption, setCaption] = useState("");
   const [background, setBackground] = useState<string>(BACKGROUNDS[0]!.id);
+  const [filter, setFilter] = useState<StoryFilter>("original");
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +102,7 @@ export function StoryComposer({ userId }: StoryComposerProps) {
     formData.set("photo_url", mode === "photo" ? photo?.url ?? "" : "");
     formData.set("caption", caption);
     formData.set("background", mode === "text" ? background : "");
+    formData.set("filter", mode === "photo" ? filter : "original");
 
     startTransition(async () => {
       const result = await createStory(formData);
@@ -149,6 +153,7 @@ export function StoryComposer({ userId }: StoryComposerProps) {
                 fill
                 sizes="400px"
                 className="object-cover"
+                style={{ filter: getFilterCss(filter) || undefined }}
                 unoptimized
               />
               <button
@@ -193,6 +198,47 @@ export function StoryComposer({ userId }: StoryComposerProps) {
             maxLength={280}
             className="mt-4 w-full max-w-sm mx-auto block h-11 rounded-xl border border-line bg-white px-4 text-sm focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
           />
+
+          {photo ? (
+            <div className="mt-4 max-w-sm mx-auto">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted mb-2">
+                Filtre
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                {STORY_FILTERS.map((f) => {
+                  const active = f.id === filter;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setFilter(f.id)}
+                      aria-pressed={active}
+                      className="shrink-0 flex flex-col items-center gap-1.5"
+                    >
+                      <span
+                        className={cn(
+                          "block w-12 h-16 rounded-xl overflow-hidden bg-gradient-to-br ring-2 transition-all",
+                          f.swatch,
+                          active
+                            ? "ring-gold scale-105"
+                            : "ring-transparent hover:ring-line",
+                        )}
+                        style={{ filter: f.css || undefined }}
+                      />
+                      <span
+                        className={cn(
+                          "text-[10px] font-semibold",
+                          active ? "text-gold-deep" : "text-night-muted",
+                        )}
+                      >
+                        {f.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="space-y-4">

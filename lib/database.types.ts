@@ -687,6 +687,14 @@ export type TransactionWithCounterparty = Transaction & {
 
 export type StoryType = "photo" | "text";
 
+export type StoryFilter =
+  | "original"
+  | "dore"
+  | "creme"
+  | "nuit"
+  | "pellicule"
+  | "argent";
+
 export type Story = {
   id: string;
   author_id: string;
@@ -694,6 +702,7 @@ export type Story = {
   photo_url: string | null;
   caption: string | null;
   background: string | null;
+  filter: StoryFilter | null;
   created_at: string;
   expires_at: string;
 };
