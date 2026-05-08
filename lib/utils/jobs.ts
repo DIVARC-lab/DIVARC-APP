@@ -72,10 +72,12 @@ export const JOB_CATEGORY_LIST = Object.entries(JOB_CATEGORY_META).map(
 
 export const APPLICATION_STATUS_META: Record<
   JobApplicationStatus,
-  { label: string; tone: "neutral" | "blue" | "green" | "red" | "muted" }
+  { label: string; tone: "neutral" | "blue" | "green" | "red" | "muted" | "gold" }
 > = {
   pending: { label: "En attente", tone: "blue" },
   reviewed: { label: "Lue", tone: "neutral" },
+  shortlisted: { label: "Présélectionnée", tone: "gold" },
+  interview: { label: "Entretien", tone: "gold" },
   accepted: { label: "Acceptée", tone: "green" },
   rejected: { label: "Refusée", tone: "red" },
   withdrawn: { label: "Retirée", tone: "muted" },

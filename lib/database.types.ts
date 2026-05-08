@@ -47,6 +47,10 @@ export type Profile = {
   last_seen_at: string | null;
   custom_status: CustomStatus;
   presence_visibility: PresenceVisibility;
+  headline: string | null;
+  open_to_work: boolean;
+  open_to_hiring: boolean;
+  discrete_search: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -67,6 +71,10 @@ export type ProfileIdentityUpdate = Partial<
     | "location"
     | "avatar_url"
     | "onboarded_at"
+    | "headline"
+    | "open_to_work"
+    | "open_to_hiring"
+    | "discrete_search"
   >
 >;
 
@@ -197,6 +205,7 @@ export type Job = {
   poster_id: string;
   title: string;
   company_name: string | null;
+  company_id: string | null;
   description: string;
   job_type: JobType;
   work_mode: WorkMode;
@@ -216,6 +225,8 @@ export type Job = {
 export type JobApplicationStatus =
   | "pending"
   | "reviewed"
+  | "shortlisted"
+  | "interview"
   | "accepted"
   | "rejected"
   | "withdrawn";
@@ -245,6 +256,170 @@ export type JobWithDetails = Job & {
   my_application: Pick<
     JobApplication,
     "id" | "status" | "created_at" | "message"
+  > | null;
+};
+
+// =============== Companies ===============
+
+export type CompanySize =
+  | "1-10"
+  | "11-50"
+  | "51-200"
+  | "201-500"
+  | "501-1000"
+  | "1001-5000"
+  | "5001-10000"
+  | "10000+";
+
+export type Company = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  website: string | null;
+  industry: string | null;
+  size_label: CompanySize | null;
+  headquarters: string | null;
+  founded_year: number | null;
+  owner_id: string;
+  verified: boolean;
+  followers_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CompanyFollower = {
+  company_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+// =============== Profil pro enrichi ===============
+
+export type EmploymentType =
+  | "cdi"
+  | "cdd"
+  | "freelance"
+  | "mission"
+  | "alternance"
+  | "stage"
+  | "benevolat";
+
+export type SkillLevel =
+  | "beginner"
+  | "intermediate"
+  | "advanced"
+  | "expert";
+
+export type LanguageLevel =
+  | "A1"
+  | "A2"
+  | "B1"
+  | "B2"
+  | "C1"
+  | "C2"
+  | "native";
+
+export type ProfileExperience = {
+  id: string;
+  user_id: string;
+  title: string;
+  company_name: string;
+  company_id: string | null;
+  employment_type: EmploymentType | null;
+  work_mode: WorkMode | null;
+  location: string | null;
+  description: string | null;
+  start_month: string;
+  end_month: string | null;
+  is_current: boolean;
+  position_order: number;
+  created_at: string;
+};
+
+export type ProfileEducation = {
+  id: string;
+  user_id: string;
+  school: string;
+  degree: string | null;
+  field_of_study: string | null;
+  start_year: number | null;
+  end_year: number | null;
+  description: string | null;
+  position_order: number;
+  created_at: string;
+};
+
+export type ProfileSkill = {
+  id: string;
+  user_id: string;
+  name: string;
+  level: SkillLevel | null;
+  position_order: number;
+  endorsements_count: number;
+  created_at: string;
+};
+
+export type SkillEndorsement = {
+  skill_id: string;
+  endorser_id: string;
+  created_at: string;
+};
+
+export type ProfileLanguage = {
+  id: string;
+  user_id: string;
+  name: string;
+  level: LanguageLevel;
+  position_order: number;
+  created_at: string;
+};
+
+export type ProfileCertification = {
+  id: string;
+  user_id: string;
+  name: string;
+  issuer: string;
+  issued_month: string | null;
+  expires_month: string | null;
+  credential_url: string | null;
+  position_order: number;
+  created_at: string;
+};
+
+// =============== Saved searches ===============
+
+export type JobSavedSearch = {
+  id: string;
+  user_id: string;
+  label: string;
+  query: string | null;
+  category: string | null;
+  job_type: string | null;
+  work_mode: string | null;
+  experience_level: string | null;
+  location: string | null;
+  alerts_enabled: boolean;
+  last_notified_at: string | null;
+  created_at: string;
+};
+
+// =============== Profile views ===============
+
+export type ProfileView = {
+  viewer_id: string;
+  viewed_id: string;
+  last_viewed_at: string;
+  view_count: number;
+};
+
+export type ProfileViewWithViewer = ProfileView & {
+  viewer: Pick<
+    Profile,
+    "id" | "full_name" | "username" | "avatar_url" | "headline" | "location"
   > | null;
 };
 
@@ -618,8 +793,11 @@ export type Database = {
       };
       jobs: {
         Row: Job;
-        Insert: Omit<Job, "id" | "created_at" | "updated_at" | "closed_at"> &
-          Partial<Pick<Job, "id" | "status" | "closed_at">>;
+        Insert: Omit<
+          Job,
+          "id" | "created_at" | "updated_at" | "closed_at" | "company_id"
+        > &
+          Partial<Pick<Job, "id" | "status" | "closed_at" | "company_id">>;
         Update: Partial<Omit<Job, "id" | "poster_id" | "created_at">>;
         Relationships: [];
       };
@@ -659,6 +837,155 @@ export type Database = {
       story_views: {
         Row: StoryView;
         Insert: Pick<StoryView, "story_id" | "viewer_id">;
+        Update: never;
+        Relationships: [];
+      };
+      companies: {
+        Row: Company;
+        Insert: Pick<Company, "slug" | "name" | "owner_id"> &
+          Partial<
+            Pick<
+              Company,
+              | "id"
+              | "tagline"
+              | "description"
+              | "logo_url"
+              | "cover_url"
+              | "website"
+              | "industry"
+              | "size_label"
+              | "headquarters"
+              | "founded_year"
+              | "verified"
+              | "followers_count"
+              | "created_at"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<Omit<Company, "id" | "owner_id" | "created_at">>;
+        Relationships: [];
+      };
+      company_followers: {
+        Row: CompanyFollower;
+        Insert: Pick<CompanyFollower, "company_id" | "user_id">;
+        Update: never;
+        Relationships: [];
+      };
+      profile_experiences: {
+        Row: ProfileExperience;
+        Insert: Pick<
+          ProfileExperience,
+          "user_id" | "title" | "company_name" | "start_month"
+        > &
+          Partial<
+            Pick<
+              ProfileExperience,
+              | "id"
+              | "company_id"
+              | "employment_type"
+              | "work_mode"
+              | "location"
+              | "description"
+              | "end_month"
+              | "is_current"
+              | "position_order"
+              | "created_at"
+            >
+          >;
+        Update: Partial<Omit<ProfileExperience, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_education: {
+        Row: ProfileEducation;
+        Insert: Pick<ProfileEducation, "user_id" | "school"> &
+          Partial<
+            Pick<
+              ProfileEducation,
+              | "id"
+              | "degree"
+              | "field_of_study"
+              | "start_year"
+              | "end_year"
+              | "description"
+              | "position_order"
+              | "created_at"
+            >
+          >;
+        Update: Partial<Omit<ProfileEducation, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_skills: {
+        Row: ProfileSkill;
+        Insert: Pick<ProfileSkill, "user_id" | "name"> &
+          Partial<
+            Pick<
+              ProfileSkill,
+              | "id"
+              | "level"
+              | "position_order"
+              | "endorsements_count"
+              | "created_at"
+            >
+          >;
+        Update: Partial<Omit<ProfileSkill, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      skill_endorsements: {
+        Row: SkillEndorsement;
+        Insert: Pick<SkillEndorsement, "skill_id" | "endorser_id">;
+        Update: never;
+        Relationships: [];
+      };
+      profile_languages: {
+        Row: ProfileLanguage;
+        Insert: Pick<ProfileLanguage, "user_id" | "name" | "level"> &
+          Partial<Pick<ProfileLanguage, "id" | "position_order" | "created_at">>;
+        Update: Partial<Omit<ProfileLanguage, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_certifications: {
+        Row: ProfileCertification;
+        Insert: Pick<ProfileCertification, "user_id" | "name" | "issuer"> &
+          Partial<
+            Pick<
+              ProfileCertification,
+              | "id"
+              | "issued_month"
+              | "expires_month"
+              | "credential_url"
+              | "position_order"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Omit<ProfileCertification, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      job_saved_searches: {
+        Row: JobSavedSearch;
+        Insert: Pick<JobSavedSearch, "user_id" | "label"> &
+          Partial<
+            Pick<
+              JobSavedSearch,
+              | "id"
+              | "query"
+              | "category"
+              | "job_type"
+              | "work_mode"
+              | "experience_level"
+              | "location"
+              | "alerts_enabled"
+              | "last_notified_at"
+              | "created_at"
+            >
+          >;
+        Update: Partial<Omit<JobSavedSearch, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_views: {
+        Row: ProfileView;
+        Insert: never;
         Update: never;
         Relationships: [];
       };
@@ -793,6 +1120,10 @@ export type Database = {
       expire_stale_presence: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      record_profile_view: {
+        Args: { target_user_id: string };
+        Returns: void;
       };
     };
     Enums: Record<string, never>;

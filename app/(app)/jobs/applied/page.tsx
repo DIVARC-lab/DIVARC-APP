@@ -18,6 +18,7 @@ const TONE_CLASSES = {
   red: "bg-red-50 text-red-600",
   neutral: "bg-night/[0.04] text-night-muted",
   muted: "bg-night/[0.04] text-muted",
+  gold: "bg-gold/15 text-gold-deep",
 } as const;
 
 export default async function MyApplicationsPage() {

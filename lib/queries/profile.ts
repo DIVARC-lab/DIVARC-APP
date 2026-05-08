@@ -15,6 +15,7 @@ const PROFILE_DEFAULTS: Omit<
   | "created_at"
   | "updated_at"
   | "last_seen_at"
+  | "headline"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -27,6 +28,9 @@ const PROFILE_DEFAULTS: Omit<
   presence_status: "offline",
   custom_status: "available",
   presence_visibility: "everyone",
+  open_to_work: false,
+  open_to_hiring: false,
+  discrete_search: false,
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -95,6 +99,16 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     presence_visibility:
       (data as { presence_visibility?: Profile["presence_visibility"] })
         .presence_visibility ?? PROFILE_DEFAULTS.presence_visibility,
+    headline: (data as { headline?: string | null }).headline ?? null,
+    open_to_work:
+      (data as { open_to_work?: boolean }).open_to_work ??
+      PROFILE_DEFAULTS.open_to_work,
+    open_to_hiring:
+      (data as { open_to_hiring?: boolean }).open_to_hiring ??
+      PROFILE_DEFAULTS.open_to_hiring,
+    discrete_search:
+      (data as { discrete_search?: boolean }).discrete_search ??
+      PROFILE_DEFAULTS.discrete_search,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:
