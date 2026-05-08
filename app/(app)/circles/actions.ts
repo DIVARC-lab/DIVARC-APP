@@ -142,3 +142,63 @@ export async function leaveCircle(circleId: string) {
   revalidatePath("/circles");
   return { ok: true as const };
 }
+
+const circlePostSchema = z.object({
+  circle_id: z.string().uuid(),
+  body: z.string().trim().min(1).max(4000),
+});
+
+export async function createCirclePost(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const parsed = circlePostSchema.safeParse({
+    circle_id: formData.get("circle_id"),
+    body: formData.get("body"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Post invalide.",
+    };
+  }
+
+  /* Verify membership client-side too (RLS will refuse anyway) for
+     a clean error message instead of a generic insert failure. */
+  const { data: membership } = await supabase
+    .from("circle_members")
+    .select("circle_id")
+    .eq("circle_id", parsed.data.circle_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!membership) {
+    return {
+      ok: false as const,
+      error: "Tu dois être membre du cercle pour poster.",
+    };
+  }
+
+  const { error } = await supabase.from("posts").insert({
+    author_id: user.id,
+    body: parsed.data.body,
+    visibility: "private",
+    circle_id: parsed.data.circle_id,
+  });
+
+  if (error) {
+    return { ok: false as const, error: "Publication impossible." };
+  }
+
+  /* Find slug to revalidate the right page. */
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", parsed.data.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+
+  return { ok: true as const };
+}

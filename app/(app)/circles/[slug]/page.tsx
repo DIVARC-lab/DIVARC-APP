@@ -1,4 +1,4 @@
-import { ArrowLeft, Lock, Users2 } from "lucide-react";
+import { ArrowLeft, Lock, MessageSquareText, Users2 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
@@ -8,10 +8,14 @@ import {
   getCircleBySlug,
   listCircleMembers,
 } from "@/lib/queries/circles";
+import { listCirclePosts } from "@/lib/queries/posts";
+import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
 import type { CircleColor } from "@/lib/database.types";
+import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { CircleMembershipButton } from "./CircleMembershipButton";
+import { CirclePostComposer } from "./CirclePostComposer";
 
 type Params = Promise<{ slug: string }>;
 
@@ -50,9 +54,14 @@ export default async function CircleDetailPage({
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
 
-  const members = await listCircleMembers(circle.id, 12);
+  const [members, profile, posts] = await Promise.all([
+    listCircleMembers(circle.id, 12),
+    getCurrentProfile(),
+    circle.is_member ? listCirclePosts(circle.id, user.id, 30) : Promise.resolve([]),
+  ]);
   const tone = COLOR_HERO[circle.color ?? "gold"];
   const isOwner = circle.owner_id === user.id;
+  const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
   return (
     <div className="px-4 sm:px-10 py-10 max-w-4xl mx-auto w-full">
@@ -131,6 +140,35 @@ export default async function CircleDetailPage({
         </section>
       ) : null}
 
+      {circle.is_member ? (
+        <section className="mt-10" aria-label="Discussions">
+          <div className="flex items-center gap-2 mb-4">
+            <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
+            <KickerLabel>Discussions</KickerLabel>
+          </div>
+
+          <CirclePostComposer
+            circleId={circle.id}
+            authorName={fullName}
+            authorAvatarUrl={profile?.avatar_url ?? null}
+          />
+
+          {posts.length === 0 ? (
+            <p className="mt-6 text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
+              Aucun message pour l'instant. <span className="italic font-display text-night">Lance la conversation.</span>
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-4">
+              {posts.map((post) => (
+                <li key={post.id}>
+                  <PostCard post={post} currentUserId={user.id} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
       <section className="mt-10">
         <div className="flex items-center justify-between mb-4">
           <KickerLabel>Membres</KickerLabel>
@@ -182,14 +220,14 @@ export default async function CircleDetailPage({
         )}
       </section>
 
-      {/* Future tabs (Posts, Événements) */}
+      {/* Future : événements, annonces épinglées (V3) */}
       <section className="mt-12">
         <DisplayHeading size="md">
-          Bientôt : <em className="italic text-gold-deep">posts & events</em>
+          Bientôt : <em className="italic text-gold-deep">événements & épinglés</em>
         </DisplayHeading>
         <p className="mt-2 text-sm text-muted-strong max-w-md leading-relaxed">
-          La discussion interne au cercle, les événements, les annonces
-          épinglées arrivent dans la prochaine release.
+          Les RDV récurrents, les annonces de modos en haut de la page —
+          dans la prochaine release.
         </p>
       </section>
     </div>

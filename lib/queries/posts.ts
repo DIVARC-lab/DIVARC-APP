@@ -175,6 +175,25 @@ export async function listFeedPosts(
     .from("posts")
     .select("*")
     .is("deleted_at", null)
+    .is("circle_id", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return attachDetails(data, currentUserId);
+}
+
+export async function listCirclePosts(
+  circleId: string,
+  currentUserId: string,
+  limit: number = 30,
+): Promise<PostWithDetails[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("circle_id", circleId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
 

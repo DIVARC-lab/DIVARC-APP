@@ -136,6 +136,7 @@ async function attachPhotos(
       updated_at: row.created_at,
       edited_at: null,
       deleted_at: null,
+      circle_id: null,
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],
@@ -199,6 +200,7 @@ export async function listFriendsOnlyFeed(
     .from("posts")
     .select("*")
     .is("deleted_at", null)
+    .is("circle_id", null)
     .in("author_id", Array.from(friendIds))
     .order("created_at", { ascending: false })
     .limit(limit);

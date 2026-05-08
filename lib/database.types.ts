@@ -132,6 +132,7 @@ export type Post = {
   video_duration_ms: number | null;
   video_width: number | null;
   video_height: number | null;
+  circle_id: string | null;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -1048,11 +1049,14 @@ export type Database = {
               | "video_duration_ms"
               | "video_width"
               | "video_height"
+              | "circle_id"
               | "edited_at"
               | "deleted_at"
             >
           >;
-        Update: Partial<Pick<Post, "body" | "visibility" | "edited_at" | "deleted_at">>;
+        Update: Partial<
+          Pick<Post, "body" | "visibility" | "circle_id" | "edited_at" | "deleted_at">
+        >;
         Relationships: [];
       };
       post_photos: {
