@@ -187,29 +187,65 @@ function Intro({
   founderRank: number | null;
   onNext: () => void;
 }) {
+  const FEATURES = [
+    "Cercles",
+    "Jobs",
+    "Marketplace",
+    "Stories",
+    "Wallet",
+  ];
   return (
     <div className="text-center">
       <div className="relative w-24 h-24 mx-auto mb-5">
         <ArcMark size={96} />
       </div>
-      <span className="text-xs font-bold uppercase tracking-widest text-gold-deep">
-        Bienvenue sur DIVARC
+      <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+        · Bienvenue
       </span>
-      <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-        Salut <em className="italic">{fullName.split(" ")[0]}</em>.
+      <h1 className="mt-3 font-display italic text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
+        Le réseau des{" "}
+        <em className="italic text-gold-deep">vrais liens</em>.
       </h1>
       <p className="mt-4 text-night-muted leading-relaxed max-w-md mx-auto">
-        Tu fais partie des fondateurs de DIVARC
-        {founderRank ? ` (rang #${founderRank})` : ""}. Quelques minutes pour
-        configurer ton compte et tu pourras commencer à discuter, vendre,
-        partager.
+        Tes proches, ton quartier, tes opportunités. Pas d&apos;algorithme,
+        pas de pub. Que des humains.
+        {founderRank ? (
+          <>
+            <br />
+            <span className="text-gold-deep font-semibold">
+              Tu es fondateur · #{founderRank}
+            </span>
+          </>
+        ) : null}
       </p>
+
+      <ul
+        aria-label="Fonctionnalités"
+        className="mt-7 flex flex-wrap items-center justify-center gap-2"
+      >
+        {FEATURES.map((f, idx) => (
+          <li
+            key={f}
+            className={
+              idx === 1
+                ? "px-3.5 h-9 inline-flex items-center rounded-full bg-gold/15 text-gold-deep text-xs font-extrabold border border-gold/40"
+                : "px-3.5 h-9 inline-flex items-center rounded-full bg-night/[0.03] text-night-muted text-xs font-semibold border border-line"
+            }
+          >
+            {f}
+          </li>
+        ))}
+      </ul>
+
       <div className="mt-8 flex justify-center">
         <Button onClick={onNext} size="lg">
           <Sparkles className="w-4 h-4" aria-hidden />
-          C&apos;est parti
+          Créer mon compte
         </Button>
       </div>
+      <p className="mt-3 text-xs text-muted">
+        Salut <em className="italic font-display text-night">{fullName.split(" ")[0]}</em> · 2 min suffisent
+      </p>
     </div>
   );
 }
