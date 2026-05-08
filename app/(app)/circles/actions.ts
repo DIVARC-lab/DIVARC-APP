@@ -202,3 +202,177 @@ export async function createCirclePost(formData: FormData) {
 
   return { ok: true as const };
 }
+
+const eventCategorySchema = z
+  .enum(["community", "social", "cultural"])
+  .default("community");
+
+const createEventSchema = z.object({
+  circle_id: z.string().uuid(),
+  title: z.string().trim().min(2).max(120),
+  description: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  location: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  category: eventCategorySchema,
+  starts_at: z.string().refine((s) => {
+    const d = new Date(s);
+    return !Number.isNaN(d.getTime()) && d.getTime() > Date.now() - 5 * 60_000;
+  }, "Date de début invalide ou passée."),
+  ends_at: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  capacity: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v) => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = typeof v === "string" ? parseInt(v, 10) : v;
+      return Number.isFinite(n) ? n : null;
+    })
+    .pipe(z.number().int().min(1).max(5000).nullable()),
+});
+
+export async function createCircleEvent(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const parsed = createEventSchema.safeParse({
+    circle_id: formData.get("circle_id"),
+    title: formData.get("title"),
+    description: formData.get("description"),
+    location: formData.get("location"),
+    category: formData.get("category"),
+    starts_at: formData.get("starts_at"),
+    ends_at: formData.get("ends_at"),
+    capacity: formData.get("capacity"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Événement invalide.",
+    };
+  }
+
+  /* Vérifie que ends_at, si fourni, est bien après starts_at. */
+  if (parsed.data.ends_at) {
+    const s = new Date(parsed.data.starts_at).getTime();
+    const e = new Date(parsed.data.ends_at).getTime();
+    if (Number.isNaN(e) || e <= s) {
+      return { ok: false as const, error: "La fin doit être après le début." };
+    }
+  }
+
+  const { error } = await supabase.from("circle_events").insert({
+    circle_id: parsed.data.circle_id,
+    author_id: user.id,
+    title: parsed.data.title,
+    description: parsed.data.description,
+    location: parsed.data.location,
+    category: parsed.data.category,
+    starts_at: parsed.data.starts_at,
+    ends_at: parsed.data.ends_at,
+    capacity: parsed.data.capacity,
+  });
+
+  if (error) {
+    return {
+      ok: false as const,
+      error: "Création impossible (es-tu membre du cercle ?).",
+    };
+  }
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", parsed.data.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}`);
+    redirect(`/circles/${circle.slug}`);
+  }
+
+  return { ok: true as const };
+}
+
+export async function attendCircleEvent(
+  eventId: string,
+  status: "going" | "interested" = "going",
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const { error } = await supabase
+    .from("circle_event_attendance")
+    .upsert(
+      { event_id: eventId, user_id: user.id, status },
+      { onConflict: "event_id,user_id" },
+    );
+
+  if (error) {
+    return { ok: false as const, error: "RSVP impossible." };
+  }
+
+  /* Revalide la page cercle qui liste les events. */
+  const { data: event } = await supabase
+    .from("circle_events")
+    .select("circle_id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (event?.circle_id) {
+    const { data: circle } = await supabase
+      .from("circles")
+      .select("slug")
+      .eq("id", event.circle_id)
+      .maybeSingle();
+    if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  }
+  return { ok: true as const };
+}
+
+export async function cancelEventRsvp(eventId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const { error } = await supabase
+    .from("circle_event_attendance")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("user_id", user.id);
+
+  if (error) return { ok: false as const, error: "Action impossible." };
+
+  const { data: event } = await supabase
+    .from("circle_events")
+    .select("circle_id")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (event?.circle_id) {
+    const { data: circle } = await supabase
+      .from("circles")
+      .select("slug")
+      .eq("id", event.circle_id)
+      .maybeSingle();
+    if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  }
+  return { ok: true as const };
+}

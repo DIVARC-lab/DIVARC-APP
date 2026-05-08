@@ -765,6 +765,36 @@ export type CircleMemberWithProfile = CircleMember & {
   profile: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
+export type CircleEventCategory = "community" | "social" | "cultural";
+
+export type CircleEventAttendanceStatus = "going" | "interested";
+
+export type CircleEvent = {
+  id: string;
+  circle_id: string;
+  author_id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  category: CircleEventCategory;
+  starts_at: string;
+  ends_at: string | null;
+  capacity: number | null;
+  attendance_count: number;
+  created_at: string;
+};
+
+export type CircleEventAttendance = {
+  event_id: string;
+  user_id: string;
+  status: CircleEventAttendanceStatus;
+  responded_at: string;
+};
+
+export type CircleEventWithRsvp = CircleEvent & {
+  my_status: CircleEventAttendanceStatus | null;
+};
+
 export type ListingStatus = "draft" | "active" | "sold" | "archived";
 export type ListingCondition = "new" | "like_new" | "used" | "fair";
 export type ListingCategory =
@@ -1314,6 +1344,46 @@ export type Database = {
         Insert: Pick<CircleMember, "circle_id" | "user_id"> &
           Partial<Pick<CircleMember, "role" | "joined_at">>;
         Update: Partial<Pick<CircleMember, "role">>;
+        Relationships: [];
+      };
+      circle_events: {
+        Row: CircleEvent;
+        Insert: Pick<
+          CircleEvent,
+          "circle_id" | "author_id" | "title" | "starts_at"
+        > &
+          Partial<
+            Pick<
+              CircleEvent,
+              | "id"
+              | "description"
+              | "location"
+              | "category"
+              | "ends_at"
+              | "capacity"
+              | "attendance_count"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            CircleEvent,
+            | "title"
+            | "description"
+            | "location"
+            | "category"
+            | "starts_at"
+            | "ends_at"
+            | "capacity"
+          >
+        >;
+        Relationships: [];
+      };
+      circle_event_attendance: {
+        Row: CircleEventAttendance;
+        Insert: Pick<CircleEventAttendance, "event_id" | "user_id"> &
+          Partial<Pick<CircleEventAttendance, "status" | "responded_at">>;
+        Update: Partial<Pick<CircleEventAttendance, "status">>;
         Relationships: [];
       };
       companies: {

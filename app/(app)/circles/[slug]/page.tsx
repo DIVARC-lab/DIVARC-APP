@@ -9,11 +9,13 @@ import {
   listCircleMembers,
 } from "@/lib/queries/circles";
 import { listCirclePosts } from "@/lib/queries/posts";
+import { listUpcomingCircleEvents } from "@/lib/queries/circle_events";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
 import type { CircleColor } from "@/lib/database.types";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
+import { CircleEventsSection } from "./CircleEventsSection";
 import { CircleMembershipButton } from "./CircleMembershipButton";
 import { CirclePostComposer } from "./CirclePostComposer";
 
@@ -54,10 +56,11 @@ export default async function CircleDetailPage({
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
 
-  const [members, profile, posts] = await Promise.all([
+  const [members, profile, posts, events] = await Promise.all([
     listCircleMembers(circle.id, 12),
     getCurrentProfile(),
     circle.is_member ? listCirclePosts(circle.id, user.id, 30) : Promise.resolve([]),
+    listUpcomingCircleEvents(circle.id, user.id, 5),
   ]);
   const tone = COLOR_HERO[circle.color ?? "gold"];
   const isOwner = circle.owner_id === user.id;
@@ -220,14 +223,19 @@ export default async function CircleDetailPage({
         )}
       </section>
 
-      {/* Future : événements, annonces épinglées (V3) */}
+      <CircleEventsSection
+        circleSlug={slug}
+        events={events}
+        isMember={circle.is_member}
+      />
+
+      {/* Future : annonces épinglées (V4) */}
       <section className="mt-12">
         <DisplayHeading size="md">
-          Bientôt : <em className="italic text-gold-deep">événements & épinglés</em>
+          Bientôt : <em className="italic text-gold-deep">épinglés</em>
         </DisplayHeading>
         <p className="mt-2 text-sm text-muted-strong max-w-md leading-relaxed">
-          Les RDV récurrents, les annonces de modos en haut de la page —
-          dans la prochaine release.
+          Les annonces de modos en haut de la page — dans la prochaine release.
         </p>
       </section>
     </div>
