@@ -157,6 +157,25 @@ export type PostComment = {
   deleted_at: string | null;
 };
 
+export type Hashtag = {
+  id: string;
+  tag: string;
+  posts_count: number;
+  created_at: string;
+};
+
+export type PostHashtag = {
+  post_id: string;
+  hashtag_id: string;
+  created_at: string;
+};
+
+export type PostMention = {
+  post_id: string;
+  user_id: string;
+  created_at: string;
+};
+
 export type PostWithDetails = Post & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
   photos: PostPhoto[];
@@ -818,6 +837,25 @@ export type Database = {
         Update: Partial<Pick<PostComment, "body" | "edited_at" | "deleted_at">>;
         Relationships: [];
       };
+      hashtags: {
+        Row: Hashtag;
+        Insert: Pick<Hashtag, "tag"> &
+          Partial<Pick<Hashtag, "id" | "posts_count" | "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      post_hashtags: {
+        Row: PostHashtag;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      post_mentions: {
+        Row: PostMention;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       jobs: {
         Row: Job;
         Insert: Omit<
@@ -1169,6 +1207,18 @@ export type Database = {
       record_profile_view: {
         Args: { target_user_id: string };
         Returns: void;
+      };
+      posts_by_hashtag: {
+        Args: { tag_text: string; page_limit?: number };
+        Returns: Array<{
+          id: string;
+          author_id: string;
+          body: string | null;
+          visibility: PostVisibility;
+          created_at: string;
+          likes_count: number;
+          comments_count: number;
+        }>;
       };
     };
     Enums: Record<string, never>;

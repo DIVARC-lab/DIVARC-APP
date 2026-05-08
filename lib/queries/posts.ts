@@ -13,6 +13,34 @@ type AuthorRow = Pick<
   "id" | "full_name" | "username" | "avatar_url"
 >;
 
+export async function listPostsByHashtag(
+  tag: string,
+  currentUserId: string,
+  limit: number = 30,
+): Promise<PostWithDetails[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("posts_by_hashtag", {
+    tag_text: tag.toLowerCase(),
+    page_limit: limit,
+  });
+  if (error || !data) return [];
+
+  // Le RPC retourne juste l'essentiel (pas tous les champs Post),
+  // on reconstitue des Post compatibles pour attachDetails.
+  const rows: Post[] = data.map((row) => ({
+    id: row.id,
+    author_id: row.author_id,
+    body: row.body,
+    visibility: row.visibility as Post["visibility"],
+    created_at: row.created_at,
+    updated_at: row.created_at,
+    edited_at: null,
+    deleted_at: null,
+  }));
+
+  return attachDetails(rows, currentUserId);
+}
+
 async function attachDetails(
   rows: Post[],
   currentUserId: string,

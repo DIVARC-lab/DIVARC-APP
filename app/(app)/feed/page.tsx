@@ -7,6 +7,7 @@ import {
   listFriendsOnlyFeed,
   listRankedFeed,
 } from "@/lib/queries/feed";
+import { listTrendingHashtags } from "@/lib/queries/hashtags";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import {
   groupStoriesByAuthor,
@@ -17,6 +18,7 @@ import { PostCard } from "./_components/PostCard";
 import { PostComposer } from "./_components/PostComposer";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
+import { TrendingHashtagsRow } from "./_components/TrendingHashtagsRow";
 import { FeedTabs, type FeedTabId } from "./_components/FeedTabs";
 import type { PostWithDetails } from "@/lib/database.types";
 
@@ -55,7 +57,10 @@ export default async function FeedPage({
     posts = await listFeedPosts(user.id, 40);
   }
 
-  const stories = await listVisibleStories(user.id);
+  const [stories, trendingTags] = await Promise.all([
+    listVisibleStories(user.id),
+    listTrendingHashtags(10),
+  ]);
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
   return (
@@ -102,6 +107,10 @@ export default async function FeedPage({
       />
 
       <FeedTabs active={tab} />
+
+      {trendingTags.length > 0 ? (
+        <TrendingHashtagsRow tags={trendingTags} />
+      ) : null}
 
       {posts.length === 0 ? (
         <EmptyState tab={tab} />

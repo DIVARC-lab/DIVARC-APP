@@ -2,6 +2,7 @@ import { Globe, Lock, MessageCircle, Users } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
+import { renderPostBody } from "@/lib/utils/postBody";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { LikeButton } from "./LikeButton";
 import { PostMenu } from "./PostMenu";
@@ -52,7 +53,7 @@ export function PostCard({
       {post.body ? (
         <div className="px-4 sm:px-5 pb-3">
           <p className="text-sm text-night leading-relaxed whitespace-pre-wrap break-words">
-            {post.body}
+            {renderPostBody(post.body)}
           </p>
         </div>
       ) : null}

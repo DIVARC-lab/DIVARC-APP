@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { TrendingPost } from "@/lib/queries/explore";
+import { renderPostBody } from "@/lib/utils/postBody";
 import { formatRelative } from "@/lib/utils/relativeTime";
 
 type TrendingPostCardProps = {
@@ -45,7 +46,11 @@ export function TrendingPostCard({ post }: TrendingPostCardProps) {
           </time>
         </div>
         <p className="text-sm text-night line-clamp-3 leading-relaxed flex-1">
-          {post.body ?? <em className="text-muted">Post sans texte</em>}
+          {post.body ? (
+            renderPostBody(post.body)
+          ) : (
+            <em className="text-muted">Post sans texte</em>
+          )}
         </p>
         <div className="mt-2 flex items-center gap-3 text-xs text-muted">
           {post.likes_count > 0 ? (
