@@ -1,8 +1,10 @@
-import { Bookmark, Sparkles } from "lucide-react";
+import { Bookmark, Compass, Sparkles, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/Button";
-import { listFeedPosts, listPostsByAuthor } from "@/lib/queries/posts";
+import { DisplayHeading } from "@/components/ui/DisplayHeading";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { KickerLabel } from "@/components/ui/KickerLabel";
+import { listFeedPosts } from "@/lib/queries/posts";
 import {
   listFriendsOnlyFeed,
   listRankedFeed,
@@ -67,25 +69,23 @@ export default async function FeedPage({
     <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
       <header className="flex items-end justify-between gap-3">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Feed
-          </span>
-          <h1 className="mt-2 font-display text-4xl text-night text-balance leading-[1.05]">
+          <KickerLabel>Feed</KickerLabel>
+          <DisplayHeading size="lg" className="mt-2">
             {tab === "for-you" ? (
               <>
-                Pour <em className="italic">toi</em>.
+                Pour <em className="italic text-gold-deep">toi</em>.
               </>
             ) : tab === "friends" ? (
               <>
-                Tes <em className="italic">proches</em>.
+                Tes <em className="italic text-gold-deep">proches</em>.
               </>
             ) : (
               <>
-                Ce qui se <em className="italic">passe</em>.
+                Ce qui se <em className="italic text-gold-deep">passe</em>.
               </>
             )}
-          </h1>
-          <p className="mt-1 text-muted-strong text-sm">
+          </DisplayHeading>
+          <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
             {tab === "for-you"
               ? "Algorithme transparent : engagement × récence × proximité, sans pub."
               : tab === "friends"
@@ -123,7 +123,7 @@ export default async function FeedPage({
       ) : null}
 
       {posts.length === 0 ? (
-        <EmptyState tab={tab} />
+        <FeedEmptyState tab={tab} />
       ) : (
         <ul className="space-y-4">
           {posts.map((post) => (
@@ -138,48 +138,54 @@ export default async function FeedPage({
   );
 }
 
-function EmptyState({ tab }: { tab: FeedTabId }) {
-  const cta =
-    tab === "friends" ? (
-      <Button asChild variant="secondary">
-        <Link href="/messages/new">
-          <Sparkles className="w-4 h-4" aria-hidden />
-          Trouver des amis
-        </Link>
-      </Button>
-    ) : (
-      <Button asChild variant="secondary">
-        <Link href="/explore">
-          <Sparkles className="w-4 h-4" aria-hidden />
-          Découvrir
-        </Link>
-      </Button>
+function FeedEmptyState({ tab }: { tab: FeedTabId }) {
+  if (tab === "friends") {
+    return (
+      <EmptyState
+        icon={UserPlus}
+        kicker="Bienvenue"
+        title={
+          <>
+            Aucun post de tes <em className="italic text-gold-deep">proches</em>
+          </>
+        }
+        body="Ajoute des amis pour voir leurs posts ici."
+        ctaHref="/messages/new"
+        ctaLabel="Trouver des amis"
+      />
     );
-
-  const title =
-    tab === "friends"
-      ? "Aucun post de tes amis"
-      : tab === "for-you"
-        ? "Le feed va se construire"
-        : "Pas encore de posts publics";
-  const body =
-    tab === "friends"
-      ? "Ajoute des amis pour voir leurs posts ici."
-      : tab === "for-you"
-        ? "Plus tu interagis, plus l'algorithme te connaît. Publie un post, ajoute des amis, like ce qui te plaît."
-        : "Les posts publics apparaîtront ici dès que la communauté en publiera.";
-
+  }
+  if (tab === "for-you") {
+    return (
+      <EmptyState
+        icon={Sparkles}
+        kicker="Le feed va se construire"
+        title={
+          <>
+            L'algo te <em className="italic text-gold-deep">apprend</em>
+          </>
+        }
+        body="Plus tu interagis, plus l'algorithme te connaît. Publie un post, ajoute des amis, like ce qui te plaît."
+        ctaHref="/explore"
+        ctaLabel="Découvrir"
+        secondaryHref="/messages/new"
+        secondaryLabel="Trouver des amis"
+        tone="soft"
+      />
+    );
+  }
   return (
-    <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5 text-4xl leading-none"
-      >
-        ✨
-      </div>
-      <h2 className="font-display text-2xl text-night">{title}</h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto">{body}</p>
-      <div className="mt-6 flex justify-center gap-2">{cta}</div>
-    </div>
+    <EmptyState
+      icon={Compass}
+      kicker="Récents"
+      title={
+        <>
+          Pas encore de posts <em className="italic text-gold-deep">publics</em>
+        </>
+      }
+      body="Les posts publics apparaîtront ici dès que la communauté en publiera."
+      ctaHref="/explore"
+      ctaLabel="Découvrir"
+    />
   );
 }

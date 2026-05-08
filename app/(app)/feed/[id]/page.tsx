@@ -58,10 +58,10 @@ export default async function PostPage({ params }: { params: Params }) {
 
       <section className="rounded-3xl bg-white border border-line shadow-soft p-5 sm:p-6 space-y-6">
         <header>
-          <h2 className="font-display text-xl text-night">
+          <h2 className="font-display italic text-xl sm:text-2xl text-night leading-none">
             Commentaires
             {post.comments_count > 0 ? (
-              <span className="ml-2 text-base text-muted">
+              <span className="ml-2 text-base text-muted not-italic font-sans">
                 · {post.comments_count}
               </span>
             ) : null}

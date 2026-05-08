@@ -29,20 +29,20 @@ export function StoriesRow({
             aria-label="Ajouter une story"
             className="flex flex-col items-center gap-1.5 group"
           >
-            <span className="relative w-16 h-16 rounded-full bg-night/5 border-2 border-dashed border-night/20 flex items-center justify-center group-hover:border-night/40 transition-colors">
+            <span className="relative w-16 h-16 rounded-full bg-night/[0.04] border-2 border-dashed border-night/20 flex items-center justify-center group-hover:border-gold/50 transition-colors">
               {myGroup && myGroup.stories.length > 0 ? (
                 <Avatar
                   src={currentUserAvatarUrl}
                   fullName={currentUserName}
                   size="lg"
-                  className="!w-14 !h-14"
+                  className="!w-[52px] !h-[52px]"
                 />
               ) : (
                 <span className="w-10 h-10 rounded-full bg-night text-cream flex items-center justify-center">
                   <Plus className="w-5 h-5" aria-hidden />
                 </span>
               )}
-              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gold text-night flex items-center justify-center border-2 border-bg">
+              <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full bg-gold text-night flex items-center justify-center border-2 border-bg shadow-sm">
                 <Plus className="w-3 h-3" aria-hidden strokeWidth={3} />
               </span>
             </span>
@@ -51,10 +51,6 @@ export function StoriesRow({
             </span>
           </Link>
         </li>
-
-        {myGroup && myGroup.stories.length > 0
-          ? null
-          : null /* Already shown via "Toi" button above */}
 
         {otherGroups.map((group) => (
           <li key={group.author.id}>
@@ -80,13 +76,13 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
     >
       <span
         className={cn(
-          "relative w-16 h-16 rounded-full p-0.5 transition-transform group-hover:scale-105",
+          "relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105",
           group.has_unviewed
-            ? "bg-gradient-to-br from-gold via-gold-soft to-gold-deep"
+            ? "bg-[conic-gradient(from_200deg,_#F4B942,_#F8CD76,_#B88A2A,_#F4B942)] shadow-[0_4px_14px_-4px_rgba(244,185,66,0.45)]"
             : "bg-night/15",
         )}
       >
-        <span className="block w-full h-full rounded-full p-0.5 bg-bg">
+        <span className="block w-full h-full rounded-full p-[2px] bg-bg">
           <Avatar
             src={group.author.avatar_url}
             fullName={group.author.full_name ?? group.author.username}
