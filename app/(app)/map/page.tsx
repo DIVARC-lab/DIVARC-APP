@@ -1,4 +1,11 @@
-import { Calendar, ExternalLink, MapPin, Users2 } from "lucide-react";
+import {
+  Calendar,
+  ExternalLink,
+  MapPin,
+  Search,
+  Sliders,
+  Users2,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
@@ -75,17 +82,58 @@ export default async function MapPage() {
 
   return (
     <div className="px-4 sm:px-10 py-10 max-w-6xl mx-auto w-full">
-      <header className="mb-8">
+      <header className="mb-5">
         <KickerLabel>Carte</KickerLabel>
         <DisplayHeading size="lg" className="mt-2">
           Ce qui se passe <em className="italic text-gold-deep">près de toi</em>.
         </DisplayHeading>
         <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
-          Les événements géolocalisés des cercles dont tu fais partie. Pour
-          ajouter ton événement à la carte, renseigne ses coordonnées GPS à la
-          création.
+          Les événements géolocalisés des cercles dont tu fais partie.
         </p>
       </header>
+
+      {/* Search + filters bar (visual scaffolding) */}
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex-1 h-11 rounded-full bg-white border border-line flex items-center gap-2.5 px-4 text-sm text-muted-strong">
+          <Search className="w-4 h-4 text-night-muted" aria-hidden />
+          <span className="truncate">Rechercher autour de toi…</span>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 px-3 h-11 rounded-full bg-night text-cream text-xs font-extrabold"
+        >
+          <Sliders className="w-3.5 h-3.5" aria-hidden />
+          Filtres
+        </button>
+      </div>
+
+      <nav
+        aria-label="Filtres carte"
+        className="-mx-1 px-1 mb-6 flex gap-2 overflow-x-auto scrollbar-none"
+      >
+        {[
+          { l: "Tout", active: true },
+          { l: "🎉 Événements", count: events.length },
+          { l: "💼 Jobs" },
+          { l: "🛍️ Marketplace" },
+        ].map((f) => (
+          <span
+            key={f.l}
+            className={
+              f.active
+                ? "shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold inline-flex items-center bg-night text-cream gap-1.5"
+                : "shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold inline-flex items-center bg-white border border-line text-night-muted gap-1.5"
+            }
+          >
+            {f.l}
+            {"count" in f && f.count ? (
+              <span className="px-1.5 py-0.5 rounded-full bg-gold text-night text-[10px] font-extrabold">
+                {f.count}
+              </span>
+            ) : null}
+          </span>
+        ))}
+      </nav>
 
       {myCircles.length === 0 ? (
         <EmptyState

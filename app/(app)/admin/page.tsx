@@ -4,7 +4,6 @@ import {
   ChevronRight,
   MessageSquareText,
   Send,
-  ShieldCheck,
   ShoppingBag,
   Sparkle,
   Users,
@@ -12,11 +11,16 @@ import {
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
+import { DisplayHeading } from "@/components/ui/DisplayHeading";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 import {
   getAdminRecentUsers,
   getAdminStats,
   isCurrentUserAdmin,
 } from "@/lib/queries/admin";
+import {
+  getCurrentProfile,
+} from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/currency";
 import { formatRelative } from "@/lib/utils/relativeTime";
@@ -35,22 +39,22 @@ export default async function AdminPage() {
   const isAdmin = await isCurrentUserAdmin();
   if (!isAdmin) notFound();
 
-  const [stats, users] = await Promise.all([
+  const [stats, users, profile] = await Promise.all([
     getAdminStats(),
     getAdminRecentUsers(50),
+    getCurrentProfile(),
   ]);
+  const firstName =
+    profile?.full_name?.split(" ")[0] ?? user.email?.split("@")[0] ?? "toi";
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-10">
+    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full space-y-10">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
-            Admin
-          </span>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Cockpit <em className="italic text-gold-deep">DIVARC</em>.
-          </h1>
+          <KickerLabel>Admin</KickerLabel>
+          <DisplayHeading size="lg" className="mt-2">
+            Bonjour <em className="italic text-gold-deep">{firstName}</em>.
+          </DisplayHeading>
           <p className="mt-2 text-muted-strong">
             Vue d&apos;ensemble du produit, modération et stats.
           </p>
