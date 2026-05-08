@@ -114,7 +114,7 @@ export function MobileBottomNav() {
 
       {/* Floating "+" FAB on top of center slot — opens the global "Créer" flow. */}
       <Link
-        href="/feed#composer"
+        href="/create"
         aria-label="Créer"
         className="absolute left-1/2 -top-5 -translate-x-1/2 w-12 h-12 rounded-full bg-gold text-night flex items-center justify-center shadow-[0_8px_22px_rgba(244,185,66,0.45)] hover:bg-gold-soft transition-colors"
       >
