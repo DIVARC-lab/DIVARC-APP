@@ -22,7 +22,10 @@ import {
 } from "@/lib/utils/jobs";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { getJobById } from "@/lib/queries/jobs";
+import { getCurrentProfile } from "@/lib/queries/profile";
+import { getProProfile } from "@/lib/queries/profilePro";
 import { createClient } from "@/lib/supabase/server";
+import { buildApplicationDraft } from "@/lib/utils/applicationDraft";
 import { ApplyDialog } from "./_components/ApplyDialog";
 
 type Params = Promise<{ id: string }>;
@@ -58,6 +61,35 @@ export default async function JobDetailPage({
   if (!job) notFound();
 
   const isOwn = job.poster_id === user.id;
+
+  // Préremplissage du message de candidature depuis le profil pro
+  const canApply = !isOwn && !job.has_applied && job.status === "active";
+  const [proProfile, currentProfile] = canApply
+    ? await Promise.all([getProProfile(user.id), getCurrentProfile()])
+    : [null, null];
+  const hasProProfile =
+    proProfile !== null &&
+    (proProfile.experiences.length > 0 ||
+      proProfile.skills.length > 0 ||
+      Boolean(currentProfile?.headline));
+  const draftFromProfile =
+    hasProProfile && proProfile && currentProfile
+      ? buildApplicationDraft({
+          profile: {
+            full_name: currentProfile.full_name,
+            headline: currentProfile.headline,
+            location: currentProfile.location,
+          },
+          job: {
+            title: job.title,
+            company_name: job.company_name,
+            location: job.location,
+            experience_level: job.experience_level,
+          },
+          experiences: proProfile.experiences,
+          skills: proProfile.skills,
+        })
+      : null;
   const isClosed = job.status === "closed";
   const typeMeta = JOB_TYPE_META[job.job_type];
   const modeMeta = WORK_MODE_META[job.work_mode];
@@ -163,7 +195,12 @@ export default async function JobDetailPage({
                     {APPLICATION_STATUS_META[myApplication.status].label}
                   </span>
                 ) : (
-                  <ApplyDialog jobId={job.id} jobTitle={job.title} />
+                  <ApplyDialog
+                    jobId={job.id}
+                    jobTitle={job.title}
+                    draftFromProfile={draftFromProfile}
+                    hasProProfile={hasProProfile}
+                  />
                 )
               ) : null}
               {isOwn ? (

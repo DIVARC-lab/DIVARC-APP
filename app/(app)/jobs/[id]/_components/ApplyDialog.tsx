@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2, Send, X } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { CheckCircle2, Send, Sparkles, X } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import {
@@ -18,15 +18,31 @@ const INITIAL: ApplicationFormState = { status: "idle" };
 type ApplyDialogProps = {
   jobId: string;
   jobTitle: string;
+  draftFromProfile: string | null;
+  hasProProfile: boolean;
 };
 
-export function ApplyDialog({ jobId, jobTitle }: ApplyDialogProps) {
+export function ApplyDialog({
+  jobId,
+  jobTitle,
+  draftFromProfile,
+  hasProProfile,
+}: ApplyDialogProps) {
   const [open, setOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const boundAction = applyToJob.bind(null, jobId);
   const [state, formAction, pending] = useActionState<
     ApplicationFormState,
     FormData
   >(boundAction, INITIAL);
+
+  function fillFromProfile() {
+    if (!textareaRef.current || !draftFromProfile) return;
+    textareaRef.current.value = draftFromProfile;
+    textareaRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+    textareaRef.current.focus();
+    toast.success("Brouillon généré depuis ton profil pro ✨");
+  }
 
   useEffect(() => {
     if (state.status === "success") {
@@ -85,6 +101,22 @@ export function ApplyDialog({ jobId, jobTitle }: ApplyDialogProps) {
             </header>
 
             <form action={formAction} className="p-6 space-y-5">
+              {hasProProfile ? (
+                <button
+                  type="button"
+                  onClick={fillFromProfile}
+                  className="w-full p-3 rounded-2xl bg-gradient-to-br from-cream via-bg to-gold/15 border-2 border-gold/40 text-sm font-semibold text-gold-deep hover:border-gold/60 transition-colors flex items-center justify-center gap-2 group"
+                >
+                  <Sparkles className="w-4 h-4 group-hover:scale-110 transition-transform" aria-hidden />
+                  Préremplir avec mon profil pro
+                </button>
+              ) : (
+                <p className="text-xs text-muted italic text-center">
+                  Astuce : complète ton profil pro pour bénéficier du
+                  préremplissage en 1 clic.
+                </p>
+              )}
+
               <Field>
                 <FieldLabel htmlFor="application-message" required>
                   Message au recruteur
@@ -92,7 +124,8 @@ export function ApplyDialog({ jobId, jobTitle }: ApplyDialogProps) {
                 <Textarea
                   id="application-message"
                   name="message"
-                  rows={6}
+                  ref={textareaRef}
+                  rows={10}
                   required
                   minLength={10}
                   maxLength={2000}
