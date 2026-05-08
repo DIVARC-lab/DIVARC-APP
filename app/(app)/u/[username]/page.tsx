@@ -31,6 +31,7 @@ import {
   type FriendshipState,
 } from "./_components/UserActionBar";
 import { IntroVideoPlayer } from "./_components/IntroVideoPlayer";
+import { ProConnectButton } from "./_components/ProConnectButton";
 import { PublicProProfile } from "./_components/PublicProProfile";
 
 type Params = Promise<{ username: string }>;
@@ -105,6 +106,25 @@ export default async function PublicProfilePage({
     void supabase.rpc("record_profile_view", { target_user_id: profile.id });
   }
 
+  // Lookup connexion pro existante pour le bouton
+  let proConnectionState: "none" | "connected" | "pending_in" | "pending_out" =
+    "none";
+  if (!isSelf) {
+    const { data: existing } = await supabase
+      .from("pro_connections")
+      .select("requester_id, recipient_id, status")
+      .or(
+        `and(requester_id.eq.${user.id},recipient_id.eq.${profile.id}),and(requester_id.eq.${profile.id},recipient_id.eq.${user.id})`,
+      )
+      .in("status", ["pending", "accepted"])
+      .maybeSingle();
+    if (existing) {
+      if (existing.status === "accepted") proConnectionState = "connected";
+      else if (existing.requester_id === user.id) proConnectionState = "pending_out";
+      else proConnectionState = "pending_in";
+    }
+  }
+
   // Posts visible : only fetched if owner or friend (and respecting RLS)
   const posts = isSelf || isFriend
     ? await listPostsByAuthor(profile.id, user.id, 20)
@@ -138,10 +158,18 @@ export default async function PublicProfilePage({
         memberSince={memberSince}
         stats={stats}
         actionBar={
-          <UserActionBar
-            targetUserId={profile.id}
-            initialState={initialFriendState}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <UserActionBar
+              targetUserId={profile.id}
+              initialState={initialFriendState}
+            />
+            {!isSelf ? (
+              <ProConnectButton
+                targetUserId={profile.id}
+                initialState={proConnectionState}
+              />
+            ) : null}
+          </div>
         }
       />
 

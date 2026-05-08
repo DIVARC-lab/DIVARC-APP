@@ -21,6 +21,7 @@ type ListJobsOptions = {
   jobType?: JobType;
   workMode?: WorkMode;
   query?: string;
+  skills?: string[];
   limit?: number;
   posterId?: string;
   status?: Job["status"];
@@ -123,6 +124,22 @@ export async function listJobs(
     query = query.or(
       `title.ilike.%${sanitized}%,description.ilike.%${sanitized}%,company_name.ilike.%${sanitized}%`,
     );
+  }
+
+  // Filtre par compétences : on cherche les skills mentionnées dans le titre ou
+  // la description (ILIKE OR). Heuristique simple côté Postgres, suffisamment
+  // efficace tant que le volume reste modéré.
+  if (options.skills && options.skills.length > 0) {
+    const cleanSkills = options.skills
+      .map((s) => s.trim().replace(/[%,]/g, "").slice(0, 40))
+      .filter((s) => s.length > 0)
+      .slice(0, 6);
+    if (cleanSkills.length > 0) {
+      const orParts = cleanSkills
+        .flatMap((s) => [`title.ilike.%${s}%`, `description.ilike.%${s}%`])
+        .join(",");
+      query = query.or(orParts);
+    }
   }
 
   const { data, error } = await query;

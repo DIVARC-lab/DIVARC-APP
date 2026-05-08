@@ -3,6 +3,7 @@ import {
   Briefcase,
   Plus,
   Bookmark,
+  Radio,
   Send,
   Users2,
 } from "lucide-react";
@@ -37,6 +38,7 @@ type SearchParams = Promise<{
   type?: string;
   mode?: string;
   q?: string;
+  skills?: string;
 }>;
 
 export default async function JobsPage({
@@ -50,7 +52,13 @@ export default async function JobsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { category, type, mode, q } = await searchParams;
+  const { category, type, mode, q, skills } = await searchParams;
+  const skillsList = skills
+    ? skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    : undefined;
 
   const validCategory =
     category && ALL_CATEGORIES.includes(category as JobCategory)
@@ -68,6 +76,7 @@ export default async function JobsPage({
     jobType: validType,
     workMode: validMode,
     query: q,
+    skills: skillsList,
     limit: 50,
   });
 
@@ -87,6 +96,12 @@ export default async function JobsPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" asChild>
+            <Link href="/jobs/live">
+              <Radio className="w-4 h-4" aria-hidden />
+              Lives
+            </Link>
+          </Button>
           <Button variant="secondary" asChild>
             <Link href="/jobs/alerts">
               <BellRing className="w-4 h-4" aria-hidden />

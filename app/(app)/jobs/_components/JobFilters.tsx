@@ -1,7 +1,10 @@
 "use client";
 
+import { Search, X } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils/cn";
 import {
   JOB_CATEGORY_LIST,
@@ -14,10 +17,28 @@ type JobFiltersProps = {
 };
 
 export function JobFilters({ pathname = "/jobs" }: JobFiltersProps) {
+  const router = useRouter();
   const params = useSearchParams();
   const activeCategory = params.get("category");
   const activeType = params.get("type");
   const activeMode = params.get("mode");
+  const initialSkills = params.get("skills") ?? "";
+  const [skills, setSkills] = useState(initialSkills);
+
+  // Debounce push when skills change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const next = new URLSearchParams(params);
+      const trimmed = skills.trim();
+      if (trimmed.length === 0) next.delete("skills");
+      else next.set("skills", trimmed);
+      const target = next.toString() ? `${pathname}?${next}` : pathname;
+      const current = window.location.pathname + window.location.search;
+      if (target !== current) router.replace(target, { scroll: false });
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skills]);
 
   function buildHref(key: string, value: string | null) {
     const next = new URLSearchParams(params);
@@ -28,6 +49,29 @@ export function JobFilters({ pathname = "/jobs" }: JobFiltersProps) {
 
   return (
     <div className="space-y-3">
+      <div className="relative">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+          aria-hidden
+        />
+        <Input
+          value={skills}
+          onChange={(e) => setSkills(e.currentTarget.value)}
+          placeholder="Filtrer par compétences (ex. React, Postgres, Figma)..."
+          className="pl-9 pr-9"
+        />
+        {skills.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setSkills("")}
+            aria-label="Effacer"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full hover:bg-night/5 text-night-muted flex items-center justify-center"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        ) : null}
+      </div>
+
       <FilterRow label="Type">
         <Chip href={buildHref("type", null)} active={activeType === null}>
           Tous

@@ -162,6 +162,158 @@ export type PostComment = {
   deleted_at: string | null;
 };
 
+// =============== Pro features (B.9 → B.13) ===============
+
+export type ProConnectionStatus = "pending" | "accepted" | "rejected";
+export type ProConnectionContext =
+  | "colleague"
+  | "manager"
+  | "report"
+  | "client"
+  | "partner"
+  | "other";
+
+export type ProConnection = {
+  id: string;
+  requester_id: string;
+  recipient_id: string;
+  context: ProConnectionContext | null;
+  intro: string | null;
+  status: ProConnectionStatus;
+  created_at: string;
+  responded_at: string | null;
+};
+
+export type ProConnectionWithProfile = ProConnection & {
+  other: Pick<
+    Profile,
+    "id" | "full_name" | "username" | "avatar_url" | "headline" | "location"
+  >;
+};
+
+export type MentorOffer = {
+  id: string;
+  user_id: string;
+  bio: string;
+  topics: string[];
+  hourly_rate: number | null;
+  rate_currency: Currency | null;
+  languages: string[];
+  is_available: boolean;
+  sessions_count: number;
+  rating_avg: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MentorOfferWithProfile = MentorOffer & {
+  profile: Pick<
+    Profile,
+    "id" | "full_name" | "username" | "avatar_url" | "headline" | "location"
+  > | null;
+};
+
+export type MentorSessionStatus =
+  | "pending"
+  | "confirmed"
+  | "declined"
+  | "completed"
+  | "cancelled";
+
+export type MentorSession = {
+  id: string;
+  mentor_id: string;
+  mentee_id: string;
+  topic: string;
+  message: string | null;
+  scheduled_at: string | null;
+  duration_min: number;
+  status: MentorSessionStatus;
+  rating: number | null;
+  rating_comment: string | null;
+  created_at: string;
+  responded_at: string | null;
+  completed_at: string | null;
+};
+
+export type SkillQuiz = {
+  id: string;
+  slug: string;
+  skill_name: string;
+  title: string;
+  description: string | null;
+  pass_score: number;
+  question_count: number;
+  duration_min: number;
+  created_at: string;
+};
+
+export type SkillQuizQuestion = {
+  id: string;
+  quiz_id: string;
+  position_order: number;
+  prompt: string;
+  options: string[];
+  correct_index: number;
+  explanation: string | null;
+  created_at: string;
+};
+
+export type SkillQuizAttempt = {
+  id: string;
+  user_id: string;
+  quiz_id: string;
+  score: number;
+  total: number;
+  passed: boolean;
+  answers: number[] | null;
+  started_at: string;
+  finished_at: string;
+};
+
+export type UserSkillBadge = {
+  user_id: string;
+  quiz_id: string;
+  skill_name: string;
+  slug: string;
+  title: string;
+  best_score: number;
+  total: number;
+  passed: boolean;
+  last_attempt_at: string;
+};
+
+export type LiveSessionStatus = "scheduled" | "live" | "ended" | "cancelled";
+
+export type LiveSession = {
+  id: string;
+  host_id: string;
+  company_id: string | null;
+  job_id: string | null;
+  title: string;
+  description: string | null;
+  scheduled_at: string;
+  duration_min: number;
+  status: LiveSessionStatus;
+  attendees_count: number;
+  created_at: string;
+  started_at: string | null;
+  ended_at: string | null;
+};
+
+export type LiveSessionMessage = {
+  id: string;
+  session_id: string;
+  user_id: string;
+  body: string;
+  is_question: boolean;
+  created_at: string;
+};
+
+export type LiveSessionMessageWithAuthor = LiveSessionMessage & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+};
+
 export type PostCollection = {
   id: string;
   user_id: string;
@@ -908,6 +1060,119 @@ export type Database = {
         Update: Partial<Pick<PostBookmark, "collection_id">>;
         Relationships: [];
       };
+      pro_connections: {
+        Row: ProConnection;
+        Insert: Pick<ProConnection, "requester_id" | "recipient_id"> &
+          Partial<Pick<ProConnection, "id" | "context" | "intro" | "status" | "responded_at">>;
+        Update: Partial<Pick<ProConnection, "status" | "responded_at" | "intro" | "context">>;
+        Relationships: [];
+      };
+      mentor_offers: {
+        Row: MentorOffer;
+        Insert: Pick<MentorOffer, "user_id" | "bio"> &
+          Partial<
+            Pick<
+              MentorOffer,
+              | "id"
+              | "topics"
+              | "hourly_rate"
+              | "rate_currency"
+              | "languages"
+              | "is_available"
+              | "sessions_count"
+              | "rating_avg"
+              | "created_at"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<Omit<MentorOffer, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      mentor_sessions: {
+        Row: MentorSession;
+        Insert: Pick<MentorSession, "mentor_id" | "mentee_id" | "topic"> &
+          Partial<
+            Pick<
+              MentorSession,
+              | "id"
+              | "message"
+              | "scheduled_at"
+              | "duration_min"
+              | "status"
+              | "rating"
+              | "rating_comment"
+              | "responded_at"
+              | "completed_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            MentorSession,
+            | "status"
+            | "scheduled_at"
+            | "duration_min"
+            | "responded_at"
+            | "completed_at"
+            | "rating"
+            | "rating_comment"
+          >
+        >;
+        Relationships: [];
+      };
+      skill_quizzes: {
+        Row: SkillQuiz;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      skill_quiz_questions: {
+        Row: SkillQuizQuestion;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      skill_quiz_attempts: {
+        Row: SkillQuizAttempt;
+        Insert: Pick<SkillQuizAttempt, "user_id" | "quiz_id" | "score" | "total" | "passed"> &
+          Partial<Pick<SkillQuizAttempt, "id" | "answers" | "started_at" | "finished_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      live_sessions: {
+        Row: LiveSession;
+        Insert: Pick<LiveSession, "host_id" | "title" | "scheduled_at"> &
+          Partial<
+            Pick<
+              LiveSession,
+              | "id"
+              | "company_id"
+              | "job_id"
+              | "description"
+              | "duration_min"
+              | "status"
+              | "attendees_count"
+              | "started_at"
+              | "ended_at"
+            >
+          >;
+        Update: Partial<
+          Pick<LiveSession, "title" | "description" | "scheduled_at" | "status" | "started_at" | "ended_at">
+        >;
+        Relationships: [];
+      };
+      live_session_attendees: {
+        Row: { session_id: string; user_id: string; joined_at: string };
+        Insert: { session_id: string; user_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      live_session_messages: {
+        Row: LiveSessionMessage;
+        Insert: Pick<LiveSessionMessage, "session_id" | "user_id" | "body"> &
+          Partial<Pick<LiveSessionMessage, "id" | "is_question" | "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
       post_hashtags: {
         Row: PostHashtag;
         Insert: never;
@@ -1283,6 +1548,22 @@ export type Database = {
           likes_count: number;
           comments_count: number;
         }>;
+      };
+      are_pro_connected: {
+        Args: { user_a: string; user_b: string };
+        Returns: boolean;
+      };
+      connection_degree: {
+        Args: { target_user_id: string };
+        Returns: number | null;
+      };
+      send_pro_connection: {
+        Args: {
+          recipient_user_id: string;
+          context_value?: string | null;
+          intro_value?: string | null;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;
