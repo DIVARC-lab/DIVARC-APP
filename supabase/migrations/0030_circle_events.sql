@@ -34,9 +34,11 @@ create table if not exists public.circle_events (
 create index if not exists circle_events_circle_id_starts_at_idx
   on public.circle_events (circle_id, starts_at);
 
+/* NB : pas de prédicat WHERE starts_at >= now() ici — Postgres refuse
+ * les fonctions STABLE (comme now()) dans les prédicats d'index, qui
+ * doivent être IMMUTABLE. Index full, le planner filtrera quand même. */
 create index if not exists circle_events_starts_at_idx
-  on public.circle_events (starts_at)
-  where starts_at >= now();
+  on public.circle_events (starts_at);
 
 -- 2. circle_event_attendance
 create table if not exists public.circle_event_attendance (
