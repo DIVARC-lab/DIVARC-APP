@@ -89,7 +89,7 @@ export default async function ListingPage({ params }: { params: Params }) {
               </span>
             </div>
 
-            <h1 className="mt-4 font-display text-3xl sm:text-4xl text-night text-balance leading-tight">
+            <h1 className="mt-4 font-display italic text-[32px] sm:text-5xl text-night text-balance leading-[1.05] tracking-[-0.02em]">
               {listing.title}
             </h1>
             <div className="mt-4 flex items-center justify-between gap-4">
@@ -150,7 +150,7 @@ export default async function ListingPage({ params }: { params: Params }) {
                   size="lg"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-display text-xl text-night">
+                  <p className="font-display italic text-2xl text-night leading-tight">
                     {sellerName}
                   </p>
                   {listing.seller.username ? (

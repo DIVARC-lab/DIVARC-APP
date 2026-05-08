@@ -1,7 +1,9 @@
 import { Heart, ListPlus, Plus, Sparkles, Store } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Button } from "@/components/ui/Button";
+import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
 import { listListings } from "@/lib/queries/listings";
@@ -46,11 +48,15 @@ export default async function MarketplacePage({
     <div className="px-6 sm:px-10 py-10 max-w-7xl mx-auto w-full space-y-8">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
         <div>
-          <KickerLabel>Le marché</KickerLabel>
-          <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            <em className="italic text-gold-deep">Près de toi</em>, aujourd&apos;hui.
-          </h1>
-          <p className="mt-2 text-muted-strong max-w-xl">
+          <KickerLabel>· Le marché</KickerLabel>
+          <DisplayHeading
+            size="xl"
+            className="mt-3 !leading-[1.02] !text-[40px] sm:!text-[56px]"
+          >
+            <em className="italic text-gold-deep">Près de toi</em>,
+            aujourd&apos;hui.
+          </DisplayHeading>
+          <p className="mt-3 text-night-muted text-base max-w-xl leading-relaxed">
             La marketplace francophone de DIVARC. Multi-devise, contact direct
             via la messagerie, sans frais cachés.
           </p>
@@ -83,6 +89,36 @@ export default async function MarketplacePage({
         <EmptyState category={validCategory} query={q} />
       ) : (
         <>
+          {!validCategory && !q ? (
+            <article className="relative overflow-hidden rounded-3xl bg-night text-cream p-6 sm:p-7 shadow-[0_24px_60px_-28px_rgba(10,31,68,0.5)]">
+              <div
+                aria-hidden
+                className="absolute -right-16 -bottom-20 pointer-events-none"
+              >
+                <ArcDeco
+                  size={300}
+                  tone="gold"
+                  opacity={0.5}
+                  stroke={1.25}
+                />
+              </div>
+              <div className="relative">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold">
+                  · Coup de cœur
+                </span>
+                <p className="mt-2 font-display italic text-2xl sm:text-3xl leading-tight text-cream max-w-md">
+                  {listings.length} nouveaux objets près de toi cette semaine
+                </p>
+                <Link
+                  href="/marketplace/favorites"
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 h-9 rounded-full bg-gold text-night text-xs font-extrabold hover:bg-gold-soft transition-colors"
+                >
+                  Découvrir mes favoris →
+                </Link>
+              </div>
+            </article>
+          ) : null}
+
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted">
               {listings.length} annonce{listings.length > 1 ? "s" : ""}
