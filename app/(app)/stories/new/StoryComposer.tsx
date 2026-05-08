@@ -4,7 +4,10 @@ import { Camera, ImagePlus, Loader2, Send, Type, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { CameraCapture } from "@/components/stories/CameraCapture";
+import {
+  CameraCapture,
+  type CaptureResult,
+} from "@/components/stories/CameraCapture";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
 import type { StoryFilter } from "@/lib/database.types";
@@ -25,6 +28,9 @@ const BACKGROUNDS = [
 
 type ComposerMode = "photo" | "text";
 
+const VIDEO_BUCKET = "story-videos";
+const VIDEO_MAX_BYTES = 30 * 1024 * 1024; // 30 Mo cap soft
+
 type StoryComposerProps = {
   userId: string;
 };
@@ -34,6 +40,13 @@ export function StoryComposer({ userId }: StoryComposerProps) {
   const [photo, setPhoto] = useState<{ url: string; storagePath: string } | null>(
     null,
   );
+  const [video, setVideo] = useState<{
+    url: string;
+    storagePath: string;
+    thumbnailUrl: string;
+    thumbnailStoragePath: string;
+    durationMs: number;
+  } | null>(null);
   const [caption, setCaption] = useState("");
   const [background, setBackground] = useState<string>(BACKGROUNDS[0]!.id);
   const [filter, setFilter] = useState<StoryFilter>("original");
@@ -68,13 +81,78 @@ export function StoryComposer({ userId }: StoryComposerProps) {
     setUploading(false);
   }
 
-  async function handleCameraBlob(blob: Blob) {
-    if (blob.size > MAX_SIZE_BYTES) {
-      toast.error("Photo trop lourde, recommence.");
+  async function handleCapture(result: CaptureResult) {
+    setShowCamera(false);
+    if (result.kind === "photo") {
+      if (result.blob.size > MAX_SIZE_BYTES) {
+        toast.error("Photo trop lourde, recommence.");
+        return;
+      }
+      await uploadBlob(result.blob, "jpg");
       return;
     }
-    setShowCamera(false);
-    await uploadBlob(blob, "jpg");
+
+    /* Video upload : on stocke vidéo + thumbnail séparément. */
+    if (result.blob.size > VIDEO_MAX_BYTES) {
+      toast.error("Vidéo trop lourde (30 Mo max).");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const ext = (result.blob.type.includes("mp4") ? "mp4" : "webm");
+    const base = `${userId}/${crypto.randomUUID()}`;
+    const videoPath = `${base}.${ext}`;
+    const thumbPath = `${base}.jpg`;
+
+    const { error: vErr } = await supabase.storage
+      .from(VIDEO_BUCKET)
+      .upload(videoPath, result.blob, {
+        contentType: result.blob.type || `video/${ext}`,
+        cacheControl: "3600",
+      });
+    if (vErr) {
+      toast.error("Échec téléversement vidéo.");
+      setUploading(false);
+      return;
+    }
+    const { error: tErr } = await supabase.storage
+      .from(VIDEO_BUCKET)
+      .upload(thumbPath, result.thumbnail, {
+        contentType: "image/jpeg",
+        cacheControl: "86400",
+      });
+    if (tErr) {
+      await supabase.storage.from(VIDEO_BUCKET).remove([videoPath]);
+      toast.error("Échec téléversement vignette.");
+      setUploading(false);
+      return;
+    }
+
+    const { data: vPub } = supabase.storage
+      .from(VIDEO_BUCKET)
+      .getPublicUrl(videoPath);
+    const { data: tPub } = supabase.storage
+      .from(VIDEO_BUCKET)
+      .getPublicUrl(thumbPath);
+
+    setVideo({
+      url: vPub.publicUrl,
+      storagePath: videoPath,
+      thumbnailUrl: tPub.publicUrl,
+      thumbnailStoragePath: thumbPath,
+      durationMs: result.durationMs,
+    });
+    setUploading(false);
+  }
+
+  async function removeVideo() {
+    if (!video) return;
+    const supabase = createClient();
+    await supabase.storage
+      .from(VIDEO_BUCKET)
+      .remove([video.storagePath, video.thumbnailStoragePath]);
+    setVideo(null);
   }
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -125,21 +203,49 @@ export function StoryComposer({ userId }: StoryComposerProps) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode === "photo" && !photo) {
+
+    /* Vidéo l'emporte sur photo si les deux sont présents (typique :
+       l'utilisateur capture vidéo, change d'avis et upload une photo).
+       En pratique on dispatch sur ce que l'utilisateur voit. */
+    const effectiveType = video ? "video" : mode;
+
+    if (effectiveType === "photo" && !photo) {
       toast.error("Ajoute une photo.");
       return;
     }
-    if (mode === "text" && caption.trim().length === 0) {
+    if (effectiveType === "text" && caption.trim().length === 0) {
       toast.error("Écris quelque chose.");
+      return;
+    }
+    if (effectiveType === "video" && !video) {
+      toast.error("Capture une vidéo.");
       return;
     }
 
     const formData = new FormData();
-    formData.set("type", mode);
-    formData.set("photo_url", mode === "photo" ? photo?.url ?? "" : "");
+    formData.set("type", effectiveType);
+    formData.set(
+      "photo_url",
+      effectiveType === "photo" ? photo?.url ?? "" : "",
+    );
+    formData.set(
+      "video_url",
+      effectiveType === "video" ? video?.url ?? "" : "",
+    );
+    formData.set(
+      "video_thumbnail_url",
+      effectiveType === "video" ? video?.thumbnailUrl ?? "" : "",
+    );
+    formData.set(
+      "video_duration_ms",
+      effectiveType === "video" && video ? String(video.durationMs) : "",
+    );
     formData.set("caption", caption);
-    formData.set("background", mode === "text" ? background : "");
-    formData.set("filter", mode === "photo" ? filter : "original");
+    formData.set("background", effectiveType === "text" ? background : "");
+    formData.set(
+      "filter",
+      effectiveType === "photo" ? filter : "original",
+    );
 
     startTransition(async () => {
       const result = await createStory(formData);
@@ -153,7 +259,7 @@ export function StoryComposer({ userId }: StoryComposerProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {showCamera ? (
         <CameraCapture
-          onCapture={handleCameraBlob}
+          onCapture={handleCapture}
           onClose={() => setShowCamera(false)}
         />
       ) : null}
@@ -188,7 +294,28 @@ export function StoryComposer({ userId }: StoryComposerProps) {
 
       {mode === "photo" ? (
         <div>
-          {photo ? (
+          {video ? (
+            <div className="relative aspect-[9/16] w-full max-w-sm mx-auto rounded-3xl overflow-hidden bg-night border border-line">
+              <video
+                src={video.url}
+                poster={video.thumbnailUrl}
+                controls
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={removeVideo}
+                aria-label="Retirer la vidéo"
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 text-red-500 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+              <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-night/70 backdrop-blur-md text-cream text-[10px] font-extrabold tracking-wide">
+                {Math.round(video.durationMs / 1000)} s
+              </div>
+            </div>
+          ) : photo ? (
             <div className="relative aspect-[4/5] sm:aspect-square w-full max-w-sm mx-auto rounded-3xl overflow-hidden bg-night/5 border border-line">
               <Image
                 src={photo.url}

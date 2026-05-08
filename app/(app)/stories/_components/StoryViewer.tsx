@@ -218,6 +218,19 @@ export function StoryViewer({
               style={{ filter: getFilterCss(currentStory.filter) || undefined }}
               unoptimized={currentStory.photo_url.includes("?")}
             />
+          ) : currentStory.type === "video" && currentStory.video_url ? (
+            <video
+              key={currentStory.id}
+              src={currentStory.video_url}
+              poster={currentStory.video_thumbnail_url ?? undefined}
+              autoPlay
+              playsInline
+              loop
+              muted={false}
+              controls={false}
+              className="max-w-full max-h-full object-contain"
+              style={{ filter: getFilterCss(currentStory.filter) || undefined }}
+            />
           ) : (
             <div
               className={cn(

@@ -690,7 +690,7 @@ export type TransactionWithCounterparty = Transaction & {
   direction: "incoming" | "outgoing" | "credit";
 };
 
-export type StoryType = "photo" | "text";
+export type StoryType = "photo" | "text" | "video";
 
 export type StoryFilter =
   | "original"
@@ -708,6 +708,9 @@ export type Story = {
   caption: string | null;
   background: string | null;
   filter: StoryFilter | null;
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  video_duration_ms: number | null;
   created_at: string;
   expires_at: string;
 };
