@@ -46,10 +46,9 @@ export default async function MarketplacePage({
     <div className="px-6 sm:px-10 py-10 max-w-7xl mx-auto w-full space-y-8">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
         <div>
-          <KickerLabel>Marketplace</KickerLabel>
+          <KickerLabel>Le marché</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Vends, achète, échange{" "}
-            <em className="italic text-gold-deep">autour de toi</em>.
+            <em className="italic text-gold-deep">Près de toi</em>, aujourd&apos;hui.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             La marketplace francophone de DIVARC. Multi-devise, contact direct
