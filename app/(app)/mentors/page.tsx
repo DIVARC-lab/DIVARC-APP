@@ -8,6 +8,7 @@ import {
   listMentorOffers,
 } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mentors",
@@ -29,11 +30,9 @@ export default async function MentorsPage() {
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Mentorat
-          </span>
+          <KickerLabel>Mentorat</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Apprends de <em className="italic">vrais experts</em>.
+            Apprends de <em className="italic text-gold-deep">vrais experts</em>.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             Sessions one-to-one avec des seniors francophones du monde entier.

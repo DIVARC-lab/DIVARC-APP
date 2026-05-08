@@ -17,6 +17,7 @@ import {
 } from "@/lib/queries/friendships";
 import { getPresenceForUsers } from "@/lib/queries/presence";
 import { FriendCard } from "./_components/FriendCard";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Amis",
@@ -72,11 +73,9 @@ export default async function FriendsPage({
     <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Amis
-          </span>
+          <KickerLabel>Amis</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Ton cercle <em className="italic">DIVARC</em>.
+            Ton cercle <em className="italic text-gold-deep">DIVARC</em>.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             Avant de discuter avec quelqu&apos;un, vous devez être amis. Une

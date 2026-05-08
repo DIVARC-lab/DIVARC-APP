@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getMyMentorOffer } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
 import { MentorOfferForm } from "../_components/MentorOfferForm";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Offre de mentorat",
@@ -28,11 +29,9 @@ export default async function MentorOfferPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Mentors
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          {offer ? "Modifier" : "Nouvelle offre"}
-        </span>
+        <KickerLabel>{offer ? "Modifier" : "Nouvelle offre"}</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Devenir <em className="italic">mentor</em>.
+          Devenir <em className="italic text-gold-deep">mentor</em>.
         </h1>
         <p className="mt-2 text-muted-strong">
           Partage ton expérience. Décide ton tarif (ou gratuit) et active la

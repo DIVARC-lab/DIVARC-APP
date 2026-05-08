@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { listUpcomingLiveSessions } from "@/lib/queries/liveSessions";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Lives recrutement",
@@ -30,11 +31,9 @@ export default async function LivePage() {
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Emploi
           </Link>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Lives recrutement
-          </span>
+          <KickerLabel>Lives recrutement</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Sessions <em className="italic">Q&amp;A</em> en direct.
+            Sessions <em className="italic text-gold-deep">Q&amp;A</em> en direct.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             Pose tes questions aux recruteurs, fondateurs ou mentors en direct.

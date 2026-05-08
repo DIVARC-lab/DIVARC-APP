@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LiveSessionForm } from "./LiveSessionForm";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Nouveau live",
@@ -26,11 +27,9 @@ export default async function NewLivePage() {
       </Link>
 
       <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Nouveau live
-        </span>
+        <KickerLabel>Nouveau live</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night text-balance">
-          Programme un <em className="italic">live recrutement</em>.
+          Programme un <em className="italic text-gold-deep">live recrutement</em>.
         </h1>
         <p className="mt-2 text-muted-strong">
           Q&amp;A ouvert à tous, chat temps réel sans caméra.

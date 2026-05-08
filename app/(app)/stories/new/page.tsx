@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { StoryComposer } from "./StoryComposer";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Nouvelle story",
@@ -25,11 +26,9 @@ export default async function NewStoryPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour au feed
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Nouvelle story
-        </span>
+        <KickerLabel>Nouvelle story</KickerLabel>
         <h1 className="mt-2 font-display text-3xl sm:text-4xl text-night text-balance leading-[1.05]">
-          Partage <em className="italic">l&apos;instant</em>.
+          Partage <em className="italic text-gold-deep">l&apos;instant</em>.
         </h1>
         <p className="mt-2 text-muted-strong">
           Visible 24 h par tes amis. Photo ou texte sur fond coloré.

@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             Fondateur · Beta privée
           </span>
           <h1 className="mt-5 font-display text-4xl sm:text-6xl text-balance leading-[1.05]">
-            Bonjour, <em className="italic">{fullName.split(" ")[0]}</em>.
+            Bonjour, <em className="italic text-gold-deep">{fullName.split(" ")[0]}</em>.
           </h1>
           <p className="mt-4 text-cream/75 max-w-lg">
             Ton espace DIVARC se construit autour de toi. Complète ton profil

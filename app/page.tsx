@@ -20,6 +20,7 @@ import { PhoneMockMarket } from "@/components/marketing/PhoneMockMarket";
 import { RoadmapTimeline } from "@/components/marketing/RoadmapTimeline";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export default function Home() {
   return (
@@ -275,11 +276,9 @@ function Pillars() {
     <section id="produit" className="py-24 sm:py-32">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Le produit
-          </span>
+          <KickerLabel>Le produit</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-7xl text-night text-balance leading-[1.02]">
-            Six piliers, <em className="italic">un seul écosystème</em>.
+            Six piliers, <em className="italic text-gold-deep">un seul écosystème</em>.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
             Chaque pilier de DIVARC remplace une app que tu utilises déjà — et
@@ -298,7 +297,7 @@ function Pillars() {
                   Pilier 1
                 </div>
                 <h3 className="mt-4 font-display text-4xl text-balance">
-                  Discuter, comme une <em className="italic">vraie</em>{" "}
+                  Discuter, comme une <em className="italic text-gold-deep">vraie</em>{" "}
                   conversation.
                 </h3>
                 <p className="mt-4 text-cream/80 leading-relaxed">
@@ -332,7 +331,7 @@ function Pillars() {
               Pilier 2
             </div>
             <h3 className="mt-4 font-display text-3xl text-night text-balance">
-              Marketplace de <em className="italic">quartier</em>.
+              Marketplace de <em className="italic text-gold-deep">quartier</em>.
             </h3>
             <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-sm">
               Vends, achète, échange. Avec ta vraie communauté, autour de toi.
@@ -375,11 +374,9 @@ function Personas() {
     <section className="py-24 sm:py-32 bg-bg-deep">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Pour qui
-          </span>
+          <KickerLabel>Pour qui</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Construit <em className="italic">avec</em> celles et ceux qui
+            Construit <em className="italic text-gold-deep">avec</em> celles et ceux qui
             l&apos;utilisent.
           </h2>
         </header>
@@ -417,12 +414,10 @@ function Vs() {
     <section id="vs" className="py-24 sm:py-32">
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-12">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Comparaison
-          </span>
+          <KickerLabel>Comparaison</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Pourquoi pas <em className="italic">une seule</em> app, mais{" "}
-            <em className="italic">la bonne</em>.
+            Pourquoi pas <em className="italic text-gold-deep">une seule</em> app, mais{" "}
+            <em className="italic text-gold-deep">la bonne</em>.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
             Les autres ont été pensées ailleurs, pour quelqu&apos;un
@@ -440,11 +435,9 @@ function Roadmap() {
     <section id="roadmap" className="py-24 sm:py-32 bg-bg-deep">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-14">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Roadmap publique
-          </span>
+          <KickerLabel>Roadmap publique</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Construit <em className="italic">en transparence</em>, sprint après
+            Construit <em className="italic text-gold-deep">en transparence</em>, sprint après
             sprint.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
@@ -469,7 +462,7 @@ function Vision() {
             Notre vision
           </span>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
-            Le pont entre <em className="italic">deux mondes</em>.
+            Le pont entre <em className="italic text-gold-deep">deux mondes</em>.
           </h2>
           <p className="mt-6 text-lg text-cream/80 max-w-xl leading-relaxed">
             DIVARC n&apos;est pas une app pour la France ni une app pour
@@ -529,11 +522,9 @@ function FAQSection() {
     <section id="faq" className="py-24 sm:py-32">
       <div className="max-w-3xl mx-auto px-6 sm:px-10">
         <header className="mb-10">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Questions fréquentes
-          </span>
+          <KickerLabel>Questions fréquentes</KickerLabel>
           <h2 className="mt-3 font-display text-5xl text-night text-balance leading-[1.05]">
-            Ce que tu te demandes <em className="italic">peut-être</em>.
+            Ce que tu te demandes <em className="italic text-gold-deep">peut-être</em>.
           </h2>
         </header>
         <FAQ
@@ -586,7 +577,7 @@ function CTASection() {
               Beta privée
             </span>
             <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
-              Rejoins le <em className="italic">cercle des fondateurs</em>.
+              Rejoins le <em className="italic text-gold-deep">cercle des fondateurs</em>.
             </h2>
             <p className="mt-5 text-lg text-cream/80 max-w-xl">
               Accès anticipé à toutes les nouveautés. Badge fondateur permanent.

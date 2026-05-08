@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { ConnectionRespondActions } from "./_components/ConnectionRespondActions";
 import { ConnectionDeleteButton } from "./_components/ConnectionDeleteButton";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Réseau pro",
@@ -63,11 +64,9 @@ export default async function NetworkPage({
   return (
     <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
       <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Réseau pro
-        </span>
+        <KickerLabel>Réseau pro</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Tes <em className="italic">relations professionnelles</em>.
+          Tes <em className="italic text-gold-deep">relations professionnelles</em>.
         </h1>
         <p className="mt-2 text-muted-strong max-w-xl">
           Distinct des amitiés sociales. Pour les ex-collègues, clients,

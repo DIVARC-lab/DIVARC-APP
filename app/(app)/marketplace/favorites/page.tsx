@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { listFavoriteListings } from "@/lib/queries/listings";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes favoris",
@@ -29,11 +30,9 @@ export default async function FavoritesPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Marketplace
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Favoris
-        </span>
+        <KickerLabel>Favoris</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night text-balance">
-          Tes <em className="italic">coups de cœur</em>.
+          Tes <em className="italic text-gold-deep">coups de cœur</em>.
         </h1>
         <p className="mt-1 text-muted-strong">
           {listings.length} annonce{listings.length > 1 ? "s" : ""} sauvegardée

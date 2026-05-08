@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getJobById, listApplicationsForJob } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { ApplicantCard } from "./_components/ApplicantCard";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 type Params = Promise<{ id: string }>;
 
@@ -38,9 +39,7 @@ export default async function ApplicantsPage({
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour à l&apos;offre
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Candidatures
-        </span>
+        <KickerLabel>Candidatures</KickerLabel>
         <h1 className="mt-2 font-display text-3xl sm:text-4xl text-night text-balance leading-[1.1]">
           {job.title}
         </h1>

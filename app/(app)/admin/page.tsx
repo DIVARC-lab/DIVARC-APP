@@ -49,7 +49,7 @@ export default async function AdminPage() {
             Admin
           </span>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Cockpit <em className="italic">DIVARC</em>.
+            Cockpit <em className="italic text-gold-deep">DIVARC</em>.
           </h1>
           <p className="mt-2 text-muted-strong">
             Vue d&apos;ensemble du produit, modération et stats.

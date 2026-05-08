@@ -6,6 +6,7 @@ import { ListingCard } from "@/components/marketplace/ListingCard";
 import { listMyListings } from "@/lib/queries/listings";
 import { createClient } from "@/lib/supabase/server";
 import { ManageListingActions } from "./_components/ManageListingActions";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes annonces",
@@ -33,11 +34,9 @@ export default async function MyListingsPage() {
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Marketplace
           </Link>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Mes annonces
-          </span>
+          <KickerLabel>Mes annonces</KickerLabel>
           <h1 className="mt-2 font-display text-4xl text-night text-balance">
-            Tes <em className="italic">annonces</em>.
+            Tes <em className="italic text-gold-deep">annonces</em>.
           </h1>
           <p className="mt-1 text-muted-strong">
             {listings.length} annonce{listings.length > 1 ? "s" : ""} ·{" "}

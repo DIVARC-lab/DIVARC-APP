@@ -6,6 +6,7 @@ import { listMyMentorSessions } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { SessionRespondActions } from "../_components/SessionRespondActions";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes sessions de mentorat",
@@ -63,11 +64,9 @@ export default async function MentorSessionsPage({
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Mentors
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Sessions
-        </span>
+        <KickerLabel>Sessions</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
-          Tes <em className="italic">sessions de mentorat</em>.
+          Tes <em className="italic text-gold-deep">sessions de mentorat</em>.
         </h1>
       </header>
 

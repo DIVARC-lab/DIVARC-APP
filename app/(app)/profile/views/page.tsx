@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { listMyProfileViewers } from "@/lib/queries/profileViews";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Qui a vu mon profil",
@@ -29,11 +30,9 @@ export default async function ProfileViewsPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Profil
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Visites
-        </span>
+        <KickerLabel>Visites</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
-          Qui a vu ton <em className="italic">profil</em>.
+          Qui a vu ton <em className="italic text-gold-deep">profil</em>.
         </h1>
         <p className="mt-1 text-muted-strong">
           {viewers.length} visiteur{viewers.length > 1 ? "s" : ""} récents.

@@ -19,6 +19,7 @@ import { MiniJobCard } from "./_components/MiniJobCard";
 import { MiniListingCard } from "./_components/MiniListingCard";
 import { PersonCard } from "./_components/PersonCard";
 import { TrendingPostCard } from "./_components/TrendingPostCard";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Découvrir",
@@ -47,11 +48,9 @@ export default async function ExplorePage() {
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-12">
       <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Découvrir
-        </span>
+        <KickerLabel>Découvrir</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Sors de ton cercle, <em className="italic">trouve ta tribu</em>.
+          Sors de ton cercle, <em className="italic text-gold-deep">trouve ta tribu</em>.
         </h1>
         <p className="mt-2 text-muted-strong max-w-xl">
           Des personnes, des posts, des annonces, des jobs. Sélection par

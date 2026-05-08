@@ -6,6 +6,7 @@ import { listTransactions, listWallets } from "@/lib/queries/wallet";
 import { createClient } from "@/lib/supabase/server";
 import { BalanceCard } from "./_components/BalanceCard";
 import { TransactionList } from "./_components/TransactionList";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Wallet",
@@ -27,11 +28,9 @@ export default async function WalletPage() {
     <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Wallet
-          </span>
+          <KickerLabel>Wallet</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Ton argent, <em className="italic">multi-devise</em>.
+            Ton argent, <em className="italic text-gold-deep">multi-devise</em>.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             Envoie et reçois de l&apos;argent à tes amis francophones,

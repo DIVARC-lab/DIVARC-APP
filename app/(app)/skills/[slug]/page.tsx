@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getQuizBySlug } from "@/lib/queries/skills";
 import { createClient } from "@/lib/supabase/server";
 import { QuizPlayer } from "../_components/QuizPlayer";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 type Params = Promise<{ slug: string }>;
 
@@ -45,9 +46,7 @@ export default async function QuizPage({ params }: { params: Params }) {
       </Link>
 
       <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          {data.quiz.skill_name}
-        </span>
+        <KickerLabel>{data.quiz.skill_name}</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
           {data.quiz.title}
         </h1>

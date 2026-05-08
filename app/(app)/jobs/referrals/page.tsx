@@ -9,6 +9,7 @@ import {
 } from "@/lib/queries/referrals";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes cooptations",
@@ -63,11 +64,9 @@ export default async function ReferralsPage({
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Emploi
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Cooptation
-        </span>
+        <KickerLabel>Cooptation</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
-          <em className="italic">Recommandations</em> entre amis.
+          <em className="italic text-gold-deep">Recommandations</em> entre amis.
         </h1>
         <p className="mt-1 text-muted-strong">
           Tes amis te recommandent pour des postes. Tu peux aussi les coopter.

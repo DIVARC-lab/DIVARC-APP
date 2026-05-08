@@ -6,6 +6,7 @@ import { JobCard } from "@/components/jobs/JobCard";
 import { listMyJobs } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { MyJobActions } from "./_components/MyJobActions";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes offres",
@@ -33,11 +34,9 @@ export default async function MyJobsPage() {
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Emploi
           </Link>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Mes offres
-          </span>
+          <KickerLabel>Mes offres</KickerLabel>
           <h1 className="mt-2 font-display text-4xl text-night">
-            Tes <em className="italic">offres</em>.
+            Tes <em className="italic text-gold-deep">offres</em>.
           </h1>
           <p className="mt-1 text-muted-strong">
             {jobs.length} offre{jobs.length > 1 ? "s" : ""} · {active.length}{" "}

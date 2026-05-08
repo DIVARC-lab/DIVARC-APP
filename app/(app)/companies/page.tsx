@@ -8,6 +8,7 @@ import {
   listMyCompanies,
 } from "@/lib/queries/companies";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Entreprises",
@@ -29,11 +30,9 @@ export default async function CompaniesPage() {
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Entreprises
-          </span>
+          <KickerLabel>Entreprises</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Les recruteurs qui font <em className="italic">DIVARC</em>.
+            Les recruteurs qui font <em className="italic text-gold-deep">DIVARC</em>.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             Suis les entreprises qui te font envie. Tu seras notifié dès

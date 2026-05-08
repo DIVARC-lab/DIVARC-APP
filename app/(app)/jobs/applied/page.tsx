@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { APPLICATION_STATUS_META } from "@/lib/utils/jobs";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { WithdrawButton } from "./_components/WithdrawButton";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes candidatures",
@@ -40,11 +41,9 @@ export default async function MyApplicationsPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Emploi
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Mes candidatures
-        </span>
+        <KickerLabel>Mes candidatures</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
-          Tes <em className="italic">candidatures</em>.
+          Tes <em className="italic text-gold-deep">candidatures</em>.
         </h1>
         <p className="mt-1 text-muted-strong">
           {applications.length} candidature{applications.length > 1 ? "s" : ""}{" "}

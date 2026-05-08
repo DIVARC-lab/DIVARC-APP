@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listBookmarkedPosts } from "@/lib/queries/posts";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "../_components/PostCard";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Posts sauvegardés",
@@ -28,11 +29,9 @@ export default async function SavedFeedPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Feed
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Sauvegardés
-        </span>
+        <KickerLabel>Sauvegardés</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night text-balance leading-[1.05]">
-          Tes <em className="italic">favoris</em>.
+          Tes <em className="italic text-gold-deep">favoris</em>.
         </h1>
         <p className="mt-1 text-muted-strong text-sm">
           {posts.length} post{posts.length > 1 ? "s" : ""} sauvegardé

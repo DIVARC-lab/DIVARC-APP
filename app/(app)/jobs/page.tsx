@@ -24,6 +24,7 @@ import type {
   WorkMode,
 } from "@/lib/database.types";
 import { JobFilters } from "./_components/JobFilters";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Emploi",
@@ -84,11 +85,9 @@ export default async function JobsPage({
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-            Emploi
-          </span>
+          <KickerLabel>Emploi</KickerLabel>
           <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-            Trouve ton prochain <em className="italic">job</em>.
+            Trouve ton prochain <em className="italic text-gold-deep">job</em>.
           </h1>
           <p className="mt-2 text-muted-strong max-w-xl">
             CDI, CDD, freelance, missions. Postule en un clic, le recruteur

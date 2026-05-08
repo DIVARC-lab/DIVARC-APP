@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listPostsByHashtag } from "@/lib/queries/posts";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "../../_components/PostCard";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 type Params = Promise<{ tag: string }>;
 
@@ -38,9 +39,7 @@ export default async function HashtagPage({ params }: { params: Params }) {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Feed
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Hashtag
-        </span>
+        <KickerLabel>Hashtag</KickerLabel>
         <h1 className="mt-2 font-display text-5xl text-night flex items-center gap-2 leading-none">
           <Hash className="w-10 h-10 text-gold-deep" aria-hidden />
           <span>{decoded}</span>

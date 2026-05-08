@@ -5,6 +5,7 @@ import { listMyCompanies } from "@/lib/queries/companies";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { JobForm } from "./JobForm";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Nouvelle offre",
@@ -30,11 +31,9 @@ export default async function NewJobPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour aux offres
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Nouvelle offre
-        </span>
+        <KickerLabel>Nouvelle offre</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Recrute la <em className="italic">bonne</em> personne.
+          Recrute la <em className="italic text-gold-deep">bonne</em> personne.
         </h1>
         <p className="mt-2 text-muted-strong">
           Précis, c&apos;est efficace. Les candidats voient ton profil DIVARC.

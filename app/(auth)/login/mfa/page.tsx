@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MFAForm } from "./MFAForm";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Vérification 2FA",
@@ -25,12 +26,10 @@ export default async function MFAChallengePage() {
 
   return (
     <div className="reveal-up">
-      <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-        Sécurité · 2FA
-      </span>
+      <KickerLabel>Sécurité · 2FA</KickerLabel>
       <h1 className="mt-2 font-display text-4xl text-night text-balance">
         Confirme avec ton{" "}
-        <em className="italic">authentificateur</em>.
+        <em className="italic text-gold-deep">authentificateur</em>.
       </h1>
       <p className="mt-3 text-muted-strong">
         Pour finaliser la connexion, entre le code à 6 chiffres de ton

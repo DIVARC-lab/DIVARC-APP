@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { JobCard } from "@/components/jobs/JobCard";
 import { listSavedJobs } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Offres sauvegardées",
@@ -28,11 +29,9 @@ export default async function SavedJobsPage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Emploi
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Sauvegardés
-        </span>
+        <KickerLabel>Sauvegardés</KickerLabel>
         <h1 className="mt-2 font-display text-4xl text-night">
-          Tes <em className="italic">offres marquées</em>.
+          Tes <em className="italic text-gold-deep">offres marquées</em>.
         </h1>
         <p className="mt-1 text-muted-strong">
           {jobs.length} offre{jobs.length > 1 ? "s" : ""} sauvegardée

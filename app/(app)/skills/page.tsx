@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { getMyBadges, listQuizzes } from "@/lib/queries/skills";
 import { createClient } from "@/lib/supabase/server";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Compétences vérifiées",
@@ -29,11 +30,9 @@ export default async function SkillsPage() {
   return (
     <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
       <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Compétences vérifiées
-        </span>
+        <KickerLabel>Compétences vérifiées</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Prouve ton <em className="italic">niveau</em>.
+          Prouve ton <em className="italic text-gold-deep">niveau</em>.
         </h1>
         <p className="mt-2 text-muted-strong max-w-xl">
           Quiz courts (5 min) qui valident tes compétences. Les recruteurs

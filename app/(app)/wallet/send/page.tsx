@@ -6,6 +6,7 @@ import { listWallets } from "@/lib/queries/wallet";
 import { createClient } from "@/lib/supabase/server";
 import type { Currency } from "@/lib/database.types";
 import { SendForm } from "./SendForm";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Envoyer de l'argent",
@@ -64,11 +65,9 @@ export default async function SendMoneyPage({
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour au wallet
         </Link>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Envoyer de l&apos;argent
-        </span>
+        <KickerLabel>Envoyer de l&apos;argent</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-          Transfert <em className="italic">instantané</em>.
+          Transfert <em className="italic text-gold-deep">instantané</em>.
         </h1>
         <p className="mt-2 text-muted-strong">
           Sans frais, vers un ami, dans la devise de ton choix.
