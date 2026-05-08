@@ -82,6 +82,15 @@ async function attachPhotos(
         .in("id", postIds),
     ]);
 
+  const { data: bookmarkRows } = await supabase
+    .from("post_bookmarks")
+    .select("post_id")
+    .eq("user_id", _currentUserId)
+    .in("post_id", postIds);
+  const bookmarkedIds = new Set(
+    (bookmarkRows ?? []).map((r) => r.post_id),
+  );
+
   const videoByPost = new Map<
     string,
     Pick<
@@ -133,6 +142,7 @@ async function attachPhotos(
       likes_count: scored?.likes_count ?? 0,
       comments_count: scored?.comments_count ?? 0,
       is_liked: scored?.is_liked ?? false,
+      is_bookmarked: bookmarkedIds.has(row.id),
       visibility: row.visibility as Post["visibility"],
     } satisfies PostWithDetails;
   });
@@ -196,7 +206,7 @@ export async function listFriendsOnlyFeed(
   if (!posts || posts.length === 0) return [];
 
   const ids = posts.map((p) => p.id);
-  const [{ data: photos }, { data: likes }, { data: comments }, likedByMe] =
+  const [{ data: photos }, { data: likes }, { data: comments }, likedByMe, bookmarkedByMe] =
     await Promise.all([
       supabase
         .from("post_photos")
@@ -217,6 +227,11 @@ export async function listFriendsOnlyFeed(
         .select("post_id")
         .eq("user_id", currentUserId)
         .in("post_id", ids),
+      supabase
+        .from("post_bookmarks")
+        .select("post_id")
+        .eq("user_id", currentUserId)
+        .in("post_id", ids),
     ]);
 
   const photosByPost = new Map<string, PostPhoto[]>();
@@ -230,6 +245,9 @@ export async function listFriendsOnlyFeed(
   const commentCount = new Map<string, number>();
   for (const c of comments ?? []) commentCount.set(c.post_id, (commentCount.get(c.post_id) ?? 0) + 1);
   const likedSet = new Set((likedByMe.data ?? []).map((row) => row.post_id));
+  const bookmarkedSet = new Set(
+    (bookmarkedByMe.data ?? []).map((row) => row.post_id),
+  );
 
   const authorIds = Array.from(new Set(posts.map((p) => p.author_id)));
   const { data: authors } = await supabase
@@ -246,5 +264,6 @@ export async function listFriendsOnlyFeed(
     likes_count: likeCount.get(post.id) ?? 0,
     comments_count: commentCount.get(post.id) ?? 0,
     is_liked: likedSet.has(post.id),
+    is_bookmarked: bookmarkedSet.has(post.id),
   }));
 }

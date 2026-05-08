@@ -124,6 +124,39 @@ export async function createPost(
   return { status: "success", postId: post.id };
 }
 
+export async function toggleBookmark(postId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, bookmarked: false };
+
+  const { data: existing } = await supabase
+    .from("post_bookmarks")
+    .select("post_id")
+    .eq("user_id", user.id)
+    .eq("post_id", postId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from("post_bookmarks")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("post_id", postId);
+    revalidatePath("/feed/saved");
+    return { ok: true, bookmarked: false };
+  }
+
+  const { error } = await supabase
+    .from("post_bookmarks")
+    .insert({ user_id: user.id, post_id: postId });
+  if (error) return { ok: false, bookmarked: false };
+
+  revalidatePath("/feed/saved");
+  return { ok: true, bookmarked: true };
+}
+
 export async function deletePost(postId: string) {
   const supabase = await createClient();
   const {

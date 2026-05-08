@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
 import { renderPostBody } from "@/lib/utils/postBody";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { BookmarkButton } from "./BookmarkButton";
 import { LikeButton } from "./LikeButton";
 import { PostMenu } from "./PostMenu";
 import { PostPhotos } from "./PostPhotos";
@@ -87,6 +88,12 @@ export function PostCard({
             <MessageCircle className="w-4 h-4" aria-hidden />
             {post.comments_count > 0 ? post.comments_count : "Commenter"}
           </Link>
+          <div className="ml-auto">
+            <BookmarkButton
+              postId={post.id}
+              initialBookmarked={post.is_bookmarked}
+            />
+          </div>
         </footer>
       ) : null}
     </article>

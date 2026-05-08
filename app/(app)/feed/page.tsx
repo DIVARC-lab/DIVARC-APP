@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Bookmark, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -65,32 +65,42 @@ export default async function FeedPage({
 
   return (
     <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
-      <header>
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
-          Feed
-        </span>
-        <h1 className="mt-2 font-display text-4xl text-night text-balance leading-[1.05]">
-          {tab === "for-you" ? (
-            <>
-              Pour <em className="italic">toi</em>.
-            </>
-          ) : tab === "friends" ? (
-            <>
-              Tes <em className="italic">proches</em>.
-            </>
-          ) : (
-            <>
-              Ce qui se <em className="italic">passe</em>.
-            </>
-          )}
-        </h1>
-        <p className="mt-1 text-muted-strong text-sm">
-          {tab === "for-you"
-            ? "Algorithme transparent : engagement × récence × proximité, sans pub."
-            : tab === "friends"
-              ? "Tes amis uniquement, ordre chronologique."
-              : "Tous les posts publics, par date."}
-        </p>
+      <header className="flex items-end justify-between gap-3">
+        <div>
+          <span className="text-xs font-semibold tracking-widest uppercase text-gold-deep">
+            Feed
+          </span>
+          <h1 className="mt-2 font-display text-4xl text-night text-balance leading-[1.05]">
+            {tab === "for-you" ? (
+              <>
+                Pour <em className="italic">toi</em>.
+              </>
+            ) : tab === "friends" ? (
+              <>
+                Tes <em className="italic">proches</em>.
+              </>
+            ) : (
+              <>
+                Ce qui se <em className="italic">passe</em>.
+              </>
+            )}
+          </h1>
+          <p className="mt-1 text-muted-strong text-sm">
+            {tab === "for-you"
+              ? "Algorithme transparent : engagement × récence × proximité, sans pub."
+              : tab === "friends"
+                ? "Tes amis uniquement, ordre chronologique."
+                : "Tous les posts publics, par date."}
+          </p>
+        </div>
+        <Link
+          href="/feed/saved"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
+          title="Mes posts sauvegardés"
+        >
+          <Bookmark className="w-4 h-4" aria-hidden />
+          Sauvegardés
+        </Link>
       </header>
 
       <StoriesRow

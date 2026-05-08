@@ -162,6 +162,24 @@ export type PostComment = {
   deleted_at: string | null;
 };
 
+export type PostCollection = {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji: string | null;
+  is_private: boolean;
+  bookmarks_count: number;
+  position_order: number;
+  created_at: string;
+};
+
+export type PostBookmark = {
+  user_id: string;
+  post_id: string;
+  collection_id: string | null;
+  created_at: string;
+};
+
 export type Hashtag = {
   id: string;
   tag: string;
@@ -187,6 +205,7 @@ export type PostWithDetails = Post & {
   likes_count: number;
   comments_count: number;
   is_liked: boolean;
+  is_bookmarked: boolean;
 };
 
 export type CommentWithAuthor = PostComment & {
@@ -861,6 +880,32 @@ export type Database = {
         Insert: Pick<Hashtag, "tag"> &
           Partial<Pick<Hashtag, "id" | "posts_count" | "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      post_collections: {
+        Row: PostCollection;
+        Insert: Pick<PostCollection, "user_id" | "name"> &
+          Partial<
+            Pick<
+              PostCollection,
+              | "id"
+              | "emoji"
+              | "is_private"
+              | "bookmarks_count"
+              | "position_order"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<PostCollection, "name" | "emoji" | "is_private" | "position_order">
+        >;
+        Relationships: [];
+      };
+      post_bookmarks: {
+        Row: PostBookmark;
+        Insert: Pick<PostBookmark, "user_id" | "post_id"> &
+          Partial<Pick<PostBookmark, "collection_id" | "created_at">>;
+        Update: Partial<Pick<PostBookmark, "collection_id">>;
         Relationships: [];
       };
       post_hashtags: {
