@@ -127,6 +127,11 @@ export type Post = {
   author_id: string;
   body: string | null;
   visibility: PostVisibility;
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  video_duration_ms: number | null;
+  video_width: number | null;
+  video_height: number | null;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -812,8 +817,22 @@ export type Database = {
       };
       posts: {
         Row: Post;
-        Insert: Omit<Post, "id" | "created_at" | "updated_at" | "edited_at" | "deleted_at"> &
-          Partial<Pick<Post, "id" | "edited_at" | "deleted_at">>;
+        Insert: Pick<Post, "author_id"> &
+          Partial<
+            Pick<
+              Post,
+              | "id"
+              | "body"
+              | "visibility"
+              | "video_url"
+              | "video_thumbnail_url"
+              | "video_duration_ms"
+              | "video_width"
+              | "video_height"
+              | "edited_at"
+              | "deleted_at"
+            >
+          >;
         Update: Partial<Pick<Post, "body" | "visibility" | "edited_at" | "deleted_at">>;
         Relationships: [];
       };

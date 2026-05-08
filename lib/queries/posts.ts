@@ -25,20 +25,22 @@ export async function listPostsByHashtag(
   });
   if (error || !data) return [];
 
-  // Le RPC retourne juste l'essentiel (pas tous les champs Post),
-  // on reconstitue des Post compatibles pour attachDetails.
-  const rows: Post[] = data.map((row) => ({
-    id: row.id,
-    author_id: row.author_id,
-    body: row.body,
-    visibility: row.visibility as Post["visibility"],
-    created_at: row.created_at,
-    updated_at: row.created_at,
-    edited_at: null,
-    deleted_at: null,
-  }));
+  // Le RPC retourne juste l'essentiel — on récupère les vraies lignes
+  // pour avoir les colonnes vidéo et autres champs ajoutés.
+  const ids = data.map((r) => r.id);
+  const { data: fullRows } = await supabase
+    .from("posts")
+    .select("*")
+    .in("id", ids)
+    .is("deleted_at", null);
+  if (!fullRows) return [];
+  // Préserve l'ordre du RPC (par created_at desc)
+  const byId = new Map(fullRows.map((r) => [r.id, r]));
+  const ordered = ids
+    .map((id) => byId.get(id))
+    .filter((r): r is NonNullable<typeof r> => Boolean(r));
 
-  return attachDetails(rows, currentUserId);
+  return attachDetails(ordered, currentUserId);
 }
 
 async function attachDetails(

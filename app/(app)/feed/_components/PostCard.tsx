@@ -7,6 +7,7 @@ import { formatRelative } from "@/lib/utils/relativeTime";
 import { LikeButton } from "./LikeButton";
 import { PostMenu } from "./PostMenu";
 import { PostPhotos } from "./PostPhotos";
+import { PostVideoPlayer } from "./PostVideoPlayer";
 
 type PostCardProps = {
   post: PostWithDetails;
@@ -58,7 +59,15 @@ export function PostCard({
         </div>
       ) : null}
 
-      {post.photos.length > 0 ? (
+      {post.video_url ? (
+        <PostVideoPlayer
+          url={post.video_url}
+          thumbnailUrl={post.video_thumbnail_url}
+          durationMs={post.video_duration_ms}
+          width={post.video_width}
+          height={post.video_height}
+        />
+      ) : post.photos.length > 0 ? (
         <Link href={`/feed/${post.id}`} className="block">
           <PostPhotos photos={post.photos} alt={displayName} rounded={false} />
         </Link>

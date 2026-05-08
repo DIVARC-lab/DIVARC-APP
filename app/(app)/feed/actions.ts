@@ -27,6 +27,14 @@ const photoSchema = z.array(
   }),
 );
 
+const videoSchema = z.object({
+  url: z.string().url(),
+  thumbnail_url: z.string().url(),
+  duration_ms: z.number().int().positive().max(65000),
+  width: z.number().int().positive().nullable().optional(),
+  height: z.number().int().positive().nullable().optional(),
+});
+
 export async function createPost(
   _prev: PostFormState | undefined,
   formData: FormData,
@@ -60,10 +68,20 @@ export async function createPost(
     }
   }
 
-  if (!parsed.data.body && photos.length === 0) {
+  const videoRaw = formData.get("video");
+  let video: z.infer<typeof videoSchema> | null = null;
+  if (typeof videoRaw === "string" && videoRaw.length > 0) {
+    try {
+      video = videoSchema.parse(JSON.parse(videoRaw));
+    } catch {
+      video = null;
+    }
+  }
+
+  if (!parsed.data.body && photos.length === 0 && !video) {
     return {
       status: "error",
-      message: "Écris quelque chose ou ajoute une photo.",
+      message: "Écris quelque chose, ajoute une photo ou une vidéo.",
     };
   }
 
@@ -73,6 +91,11 @@ export async function createPost(
       author_id: user.id,
       body: parsed.data.body,
       visibility: parsed.data.visibility,
+      video_url: video?.url ?? null,
+      video_thumbnail_url: video?.thumbnail_url ?? null,
+      video_duration_ms: video?.duration_ms ?? null,
+      video_width: video?.width ?? null,
+      video_height: video?.height ?? null,
     })
     .select("id")
     .single();

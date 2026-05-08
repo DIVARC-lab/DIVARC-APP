@@ -63,17 +63,45 @@ async function attachPhotos(
   const postIds = rows.map((row) => row.id);
   const authorIds = Array.from(new Set(rows.map((row) => row.author_id)));
 
-  const [{ data: photos }, { data: authors }] = await Promise.all([
-    supabase
-      .from("post_photos")
-      .select("*")
-      .in("post_id", postIds)
-      .order("position", { ascending: true }),
-    supabase
-      .from("profiles")
-      .select("id, full_name, username, avatar_url")
-      .in("id", authorIds),
-  ]);
+  const [{ data: photos }, { data: authors }, { data: videoRows }] =
+    await Promise.all([
+      supabase
+        .from("post_photos")
+        .select("*")
+        .in("post_id", postIds)
+        .order("position", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", authorIds),
+      supabase
+        .from("posts")
+        .select(
+          "id, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height",
+        )
+        .in("id", postIds),
+    ]);
+
+  const videoByPost = new Map<
+    string,
+    Pick<
+      Post,
+      | "video_url"
+      | "video_thumbnail_url"
+      | "video_duration_ms"
+      | "video_width"
+      | "video_height"
+    >
+  >();
+  for (const row of videoRows ?? []) {
+    videoByPost.set(row.id, {
+      video_url: row.video_url,
+      video_thumbnail_url: row.video_thumbnail_url,
+      video_duration_ms: row.video_duration_ms,
+      video_width: row.video_width,
+      video_height: row.video_height,
+    });
+  }
 
   const photosByPost = new Map<string, PostPhoto[]>();
   for (const photo of photos ?? []) {
@@ -87,11 +115,19 @@ async function attachPhotos(
 
   return rows.map((row) => {
     const scored = scoredById.get(row.id);
+    const videoFields = videoByPost.get(row.id) ?? {
+      video_url: null,
+      video_thumbnail_url: null,
+      video_duration_ms: null,
+      video_width: null,
+      video_height: null,
+    };
     return {
       ...row,
       updated_at: row.created_at,
       edited_at: null,
       deleted_at: null,
+      ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],
       likes_count: scored?.likes_count ?? 0,

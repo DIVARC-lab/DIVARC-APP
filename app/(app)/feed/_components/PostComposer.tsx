@@ -1,6 +1,15 @@
 "use client";
 
-import { Globe, ImagePlus, Lock, Loader2, Send, Users, X } from "lucide-react";
+import {
+  Globe,
+  ImagePlus,
+  Lock,
+  Loader2,
+  Send,
+  Users,
+  Video,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -14,9 +23,26 @@ import { createPost, type PostFormState } from "../actions";
 const INITIAL: PostFormState = { status: "idle" };
 const MAX_PHOTOS = 4;
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_DURATION_S = 60;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_VIDEO_MIME = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+];
 
 type Photo = { url: string; position: number; storagePath: string };
+
+type VideoUpload = {
+  url: string;
+  thumbnail_url: string;
+  duration_ms: number;
+  width: number | null;
+  height: number | null;
+  storagePath: string;
+  thumbStoragePath: string;
+};
 
 type PostComposerProps = {
   userId: string;
@@ -38,14 +64,18 @@ export function PostComposer({
   const [body, setBody] = useState("");
   const [visibility, setVisibility] = useState<PostVisibility>("friends");
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [video, setVideo] = useState<VideoUpload | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (state.status === "success") {
       setBody("");
       setPhotos([]);
+      setVideo(null);
       setVisibility("friends");
       toast.success("Post publié ✨");
       router.refresh();
@@ -123,7 +153,176 @@ export function PostComposer({
     );
   }
 
-  const canSubmit = (body.trim().length > 0 || photos.length > 0) && !pending && !uploading;
+  async function probeVideo(file: File): Promise<{
+    durationMs: number;
+    width: number;
+    height: number;
+    thumbnailBlob: Blob;
+  } | null> {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.muted = true;
+      v.playsInline = true;
+      v.src = url;
+
+      const cleanup = () => URL.revokeObjectURL(url);
+      let done = false;
+
+      v.addEventListener("loadedmetadata", () => {
+        try {
+          v.currentTime = Math.min(0.1, (v.duration || 1) / 2);
+        } catch {
+          // ignore
+        }
+      });
+      v.addEventListener("seeked", () => {
+        if (done) return;
+        done = true;
+        try {
+          const w = v.videoWidth || 720;
+          const h = v.videoHeight || 1280;
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            cleanup();
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(v, 0, 0, w, h);
+          canvas.toBlob(
+            (blob) => {
+              cleanup();
+              if (!blob) {
+                resolve(null);
+                return;
+              }
+              resolve({
+                durationMs: Math.round((v.duration || 0) * 1000),
+                width: w,
+                height: h,
+                thumbnailBlob: blob,
+              });
+            },
+            "image/jpeg",
+            0.85,
+          );
+        } catch {
+          cleanup();
+          resolve(null);
+        }
+      });
+      v.addEventListener("error", () => {
+        cleanup();
+        resolve(null);
+      });
+      setTimeout(() => {
+        if (!done) {
+          cleanup();
+          resolve(null);
+        }
+      }, 6000);
+    });
+  }
+
+  async function handleVideoFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!ALLOWED_VIDEO_MIME.includes(file.type)) {
+      toast.error("Format vidéo non supporté (MP4, WebM, MOV).");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error("Vidéo trop lourde (50 Mo max).");
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const probe = await probeVideo(file);
+      if (!probe) {
+        toast.error("Impossible de lire la vidéo.");
+        return;
+      }
+      if (probe.durationMs > MAX_VIDEO_DURATION_S * 1000 + 500) {
+        toast.error(
+          `Vidéo trop longue (${MAX_VIDEO_DURATION_S} s max, ${Math.round(probe.durationMs / 1000)} s détectée).`,
+        );
+        return;
+      }
+
+      const supabase = createClient();
+      const ext = file.type.includes("webm")
+        ? "webm"
+        : file.type.includes("quicktime")
+          ? "mov"
+          : "mp4";
+      const baseName = `${userId}/${crypto.randomUUID()}`;
+      const videoPath = `${baseName}.${ext}`;
+      const thumbPath = `${baseName}.jpg`;
+
+      const { error: vErr } = await supabase.storage
+        .from("post-videos")
+        .upload(videoPath, file, {
+          contentType: file.type,
+          cacheControl: "3600",
+        });
+      if (vErr) {
+        toast.error("Échec de l'upload vidéo.");
+        return;
+      }
+      const { error: tErr } = await supabase.storage
+        .from("post-videos")
+        .upload(thumbPath, probe.thumbnailBlob, {
+          contentType: "image/jpeg",
+          cacheControl: "86400",
+        });
+      if (tErr) {
+        await supabase.storage.from("post-videos").remove([videoPath]);
+        toast.error("Échec de l'upload de la vignette.");
+        return;
+      }
+
+      const {
+        data: { publicUrl: videoUrl },
+      } = supabase.storage.from("post-videos").getPublicUrl(videoPath);
+      const {
+        data: { publicUrl: thumbUrl },
+      } = supabase.storage.from("post-videos").getPublicUrl(thumbPath);
+
+      setVideo({
+        url: videoUrl,
+        thumbnail_url: thumbUrl,
+        duration_ms: probe.durationMs,
+        width: probe.width,
+        height: probe.height,
+        storagePath: videoPath,
+        thumbStoragePath: thumbPath,
+      });
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
+  async function removeVideo() {
+    if (!video) return;
+    const supabase = createClient();
+    await supabase.storage
+      .from("post-videos")
+      .remove([video.storagePath, video.thumbStoragePath]);
+    setVideo(null);
+  }
+
+  const canSubmit =
+    (body.trim().length > 0 || photos.length > 0 || video !== null) &&
+    !pending &&
+    !uploading &&
+    !uploadingVideo;
 
   return (
     <form action={formAction} className="rounded-3xl bg-white border border-line shadow-soft overflow-hidden">
@@ -134,6 +333,21 @@ export function PostComposer({
         value={JSON.stringify(
           photos.map((p) => ({ url: p.url, position: p.position })),
         )}
+      />
+      <input
+        type="hidden"
+        name="video"
+        value={
+          video
+            ? JSON.stringify({
+                url: video.url,
+                thumbnail_url: video.thumbnail_url,
+                duration_ms: video.duration_ms,
+                width: video.width,
+                height: video.height,
+              })
+            : ""
+        }
       />
 
       <div className="p-4 sm:p-5 flex gap-3">
@@ -185,6 +399,30 @@ export function PostComposer({
               ))}
             </div>
           ) : null}
+
+          {video ? (
+            <div className="mt-3 relative rounded-2xl overflow-hidden border border-line bg-night max-w-[220px] aspect-[9/16] group">
+              <video
+                src={video.url}
+                poster={video.thumbnail_url}
+                controls
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={removeVideo}
+                aria-label="Retirer la vidéo"
+                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/95 text-red-500 hover:bg-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" aria-hidden />
+              </button>
+              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-night/70 text-white text-[10px] font-bold">
+                {Math.round(video.duration_ms / 1000)} s
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -197,10 +435,17 @@ export function PostComposer({
           onChange={handleFiles}
           className="sr-only"
         />
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept={ALLOWED_VIDEO_MIME.join(",")}
+          onChange={handleVideoFile}
+          className="sr-only"
+        />
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={uploading || photos.length >= MAX_PHOTOS}
+          disabled={uploading || photos.length >= MAX_PHOTOS || video !== null}
           className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night/5 text-night-muted hover:bg-night/10 hover:text-night text-sm font-semibold disabled:opacity-60"
         >
           {uploading ? (
@@ -210,6 +455,20 @@ export function PostComposer({
           )}
           Photos
           {photos.length > 0 ? ` · ${photos.length}/${MAX_PHOTOS}` : ""}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => videoInputRef.current?.click()}
+          disabled={uploadingVideo || video !== null || photos.length > 0}
+          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold/15 text-gold-deep hover:bg-gold/25 text-sm font-semibold disabled:opacity-60 border border-gold/30"
+        >
+          {uploadingVideo ? (
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+          ) : (
+            <Video className="w-4 h-4" aria-hidden />
+          )}
+          Vidéo · 60 s
         </button>
 
         <VisibilityPicker value={visibility} onChange={setVisibility} />
