@@ -67,11 +67,29 @@ export async function createJob(
     };
   }
 
+  // Liaison à une page entreprise possédée par l'utilisateur (optionnel)
+  const companyIdRaw = formData.get("company_id");
+  let companyId: string | null = null;
+  let companyName = parsed.data.company_name;
+  if (typeof companyIdRaw === "string" && companyIdRaw.length > 0) {
+    const { data: company } = await supabase
+      .from("companies")
+      .select("id, name, owner_id")
+      .eq("id", companyIdRaw)
+      .maybeSingle();
+    if (company && company.owner_id === user.id) {
+      companyId = company.id;
+      // Si pas de nom saisi, on prend celui de la page
+      if (!companyName) companyName = company.name;
+    }
+  }
+
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
       title: parsed.data.title,
-      company_name: parsed.data.company_name,
+      company_name: companyName,
+      company_id: companyId,
       description: parsed.data.description,
       job_type: parsed.data.job_type,
       work_mode: parsed.data.work_mode,

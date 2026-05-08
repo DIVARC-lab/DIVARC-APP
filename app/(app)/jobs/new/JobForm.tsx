@@ -27,9 +27,14 @@ const INITIAL: JobFormState = { status: "idle" };
 type JobFormProps = {
   defaultLocation: string | null;
   defaultCurrency: string;
+  myCompanies: ReadonlyArray<{ id: string; name: string; slug: string }>;
 };
 
-export function JobForm({ defaultLocation, defaultCurrency }: JobFormProps) {
+export function JobForm({
+  defaultLocation,
+  defaultCurrency,
+  myCompanies,
+}: JobFormProps) {
   const [state, formAction, pending] = useActionState<JobFormState, FormData>(
     createJob,
     INITIAL,
@@ -58,8 +63,26 @@ export function JobForm({ defaultLocation, defaultCurrency }: JobFormProps) {
             />
             <FieldError>{state.fieldErrors?.title}</FieldError>
           </Field>
+          {myCompanies.length > 0 ? (
+            <Field>
+              <FieldLabel htmlFor="company_id">
+                Publier au nom de ma page entreprise
+              </FieldLabel>
+              <Select id="company_id" name="company_id" defaultValue="">
+                <option value="">Aucune (publier en mon nom)</option>
+                {myCompanies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <FieldHint>
+                Choisis pour que ton offre soit liée à une page que tu gères.
+              </FieldHint>
+            </Field>
+          ) : null}
           <Field>
-            <FieldLabel htmlFor="company_name">Entreprise</FieldLabel>
+            <FieldLabel htmlFor="company_name">Nom de l&apos;entreprise</FieldLabel>
             <Input
               id="company_name"
               name="company_name"
@@ -69,6 +92,7 @@ export function JobForm({ defaultLocation, defaultCurrency }: JobFormProps) {
             />
             <FieldHint>
               Laisse vide si tu publies en ton nom (freelance, particulier).
+              Pré-rempli si tu choisis une page entreprise ci-dessus.
             </FieldHint>
           </Field>
           <Field>

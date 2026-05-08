@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   Bell,
   Briefcase,
+  Building2,
   Compass,
   Home,
   MessageSquareText,
@@ -101,6 +102,12 @@ export default async function DashboardLayout({
       href: "/jobs",
       label: "Emploi",
       icon: Briefcase,
+      available: true,
+    },
+    {
+      href: "/companies",
+      label: "Entreprises",
+      icon: Building2,
       available: true,
     },
     {

@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { listMyCompanies } from "@/lib/queries/companies";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { JobForm } from "./JobForm";
@@ -17,6 +18,7 @@ export default async function NewJobPage() {
   if (!user) redirect("/login");
 
   const profile = await getCurrentProfile();
+  const myCompanies = await listMyCompanies(user.id);
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full">
@@ -42,6 +44,11 @@ export default async function NewJobPage() {
       <JobForm
         defaultLocation={profile?.location ?? null}
         defaultCurrency={profile?.currency ?? "EUR"}
+        myCompanies={myCompanies.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+        }))}
       />
     </div>
   );
