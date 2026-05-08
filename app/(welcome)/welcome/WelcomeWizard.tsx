@@ -33,7 +33,8 @@ import {
   type Profile,
 } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
-import { ArcMark } from "@/components/marketing/ArcMark";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
+import { Logo } from "@/components/Logo";
 import { AvatarStep } from "./_components/AvatarStep";
 import { FriendsStep } from "./_components/FriendsStep";
 import { StepProgress } from "./_components/StepProgress";
@@ -188,64 +189,87 @@ function Intro({
   onNext: () => void;
 }) {
   const FEATURES = [
-    "Cercles",
-    "Jobs",
-    "Marketplace",
-    "Stories",
-    "Wallet",
+    { l: "Cercles", icon: "✦" },
+    { l: "Jobs", icon: "·", hot: true },
+    { l: "Marketplace", icon: "·" },
+    { l: "Stories", icon: "·" },
+    { l: "Wallet", icon: "·" },
   ];
   return (
-    <div className="text-center">
-      <div className="relative w-24 h-24 mx-auto mb-5">
-        <ArcMark size={96} />
-      </div>
-      <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-        · Bienvenue
-      </span>
-      <h1 className="mt-3 font-display italic text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
-        Le réseau des{" "}
-        <em className="italic text-gold-deep">vrais liens</em>.
-      </h1>
-      <p className="mt-4 text-night-muted leading-relaxed max-w-md mx-auto">
-        Tes proches, ton quartier, tes opportunités. Pas d&apos;algorithme,
-        pas de pub. Que des humains.
-        {founderRank ? (
-          <>
-            <br />
-            <span className="text-gold-deep font-semibold">
-              Tu es fondateur · #{founderRank}
-            </span>
-          </>
-        ) : null}
-      </p>
-
-      <ul
-        aria-label="Fonctionnalités"
-        className="mt-7 flex flex-wrap items-center justify-center gap-2"
+    <div className="relative -mx-7 sm:-mx-10 -my-7 sm:-my-10 px-7 sm:px-10 py-10 sm:py-14 rounded-3xl bg-night text-cream overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute -right-20 -top-24 pointer-events-none"
       >
-        {FEATURES.map((f, idx) => (
-          <li
-            key={f}
-            className={
-              idx === 1
-                ? "px-3.5 h-9 inline-flex items-center rounded-full bg-gold/15 text-gold-deep text-xs font-extrabold border border-gold/40"
-                : "px-3.5 h-9 inline-flex items-center rounded-full bg-night/[0.03] text-night-muted text-xs font-semibold border border-line"
-            }
-          >
-            {f}
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-8 flex justify-center">
-        <Button onClick={onNext} size="lg">
-          <Sparkles className="w-4 h-4" aria-hidden />
-          Créer mon compte
-        </Button>
+        <ArcDeco size={400} tone="gold" opacity={0.5} stroke={1.25} />
       </div>
-      <p className="mt-3 text-xs text-muted">
-        Salut <em className="italic font-display text-night">{fullName.split(" ")[0]}</em> · 2 min suffisent
-      </p>
+      <div
+        aria-hidden
+        className="absolute -left-24 -bottom-32 pointer-events-none"
+      >
+        <ArcDeco size={320} tone="gold" opacity={0.18} stroke={1} />
+      </div>
+
+      <div className="relative text-center">
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <Logo size={80} />
+        </div>
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-gold">
+          · Bienvenue
+        </span>
+        <h1 className="mt-4 font-display italic text-5xl sm:text-[56px] text-cream text-balance leading-[1] tracking-[-0.025em]">
+          Le réseau des{" "}
+          <span className="text-gold">vrais&nbsp;liens</span>.
+        </h1>
+        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto">
+          Tes proches, ton quartier, tes opportunités. Pas d&apos;algorithme,
+          pas de pub. Que des humains.
+          {founderRank ? (
+            <>
+              <br />
+              <span className="text-gold font-semibold">
+                Tu es fondateur · #{founderRank}
+              </span>
+            </>
+          ) : null}
+        </p>
+
+        <ul
+          aria-label="Fonctionnalités"
+          className="mt-7 flex flex-wrap items-center justify-center gap-2"
+        >
+          {FEATURES.map((f) => (
+            <li
+              key={f.l}
+              className={
+                f.hot
+                  ? "px-3.5 h-9 inline-flex items-center rounded-full bg-gold/20 text-gold text-xs font-extrabold border border-gold/40"
+                  : "px-3.5 h-9 inline-flex items-center rounded-full bg-cream/[0.06] text-cream/80 text-xs font-semibold border border-cream/15"
+              }
+            >
+              {f.l}
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-9 flex justify-center">
+          <button
+            type="button"
+            onClick={onNext}
+            className="inline-flex items-center gap-2 h-14 px-9 rounded-full bg-gold text-night font-extrabold text-base hover:bg-gold-soft transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
+          >
+            <Sparkles className="w-4 h-4" aria-hidden />
+            Créer mon compte
+          </button>
+        </div>
+        <p className="mt-4 text-xs text-cream/55">
+          Salut{" "}
+          <em className="italic font-display text-cream">
+            {fullName.split(" ")[0]}
+          </em>{" "}
+          · 2 min suffisent
+        </p>
+      </div>
     </div>
   );
 }
@@ -272,13 +296,14 @@ function Identity({
   return (
     <div className="space-y-7">
       <div>
-        <span className="text-xs font-bold uppercase tracking-widest text-gold-deep">
-          Étape 1 · Identité
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+          · Étape 1 · Identité
         </span>
-        <h2 className="mt-2 font-display text-3xl text-night text-balance leading-tight">
-          Comment veux-tu apparaître ?
+        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Comment veux-tu{" "}
+          <span className="text-gold-deep">apparaître</span> ?
         </h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-3 text-night-muted leading-relaxed">
           Ton nom, ton pseudo, une photo et une mini-bio.
         </p>
       </div>
@@ -388,13 +413,14 @@ function Preferences({
   return (
     <div className="space-y-7">
       <div>
-        <span className="text-xs font-bold uppercase tracking-widest text-gold-deep">
-          Étape 2 · Région
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+          · Étape 2 · Région
         </span>
-        <h2 className="mt-2 font-display text-3xl text-night text-balance leading-tight">
-          Choisis ta région et ta devise.
+        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Tu habites <span className="text-gold-deep">où</span> ?
         </h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-3 text-night-muted leading-relaxed">
+          Pour t&apos;afficher les bons cercles, événements et offres locales.
           Tu pourras toujours changer dans tes préférences.
         </p>
       </div>
@@ -487,13 +513,13 @@ function FriendsScreen({
   return (
     <div className="space-y-7">
       <div>
-        <span className="text-xs font-bold uppercase tracking-widest text-gold-deep">
-          Étape 3 · Premiers amis
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+          · Étape 3 · Tes premières connexions
         </span>
-        <h2 className="mt-2 font-display text-3xl text-night text-balance leading-tight">
-          Trouve <em className="italic">tes proches</em>.
+        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Voici qui est <span className="text-gold-deep">déjà</span> chez toi
         </h2>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-3 text-night-muted leading-relaxed">
           Cherche-les par nom ou pseudo. Sans amis, l&apos;app reste calme — tu
           pourras toujours en ajouter plus tard.
         </p>
