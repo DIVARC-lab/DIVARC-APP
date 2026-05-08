@@ -348,11 +348,11 @@ function Hero({
             </div>
           </div>
           <div className="pb-2">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               {profile.founder_rank ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/20 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gold/15 text-gold-deep text-[10px] font-extrabold uppercase tracking-[0.16em] border border-gold/30">
                   <Award className="w-3 h-3" aria-hidden />
-                  Fondateur · #{profile.founder_rank}
+                  Fondateur · # {profile.founder_rank}
                 </span>
               ) : null}
               {profile.open_to_work ? (
@@ -366,10 +366,10 @@ function Hero({
                 </span>
               ) : null}
             </div>
-            <h1 className="font-display text-3xl sm:text-4xl text-night text-balance">
+            <h1 className="font-display italic text-3xl sm:text-4xl text-night text-balance leading-tight">
               {fullName}
             </h1>
-            <p className="text-sm text-muted">@{profile.username}</p>
+            <p className="text-sm text-muted mt-0.5">@{profile.username}</p>
             {profile.headline ? (
               <p className="mt-1.5 text-sm text-night-muted max-w-md">
                 {profile.headline}
@@ -380,8 +380,8 @@ function Hero({
         <div className="sm:pb-2">{actionBar}</div>
       </div>
 
-      <div className="px-6 sm:px-10 pb-7 grid sm:grid-cols-3 gap-3 sm:gap-4 border-t border-line pt-6">
-        <Stat label="Posts publics" value={stats.postsCount} />
+      <div className="px-6 sm:px-10 pb-7 grid grid-cols-3 gap-3 sm:gap-4 border-t border-line pt-6">
+        <Stat label="Posts" value={stats.postsCount} />
         <Stat label="Annonces" value={stats.listingsCount} />
         <Stat label="Amis" value={stats.friendsCount} />
       </div>
@@ -413,11 +413,13 @@ function Hero({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="text-center sm:text-left p-4 rounded-2xl bg-night/[0.03] border border-line">
-      <dt className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+    <div className="text-center p-4 rounded-2xl bg-white border border-line">
+      <dt className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted">
         {label}
       </dt>
-      <dd className="mt-1 font-display text-2xl text-night">{value}</dd>
+      <dd className="mt-1 font-display italic text-3xl text-night leading-none">
+        {value}
+      </dd>
     </div>
   );
 }
