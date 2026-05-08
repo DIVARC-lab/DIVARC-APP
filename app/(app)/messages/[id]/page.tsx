@@ -8,7 +8,10 @@ import {
   getReactionsForConversation,
 } from "@/lib/queries/conversations";
 import { getGroupDetails } from "@/lib/queries/groups";
+import { getPresenceForUser } from "@/lib/queries/presence";
 import { createClient } from "@/lib/supabase/server";
+import { PresenceDot } from "@/components/ui/PresenceDot";
+import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import { ConversationView } from "../_components/ConversationView";
 
 type Params = Promise<{ id: string }>;
@@ -29,9 +32,10 @@ export default async function ConversationPage({ params }: { params: Params }) {
   const isGroup = conversation.type === "group";
 
   const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
-  const [initialMessages, initialReactions] = await Promise.all([
+  const [initialMessages, initialReactions, otherPresence] = await Promise.all([
     getMessagesForConversation(id),
     getReactionsForConversation(id),
+    !isGroup && otherMember ? getPresenceForUser(otherMember.id) : Promise.resolve(null),
   ]);
 
   // Mark as read in the background
@@ -70,7 +74,7 @@ export default async function ConversationPage({ params }: { params: Params }) {
   const displayName = isGroup
     ? (conversation.name ?? "Groupe")
     : (otherMember?.full_name ?? otherMember?.username ?? "Conversation");
-  const subtitle = isGroup
+  const fallbackSubtitle = isGroup
     ? `${groupDetails?.members.length ?? 0} membres`
     : otherMember?.username
       ? `@${otherMember.username}`
@@ -86,11 +90,21 @@ export default async function ConversationPage({ params }: { params: Params }) {
         >
           <ArrowLeft className="w-4 h-4 text-night" aria-hidden />
         </Link>
-        <Avatar
-          src={otherMember?.avatar_url ?? conversation.avatar_url}
-          fullName={displayName}
-          size="md"
-        />
+        <div className="relative shrink-0">
+          <Avatar
+            src={otherMember?.avatar_url ?? conversation.avatar_url}
+            fullName={displayName}
+            size="md"
+          />
+          {!isGroup && otherPresence ? (
+            <PresenceDot
+              status={otherPresence.presence_status}
+              customStatus={otherPresence.custom_status}
+              size="md"
+              className="absolute bottom-0 right-0"
+            />
+          ) : null}
+        </div>
         <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-night truncate flex items-center gap-1.5">
             {displayName}
@@ -101,7 +115,13 @@ export default async function ConversationPage({ params }: { params: Params }) {
               />
             ) : null}
           </h1>
-          <p className="text-xs text-muted truncate">{subtitle}</p>
+          <p className="text-xs text-muted truncate">
+            {!isGroup && otherPresence ? (
+              <PresenceLabel presence={otherPresence} fallback={fallbackSubtitle} />
+            ) : (
+              fallbackSubtitle
+            )}
+          </p>
         </div>
         {isGroup ? (
           <Link

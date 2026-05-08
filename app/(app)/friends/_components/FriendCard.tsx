@@ -14,8 +14,13 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { PresenceDot } from "@/components/ui/PresenceDot";
+import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import { createClient } from "@/lib/supabase/client";
-import type { FriendshipWithProfile } from "@/lib/database.types";
+import type {
+  FriendshipWithProfile,
+  PresenceInfo,
+} from "@/lib/database.types";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import {
   acceptFriendRequest,
@@ -26,9 +31,10 @@ import {
 type FriendCardProps = {
   friendship: FriendshipWithProfile;
   variant: "friend" | "incoming" | "outgoing";
+  presence?: PresenceInfo | null;
 };
 
-export function FriendCard({ friendship, variant }: FriendCardProps) {
+export function FriendCard({ friendship, variant, presence }: FriendCardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -90,12 +96,22 @@ export function FriendCard({ friendship, variant }: FriendCardProps) {
   return (
     <article className="p-5 sm:p-6 rounded-3xl bg-white border border-line shadow-soft hover:shadow-[0_30px_60px_-30px_rgba(10,31,68,0.25)] transition-shadow">
       <div className="flex items-start gap-4">
-        <Avatar
-          src={profile.avatar_url}
-          fullName={displayName}
-          size="lg"
-          priority
-        />
+        <div className="relative shrink-0">
+          <Avatar
+            src={profile.avatar_url}
+            fullName={displayName}
+            size="lg"
+            priority
+          />
+          {variant === "friend" && presence ? (
+            <PresenceDot
+              status={presence.presence_status}
+              customStatus={presence.custom_status}
+              size="lg"
+              className="absolute bottom-0 right-0"
+            />
+          ) : null}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-display text-xl text-night truncate">
@@ -133,6 +149,12 @@ export function FriendCard({ friendship, variant }: FriendCardProps) {
               <Quote className="inline w-3.5 h-3.5 text-gold-deep mr-1 -mt-1" aria-hidden />
               {friendship.intro_message}
             </blockquote>
+          ) : null}
+
+          {variant === "friend" && presence ? (
+            <p className="mt-2 text-xs text-night-muted">
+              <PresenceLabel presence={presence} />
+            </p>
           ) : null}
 
           <p className="mt-3 text-[11px] text-muted">

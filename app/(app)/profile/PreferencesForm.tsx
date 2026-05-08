@@ -13,7 +13,9 @@ import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import {
   CURRENCY_LABELS,
+  CUSTOM_STATUS_LABELS,
   LOCALE_LABELS,
+  PRESENCE_VISIBILITY_LABELS,
   THEME_LABELS,
   type Profile,
   type Theme,
@@ -147,6 +149,57 @@ export function PreferencesForm({ profile }: { profile: Profile }) {
           description="Sur ton profil public."
           defaultChecked={profile.show_location}
         />
+      </section>
+
+      <section className="space-y-4">
+        <header>
+          <h3 className="font-display text-xl text-night">Présence</h3>
+          <p className="text-sm text-muted mt-0.5">
+            Statut affiché aux autres et règles de visibilité.
+          </p>
+        </header>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field>
+            <FieldLabel htmlFor="custom_status">Statut perso</FieldLabel>
+            <Select
+              id="custom_status"
+              name="custom_status"
+              defaultValue={profile.custom_status}
+            >
+              {Object.entries(CUSTOM_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              «&nbsp;Invisible&nbsp;» te fait apparaître hors ligne tout en
+              continuant d&apos;utiliser DIVARC normalement.
+            </FieldHint>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="presence_visibility">
+              Qui voit mon statut&nbsp;?
+            </FieldLabel>
+            <Select
+              id="presence_visibility"
+              name="presence_visibility"
+              defaultValue={profile.presence_visibility}
+            >
+              {Object.entries(PRESENCE_VISIBILITY_LABELS).map(
+                ([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ),
+              )}
+            </Select>
+            <FieldHint>
+              «&nbsp;Personne&nbsp;» applique la réciprocité&nbsp;: tu ne vois
+              pas non plus le statut des autres.
+            </FieldHint>
+          </Field>
+        </div>
       </section>
 
       <div className="flex justify-end pt-2 border-t border-line">

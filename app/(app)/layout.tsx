@@ -19,6 +19,7 @@ import { getTotalUnreadCount } from "@/lib/queries/conversations";
 import { countIncomingRequests } from "@/lib/queries/friendships";
 import { countUnreadNotifications } from "@/lib/queries/notifications";
 import { NotificationsRealtime } from "@/components/NotificationsRealtime";
+import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Logo } from "@/components/Logo";
@@ -214,6 +215,7 @@ export default async function DashboardLayout({
         <main className="flex-1">{children}</main>
       </div>
       <NotificationsRealtime userId={user.id} />
+      <PresenceHeartbeat />
       <ThemeProvider initialTheme={profile?.theme ?? "system"} />
     </div>
   );

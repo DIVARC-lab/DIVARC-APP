@@ -59,6 +59,19 @@ export const currencySchema = z.enum([
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
 
+export const customStatusSchema = z.enum([
+  "available",
+  "busy",
+  "dnd",
+  "invisible",
+]);
+
+export const presenceVisibilitySchema = z.enum([
+  "everyone",
+  "friends",
+  "nobody",
+]);
+
 export const preferencesFormSchema = z.object({
   locale: localeSchema,
   currency: currencySchema,
@@ -68,6 +81,8 @@ export const preferencesFormSchema = z.object({
   discoverable: z.boolean(),
   show_email: z.boolean(),
   show_location: z.boolean(),
+  custom_status: customStatusSchema,
+  presence_visibility: presenceVisibilitySchema,
 });
 
 export type PreferencesFormInput = z.infer<typeof preferencesFormSchema>;

@@ -14,6 +14,7 @@ const PROFILE_DEFAULTS: Omit<
   | "onboarded_at"
   | "created_at"
   | "updated_at"
+  | "last_seen_at"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -23,6 +24,9 @@ const PROFILE_DEFAULTS: Omit<
   discoverable: true,
   show_email: false,
   show_location: true,
+  presence_status: "offline",
+  custom_status: "available",
+  presence_visibility: "everyone",
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -80,6 +84,17 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       (data as { founder_rank?: number | null }).founder_rank ?? null,
     onboarded_at:
       (data as { onboarded_at?: string | null }).onboarded_at ?? null,
+    presence_status:
+      (data as { presence_status?: Profile["presence_status"] })
+        .presence_status ?? PROFILE_DEFAULTS.presence_status,
+    last_seen_at:
+      (data as { last_seen_at?: string | null }).last_seen_at ?? null,
+    custom_status:
+      (data as { custom_status?: Profile["custom_status"] }).custom_status ??
+      PROFILE_DEFAULTS.custom_status,
+    presence_visibility:
+      (data as { presence_visibility?: Profile["presence_visibility"] })
+        .presence_visibility ?? PROFILE_DEFAULTS.presence_visibility,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

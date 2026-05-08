@@ -22,6 +22,10 @@ export type Currency =
 
 export type Theme = "light" | "dark" | "system";
 
+export type PresenceStatus = "online" | "away" | "offline";
+export type CustomStatus = "available" | "busy" | "dnd" | "invisible";
+export type PresenceVisibility = "everyone" | "friends" | "nobody";
+
 export type Profile = {
   id: string;
   username: string | null;
@@ -39,8 +43,19 @@ export type Profile = {
   show_location: boolean;
   founder_rank: number | null;
   onboarded_at: string | null;
+  presence_status: PresenceStatus;
+  last_seen_at: string | null;
+  custom_status: CustomStatus;
+  presence_visibility: PresenceVisibility;
   created_at: string;
   updated_at: string;
+};
+
+export type PresenceInfo = {
+  user_id: string;
+  presence_status: PresenceStatus;
+  last_seen_at: string | null;
+  custom_status: CustomStatus;
 };
 
 export type ProfileIdentityUpdate = Partial<
@@ -66,6 +81,8 @@ export type ProfilePreferencesUpdate = Partial<
     | "discoverable"
     | "show_email"
     | "show_location"
+    | "custom_status"
+    | "presence_visibility"
   >
 >;
 
@@ -751,6 +768,32 @@ export type Database = {
         Args: { target_post_id: string };
         Returns: void;
       };
+      update_my_presence: {
+        Args: { new_status: PresenceStatus };
+        Returns: void;
+      };
+      get_visible_presence: {
+        Args: { target_user_id: string };
+        Returns: Array<{
+          user_id: string;
+          presence_status: PresenceStatus;
+          last_seen_at: string | null;
+          custom_status: CustomStatus;
+        }>;
+      };
+      get_visible_presence_batch: {
+        Args: { target_user_ids: string[] };
+        Returns: Array<{
+          user_id: string;
+          presence_status: PresenceStatus;
+          last_seen_at: string | null;
+          custom_status: CustomStatus;
+        }>;
+      };
+      expire_stale_presence: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -785,4 +828,17 @@ export const THEME_LABELS: Record<Theme, string> = {
   light: "Clair",
   dark: "Sombre",
   system: "Suivre le système",
+};
+
+export const CUSTOM_STATUS_LABELS: Record<CustomStatus, string> = {
+  available: "Disponible",
+  busy: "Occupé",
+  dnd: "Ne pas déranger",
+  invisible: "Invisible",
+};
+
+export const PRESENCE_VISIBILITY_LABELS: Record<PresenceVisibility, string> = {
+  everyone: "Tout le monde",
+  friends: "Mes amis seulement",
+  nobody: "Personne (réciprocité : tu ne vois pas non plus)",
 };

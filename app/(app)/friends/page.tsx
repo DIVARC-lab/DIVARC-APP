@@ -15,6 +15,7 @@ import {
   listIncomingRequests,
   listOutgoingRequests,
 } from "@/lib/queries/friendships";
+import { getPresenceForUsers } from "@/lib/queries/presence";
 import { FriendCard } from "./_components/FriendCard";
 
 export const metadata = {
@@ -50,6 +51,9 @@ export default async function FriendsPage({
     listIncomingRequests(user.id),
     listOutgoingRequests(user.id),
   ]);
+
+  const friendIds = friends.map((f) => f.other.id);
+  const presenceMap = await getPresenceForUsers(friendIds);
 
   const counts = {
     amis: friends.length,
@@ -113,6 +117,7 @@ export default async function FriendsPage({
                   key={friendship.id}
                   friendship={friendship}
                   variant="friend"
+                  presence={presenceMap[friendship.other.id] ?? null}
                 />
               ))}
             </div>

@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
-import type { ConversationListItem } from "@/lib/database.types";
+import { PresenceDot } from "@/components/ui/PresenceDot";
+import type { ConversationListItem, PresenceInfo } from "@/lib/database.types";
 import { formatRelative } from "@/lib/utils/relativeTime";
 
 type ConversationItemProps = {
   conversation: ConversationListItem;
   currentUserId: string;
+  presence: PresenceInfo | null;
 };
 
 export function ConversationItem({
   conversation,
   currentUserId,
+  presence,
 }: ConversationItemProps) {
   const pathname = usePathname();
   const active = pathname === `/messages/${conversation.id}`;
@@ -45,11 +48,21 @@ export function ConversationItem({
           : "bg-white border-line hover:border-night/30 hover:bg-night/[0.02]"
       }`}
     >
-      <Avatar
-        src={conversation.other_member?.avatar_url ?? conversation.avatar_url}
-        fullName={displayName}
-        size="md"
-      />
+      <div className="relative shrink-0">
+        <Avatar
+          src={conversation.other_member?.avatar_url ?? conversation.avatar_url}
+          fullName={displayName}
+          size="md"
+        />
+        {presence ? (
+          <PresenceDot
+            status={presence.presence_status}
+            customStatus={presence.custom_status}
+            size="md"
+            className="absolute bottom-0 right-0"
+          />
+        ) : null}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p

@@ -1,16 +1,18 @@
 import { MessageSquarePlus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { ConversationItem } from "./ConversationItem";
-import type { ConversationListItem } from "@/lib/database.types";
+import type { ConversationListItem, PresenceInfo } from "@/lib/database.types";
 
 type ConversationListSidebarProps = {
   conversations: ConversationListItem[];
   currentUserId: string;
+  presenceMap: Record<string, PresenceInfo>;
 };
 
 export function ConversationListSidebar({
   conversations,
   currentUserId,
+  presenceMap,
 }: ConversationListSidebarProps) {
   return (
     <aside className="flex flex-col border-r border-line bg-bg h-full">
@@ -54,13 +56,18 @@ export function ConversationListSidebar({
         {conversations.length === 0 ? (
           <EmptyConversationList />
         ) : (
-          conversations.map((conversation) => (
-            <ConversationItem
-              key={conversation.id}
-              conversation={conversation}
-              currentUserId={currentUserId}
-            />
-          ))
+          conversations.map((conversation) => {
+            const otherId = conversation.other_member?.user_id;
+            const presence = otherId ? presenceMap[otherId] ?? null : null;
+            return (
+              <ConversationItem
+                key={conversation.id}
+                conversation={conversation}
+                currentUserId={currentUserId}
+                presence={presence}
+              />
+            );
+          })
         )}
       </div>
     </aside>

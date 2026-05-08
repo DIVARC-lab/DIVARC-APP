@@ -130,6 +130,8 @@ export async function updatePreferences(
     discoverable: formData.get("discoverable") === "on",
     show_email: formData.get("show_email") === "on",
     show_location: formData.get("show_location") === "on",
+    custom_status: formData.get("custom_status"),
+    presence_visibility: formData.get("presence_visibility"),
   });
 
   if (!parsed.success) {
