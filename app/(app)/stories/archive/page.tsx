@@ -40,14 +40,18 @@ export default async function StoriesArchivePage() {
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour au feed
         </Link>
-        <KickerLabel>Mes stories</KickerLabel>
-        <DisplayHeading size="lg" className="mt-2">
+        <KickerLabel>· Mes stories</KickerLabel>
+        <DisplayHeading
+          size="xl"
+          italicAll
+          className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+        >
           Archive ·{" "}
-          <em className="italic text-gold-deep">
+          <span className="not-italic font-display italic text-gold-deep">
             {stories.length} active{stories.length > 1 ? "s" : ""}
-          </em>
+          </span>
         </DisplayHeading>
-        <p className="mt-2 text-muted-strong text-sm leading-relaxed max-w-md">
+        <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-md">
           Tes stories des dernières 24 h. Vues, expiration, suppression — tout
           ici.
         </p>

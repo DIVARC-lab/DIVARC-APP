@@ -221,11 +221,14 @@ export function StoryViewer({
           ) : (
             <div
               className={cn(
-                "w-full h-full flex items-center justify-center px-8",
-                currentStory.background ?? "bg-gradient-to-br from-night via-night-soft to-night-muted",
+                "w-full h-full flex items-center justify-center px-8 bg-gradient-to-br",
+                currentStory.background ?? "from-night via-night-soft to-night-muted",
               )}
             >
-              <p className="font-display text-3xl sm:text-4xl text-cream text-center text-balance leading-tight">
+              <p
+                className="font-display italic text-[44px] sm:text-[52px] text-cream text-center text-balance leading-[1.05] tracking-[-0.02em]"
+                style={{ textShadow: "0 4px 24px rgba(0,0,0,0.5)" }}
+              >
                 {currentStory.caption}
               </p>
             </div>
@@ -233,8 +236,11 @@ export function StoryViewer({
         </div>
 
         {currentStory.type === "photo" && currentStory.caption ? (
-          <div className="absolute bottom-20 left-4 right-4 z-10 px-4 py-3 rounded-2xl bg-night/55 backdrop-blur-md">
-            <p className="font-display italic text-cream text-base leading-snug text-center">
+          <div className="absolute bottom-20 left-6 right-6 z-10 text-center pointer-events-none">
+            <p
+              className="font-display italic text-cream text-2xl sm:text-3xl leading-tight tracking-[-0.015em]"
+              style={{ textShadow: "0 2px 16px rgba(0,0,0,0.55)" }}
+            >
               {currentStory.caption}
             </p>
           </div>
@@ -295,9 +301,9 @@ export function StoryViewer({
 
 function ProgressBar({ progress }: { progress: number }) {
   return (
-    <span className="flex-1 h-0.5 rounded-full bg-cream/20 overflow-hidden">
+    <span className="flex-1 h-[2.5px] rounded-full bg-cream/25 overflow-hidden">
       <span
-        className="block h-full bg-cream"
+        className="block h-full bg-gold"
         style={{ width: `${progress * 100}%` }}
       />
     </span>

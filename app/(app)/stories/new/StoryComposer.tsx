@@ -254,7 +254,8 @@ export function StoryComposer({ userId }: StoryComposerProps) {
               placeholder="Écris quelque chose..."
               maxLength={280}
               rows={4}
-              className="w-full bg-transparent text-cream font-display text-2xl sm:text-3xl text-center placeholder:text-cream/50 resize-none focus:outline-none leading-tight"
+              className="w-full bg-transparent text-cream font-display italic text-3xl sm:text-4xl text-center placeholder:text-cream/40 resize-none focus:outline-none leading-[1.05] tracking-[-0.02em]"
+              style={{ textShadow: "0 4px 24px rgba(0,0,0,0.5)" }}
             />
           </div>
           <div>
