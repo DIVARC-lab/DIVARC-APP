@@ -18,6 +18,10 @@ import {
   getPublicProfileByUsername,
   getPublicStatsByUserId,
 } from "@/lib/queries/publicProfile";
+import {
+  getMyEndorsedSkillIds,
+  getProProfile,
+} from "@/lib/queries/profilePro";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
 import { createClient } from "@/lib/supabase/server";
 import { safeFormatDate } from "@/lib/utils/date";
@@ -26,6 +30,7 @@ import {
   UserActionBar,
   type FriendshipState,
 } from "./_components/UserActionBar";
+import { PublicProProfile } from "./_components/PublicProProfile";
 
 type Params = Promise<{ username: string }>;
 type SearchParams = Promise<{ tab?: string }>;
@@ -42,6 +47,7 @@ export async function generateMetadata({ params }: { params: Params }) {
 
 const TABS = [
   { id: "posts", label: "Posts", icon: Sparkles },
+  { id: "pro", label: "Profil pro", icon: Briefcase },
   { id: "annonces", label: "Annonces", icon: ShoppingBag },
   { id: "apropos", label: "À propos", icon: IdCard },
 ] as const;
@@ -93,6 +99,11 @@ export default async function PublicProfilePage({
   const isSelf = profile.id === user.id;
   const isFriend = initialFriendState.status === "friends";
 
+  // Trace la vue (skip si soi-même ou si discrete_search activé côté viewer)
+  if (!isSelf) {
+    void supabase.rpc("record_profile_view", { target_user_id: profile.id });
+  }
+
   // Posts visible : only fetched if owner or friend (and respecting RLS)
   const posts = isSelf || isFriend
     ? await listPostsByAuthor(profile.id, user.id, 20)
@@ -103,6 +114,16 @@ export default async function PublicProfilePage({
     sellerId: profile.id,
     limit: 12,
   });
+
+  // Profil pro (public, géré par RLS) — chargé seulement sur l'onglet "pro"
+  const proBundle =
+    activeTab === "pro" ? await getProProfile(profile.id) : null;
+  const endorsedSkillIds =
+    proBundle && proBundle.skills.length > 0
+      ? Array.from(
+          await getMyEndorsedSkillIds(proBundle.skills.map((s) => s.id)),
+        )
+      : [];
 
   const memberSince = safeFormatDate(profile.created_at, {
     month: "long",
@@ -161,6 +182,18 @@ export default async function PublicProfilePage({
             ))}
           </ul>
         )
+      ) : null}
+
+      {activeTab === "pro" && proBundle ? (
+        <PublicProProfile
+          experiences={proBundle.experiences}
+          education={proBundle.education}
+          skills={proBundle.skills}
+          languages={proBundle.languages}
+          certifications={proBundle.certifications}
+          isOwner={isSelf}
+          endorsedSkillIds={endorsedSkillIds}
+        />
       ) : null}
 
       {activeTab === "annonces" ? (
@@ -264,16 +297,33 @@ function Hero({
             </div>
           </div>
           <div className="pb-2">
-            {profile.founder_rank ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/20 text-gold-deep text-[10px] font-bold uppercase tracking-widest mb-1">
-                <Award className="w-3 h-3" aria-hidden />
-                Fondateur · #{profile.founder_rank}
-              </span>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-1.5 mb-1">
+              {profile.founder_rank ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/20 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
+                  <Award className="w-3 h-3" aria-hidden />
+                  Fondateur · #{profile.founder_rank}
+                </span>
+              ) : null}
+              {profile.open_to_work ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest border border-emerald-200">
+                  Ouvert aux opportunités
+                </span>
+              ) : null}
+              {profile.open_to_hiring ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest border border-blue-200">
+                  Recrute
+                </span>
+              ) : null}
+            </div>
             <h1 className="font-display text-3xl sm:text-4xl text-night text-balance">
               {fullName}
             </h1>
             <p className="text-sm text-muted">@{profile.username}</p>
+            {profile.headline ? (
+              <p className="mt-1.5 text-sm text-night-muted max-w-md">
+                {profile.headline}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="sm:pb-2">{actionBar}</div>

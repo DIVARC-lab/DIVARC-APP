@@ -1,5 +1,6 @@
 import {
   Award,
+  Briefcase,
   Calendar,
   History,
   IdCard,
@@ -13,6 +14,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Tabs } from "@/components/ui/Tabs";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import { getProProfile } from "@/lib/queries/profilePro";
 import { safeDate, safeDaysSince } from "@/lib/utils/date";
 import { AvatarUpload } from "./AvatarUpload";
 import { JournalPanel } from "./JournalPanel";
@@ -20,6 +22,8 @@ import { PreferencesForm } from "./PreferencesForm";
 import { ProfileForm } from "./ProfileForm";
 import { PublicPreview } from "./PublicPreview";
 import { SecurityPanel } from "./SecurityPanel";
+import { ProHeaderForm } from "./_components/ProHeaderForm";
+import { ProSectionsPanel } from "./_components/ProSectionsPanel";
 
 export const metadata = {
   title: "Profil",
@@ -27,6 +31,7 @@ export const metadata = {
 
 const TABS = [
   { id: "identite", label: "Identité", icon: IdCard },
+  { id: "pro", label: "Pro", icon: Briefcase },
   { id: "preferences", label: "Préférences", icon: Settings2 },
   { id: "securite", label: "Sécurité", icon: Shield },
   { id: "journal", label: "Journal", icon: History },
@@ -72,6 +77,9 @@ export default async function ProfilePage({
   const signupDate = safeDate(user.created_at);
   const daysAsMember = safeDaysSince(user.created_at);
 
+  const proProfile =
+    activeTab === "pro" ? await getProProfile(user.id) : null;
+
   return (
     <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
       <ProfileHero profile={profile} fullName={fullName} />
@@ -111,6 +119,24 @@ export default async function ProfilePage({
               >
                 <ProfileForm profile={profile} />
               </SectionCard>
+            </>
+          ) : null}
+
+          {activeTab === "pro" && proProfile ? (
+            <>
+              <SectionCard
+                title="Profil pro"
+                hint="Phrase d'accroche, badges Open-to-work / Hiring, mode discret."
+              >
+                <ProHeaderForm profile={profile} />
+              </SectionCard>
+              <ProSectionsPanel
+                experiences={proProfile.experiences}
+                education={proProfile.education}
+                skills={proProfile.skills}
+                languages={proProfile.languages}
+                certifications={proProfile.certifications}
+              />
             </>
           ) : null}
 
