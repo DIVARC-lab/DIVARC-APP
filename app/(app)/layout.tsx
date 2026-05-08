@@ -67,6 +67,9 @@ export default async function DashboardLayout({
     countUnreadNotifications(user.id),
   ]);
 
+  /* Sidebar handoff Sage : 10 items max curés. Les routes non listées
+     restent accessibles mais ne sont pas dans la nav principale —
+     accessible via /search, /settings, ou liens contextuels. */
   const navItems: ReadonlyArray<NavItem> = [
     { href: "/dashboard", label: "Accueil", icon: Home, available: true },
     { href: "/profile", label: "Profil", icon: User, available: true },
@@ -85,29 +88,11 @@ export default async function DashboardLayout({
       badge: incomingRequests > 0 ? incomingRequests : undefined,
     },
     {
-      href: "/circles",
-      label: "Cercles",
-      icon: Users2,
-      available: true,
-    },
-    {
-      href: "/map",
-      label: "Carte",
-      icon: MapIcon,
-      available: true,
-    },
-    {
       href: "/messages",
       label: "Discussions",
       icon: MessageSquareText,
       available: true,
       badge: unread > 0 ? unread : undefined,
-    },
-    {
-      href: "/marketplace",
-      label: "Marché",
-      icon: ShoppingBag,
-      available: true,
     },
     {
       href: "/feed",
@@ -116,33 +101,15 @@ export default async function DashboardLayout({
       available: true,
     },
     {
+      href: "/marketplace",
+      label: "Marché",
+      icon: ShoppingBag,
+      available: true,
+    },
+    {
       href: "/jobs",
       label: "Emploi",
       icon: Briefcase,
-      available: true,
-    },
-    {
-      href: "/companies",
-      label: "Entreprises",
-      icon: Building2,
-      available: true,
-    },
-    {
-      href: "/network",
-      label: "Réseau pro",
-      icon: Network,
-      available: true,
-    },
-    {
-      href: "/mentors",
-      label: "Mentors",
-      icon: GraduationCap,
-      available: true,
-    },
-    {
-      href: "/skills",
-      label: "Compétences",
-      icon: Sparkles,
       available: true,
     },
     {
@@ -158,6 +125,9 @@ export default async function DashboardLayout({
       available: true,
     },
   ];
+
+  /* Liens secondaires : Cercles / Carte / Mentors / Compétences /
+     Entreprises / Réseau pro restent dans /search et liens contextuels. */
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
@@ -196,6 +166,30 @@ export default async function DashboardLayout({
                     Bientôt
                   </span>
                 ) : null}
+              </Link>
+            );
+          })}
+
+          {/* Liens secondaires (Cercles, Carte, etc.) — discrets, séparés
+              par un divider, pour respecter la curation handoff sage. */}
+          <div className="my-3 mx-3 border-t border-line" aria-hidden />
+          {[
+            { href: "/circles", label: "Cercles", icon: Users2 },
+            { href: "/map", label: "Carte", icon: MapIcon },
+            { href: "/mentors", label: "Mentors", icon: GraduationCap },
+            { href: "/network", label: "Réseau pro", icon: Network },
+            { href: "/skills", label: "Compétences", icon: Sparkles },
+            { href: "/companies", label: "Entreprises", icon: Building2 },
+          ].map((it) => {
+            const Icon = it.icon;
+            return (
+              <Link
+                key={it.href}
+                href={it.href}
+                className="group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-muted hover:bg-night/5 hover:text-night-muted transition-colors"
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                <span className="flex-1">{it.label}</span>
               </Link>
             );
           })}

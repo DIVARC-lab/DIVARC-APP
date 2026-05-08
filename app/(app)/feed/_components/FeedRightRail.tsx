@@ -4,24 +4,35 @@ import { ArcMark } from "@/components/marketing/ArcMark";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import type { Hashtag } from "@/lib/database.types";
+import type { Hashtag, StoryGroup } from "@/lib/database.types";
 import type { ExplorePerson } from "@/lib/queries/explore";
 
 type FeedRightRailProps = {
   suggestions: ExplorePerson[];
   trendingTags: Hashtag[];
+  recentFriends?: StoryGroup[];
 };
 
 /** Right rail visible at lg+ on /feed.
+ *  - "Ton arc" navy card avec amis qui ont posté récemment (handoff desktop)
  *  - Suggestions à suivre (3 personnes)
  *  - Tendances cette semaine (top 5 hashtags)
- *  - Carte "Ce soir" (event evergreen, navy + gold) */
+ *  - Founders card. */
 export function FeedRightRail({
   suggestions,
   trendingTags,
+  recentFriends = [],
 }: FeedRightRailProps) {
+  /* Filtre : seulement les amis (autres que current user) qui ont une story
+     non-vue aujourd'hui — proxy pour "amis actifs ce matin". */
+  const activeFriends = recentFriends.filter((g) => g.has_unviewed).slice(0, 3);
+
   return (
     <aside className="hidden lg:flex flex-col gap-4 sticky top-6 self-start max-h-[calc(100vh-2rem)] overflow-y-auto pr-1">
+      {activeFriends.length > 0 ? (
+        <TonArcCard friends={activeFriends} />
+      ) : null}
+
       {suggestions.length > 0 ? (
         <SuggestionsCard suggestions={suggestions.slice(0, 4)} />
       ) : null}
@@ -32,6 +43,51 @@ export function FeedRightRail({
 
       <FoundersCard />
     </aside>
+  );
+}
+
+function TonArcCard({ friends }: { friends: StoryGroup[] }) {
+  const count = friends.length;
+  const firstStoryId = friends[0]?.stories[0]?.id;
+  return (
+    <article className="relative overflow-hidden rounded-3xl bg-night text-cream p-5 shadow-[0_24px_60px_-28px_rgba(10,31,68,0.5)]">
+      <div
+        aria-hidden
+        className="absolute -right-12 -bottom-14 opacity-30 pointer-events-none"
+      >
+        <ArcMark size={220} animate={false} />
+      </div>
+      <div className="relative">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold">
+          · Ton arc
+        </span>
+        <p className="mt-1 font-display italic text-xl leading-tight">
+          {count} {count > 1 ? "amis ont" : "ami a"} posté ce matin
+        </p>
+        <div className="mt-3 flex">
+          {friends.map((g, i) => (
+            <span
+              key={g.author.id}
+              className={i === 0 ? "rounded-full" : "rounded-full -ml-2 ring-2 ring-night"}
+            >
+              <Avatar
+                src={g.author.avatar_url}
+                fullName={g.author.full_name ?? g.author.username}
+                size="sm"
+              />
+            </span>
+          ))}
+        </div>
+        {firstStoryId ? (
+          <Link
+            href={`/stories/${firstStoryId}`}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-gold text-night text-xs font-extrabold hover:bg-gold-soft transition-colors"
+          >
+            Voir leurs posts →
+          </Link>
+        ) : null}
+      </div>
+    </article>
   );
 }
 

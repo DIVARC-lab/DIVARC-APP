@@ -132,6 +132,7 @@ export default async function FeedPage({
         <FeedRightRail
           suggestions={suggestions}
           trendingTags={trendingTags}
+          recentFriends={storyGroups}
         />
       </div>
     </div>
