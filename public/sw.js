@@ -8,9 +8,15 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v1";
+const CACHE_NAME = "divarc-v2";
+const OFFLINE_URL = "/offline";
 
-const ASSETS_TO_CACHE = ["/", "/manifest.webmanifest", "/logo.svg"];
+const ASSETS_TO_CACHE = [
+  "/",
+  OFFLINE_URL,
+  "/manifest.webmanifest",
+  "/logo.svg",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -79,6 +85,11 @@ async function networkFirst(request) {
   } catch (err) {
     const cached = await caches.match(request);
     if (cached) return cached;
+    // Last-resort fallback for navigations: serve the offline shell
+    // so the user gets a branded screen instead of the browser's
+    // generic « impossible d'atteindre ce site ».
+    const offline = await caches.match(OFFLINE_URL);
+    if (offline) return offline;
     throw err;
   }
 }
