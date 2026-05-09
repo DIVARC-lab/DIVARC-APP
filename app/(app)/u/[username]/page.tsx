@@ -330,9 +330,9 @@ function Hero({
 
   return (
     <section className="relative">
-      {/* Cover navy 160px + ArcDeco gold (handoff feed-profile L36-44).
-          Pas de border-radius sur mobile (full-bleed), arrondi sur desktop. */}
-      <div className="relative h-40 bg-night overflow-hidden sm:rounded-b-[28px]">
+      {/* Cover navy 140px + ArcDeco gold filigrane (spec proto). Arrondi
+          desktop only — full-bleed mobile. */}
+      <div className="relative h-[140px] bg-night overflow-hidden sm:rounded-b-[28px]">
         <div
           aria-hidden
           className="absolute -right-16 -top-20 pointer-events-none"
@@ -348,7 +348,7 @@ function Hero({
         <ProfileTopBar />
       </div>
 
-      <div className="px-4 sm:px-6 -mt-12 relative">
+      <div className="px-4 sm:px-6 -mt-11 relative">
         <div className="flex items-end justify-between gap-3">
           {/* Avatar 76px wrapped en double ring (handoff feed-profile L49-53) :
               outer p-1 gradient gold 135deg + inner p-[3px] white. */}
@@ -415,8 +415,8 @@ function Hero({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="text-center px-3 py-3 rounded-2xl bg-white border border-line">
-      <dt className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted">
+    <div className="text-center px-3 py-3 rounded-2xl bg-night/[0.03] border border-line">
+      <dt className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8696B0]">
         {label}
       </dt>
       <dd className="mt-1 font-display italic text-2xl text-night leading-none">
