@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useActionState,
@@ -283,13 +283,13 @@ function Intro({
         <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-gold">
           · Bienvenue
         </span>
-        <h1 className="mt-4 font-display italic text-[48px] sm:text-[60px] text-cream text-balance leading-[1] tracking-[-0.025em]">
-          Le réseau des{" "}
-          <span className="text-gold">vrais&nbsp;liens</span>.
+        <h1 className="mt-4 font-display italic text-[44px] sm:text-[56px] text-cream text-balance leading-[1.05] tracking-[-0.02em]">
+          Le réseau de ton{" "}
+          <span className="text-gold">quartier</span>.
         </h1>
-        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto text-[15px]">
-          Tes proches, ton quartier, tes opportunités. Pas d&apos;algorithme,
-          pas de pub. Que des humains.
+        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto text-[14.5px]">
+          Voisins, jobs locaux, bons plans, entraide. Pas de pub, pas
+          d&apos;algo opaque.
           {founderRank ? (
             <>
               <br />
@@ -324,8 +324,8 @@ function Intro({
             onClick={onNext}
             className="inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto sm:px-10 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
           >
-            <Sparkles className="w-4 h-4" aria-hidden />
-            Créer mon compte
+            Commencer
+            <ArrowRight className="w-4 h-4" aria-hidden strokeWidth={2.6} />
           </button>
           <button
             type="button"
