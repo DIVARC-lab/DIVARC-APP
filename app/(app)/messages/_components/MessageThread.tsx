@@ -186,15 +186,27 @@ export function MessageThread({
     void supabase.rpc("mark_conversation_read", { conv_id: conversationId });
   }, [visibleMessages.length, conversationId]);
 
-  // Auto-scroll to bottom
+  /* Auto-scroll smart : sur le 1er render, jump direct au bottom (pas
+     d'animation), pour les rerenders suivants on ne smooth-scroll QUE si
+     l'utilisateur est déjà près du bas (< 200px). Sinon on préserve sa
+     position (il est probablement en train de relire d'anciens messages). */
+  const initialScrollDone = useRef(false);
   useEffect(() => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
+    const el = scrollRef.current;
+    if (!el) return;
+    if (!initialScrollDone.current) {
+      el.scrollTop = el.scrollHeight;
+      initialScrollDone.current = true;
+      return;
+    }
+    const distanceFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 200) {
+      requestAnimationFrame(() => {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
       });
-    });
-  }, [visibleMessages]);
+    }
+  }, [visibleMessages.length]);
 
   if (visibleMessages.length === 0) {
     return (

@@ -71,7 +71,7 @@ export function MessageComposer({
     } catch {
       /* ignore */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [conversationId]);
 
   useEffect(() => {

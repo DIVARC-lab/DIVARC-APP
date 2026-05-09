@@ -49,12 +49,23 @@ export function ConversationItem({
       }`}
     >
       <div className="relative shrink-0">
-        <Avatar
-          src={conversation.other_member?.avatar_url ?? conversation.avatar_url}
-          fullName={displayName}
-          size="md"
-        />
-        {presence ? (
+        {/* Ring vert autour de l'avatar quand la personne est online */}
+        <div
+          className={
+            presence?.presence_status === "online"
+              ? "rounded-full ring-2 ring-emerald-500 ring-offset-2 ring-offset-bg"
+              : ""
+          }
+        >
+          <Avatar
+            src={
+              conversation.other_member?.avatar_url ?? conversation.avatar_url
+            }
+            fullName={displayName}
+            size="md"
+          />
+        </div>
+        {presence && presence.presence_status !== "online" ? (
           <PresenceDot
             status={presence.presence_status}
             customStatus={presence.custom_status}
@@ -95,10 +106,15 @@ export function ConversationItem({
           </p>
           {!active && conversation.unread_count > 0 ? (
             <span
-              aria-label={`${conversation.unread_count} non lu`}
-              className="shrink-0 ml-1 min-w-5 h-5 px-1.5 rounded-full bg-gold text-night text-[10px] font-bold flex items-center justify-center"
+              aria-label={`${conversation.unread_count} message non lu`}
+              className="relative shrink-0 ml-1 min-w-5 h-5 px-1.5 rounded-full bg-gold text-night text-[10px] font-bold flex items-center justify-center"
             >
-              {conversation.unread_count}
+              {/* Halo pulsé pour attirer l'attention sur les non-lus */}
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full bg-gold animate-ping opacity-50"
+              />
+              <span className="relative">{conversation.unread_count}</span>
             </span>
           ) : null}
         </div>
