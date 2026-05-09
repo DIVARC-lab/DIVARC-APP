@@ -11,6 +11,10 @@ type Props = {
   initialBookmarked: boolean;
 };
 
+/* Audit Session 1 #20 — Bold proto BookmarkButton :
+   pill h-9 px-3 rounded-full bg #FFF8E8 (cream) text #B88A2A (gold-deep)
+   gap-1.5 text-[13px] font-bold, icon 14, label "Sauver" visible.
+   État sauvegardé : icon BookmarkCheck (filled visuellement). */
 export function BookmarkButton({ postId, initialBookmarked }: Props) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [pending, startTransition] = useTransition();
@@ -39,17 +43,17 @@ export function BookmarkButton({ postId, initialBookmarked }: Props) {
       aria-pressed={bookmarked}
       aria-label={bookmarked ? "Retirer des favoris" : "Sauvegarder"}
       className={cn(
-        "inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-colors",
-        bookmarked
-          ? "bg-gold/15 text-gold-deep border border-gold/40"
-          : "bg-night/5 text-night-muted hover:bg-night/10 hover:text-night",
+        "inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-bold transition-colors",
+        "bg-[#FFF8E8] text-[#B88A2A]",
+        bookmarked ? "ring-2 ring-[#B88A2A]/25" : "hover:bg-[#FCEFCE]",
       )}
     >
       {bookmarked ? (
-        <BookmarkCheck className="w-4 h-4" aria-hidden />
+        <BookmarkCheck className="w-[14px] h-[14px]" aria-hidden />
       ) : (
-        <Bookmark className="w-4 h-4" aria-hidden />
+        <Bookmark className="w-[14px] h-[14px]" aria-hidden />
       )}
+      <span>{bookmarked ? "Sauvegardé" : "Sauver"}</span>
     </button>
   );
 }

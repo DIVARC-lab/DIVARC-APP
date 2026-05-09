@@ -81,7 +81,7 @@ export function PostCard({
           <Avatar
             src={author?.avatar_url ?? null}
             fullName={displayName}
-            size="md"
+            size="md-bold"
           />
         </Link>
         <div className="flex-1 min-w-0">
@@ -116,7 +116,11 @@ export function PostCard({
             ) : null}
           </p>
         </div>
-        {isOwn ? <PostMenu postId={post.id} /> : null}
+        <PostMenu
+          postId={post.id}
+          isOwn={isOwn}
+          authorName={author?.full_name ?? author?.username ?? null}
+        />
       </header>
 
       {fullBody ? (
@@ -179,7 +183,7 @@ export function PostCard({
           >
             <Send className="w-[15px] h-[15px]" aria-hidden />
           </button>
-          <div className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-cream text-gold-deep text-xs font-bold">
+          <div className="ml-auto">
             <BookmarkButton
               postId={post.id}
               initialBookmarked={post.is_bookmarked}

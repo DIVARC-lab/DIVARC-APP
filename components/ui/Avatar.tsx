@@ -1,10 +1,12 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
-type AvatarSize = "sm" | "md" | "lg" | "xl";
+type AvatarSize = "sm" | "md-bold" | "md" | "lg" | "xl";
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   sm: "w-9 h-9 text-xs",
+  /* 42px — taille spécifique du proto BoldPostCard (handoff feed-mobile-bold). */
+  "md-bold": "w-[42px] h-[42px] text-sm",
   md: "w-12 h-12 text-sm",
   lg: "w-16 h-16 text-lg",
   xl: "w-24 h-24 text-2xl",
@@ -12,6 +14,7 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
 
 const PIXEL_SIZE: Record<AvatarSize, number> = {
   sm: 36,
+  "md-bold": 42,
   md: 48,
   lg: 64,
   xl: 96,

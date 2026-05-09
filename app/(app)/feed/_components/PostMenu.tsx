@@ -1,6 +1,12 @@
 "use client";
 
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  EyeOff,
+  Flag,
+  Link as LinkIcon,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -8,9 +14,15 @@ import { deletePost } from "../actions";
 
 type PostMenuProps = {
   postId: string;
+  isOwn: boolean;
+  authorName?: string | null;
 };
 
-export function PostMenu({ postId }: PostMenuProps) {
+/* Brief audit Session 1 #13 — le menu 3-dots #8696B0 doit apparaître sur
+   TOUS les posts (handoff BoldPostCard). Actions branchées selon ownership :
+   - isOwn : Modifier (à venir), Supprimer
+   - !isOwn : Copier le lien, Masquer cet auteur (stub), Signaler (stub) */
+export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -40,8 +52,24 @@ export function PostMenu({ postId }: PostMenuProps) {
     });
   }
 
+  async function handleCopyLink() {
+    const url = `${window.location.origin}/feed/${postId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Lien copié.");
+    } catch {
+      toast.error("Copie impossible.");
+    }
+    setOpen(false);
+  }
+
+  function handleStub(label: string) {
+    toast(`${label} — bientôt disponible.`);
+    setOpen(false);
+  }
+
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative shrink-0">
       <button
         type="button"
         onClick={(e) => {
@@ -52,24 +80,59 @@ export function PostMenu({ postId }: PostMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Options du post"
-        className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night"
+        className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-[#8696B0] hover:text-night transition-colors"
       >
-        <MoreHorizontal className="w-4 h-4" aria-hidden />
+        <MoreHorizontal className="w-[18px] h-[18px]" aria-hidden />
       </button>
       {open ? (
         <div
           role="menu"
-          className="absolute top-10 right-0 min-w-44 z-20 rounded-2xl bg-white border border-line shadow-soft p-1.5"
+          className="absolute top-10 right-0 min-w-52 z-20 rounded-2xl bg-white border border-line shadow-soft p-1.5"
         >
           <button
             type="button"
-            onClick={handleDelete}
-            disabled={pending}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+            onClick={handleCopyLink}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night"
           >
-            <Trash2 className="w-4 h-4" aria-hidden />
-            Supprimer
+            <LinkIcon className="w-4 h-4" aria-hidden />
+            Copier le lien
           </button>
+          {isOwn ? (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={pending}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+            >
+              <Trash2 className="w-4 h-4" aria-hidden />
+              Supprimer
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  handleStub(
+                    authorName
+                      ? `Masquer ${authorName}`
+                      : "Masquer cet auteur",
+                  )
+                }
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night"
+              >
+                <EyeOff className="w-4 h-4" aria-hidden />
+                {authorName ? `Masquer ${authorName}` : "Masquer cet auteur"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStub("Signaler")}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50"
+              >
+                <Flag className="w-4 h-4" aria-hidden />
+                Signaler
+              </button>
+            </>
+          )}
         </div>
       ) : null}
     </div>

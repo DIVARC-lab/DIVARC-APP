@@ -42,6 +42,10 @@ export function LikeButton({
     });
   }
 
+  /* Audit Session 1 #19 — Bold proto :
+     - liked : bg gradient `linear-gradient(135deg,#FEF2F2,#FFE4E4)` color #DC2626
+     - unliked : bg transparent color #2A3D6B (= night-soft)
+     - h-9 px-[14px] rounded-full font-bold text-[13px], icon 16. */
   return (
     <button
       type="button"
@@ -50,10 +54,10 @@ export function LikeButton({
       aria-pressed={liked}
       aria-label={liked ? "Retirer le j'aime" : "Aimer"}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 h-9 rounded-full transition-all text-sm font-semibold",
+        "inline-flex items-center gap-1.5 h-9 px-[14px] rounded-full transition-colors text-[13px] font-bold",
         liked
-          ? "bg-red-50 text-red-600"
-          : "bg-night/5 text-night-muted hover:bg-night/10 hover:text-night",
+          ? "bg-[linear-gradient(135deg,#FEF2F2,#FFE4E4)] text-[#DC2626]"
+          : "bg-transparent text-night-soft hover:bg-night/5",
       )}
     >
       <Heart
