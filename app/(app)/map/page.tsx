@@ -1,45 +1,20 @@
-import {
-  Calendar,
-  ExternalLink,
-  MapPin,
-  Search,
-  Sliders,
-  Users2,
-} from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { DisplayHeading } from "@/components/ui/DisplayHeading";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listGeolocatedEventsForUser } from "@/lib/queries/circle_events";
 import { listMyCircles } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils/cn";
-import type { CircleEventCategory } from "@/lib/database.types";
+import { MapView } from "./_components/MapView";
 
 export const metadata = {
   title: "Carte",
 };
 
-const CATEGORY_BADGE: Record<CircleEventCategory, string> = {
-  community: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  social: "bg-gold/10 text-gold-deep border-gold/30",
-  cultural: "bg-violet-50 text-violet-700 border-violet-200",
-};
-
-const CATEGORY_LABEL: Record<CircleEventCategory, string> = {
-  community: "Communauté",
-  social: "Social",
-  cultural: "Culturel",
-};
-
-/** Compute a bbox from a list of points with a small padding (~2 km on world). */
-function computeBbox(
+/* Calcule un centre + zoom raisonnable depuis les points géolocalisés.
+   Fallback : Paris centre, zoom 11. */
+function computeCameraFromPoints(
   points: { lat: number; lng: number }[],
-): { minLat: number; minLng: number; maxLat: number; maxLng: number } {
+): { center: [number, number]; zoom: number } {
   if (points.length === 0) {
-    /* Default : centered on Paris with sensible zoom. */
-    return { minLat: 48.78, minLng: 2.25, maxLat: 48.92, maxLng: 2.45 };
+    return { center: [2.3522, 48.8566], zoom: 11 };
   }
   const lats = points.map((p) => p.lat);
   const lngs = points.map((p) => p.lng);
@@ -47,15 +22,17 @@ function computeBbox(
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
-  /* Pad : if all points are the same, give some room. */
-  const padLat = Math.max(0.02, (maxLat - minLat) * 0.2);
-  const padLng = Math.max(0.02, (maxLng - minLng) * 0.2);
-  return {
-    minLat: minLat - padLat,
-    minLng: minLng - padLng,
-    maxLat: maxLat + padLat,
-    maxLng: maxLng + padLng,
-  };
+  const center: [number, number] = [
+    (minLng + maxLng) / 2,
+    (minLat + maxLat) / 2,
+  ];
+  /* Zoom heuristique : plus la bbox est petite, plus on zoome. */
+  const span = Math.max(maxLat - minLat, maxLng - minLng, 0.005);
+  const zoom = Math.min(
+    14,
+    Math.max(9, Math.round(Math.log2(360 / span))),
+  );
+  return { center, zoom };
 }
 
 export default async function MapPage() {
@@ -70,207 +47,23 @@ export default async function MapPage() {
     listMyCircles(user.id),
   ]);
 
-  const points = events
-    .filter(
-      (e): e is typeof e & { lat: number; lng: number } =>
-        e.lat !== null && e.lng !== null,
-    )
-    .map((e) => ({ lat: e.lat, lng: e.lng }));
+  /* On ne passe au client que les events qui ont vraiment des coordonnées
+     (filtre déjà côté SQL mais TS exige le narrowing). */
+  const geolocated = events.filter(
+    (e): e is typeof e & { lat: number; lng: number } =>
+      e.lat !== null && e.lng !== null,
+  );
 
-  const { minLat, minLng, maxLat, maxLng } = computeBbox(points);
-  const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik`;
+  const camera = computeCameraFromPoints(
+    geolocated.map((e) => ({ lat: e.lat, lng: e.lng })),
+  );
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-6xl mx-auto w-full">
-      <header className="mb-5">
-        <KickerLabel>· Carte · vue géo</KickerLabel>
-        <DisplayHeading
-          size="xl"
-          className="mt-3 !leading-[1.02] !text-[40px] sm:!text-[56px]"
-        >
-          Ce qui se passe{" "}
-          <em className="italic text-gold-deep">près de toi</em>.
-        </DisplayHeading>
-        <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-md">
-          Les événements géolocalisés des cercles dont tu fais partie.
-        </p>
-      </header>
-
-      {/* Search + filters bar (visual scaffolding) */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex-1 h-11 rounded-full bg-white border border-line flex items-center gap-2.5 px-4 text-sm text-muted-strong">
-          <Search className="w-4 h-4 text-night-muted" aria-hidden />
-          <span className="truncate">Rechercher autour de toi…</span>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 px-3 h-11 rounded-full bg-night text-cream text-xs font-extrabold"
-        >
-          <Sliders className="w-3.5 h-3.5" aria-hidden />
-          Filtres
-        </button>
-      </div>
-
-      <nav
-        aria-label="Filtres carte"
-        className="-mx-1 px-1 mb-6 flex gap-2 overflow-x-auto scrollbar-none"
-      >
-        {[
-          { l: "Tout", active: true },
-          { l: "🎉 Événements", count: events.length },
-          { l: "💼 Jobs" },
-          { l: "🛍️ Marketplace" },
-        ].map((f) => (
-          <span
-            key={f.l}
-            className={
-              f.active
-                ? "shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold inline-flex items-center bg-night text-cream gap-1.5"
-                : "shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold inline-flex items-center bg-white border border-line text-night-muted gap-1.5"
-            }
-          >
-            {f.l}
-            {"count" in f && f.count ? (
-              <span className="px-1.5 py-0.5 rounded-full bg-gold text-night text-[10px] font-extrabold">
-                {f.count}
-              </span>
-            ) : null}
-          </span>
-        ))}
-      </nav>
-
-      {myCircles.length === 0 ? (
-        <EmptyState
-          icon={Users2}
-          kicker="Tu n'as pas de cercle"
-          title={
-            <>
-              Rejoins un <em className="italic text-gold-deep">cercle</em> d'abord
-            </>
-          }
-          body="La carte affiche les événements de tes cercles. Découvre les communautés près de chez toi pour voir leur agenda géolocalisé."
-          ctaHref="/circles"
-          ctaLabel="Voir les cercles"
-          tone="soft"
-        />
-      ) : events.length === 0 ? (
-        <EmptyState
-          icon={MapPin}
-          kicker="Aucun événement géolocalisé"
-          title={
-            <>
-              Pas d'événement <em className="italic text-gold-deep">sur la carte</em>
-            </>
-          }
-          body="Tes cercles n'ont pas encore d'événement avec des coordonnées GPS. Crée-en un avec lat/lng pour qu'il apparaisse ici."
-          ctaHref="/circles"
-          ctaLabel="Aller aux cercles"
-        />
-      ) : (
-        <>
-          <section
-            aria-label="Carte"
-            className="rounded-3xl overflow-hidden border border-line shadow-soft mb-8"
-          >
-            <iframe
-              src={mapSrc}
-              title="Carte des événements"
-              className="w-full h-[440px] sm:h-[520px] block bg-night/5"
-              loading="lazy"
-            />
-            <div className="px-4 py-2 bg-cream/40 border-t border-line text-[11px] text-muted-strong">
-              © OpenStreetMap contributors ·{" "}
-              <a
-                href={`https://www.openstreetmap.org/?mlat=${(minLat + maxLat) / 2}&mlon=${(minLng + maxLng) / 2}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-gold-deep hover:underline inline-flex items-center gap-1"
-              >
-                Ouvrir en plein écran
-                <ExternalLink className="w-3 h-3" aria-hidden />
-              </a>
-            </div>
-          </section>
-
-          <section aria-label="Événements">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-                  · {events.length} résultat{events.length > 1 ? "s" : ""}
-                </span>
-                <h2 className="mt-1 font-display italic text-[28px] sm:text-[34px] text-night leading-[1.05] tracking-[-0.015em]">
-                  Autour de{" "}
-                  <span className="text-gold-deep">toi</span>
-                </h2>
-              </div>
-              <span className="text-xs text-muted">
-                triés par date croissante
-              </span>
-            </div>
-            <ul className="grid sm:grid-cols-2 gap-3">
-              {events.map((event) => {
-                if (event.lat === null || event.lng === null) return null;
-                const date = new Date(event.starts_at);
-                const dayLabel = date.toLocaleDateString("fr-FR", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                });
-                const time = date.toLocaleTimeString("fr-FR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-                const osmLink = `https://www.openstreetmap.org/?mlat=${event.lat}&mlon=${event.lng}#map=16/${event.lat}/${event.lng}`;
-                return (
-                  <li key={event.id}>
-                    <article className="rounded-2xl bg-white border border-line p-4 hover:border-gold/40 transition-colors">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span
-                          className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full border",
-                            CATEGORY_BADGE[event.category],
-                          )}
-                        >
-                          {CATEGORY_LABEL[event.category]}
-                        </span>
-                        <span className="text-[11px] text-muted inline-flex items-center gap-1">
-                          <Calendar className="w-3 h-3" aria-hidden />
-                          {dayLabel} · {time}
-                        </span>
-                      </div>
-                      <h3 className="font-semibold text-night leading-tight truncate">
-                        {event.title}
-                      </h3>
-                      {event.location ? (
-                        <p className="text-xs text-muted-strong mt-1 inline-flex items-center gap-1 truncate">
-                          <MapPin className="w-3 h-3" aria-hidden />
-                          {event.location}
-                        </p>
-                      ) : null}
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <p className="text-[11px] text-muted">
-                          {event.attendance_count}{" "}
-                          {event.attendance_count > 1 ? "personnes" : "personne"} y
-                          va
-                        </p>
-                        <a
-                          href={osmLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[11px] font-semibold text-gold-deep hover:text-night inline-flex items-center gap-1"
-                        >
-                          Voir sur la carte
-                          <ExternalLink className="w-3 h-3" aria-hidden />
-                        </a>
-                      </div>
-                    </article>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        </>
-      )}
-    </div>
+    <MapView
+      events={geolocated}
+      initialCenter={camera.center}
+      initialZoom={camera.zoom}
+      hasCircles={myCircles.length > 0}
+    />
   );
 }
