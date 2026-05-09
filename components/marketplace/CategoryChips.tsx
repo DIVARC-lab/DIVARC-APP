@@ -23,8 +23,11 @@ export function CategoryChips({ pathname = "/marketplace" }: CategoryChipsProps)
     return newParams.toString() ? `${pathname}?${newParams}` : pathname;
   }
 
+  /* Refonte Bold (handoff feed-marketplace L52-61) :
+     h-8 px-3 r-2xl, active navy/cream weight 700, inactive white border-line
+     color #4B5B87 weight 500, font 12, icon 12. */
   return (
-    <div className="flex gap-2 overflow-x-auto py-1 -mx-1 px-1 scrollbar-thin">
+    <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1">
       <Chip href={buildHref(null)} active={active === null} emoji="🌍">
         Tout
       </Chip>
@@ -58,13 +61,15 @@ function Chip({
       href={href}
       scroll={false}
       className={cn(
-        "shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-sm font-semibold whitespace-nowrap transition-all",
+        "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-2xl text-[12px] whitespace-nowrap transition-colors",
         active
-          ? "bg-night text-cream border-night shadow-soft"
-          : "bg-white text-night border-line hover:border-night/30",
+          ? "bg-night text-cream font-bold"
+          : "bg-white text-[#4B5B87] border border-line font-medium hover:border-night/30",
       )}
     >
-      <span aria-hidden>{emoji}</span>
+      <span aria-hidden className="text-[12px] leading-none">
+        {emoji}
+      </span>
       {children}
     </Link>
   );

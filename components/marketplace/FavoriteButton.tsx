@@ -42,8 +42,13 @@ export function FavoriteButton({
     });
   }
 
-  const dimensions = size === "sm" ? "w-8 h-8" : "w-10 h-10";
-  const iconSize = size === "sm" ? "w-4 h-4" : "w-4.5 h-4.5";
+  /* Refonte Bold (handoff feed-marketplace L81-83) :
+     sm = w-[30px] h-[30px] r-[15px] bg cream/92 backdrop-blur
+     md = w-10 h-10 (utilisé sur la page détail)
+     icon 13x13 (sm) ou 18x18 (md), color navy par défaut, red si favori. */
+  const dimensions = size === "sm" ? "w-[30px] h-[30px]" : "w-10 h-10";
+  const iconSize =
+    size === "sm" ? "w-[13px] h-[13px]" : "w-[18px] h-[18px]";
 
   return (
     <button
@@ -53,10 +58,11 @@ export function FavoriteButton({
       aria-pressed={favorited}
       aria-label={favorited ? "Retirer des favoris" : "Ajouter aux favoris"}
       className={cn(
-        "flex items-center justify-center rounded-full bg-white/95 backdrop-blur-sm border transition-all",
-        favorited
-          ? "border-red-200 text-red-500"
-          : "border-line text-night-muted hover:text-red-500 hover:border-red-200",
+        "flex items-center justify-center rounded-full backdrop-blur-md transition-colors",
+        size === "sm"
+          ? "bg-bg-soft/92"
+          : "bg-white/95 border border-line",
+        favorited ? "text-[#E0405D]" : "text-night hover:text-[#E0405D]",
         dimensions,
         pending && "opacity-70",
         className,
