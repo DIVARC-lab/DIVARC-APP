@@ -179,7 +179,7 @@ export default async function DashboardLayout({
           <GlobalSearch />
         </div>
 
-        <nav className="flex-1 px-3 py-6 space-y-0.5" aria-label="Navigation principale">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-6 space-y-0.5" aria-label="Navigation principale">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
