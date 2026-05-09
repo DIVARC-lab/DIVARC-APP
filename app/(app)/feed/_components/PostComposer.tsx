@@ -1,11 +1,29 @@
 "use client";
 
+/* PostComposer — refonte audit S3 (handoff feed-mobile-bold L57-81 chip
+ * + L233-287 BoldComposerScreen modal).
+ *
+ * Architecture en 2 vues :
+ * - Chip teaser inline (toujours visible dans le feed) : avatar + texte
+ *   d'invitation Instrument Serif italic + 3 pills (Photo / Moment / Amis)
+ * - Modal full-screen ouverte au clic sur le chip (ou sur une pill) avec
+ *   tout le composer Bold : top bar + card + toolbar
+ *
+ * État ouvert/fermé géré localement (useState `open`). Auto-close on
+ * publish success. ESC + click backdrop ferment.
+ *
+ * Toute la logique upload/visibility/server-action préservée.
+ */
 import {
+  ArrowLeft,
+  ChevronDown,
   Globe,
   ImagePlus,
-  Lock,
   Loader2,
+  Lock,
+  MapPin,
   Send,
+  Sparkles,
   Users,
   Video,
   X,
@@ -26,11 +44,7 @@ const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_VIDEO_DURATION_S = 60;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
-const ALLOWED_VIDEO_MIME = [
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-];
+const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 
 type Photo = { url: string; position: number; storagePath: string };
 
@@ -61,6 +75,7 @@ export function PostComposer({
     FormData
   >(createPost, INITIAL);
 
+  const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [visibility, setVisibility] = useState<PostVisibility>("friends");
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -71,12 +86,14 @@ export function PostComposer({
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  /* On success : reset + auto-close modal. */
   useEffect(() => {
     if (state.status === "success") {
       setBody("");
       setPhotos([]);
       setVideo(null);
       setVisibility("friends");
+      setOpen(false);
       toast.success("Post publié ✨");
       router.refresh();
     }
@@ -85,6 +102,20 @@ export function PostComposer({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
+
+  /* ESC key ferme la modale. Body scroll lock when open. */
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [open]);
 
   function autosize() {
     const ta = textareaRef.current;
@@ -324,242 +355,447 @@ export function PostComposer({
     !uploading &&
     !uploadingVideo;
 
-  /* JSX entièrement refait d'après design_handoff_divarc_refonte/
-     feed-mobile-bold.jsx (composer hero du BoldFeedScreen). 100%
-     Tailwind v4 — gradient gold via bg-gradient-to-br + couleurs
-     arbitraires `to-[#B88A2A]` (pas de style={{}} inline). Logique
-     d'upload, VisibilityPicker, server actions, hidden inputs : tout
-     préservé tel quel. */
+  const firstName = authorName?.split(" ")[0] ?? null;
+
   return (
-    <form
-      action={formAction}
-      className="relative overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_24px_60px_-28px_rgba(10,31,68,0.22)]"
-    >
-      {/* Accent gold top — signature Bold (barre dorée en haut) */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-0 left-9 w-20 h-1 rounded-b-md bg-gold"
+    <>
+      <ChipTeaser
+        authorName={authorName}
+        authorAvatarUrl={authorAvatarUrl}
+        firstName={firstName}
+        onOpen={() => setOpen(true)}
+        onOpenWithPhotos={() => {
+          setOpen(true);
+          /* Open file picker after the modal mount tick. */
+          setTimeout(() => inputRef.current?.click(), 50);
+        }}
       />
 
-      <input type="hidden" name="visibility" value={visibility} />
-      <input
-        type="hidden"
-        name="photos"
-        value={JSON.stringify(
-          photos.map((p) => ({ url: p.url, position: p.position })),
-        )}
-      />
-      <input
-        type="hidden"
-        name="video"
-        value={
-          video
-            ? JSON.stringify({
-                url: video.url,
-                thumbnail_url: video.thumbnail_url,
-                duration_ms: video.duration_ms,
-                width: video.width,
-                height: video.height,
-              })
-            : ""
-        }
-      />
-
-      <div className="flex gap-3 px-[18px] pt-5 pb-3">
-        <Avatar src={authorAvatarUrl} fullName={authorName} size="md" />
-        <div className="flex-1 min-w-0">
-          <textarea
-            ref={textareaRef}
-            name="body"
-            value={body}
-            onChange={(event) => {
-              setBody(event.currentTarget.value);
-              autosize();
-            }}
-            placeholder={
-              authorName
-                ? `Quoi de neuf, ${authorName.split(" ")[0]} ?`
-                : "Quoi de neuf ?"
-            }
-            rows={2}
-            maxLength={4000}
-            className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-snug text-night placeholder:text-night-dim focus:outline-none"
-          />
-          {body.length === 0 ? (
-            <p className="-mt-1 text-[11px] text-muted">
-              Photo, pensée, annonce, un moment de ta journée…
-            </p>
-          ) : null}
-
-          {photos.length > 0 ? (
-            <div
-              className={cn(
-                "mt-3 grid gap-2",
-                photos.length === 1 ? "grid-cols-1" : "grid-cols-2",
+      {open ? (
+        <Modal onClose={() => setOpen(false)}>
+          <form action={formAction} className="contents">
+            <input type="hidden" name="visibility" value={visibility} />
+            <input
+              type="hidden"
+              name="photos"
+              value={JSON.stringify(
+                photos.map((p) => ({ url: p.url, position: p.position })),
               )}
-            >
-              {photos.map((photo) => (
+            />
+            <input
+              type="hidden"
+              name="video"
+              value={
+                video
+                  ? JSON.stringify({
+                      url: video.url,
+                      thumbnail_url: video.thumbnail_url,
+                      duration_ms: video.duration_ms,
+                      width: video.width,
+                      height: video.height,
+                    })
+                  : ""
+              }
+            />
+
+            {/* Top bar : Back + Nouveau post + Publier */}
+            <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Fermer"
+                className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white border border-line text-night hover:border-night/30 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" aria-hidden />
+              </button>
+              <h2 className="font-display italic text-[20px] text-night leading-none">
+                Nouveau post
+              </h2>
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={cn(
+                  "inline-flex items-center gap-1.5 h-[38px] px-[18px] rounded-[19px] font-bold text-[13px] transition-opacity",
+                  canSubmit
+                    ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)]"
+                    : "bg-gold/30 text-night/50 cursor-not-allowed",
+                )}
+              >
+                {pending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Send className="w-3.5 h-3.5" aria-hidden />
+                )}
+                Publier
+              </button>
+            </header>
+
+            {/* Card content : avatar + visibility + textarea + media */}
+            <div className="relative mx-3.5 mt-3.5 rounded-[28px] bg-white p-[18px] shadow-[0_20px_50px_-24px_rgba(10,31,68,0.22)]">
+              {/* Barre dorée top — signature Bold */}
+              <span
+                aria-hidden
+                className="absolute top-0 left-8 w-16 h-1 rounded-b-md bg-gold"
+              />
+
+              <div className="flex items-center gap-3 mb-3.5">
+                <Avatar
+                  src={authorAvatarUrl}
+                  fullName={authorName}
+                  size="md-bold"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-night truncate">
+                    {authorName ?? "Toi"}
+                  </p>
+                  <VisibilityChip
+                    value={visibility}
+                    onChange={setVisibility}
+                  />
+                </div>
+              </div>
+
+              <textarea
+                ref={textareaRef}
+                name="body"
+                value={body}
+                onChange={(event) => {
+                  setBody(event.currentTarget.value);
+                  autosize();
+                }}
+                placeholder={
+                  firstName
+                    ? `Quoi de neuf, ${firstName} ?`
+                    : "Quoi de neuf ?"
+                }
+                rows={3}
+                maxLength={4000}
+                autoFocus
+                className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-[1.55] text-night placeholder:text-night-dim focus:outline-none min-h-[60px]"
+              />
+
+              {photos.length > 0 ? (
                 <div
-                  key={photo.storagePath}
-                  className="group relative aspect-square overflow-hidden rounded-2xl bg-night/5"
+                  className={cn(
+                    "mt-3.5 grid gap-1.5",
+                    photos.length === 1 ? "grid-cols-1" : "grid-cols-2",
+                  )}
                 >
-                  <Image
-                    src={photo.url}
-                    alt=""
-                    fill
-                    sizes="200px"
-                    className="object-cover"
-                    unoptimized
+                  {photos.map((photo) => (
+                    <div
+                      key={photo.storagePath}
+                      className="group relative aspect-square overflow-hidden rounded-2xl bg-night/5"
+                    >
+                      <Image
+                        src={photo.url}
+                        alt=""
+                        fill
+                        sizes="200px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(photo)}
+                        aria-label="Retirer"
+                        className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 hover:bg-white"
+                      >
+                        <X className="w-4 h-4" aria-hidden />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {video ? (
+                <div className="group relative mt-3.5 aspect-[9/16] max-w-[220px] overflow-hidden rounded-2xl bg-night">
+                  <video
+                    src={video.url}
+                    poster={video.thumbnail_url}
+                    controls
+                    playsInline
+                    muted
+                    className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
-                    onClick={() => removePhoto(photo)}
-                    aria-label="Retirer"
+                    onClick={removeVideo}
+                    aria-label="Retirer la vidéo"
                     className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 hover:bg-white"
                   >
                     <X className="w-4 h-4" aria-hidden />
                   </button>
+                  <div className="absolute bottom-2 left-2 rounded-full bg-night/70 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {Math.round(video.duration_ms / 1000)} s
+                  </div>
                 </div>
-              ))}
+              ) : null}
             </div>
-          ) : null}
 
-          {video ? (
-            <div className="group relative mt-3 aspect-[9/16] max-w-[220px] overflow-hidden rounded-2xl bg-night">
-              <video
-                src={video.url}
-                poster={video.thumbnail_url}
-                controls
-                playsInline
-                muted
-                className="h-full w-full object-cover"
+            {/* Toolbar : Photos · 2/4 / Moment / Lieu (Vidéo en variante) */}
+            <div className="mx-3.5 mt-3.5 flex flex-wrap items-center gap-2">
+              <input
+                ref={inputRef}
+                type="file"
+                accept={ALLOWED_MIME.join(",")}
+                multiple
+                onChange={handleFiles}
+                className="sr-only"
               />
-              <button
-                type="button"
-                onClick={removeVideo}
-                aria-label="Retirer la vidéo"
-                className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 hover:bg-white"
-              >
-                <X className="w-4 h-4" aria-hidden />
-              </button>
-              <div className="absolute bottom-2 left-2 rounded-full bg-night/70 px-2 py-0.5 text-[10px] font-bold text-white">
-                {Math.round(video.duration_ms / 1000)} s
-              </div>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept={ALLOWED_VIDEO_MIME.join(",")}
+                onChange={handleVideoFile}
+                className="sr-only"
+              />
+              <ToolbarPill
+                onClick={() => inputRef.current?.click()}
+                disabled={
+                  uploading ||
+                  photos.length >= MAX_PHOTOS ||
+                  video !== null
+                }
+                active={photos.length > 0}
+                icon={
+                  uploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <ImagePlus className="w-3.5 h-3.5" aria-hidden />
+                  )
+                }
+                label={
+                  photos.length > 0
+                    ? `Photos · ${photos.length}/${MAX_PHOTOS}`
+                    : "Photos"
+                }
+              />
+              <ToolbarPill
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo || video !== null || photos.length > 0}
+                active={video !== null}
+                icon={
+                  uploadingVideo ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Video className="w-3.5 h-3.5" aria-hidden />
+                  )
+                }
+                label="Vidéo · 60 s"
+              />
+              <ToolbarPill
+                disabled
+                icon={<Sparkles className="w-3.5 h-3.5" aria-hidden />}
+                label="Moment"
+              />
+              <ToolbarPill
+                disabled
+                icon={<MapPin className="w-3.5 h-3.5" aria-hidden />}
+                label="Lieu"
+              />
+              <span className="ml-auto self-center text-[11px] text-muted tabular-nums">
+                {body.length}/4000
+              </span>
             </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Toolbar — pills h-9 + bouton Publier gradient gold à droite */}
-      <div className="flex flex-wrap items-center gap-2 px-[18px] pt-3 pb-4 ml-[60px] sm:ml-[60px]">
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ALLOWED_MIME.join(",")}
-          multiple
-          onChange={handleFiles}
-          className="sr-only"
-        />
-        <input
-          ref={videoInputRef}
-          type="file"
-          accept={ALLOWED_VIDEO_MIME.join(",")}
-          onChange={handleVideoFile}
-          className="sr-only"
-        />
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading || photos.length >= MAX_PHOTOS || video !== null}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream text-gold-deep border border-gold/30 text-[13px] font-bold transition-colors hover:bg-gold/15 disabled:opacity-60"
-        >
-          {uploading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
-          ) : (
-            <ImagePlus className="w-3.5 h-3.5" aria-hidden />
-          )}
-          Photos
-          {photos.length > 0 ? ` · ${photos.length}/${MAX_PHOTOS}` : ""}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => videoInputRef.current?.click()}
-          disabled={uploadingVideo || video !== null || photos.length > 0}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-bg-deep text-night-soft text-[13px] font-bold transition-colors hover:bg-night/10 hover:text-night disabled:opacity-60"
-        >
-          {uploadingVideo ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
-          ) : (
-            <Video className="w-3.5 h-3.5" aria-hidden />
-          )}
-          Vidéo · 60 s
-        </button>
-
-        <VisibilityPicker value={visibility} onChange={setVisibility} />
-
-        <span className="ml-auto text-[11px] text-muted tabular-nums">
-          {body.length}/4000
-        </span>
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "inline-flex items-center gap-1.5 h-10 px-5 rounded-full font-extrabold text-[13px] transition",
-            canSubmit
-              ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)] hover:brightness-105"
-              : "bg-gold/40 text-night/60 cursor-not-allowed",
-          )}
-        >
-          {pending ? (
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-          ) : (
-            <Send className="w-4 h-4" aria-hidden />
-          )}
-          Publier
-        </button>
-      </div>
-    </form>
+          </form>
+        </Modal>
+      ) : null}
+    </>
   );
 }
 
-function VisibilityPicker({
+/* Chip teaser : carte inline cliquable. Avatar + texte d'invitation
+   "Quoi de neuf, X ?" + 3 pills (Photo / Moment / Amis). */
+function ChipTeaser({
+  authorName,
+  authorAvatarUrl,
+  firstName,
+  onOpen,
+  onOpenWithPhotos,
+}: {
+  authorName: string | null;
+  authorAvatarUrl: string | null;
+  firstName: string | null;
+  onOpen: () => void;
+  onOpenWithPhotos: () => void;
+}) {
+  return (
+    <article className="relative overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_16px_40px_-20px_rgba(10,31,68,0.18)]">
+      {/* Barre dorée top — signature Bold (proto L59) */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-7 w-[60px] h-1 rounded-b-md bg-gold"
+      />
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex items-center gap-3 w-full px-4 pt-4 pb-3 text-left"
+        aria-label="Composer un post"
+      >
+        <Avatar
+          src={authorAvatarUrl}
+          fullName={authorName}
+          size="md-bold"
+        />
+        <div className="flex-1 min-w-0 text-[14px] leading-tight">
+          <span className="font-display italic text-[17px] text-night">
+            Quoi de neuf
+          </span>
+          {firstName ? (
+            <span className="text-[#8696B0]">, {firstName} ?</span>
+          ) : (
+            <span className="text-[#8696B0]"> ?</span>
+          )}
+        </div>
+      </button>
+
+      {/* 3 pills flex-1 : Photo (cream/gold) / Moment (bg-soft) / Amis (bg-soft) */}
+      <div className="flex gap-2 px-4 pb-4">
+        <ChipPill
+          onClick={onOpenWithPhotos}
+          tone="gold"
+          icon={<ImagePlus className="w-3 h-3" aria-hidden />}
+          label="Photo"
+        />
+        <ChipPill
+          onClick={onOpen}
+          tone="muted"
+          icon={<Sparkles className="w-3 h-3" aria-hidden />}
+          label="Moment"
+        />
+        <ChipPill
+          onClick={onOpen}
+          tone="muted"
+          icon={<Users className="w-3 h-3" aria-hidden />}
+          label="Amis"
+        />
+      </div>
+    </article>
+  );
+}
+
+function ChipPill({
+  onClick,
+  tone,
+  icon,
+  label,
+}: {
+  onClick: () => void;
+  tone: "gold" | "muted";
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-[18px] text-[12px] font-semibold transition-colors",
+        tone === "gold"
+          ? "bg-cream text-gold-deep hover:brightness-105"
+          : "bg-bg-soft text-night-soft hover:bg-night/5",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/* Modal full-screen : fond bg-soft (proto), backdrop fermable au clic. */
+function Modal({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Nouveau post"
+      className="fixed inset-0 z-50 bg-bg-soft overflow-y-auto"
+    >
+      {/* Backdrop click handler — invisible button derrière le contenu */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-hidden
+        tabIndex={-1}
+        className="absolute inset-0 cursor-default"
+      />
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+function ToolbarPill({
+  onClick,
+  disabled = false,
+  active = false,
+  icon,
+  label,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  active?: boolean;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex items-center gap-1.5 h-9 px-[14px] rounded-[18px] text-[12px] font-bold transition-colors",
+        active
+          ? "bg-night text-cream"
+          : "bg-white text-night-soft border border-line hover:border-night/30",
+        disabled && !active ? "opacity-60 cursor-not-allowed" : "",
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function VisibilityChip({
   value,
   onChange,
 }: {
   value: PostVisibility;
   onChange: (next: PostVisibility) => void;
 }) {
-  const options: { value: PostVisibility; label: string; icon: typeof Globe }[] =
-    [
-      { value: "friends", label: "Amis", icon: Users },
-      { value: "public", label: "Public", icon: Globe },
-      { value: "private", label: "Moi", icon: Lock },
-    ];
+  const meta: Record<
+    PostVisibility,
+    { label: string; icon: typeof Globe }
+  > = {
+    friends: { label: "Amis", icon: Users },
+    public: { label: "Public", icon: Globe },
+    private: { label: "Moi", icon: Lock },
+  };
+  const order: PostVisibility[] = ["friends", "public", "private"];
+  const Icon = meta[value].icon;
+
+  function cycle() {
+    const idx = order.indexOf(value);
+    onChange(order[(idx + 1) % order.length]!);
+  }
 
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-night/5 border border-line">
-      {options.map((option) => {
-        const Icon = option.icon;
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            aria-pressed={active}
-            className={cn(
-              "inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-xs font-semibold transition",
-              active
-                ? "bg-white text-night shadow-sm"
-                : "text-night-muted hover:text-night",
-            )}
-          >
-            <Icon className="w-3 h-3" aria-hidden />
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <button
+      type="button"
+      onClick={cycle}
+      aria-label={`Visibilité : ${meta[value].label}. Cliquer pour changer.`}
+      className="mt-0.5 inline-flex items-center gap-1.5 h-[22px] px-2.5 rounded-[10px] bg-cream text-gold-deep text-[11px] font-bold hover:brightness-105 transition"
+    >
+      <Icon className="w-2.5 h-2.5" aria-hidden />
+      {meta[value].label}
+      <ChevronDown className="w-2.5 h-2.5" aria-hidden />
+    </button>
   );
 }
