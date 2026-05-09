@@ -931,6 +931,66 @@ export type ListingOfferWithCounterparty = ListingOffer & {
   listing: Pick<Listing, "id" | "title" | "price_amount" | "price_currency" | "status"> | null;
 };
 
+export type EventSurface =
+  | "feed_home"
+  | "feed_circle"
+  | "reels"
+  | "discover"
+  | "marketplace"
+  | "jobs"
+  | "profile"
+  | "search"
+  | "notif"
+  | "story"
+  | "message";
+
+export type RecsysEvent = {
+  event_id: string;
+  user_id: string;
+  session_id: string;
+  event_type: string;
+  surface: EventSurface | null;
+  position: number | null;
+  target_post_id: string | null;
+  target_user_id: string | null;
+  target_listing_id: string | null;
+  target_job_id: string | null;
+  target_circle_id: string | null;
+  properties: Record<string, unknown>;
+  device_type: "mobile" | "tablet" | "desktop" | null;
+  locale: string | null;
+  client_ts: number | null;
+  created_at: string;
+};
+
+export type UserInterestProfile = {
+  user_id: string;
+  interest_vector: number[] | null;
+  topic_affinity: Record<string, number>;
+  user_affinity: Record<string, number>;
+  circle_affinity: Record<string, number>;
+  behavioral_features: Record<string, unknown>;
+  format_preference: Record<string, number>;
+  active_hours_distribution: Record<string, number>;
+  events_processed_count: number;
+  profile_version: number;
+  last_updated: string;
+};
+
+export type UserAlgorithmSettings = {
+  user_id: string;
+  chronological_mode: boolean;
+  personalization_consent: boolean;
+  location_consent: boolean;
+  contacts_consent: boolean;
+  ads_consent: boolean;
+  consent_timestamp: string | null;
+  hidden_topics: string[];
+  hidden_users: string[];
+  manual_topics: string[];
+  updated_at: string;
+};
+
 export type PushSubscriptionRow = {
   id: string;
   user_id: string;
@@ -1199,6 +1259,102 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      recsys_events: {
+        Row: RecsysEvent;
+        Insert: Pick<
+          RecsysEvent,
+          "event_id" | "user_id" | "session_id" | "event_type"
+        > &
+          Partial<
+            Pick<
+              RecsysEvent,
+              | "surface"
+              | "position"
+              | "target_post_id"
+              | "target_user_id"
+              | "target_listing_id"
+              | "target_job_id"
+              | "target_circle_id"
+              | "properties"
+              | "device_type"
+              | "locale"
+              | "client_ts"
+              | "created_at"
+            >
+          >;
+        Update: never;
+        Relationships: [];
+      };
+      user_interest_profiles: {
+        Row: UserInterestProfile;
+        Insert: Pick<UserInterestProfile, "user_id"> &
+          Partial<
+            Pick<
+              UserInterestProfile,
+              | "interest_vector"
+              | "topic_affinity"
+              | "user_affinity"
+              | "circle_affinity"
+              | "behavioral_features"
+              | "format_preference"
+              | "active_hours_distribution"
+              | "events_processed_count"
+              | "profile_version"
+              | "last_updated"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            UserInterestProfile,
+            | "interest_vector"
+            | "topic_affinity"
+            | "user_affinity"
+            | "circle_affinity"
+            | "behavioral_features"
+            | "format_preference"
+            | "active_hours_distribution"
+            | "events_processed_count"
+            | "profile_version"
+            | "last_updated"
+          >
+        >;
+        Relationships: [];
+      };
+      user_algorithm_settings: {
+        Row: UserAlgorithmSettings;
+        Insert: Pick<UserAlgorithmSettings, "user_id"> &
+          Partial<
+            Pick<
+              UserAlgorithmSettings,
+              | "chronological_mode"
+              | "personalization_consent"
+              | "location_consent"
+              | "contacts_consent"
+              | "ads_consent"
+              | "consent_timestamp"
+              | "hidden_topics"
+              | "hidden_users"
+              | "manual_topics"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            UserAlgorithmSettings,
+            | "chronological_mode"
+            | "personalization_consent"
+            | "location_consent"
+            | "contacts_consent"
+            | "ads_consent"
+            | "consent_timestamp"
+            | "hidden_topics"
+            | "hidden_users"
+            | "manual_topics"
+            | "updated_at"
+          >
+        >;
         Relationships: [];
       };
       push_subscriptions: {
