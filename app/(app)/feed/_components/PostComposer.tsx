@@ -325,7 +325,15 @@ export function PostComposer({
     !uploadingVideo;
 
   return (
-    <form action={formAction} className="rounded-3xl bg-white border border-line shadow-soft overflow-hidden">
+    <form
+      action={formAction}
+      className="relative rounded-[28px] bg-white overflow-hidden shadow-[0_1px_2px_rgba(10,31,68,0.04),0_24px_60px_-28px_rgba(10,31,68,0.22)]"
+    >
+      {/* Accent gold barre top centré (signature Bold du proto) */}
+      <div
+        aria-hidden
+        className="absolute top-0 left-9 w-20 h-1 bg-gold rounded-b-md pointer-events-none"
+      />
       <input type="hidden" name="visibility" value={visibility} />
       <input
         type="hidden"
@@ -487,11 +495,19 @@ export function PostComposer({
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 px-4 h-9 rounded-full font-extrabold text-sm transition shadow-sm",
+            "inline-flex items-center gap-1.5 px-5 h-10 rounded-full font-extrabold text-[13px] transition",
             canSubmit
-              ? "bg-gold text-night hover:bg-gold-soft"
+              ? "text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.7)] hover:brightness-105"
               : "bg-gold/40 text-night/60 cursor-not-allowed",
           )}
+          style={
+            canSubmit
+              ? {
+                  backgroundImage:
+                    "linear-gradient(135deg, #F4B942, #B88A2A)",
+                }
+              : undefined
+          }
         >
           {pending ? (
             <Loader2 className="w-4 h-4 animate-spin" aria-hidden />

@@ -131,8 +131,26 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="hidden lg:flex flex-col border-r border-line bg-white/60 backdrop-blur-md sticky top-0 h-screen">
-        <div className="px-6 py-5 border-b border-line space-y-3">
+      <aside className="hidden lg:flex flex-col border-r border-line bg-gradient-to-b from-cream/80 via-white/60 to-white/60 backdrop-blur-md sticky top-0 h-screen relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute -bottom-16 -left-20 w-64 h-64 pointer-events-none opacity-25"
+        >
+          <svg viewBox="0 0 320 320" fill="none" className="w-full h-full">
+            <circle
+              cx="160"
+              cy="160"
+              r="130"
+              stroke="#C8A14A"
+              strokeWidth="1.5"
+              fill="none"
+              strokeDasharray="700 100"
+              strokeDashoffset="-180"
+            />
+            <circle cx="55" cy="225" r="4" fill="#C8A14A" />
+          </svg>
+        </div>
+        <div className="px-6 py-5 border-b border-line space-y-3 relative">
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={36} />
             <span className="font-display text-2xl text-night">DIVARC</span>
@@ -240,11 +258,11 @@ export default async function DashboardLayout({
           </div>
         </header>
 
-        <div className="flex items-center gap-2 px-6 py-3 border-b border-line bg-cream/30 lg:bg-transparent">
+        <div className="flex items-center gap-2 px-6 py-2.5 border-b border-line bg-gradient-to-r from-cream via-cream/40 to-transparent">
           <Sparkles className="w-3.5 h-3.5 text-gold-deep" aria-hidden />
           <p className="text-xs font-medium text-night-muted">
-            <span className="font-semibold text-night">Beta privée</span> ·
-            Tu fais partie des fondateurs. Badge permanent.
+            <span className="font-bold text-night">Beta privée</span> · Tu fais
+            partie des fondateurs. Badge permanent.
           </p>
         </div>
 

@@ -11,6 +11,13 @@ type StoriesRowProps = {
   currentUserName: string | null;
 };
 
+/** Stories row — pattern Bold du proto handoff :
+ *  - Anneau conic-gradient gold épais 70x70 (3px padding) avec
+ *    shadow gold visible quand has_unviewed
+ *  - "Toi" en card blanche border navy 2px + FAB plus gold 26px
+ *    en chevauchement bas-droite (au lieu du dashed border subtil)
+ *  - Avatars 56-58px à l'intérieur de l'anneau
+ *  - Label sm font-semibold text-night (au lieu de night-muted) */
 export function StoriesRow({
   groups,
   currentUserId,
@@ -23,31 +30,35 @@ export function StoriesRow({
 
   return (
     <div className="-mx-4 sm:mx-0 px-4 sm:px-0 py-1 overflow-x-auto">
-      <ul className="flex items-start gap-4 min-w-max">
-        <li className="flex flex-col items-center gap-1">
+      <ul className="flex items-start gap-3 min-w-max">
+        <li className="flex flex-col items-center gap-1.5">
           <Link
-            href={hasMyStories ? `/stories/${myGroup!.stories[0]!.id}` : "/stories/new"}
+            href={
+              hasMyStories
+                ? `/stories/${myGroup!.stories[0]!.id}`
+                : "/stories/new"
+            }
             aria-label={hasMyStories ? "Voir mes stories" : "Ajouter une story"}
             className="flex flex-col items-center gap-1.5 group"
           >
-            <span className="relative w-16 h-16 rounded-full bg-night/[0.04] border-2 border-dashed border-night/20 flex items-center justify-center group-hover:border-gold/50 transition-colors">
+            <span className="relative w-[70px] h-[70px] rounded-full bg-white border-2 border-night flex items-center justify-center group-hover:scale-105 transition-transform">
               {hasMyStories ? (
                 <Avatar
                   src={currentUserAvatarUrl}
                   fullName={currentUserName}
                   size="lg"
-                  className="!w-[52px] !h-[52px]"
+                  className="!w-[56px] !h-[56px]"
                 />
               ) : (
-                <span className="w-10 h-10 rounded-full bg-night text-cream flex items-center justify-center">
-                  <Plus className="w-5 h-5" aria-hidden />
+                <span className="w-[56px] h-[56px] rounded-full bg-bg-deep flex items-center justify-center text-night-muted font-display italic text-2xl">
+                  {currentUserName?.charAt(0).toUpperCase() ?? "?"}
                 </span>
               )}
-              <span className="absolute -bottom-1 -right-1 w-[22px] h-[22px] rounded-full bg-gold text-night flex items-center justify-center border-2 border-bg shadow-sm">
-                <Plus className="w-3 h-3" aria-hidden strokeWidth={3} />
+              <span className="absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full bg-gold text-night flex items-center justify-center border-[2.5px] border-bg shadow-[0_4px_12px_rgba(244,185,66,0.5)]">
+                <Plus className="w-3.5 h-3.5" aria-hidden strokeWidth={3} />
               </span>
             </span>
-            <span className="text-[11px] font-medium text-night-muted">
+            <span className="text-[11px] font-semibold text-night max-w-[70px] truncate">
               Toi
             </span>
           </Link>
@@ -86,9 +97,9 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
     >
       <span
         className={cn(
-          "relative w-16 h-16 rounded-full p-[2px] transition-transform group-hover:scale-105",
+          "relative w-[70px] h-[70px] rounded-full p-[3px] transition-transform group-hover:scale-105",
           group.has_unviewed
-            ? "bg-[conic-gradient(from_200deg,_#F4B942,_#F8CD76,_#B88A2A,_#F4B942)] shadow-[0_4px_14px_-4px_rgba(244,185,66,0.45)]"
+            ? "bg-[conic-gradient(from_200deg,_#F4B942,_#F8CD76,_#B88A2A,_#F4B942)] shadow-[0_6px_18px_-4px_rgba(244,185,66,0.45)]"
             : "bg-night/15",
         )}
       >
@@ -101,7 +112,7 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
           />
         </span>
       </span>
-      <span className="text-[11px] font-medium text-night-muted truncate max-w-[64px]">
+      <span className="text-[11px] font-semibold text-night truncate max-w-[70px]">
         {displayName}
       </span>
     </Link>

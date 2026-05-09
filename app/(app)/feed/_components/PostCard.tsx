@@ -25,22 +25,44 @@ export function PostCard({
   const displayName = author?.full_name ?? author?.username ?? "Utilisateur";
   const isOwn = post.author_id === currentUserId;
 
+  /* Pattern Bold du proto handoff : split body en première phrase
+     (display italic 19px) + reste (sans-serif 13.5px) pour un rythme
+     éditorial. Les textes sans ponctuation forte gardent tout en
+     première phrase. */
+  const fullBody = post.body ?? "";
+  const firstDot = fullBody.indexOf(".");
+  const firstSentence = firstDot > 0 ? fullBody.slice(0, firstDot + 1) : fullBody;
+  const restBody = firstDot > 0 ? fullBody.slice(firstDot + 1).trim() : "";
+
   return (
-    <article className="rounded-3xl bg-white border border-line shadow-soft overflow-hidden">
-      <header className="flex items-center gap-3 p-4 sm:p-5">
+    <article className="rounded-[28px] bg-white overflow-hidden shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]">
+      <header className="flex items-center gap-3 px-4 sm:px-5 pt-4 sm:pt-5 pb-2">
         <Link href={`/u/${author?.username ?? ""}`} className="shrink-0">
-          <Avatar src={author?.avatar_url ?? null} fullName={displayName} size="md" />
+          <Avatar
+            src={author?.avatar_url ?? null}
+            fullName={displayName}
+            size="md"
+          />
         </Link>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-night truncate">
-            {displayName}
-          </p>
-          <p className="text-xs text-muted truncate flex items-center gap-1">
-            <VisibilityBadge visibility={post.visibility} />
-            <span>·</span>
+          <p className="text-sm font-bold text-night truncate">{displayName}</p>
+          <p className="text-[11px] text-night-dim truncate flex items-center gap-1.5 mt-0.5">
+            <span
+              aria-hidden
+              className="inline-block w-[5px] h-[5px] rounded-full bg-gold"
+            />
             <Link href={`/feed/${post.id}`} className="hover:underline">
               {formatRelative(post.created_at)}
             </Link>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <VisibilityBadge visibility={post.visibility} />
+              {post.visibility === "public"
+                ? "Public"
+                : post.visibility === "private"
+                  ? "Moi"
+                  : "Amis"}
+            </span>
             {post.edited_at ? (
               <>
                 <span>·</span>
@@ -52,30 +74,41 @@ export function PostCard({
         {isOwn ? <PostMenu postId={post.id} /> : null}
       </header>
 
-      {post.body ? (
+      {fullBody ? (
         <div className="px-4 sm:px-5 pb-3">
-          <p className="text-sm text-night leading-relaxed whitespace-pre-wrap break-words">
-            {renderPostBody(post.body)}
+          <p className="font-display italic text-[19px] text-night leading-[1.3] whitespace-pre-wrap break-words">
+            {renderPostBody(firstSentence)}
           </p>
+          {restBody ? (
+            <p className="mt-2 text-[13.5px] text-night-soft leading-[1.55] whitespace-pre-wrap break-words">
+              {renderPostBody(restBody)}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
       {post.video_url ? (
-        <PostVideoPlayer
-          url={post.video_url}
-          thumbnailUrl={post.video_thumbnail_url}
-          durationMs={post.video_duration_ms}
-          width={post.video_width}
-          height={post.video_height}
-        />
+        <div className="px-4 sm:px-5 pb-3">
+          <div className="rounded-2xl overflow-hidden">
+            <PostVideoPlayer
+              url={post.video_url}
+              thumbnailUrl={post.video_thumbnail_url}
+              durationMs={post.video_duration_ms}
+              width={post.video_width}
+              height={post.video_height}
+            />
+          </div>
+        </div>
       ) : post.photos.length > 0 ? (
-        <Link href={`/feed/${post.id}`} className="block">
-          <PostPhotos photos={post.photos} alt={displayName} rounded={false} />
+        <Link href={`/feed/${post.id}`} className="block px-4 sm:px-5 pb-3">
+          <div className="rounded-2xl overflow-hidden">
+            <PostPhotos photos={post.photos} alt={displayName} rounded={false} />
+          </div>
         </Link>
       ) : null}
 
       {showActions ? (
-        <footer className="flex items-center gap-2 p-3 sm:p-4 border-t border-line">
+        <footer className="flex items-center gap-1.5 px-3 sm:px-4 pb-3.5">
           <LikeButton
             postId={post.id}
             initialLiked={post.is_liked}
@@ -83,7 +116,7 @@ export function PostCard({
           />
           <Link
             href={`/feed/${post.id}`}
-            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night/5 text-night-muted hover:bg-night/10 hover:text-night text-sm font-semibold"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-night-soft hover:bg-night/5 hover:text-night text-[13px] font-bold transition-colors"
           >
             <MessageCircle className="w-4 h-4" aria-hidden />
             {post.comments_count > 0 ? post.comments_count : "Commenter"}

@@ -164,6 +164,39 @@ body {
   letter-spacing: -0.025em;
 }
 
+/* ===== Patterns récurrents handoff DIVARC ===== */
+
+/* Kicker label : "· Section" en uppercase tracking-large gold-deep
+   font-extrabold. Présent en haut de chaque page/section. */
+@utility text-kicker {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-deep);
+  font-weight: 800;
+}
+
+/* Card "élévée" handoff : white bg + border line + radius 24px,
+   pas de shadow par défaut (la border suffit). */
+@utility card-elev {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 24px;
+}
+
+/* Hero card navy avec shadow soft : pour TON ARC, Wallet hero, etc. */
+@utility card-night {
+  background: var(--color-night);
+  color: var(--color-cream);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px -28px rgba(10, 31, 68, 0.5);
+}
+
+/* Composer / FAB shadow gold (boutons publier, FAB +) */
+@utility shadow-gold-soft {
+  box-shadow: 0 8px 22px -8px rgba(244, 185, 66, 0.55);
+}
+
 /* Grain texture overlay */
 .grain {
   position: relative;

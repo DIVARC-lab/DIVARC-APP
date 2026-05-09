@@ -1,6 +1,7 @@
 import { Bookmark, Compass, Sparkles, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -98,82 +99,107 @@ export default async function FeedPage({
   }`;
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full">
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-10">
+    <div className="max-w-6xl mx-auto w-full">
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
         {/* Main column */}
-        <div className="space-y-6 max-w-2xl mx-auto w-full lg:mx-0">
-          <header className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <KickerLabel>Le feed · {todayKicker}</KickerLabel>
-              <DisplayHeading
-                size="xl"
-                className="mt-3 !leading-[1.02] sm:!text-[64px]"
-              >
-                Ce que tes proches{" "}
-                <em className="italic text-gold-deep">racontent</em>{" "}
-                aujourd&apos;hui.
-              </DisplayHeading>
-              <p className="mt-3 text-night-muted text-base sm:text-[15px] leading-relaxed max-w-xl">
-                Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
-                {newPostsCount > 0 ? (
-                  <>
-                    {" "}
-                    <span className="font-semibold text-night">
-                      {newPostsCount} nouveau{newPostsCount > 1 ? "x" : ""} post
-                      {newPostsCount > 1 ? "s" : ""}
-                    </span>{" "}
-                    depuis ta dernière visite.
-                  </>
-                ) : null}
-              </p>
-            </div>
-            <Link
-              href="/feed/saved"
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
-              title="Mes posts sauvegardés"
+        <div className="max-w-2xl mx-auto w-full lg:mx-0">
+          {/* Hero header — gradient cream → bg + ArcDeco gold visible
+              (pattern BoldFeed du proto handoff) */}
+          <header className="relative overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg px-5 sm:px-10 pt-14 sm:pt-16 pb-9">
+            <div
+              aria-hidden
+              className="absolute -right-20 -top-24 pointer-events-none opacity-55"
             >
-              <Bookmark className="w-4 h-4" aria-hidden />
-              <span className="hidden sm:inline">Sauvegardés</span>
-            </Link>
+              <ArcDeco size={320} tone="gold" opacity={1} stroke={1.25} />
+            </div>
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <KickerLabel>· Le feed · {todayKicker}</KickerLabel>
+                <DisplayHeading
+                  size="xl"
+                  className="mt-3 !leading-[1] !text-[44px] sm:!text-[64px] tracking-[-0.025em]"
+                >
+                  Ce que tes proches{" "}
+                  <em
+                    className="italic"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(120deg, #F4B942, #B88A2A)",
+                      WebkitBackgroundClip: "text",
+                      backgroundClip: "text",
+                      color: "transparent",
+                    }}
+                  >
+                    racontent
+                  </em>{" "}
+                  aujourd&apos;hui.
+                </DisplayHeading>
+                <p className="mt-3 text-night-muted text-[15px] leading-relaxed max-w-xl">
+                  Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
+                  {newPostsCount > 0 ? (
+                    <>
+                      {" "}
+                      <span className="font-semibold text-night">
+                        {newPostsCount} nouveau{newPostsCount > 1 ? "x" : ""}{" "}
+                        post{newPostsCount > 1 ? "s" : ""}
+                      </span>{" "}
+                      depuis ta dernière visite.
+                    </>
+                  ) : null}
+                </p>
+              </div>
+              <Link
+                href="/feed/saved"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
+                title="Mes posts sauvegardés"
+              >
+                <Bookmark className="w-4 h-4" aria-hidden />
+                <span className="hidden sm:inline">Sauvegardés</span>
+              </Link>
+            </div>
           </header>
 
-          <StoriesRow
-            groups={storyGroups}
-            currentUserId={user.id}
-            currentUserAvatarUrl={profile?.avatar_url ?? null}
-            currentUserName={fullName}
-          />
+          <div className="px-4 sm:px-10 pb-10 space-y-6 -mt-2">
+            <StoriesRow
+              groups={storyGroups}
+              currentUserId={user.id}
+              currentUserAvatarUrl={profile?.avatar_url ?? null}
+              currentUserName={fullName}
+            />
 
-          <PostComposer
-            userId={user.id}
-            authorName={fullName}
-            authorAvatarUrl={profile?.avatar_url ?? null}
-          />
+            <PostComposer
+              userId={user.id}
+              authorName={fullName}
+              authorAvatarUrl={profile?.avatar_url ?? null}
+            />
 
-          {trendingTags.length > 0 ? (
-            <TrendingHashtagsRow tags={trendingTags} />
-          ) : null}
+            {trendingTags.length > 0 ? (
+              <TrendingHashtagsRow tags={trendingTags} />
+            ) : null}
 
-          {posts.length === 0 ? (
-            <FeedEmptyState tab={tab} />
-          ) : (
-            <ul className="space-y-4">
-              {posts.map((post) => (
-                <li key={post.id}>
-                  <PostViewTracker postId={post.id} />
-                  <PostCard post={post} currentUserId={user.id} />
-                </li>
-              ))}
-            </ul>
-          )}
+            {posts.length === 0 ? (
+              <FeedEmptyState tab={tab} />
+            ) : (
+              <ul className="space-y-4">
+                {posts.map((post) => (
+                  <li key={post.id}>
+                    <PostViewTracker postId={post.id} />
+                    <PostCard post={post} currentUserId={user.id} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Right rail (lg+) */}
-        <FeedRightRail
-          suggestions={suggestions}
-          trendingTags={trendingTags}
-          recentFriends={storyGroups}
-        />
+        <div className="hidden lg:block py-10 pr-4">
+          <FeedRightRail
+            suggestions={suggestions}
+            trendingTags={trendingTags}
+            recentFriends={storyGroups}
+          />
+        </div>
       </div>
     </div>
   );
