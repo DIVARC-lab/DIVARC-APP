@@ -1,11 +1,11 @@
 import { ArrowLeft, Heart } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { listFavoriteListings } from "@/lib/queries/listings";
 import { createClient } from "@/lib/supabase/server";
-import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export const metadata = {
   title: "Mes favoris",
@@ -21,50 +21,62 @@ export default async function FavoritesPage() {
   const listings = await listFavoriteListings(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
-      <header>
-        <Link
-          href="/marketplace"
-          className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
-          Marketplace
-        </Link>
-        <KickerLabel>Favoris</KickerLabel>
-        <h1 className="mt-2 font-display text-4xl text-night text-balance">
-          Tes <em className="italic text-gold-deep">coups de cœur</em>.
-        </h1>
-        <p className="mt-1 text-muted-strong">
-          {listings.length} annonce{listings.length > 1 ? "s" : ""} sauvegardée
-          {listings.length > 1 ? "s" : ""}
-        </p>
-      </header>
-
-      {listings.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
+    <div className="bg-bg-soft min-h-screen pb-24">
+      <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
+        {/* Hero header — grammaire Bold cohérente avec /marketplace */}
+        <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-7">
           <div
             aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
+            className="absolute -right-12 -top-14 opacity-45 pointer-events-none"
           >
-            <Heart className="w-8 h-8 text-night-muted" aria-hidden />
+            <ArcDeco size={220} tone="gold" opacity={1} stroke={1.25} />
           </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucun favori pour l&apos;instant
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Tape sur le ❤️ d&apos;une annonce pour la garder ici.
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/marketplace">Parcourir la marketplace</Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))}
-        </div>
-      )}
+          <div className="relative">
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
+            >
+              <ArrowLeft className="w-[14px] h-[14px]" aria-hidden />
+              Marketplace
+            </Link>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+              · Favoris
+            </p>
+            <h1 className="mt-2 font-display text-[36px] sm:text-[48px] font-normal leading-[1.05] tracking-[-0.02em] text-night text-balance">
+              Tes{" "}
+              <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+                coups de cœur
+              </em>
+              .
+            </h1>
+            <p className="mt-3 text-[14px] text-night-soft leading-relaxed">
+              {listings.length} annonce{listings.length > 1 ? "s" : ""}{" "}
+              sauvegardée{listings.length > 1 ? "s" : ""}
+            </p>
+          </div>
+        </header>
+
+        {/* Liste */}
+        {listings.length === 0 ? (
+          <div className="px-5 sm:px-8 pt-6">
+            <EmptyState
+              icon={Heart}
+              kicker="Marketplace"
+              title="Aucun favori pour l'instant"
+              body="Tape sur le ❤️ d'une annonce pour la garder ici. Pratique pour comparer ou décider plus tard."
+              ctaHref="/marketplace"
+              ctaLabel="Parcourir la marketplace"
+              size="lg"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 px-4 sm:px-7 pt-3">
+            {listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
