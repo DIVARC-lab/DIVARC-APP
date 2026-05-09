@@ -2,10 +2,10 @@
 
 import { Loader2, Network, X } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldHint, FieldLabel } from "@/components/ui/Field";
 import { Select } from "@/components/ui/Select";
+import { runAction } from "@/lib/utils/clientAction";
 import { sendProConnection } from "@/app/(app)/network/actions";
 
 type Props = {
@@ -31,14 +31,13 @@ export function ProConnectButton({ targetUserId, initialState }: Props) {
   function submit(formData: FormData) {
     formData.set("recipient_id", targetUserId);
     startTransition(async () => {
-      const result = await sendProConnection(formData);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      const result = await runAction(() => sendProConnection(formData), {
+        successMessage: "Demande envoyée ✨",
+      });
+      if (result?.ok) {
+        setState("pending_out");
+        setOpen(false);
       }
-      toast.success("Demande envoyée ✨");
-      setState("pending_out");
-      setOpen(false);
     });
   }
 

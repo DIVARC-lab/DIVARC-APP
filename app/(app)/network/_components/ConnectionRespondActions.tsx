@@ -2,8 +2,8 @@
 
 import { Check, X } from "lucide-react";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { runAction } from "@/lib/utils/clientAction";
 import { respondProConnection } from "../actions";
 
 export function ConnectionRespondActions({
@@ -15,12 +15,10 @@ export function ConnectionRespondActions({
 
   function handle(status: "accepted" | "rejected") {
     startTransition(async () => {
-      const result = await respondProConnection(connectionId, status);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(status === "accepted" ? "Connexion acceptée." : "Demande refusée.");
+      await runAction(() => respondProConnection(connectionId, status), {
+        successMessage:
+          status === "accepted" ? "Connexion acceptée." : "Demande refusée.",
+      });
     });
   }
 

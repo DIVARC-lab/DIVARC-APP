@@ -2,8 +2,8 @@
 
 import { LogOut, UserPlus } from "lucide-react";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { runAction } from "@/lib/utils/clientAction";
 import { joinCircle, leaveCircle } from "../actions";
 
 type CircleMembershipButtonProps = {
@@ -34,12 +34,10 @@ export function CircleMembershipButton({
         loading={pending}
         onClick={() =>
           startTransition(async () => {
-            const result = await leaveCircle(circleId);
-            if (!result.ok) {
-              toast.error(result.error ?? "Action impossible.");
-            } else {
-              toast.success("Tu as quitté le cercle.");
-            }
+            await runAction(() => leaveCircle(circleId), {
+              successMessage: "Tu as quitté le cercle.",
+              errorMessage: "Action impossible.",
+            });
           })
         }
       >
@@ -54,12 +52,10 @@ export function CircleMembershipButton({
       loading={pending}
       onClick={() =>
         startTransition(async () => {
-          const result = await joinCircle(circleId);
-          if (!result.ok) {
-            toast.error(result.error ?? "Action impossible.");
-          } else {
-            toast.success("Bienvenue dans le cercle !");
-          }
+          await runAction(() => joinCircle(circleId), {
+            successMessage: "Bienvenue dans le cercle !",
+            errorMessage: "Action impossible.",
+          });
         })
       }
     >

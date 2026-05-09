@@ -2,8 +2,8 @@
 
 import { Loader2, X } from "lucide-react";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { runAction } from "@/lib/utils/clientAction";
 import { deleteProConnection } from "../actions";
 
 export function ConnectionDeleteButton({
@@ -18,12 +18,9 @@ export function ConnectionDeleteButton({
   function handle() {
     if (!confirm("Confirmer la suppression ?")) return;
     startTransition(async () => {
-      const result = await deleteProConnection(connectionId);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Supprimée.");
+      await runAction(() => deleteProConnection(connectionId), {
+        successMessage: "Supprimée.",
+      });
     });
   }
 

@@ -40,7 +40,12 @@ export function StoryViewer({
   const [storyIndex, setStoryIndex] = useState(initialPos.storyIndex);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  /* `elapsedBeforePauseRef` accumule le temps écoulé avant chaque pause.
+     Au resume, on restart l'intervalle depuis Date.now() sans toucher cet
+     accumulateur — l'elapsed visuel = (now - startTime) + accumulé. Évite
+     le saut en arrière (reset 0) et le saut en avant (gap clavier). */
   const startTimeRef = useRef<number>(Date.now());
+  const elapsedBeforePauseRef = useRef<number>(0);
 
   const currentGroup = groups[groupIndex];
   const currentStory = currentGroup?.stories[storyIndex];
@@ -52,17 +57,23 @@ export function StoryViewer({
     }
   }, [currentStory, currentUserId]);
 
-  /* React 19 strict : le reset `setProgress(0)` part dans queueMicrotask
-     pour éviter le cascading render synchrone à chaque changement de
-     story / pause. Le tick d'intervalle est déjà async. */
+  /* Reset complet à chaque changement de story (groupIndex/storyIndex). */
+  useEffect(() => {
+    startTimeRef.current = Date.now();
+    elapsedBeforePauseRef.current = 0;
+    queueMicrotask(() => setProgress(0));
+  }, [groupIndex, storyIndex]);
+
+  /* Tick interval : actif tant que !paused. */
   useEffect(() => {
     if (!currentStory || paused) return;
 
+    /* Resume : startTime = now, on garde elapsedBeforePauseRef cumulé. */
     startTimeRef.current = Date.now();
-    queueMicrotask(() => setProgress(0));
 
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
+      const elapsed =
+        Date.now() - startTimeRef.current + elapsedBeforePauseRef.current;
       const ratio = Math.min(elapsed / STORY_DURATION_MS, 1);
       setProgress(ratio);
       if (ratio >= 1) {
@@ -73,7 +84,15 @@ export function StoryViewer({
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupIndex, storyIndex, paused]);
+  }, [paused, groupIndex, storyIndex]);
+
+  /* Effect dédié au passage paused=true : accumule l'elapsed pour reprendre
+     proprement au resume. Au passage à false, ne fait rien (le tick effect
+     repart de Date.now() en gardant elapsedBeforePauseRef). */
+  useEffect(() => {
+    if (!paused) return;
+    elapsedBeforePauseRef.current += Date.now() - startTimeRef.current;
+  }, [paused]);
 
   function close() {
     router.back();

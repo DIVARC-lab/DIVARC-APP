@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import type { PostVisibility } from "@/lib/database.types";
@@ -365,6 +366,10 @@ export function PostComposer({
 
   const firstName = authorName?.split(" ")[0] ?? null;
 
+  /* Hauteur du clavier mobile pour caler un sticky CTA au-dessus.
+     Sur desktop (pas de visualViewport API actif), reste 0 → pas d'impact. */
+  const keyboardInset = useKeyboardInset();
+
   return (
     <>
       <ChipTeaser
@@ -605,6 +610,38 @@ export function PostComposer({
                 {body.length}/4000
               </span>
             </div>
+
+            {/* Footer sticky mobile : bouton Publier qui se hisse au-dessus
+                du clavier (visualViewport API). Le bouton du top bar reste
+                visible sur desktop ; ce footer cible mobile uniquement
+                (sm:hidden). */}
+            <div
+              className="sm:hidden fixed left-0 right-0 z-40 px-4 pt-2 pb-[max(env(safe-area-inset-bottom,0px),12px)] bg-bg-soft/95 backdrop-blur-md border-t border-line transition-transform"
+              style={{
+                bottom: 0,
+                transform: `translateY(-${keyboardInset}px)`,
+              }}
+            >
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className={cn(
+                  "w-full inline-flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-opacity",
+                  canSubmit
+                    ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.7)]"
+                    : "bg-gold/30 text-night/50 cursor-not-allowed",
+                )}
+              >
+                {pending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                ) : (
+                  <Send className="w-4 h-4" aria-hidden />
+                )}
+                Publier
+              </button>
+            </div>
+            {/* Spacer pour que le contenu scroll ne passe pas sous le sticky footer mobile. */}
+            <div className="sm:hidden h-20" aria-hidden />
           </form>
         </Modal>
       ) : null}
