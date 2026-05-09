@@ -1,43 +1,44 @@
 "use client";
 
 /**
- * MobileBottomNav — pill flottante Bold (handoff feed-mobile-bold.jsx
- * BoldTabBar L162-187).
+ * MobileBottomNav — refonte étape 7 style Facebook mobile.
  *
- * Refonte audit S4 :
- * - Plus de bg-white border-t avec FAB central (ancienne version "Sage")
- * - Pill navy flottante : margin x-3.5 r-32 bg-night/96 backdrop-blur-xl
- *   shadow `0 24px 60px -16px rgba(10,31,68,0.5)`
- * - Padding 12/8, justify-around, 5 items plats
- * - Active : color gold + indicateur top -12 w22 h3 r2 gold avec glow
- *   `0 0 12px gold`
- * - Inactive : color cream/55, label weight 500 / actif weight 700
- * - Icon 20x20
- * - Position absolute bottom 0 paddingBottom 24 (env safe-area)
+ * Style FB :
+ * - Position fixed bottom-0, pleine largeur, bg-surface (white pas navy
+ *   flottant), border-top, hauteur 56px + safe-area-inset-bottom
+ * - 5 onglets égalitaires, indicateur ACTIF = bordure-bas 3px gold
+ *   (signature DIVARC, jamais bleue FB)
+ * - Tap feedback bg-bg-soft 200ms
  *
- * 5 items adaptés à DIVARC (vs proto qui a Accueil/Découvrir/Feed/Msg/Profil) :
- * Accueil (feed) · Marché · Découvrir (explore) · Emploi · Profil.
- * Marché et Emploi sont les piliers fonctionnels DIVARC, on les garde.
- *
- * 100% Tailwind v4. Aucun style={{}} inline.
+ * 5 onglets selon plan validé (Reels remplacé par Découvrir) :
+ *  1. Accueil   → /feed
+ *  2. Amis      → /friends
+ *  3. Découvrir → /explore
+ *  4. Notifs    → /notifications (badge compteur)
+ *  5. Menu      → ouvre MobileMenuSheet (étape 8)
  */
 import {
-  Briefcase,
+  Bell,
   Compass,
   Home,
-  ShoppingBag,
-  User,
+  Menu as MenuIcon,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { MobileMenuSheet } from "./layout/MobileMenuSheet";
 
 type Item = {
-  href: string;
+  href?: string;
   label: string;
   icon: LucideIcon;
-  match: (path: string) => boolean;
+  match?: (path: string) => boolean;
+  /** Si défini, override le href par un onClick (ex : ouvre le sheet menu). */
+  trigger?: "menu";
+  badgeKey?: "notifications" | "messages";
 };
 
 const ITEMS: ReadonlyArray<Item> = [
@@ -48,10 +49,10 @@ const ITEMS: ReadonlyArray<Item> = [
     match: (p) => p === "/feed" || p === "/dashboard" || p === "/",
   },
   {
-    href: "/marketplace",
-    label: "Marché",
-    icon: ShoppingBag,
-    match: (p) => p.startsWith("/marketplace"),
+    href: "/friends",
+    label: "Amis",
+    icon: Users,
+    match: (p) => p.startsWith("/friends") || p.startsWith("/network"),
   },
   {
     href: "/explore",
@@ -60,16 +61,16 @@ const ITEMS: ReadonlyArray<Item> = [
     match: (p) => p.startsWith("/explore") || p.startsWith("/search"),
   },
   {
-    href: "/jobs",
-    label: "Emploi",
-    icon: Briefcase,
-    match: (p) => p.startsWith("/jobs"),
+    href: "/notifications",
+    label: "Notifs",
+    icon: Bell,
+    match: (p) => p.startsWith("/notifications"),
+    badgeKey: "notifications",
   },
   {
-    href: "/profile",
-    label: "Profil",
-    icon: User,
-    match: (p) => p.startsWith("/profile") || p.startsWith("/u/"),
+    label: "Menu",
+    icon: MenuIcon,
+    trigger: "menu",
   },
 ];
 
@@ -82,65 +83,187 @@ const HIDDEN_PREFIXES = [
   "/create",
 ];
 
-export function MobileBottomNav() {
+type MobileBottomNavProps = {
+  unreadNotifications?: number;
+  unreadMessages?: number;
+  fullName?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+};
+
+export function MobileBottomNav({
+  unreadNotifications = 0,
+  unreadMessages = 0,
+  fullName = null,
+  username = null,
+  avatarUrl = null,
+}: MobileBottomNavProps) {
   const pathname = usePathname() ?? "";
+  const [menuOpen, setMenuOpen] = useState(false);
+
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
   return (
-    <div
-      aria-hidden={false}
-      className="lg:hidden fixed inset-x-0 bottom-0 z-40 pointer-events-none pb-[env(safe-area-inset-bottom,0px)]"
-    >
+    <>
       <nav
         aria-label="Navigation principale"
-        className="pointer-events-auto mx-3.5 mb-3 rounded-[32px] bg-night/96 backdrop-blur-xl shadow-[0_24px_60px_-16px_rgba(10,31,68,0.5)] flex justify-around px-2 py-3 max-w-md"
+        className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-bg border-t border-line shadow-[0_-2px_8px_rgba(10,31,68,0.04)] pb-[env(safe-area-inset-bottom,0px)]"
       >
-        {ITEMS.map((item) => (
-          <BottomNavItem key={item.href} item={item} pathname={pathname} />
-        ))}
+        <div className="flex h-14">
+          {ITEMS.map((item, index) => {
+            const active = item.match ? item.match(pathname) : false;
+            const badge =
+              item.badgeKey === "notifications"
+                ? unreadNotifications
+                : item.badgeKey === "messages"
+                  ? unreadMessages
+                  : 0;
+
+            if (item.trigger === "menu") {
+              return (
+                <BottomNavTrigger
+                  key={index}
+                  active={menuOpen}
+                  item={item}
+                  badge={
+                    /* Le bouton Menu peut afficher un badge si messages
+                       non-lus (puisque Discussions n'est pas dans la nav
+                       mobile principale). */
+                    unreadMessages
+                  }
+                  onClick={() => setMenuOpen(true)}
+                />
+              );
+            }
+            return (
+              <BottomNavLink
+                key={item.href}
+                active={active}
+                item={item}
+                badge={badge}
+              />
+            );
+          })}
+        </div>
       </nav>
-    </div>
+
+      <MobileMenuSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        fullName={fullName}
+        username={username}
+        avatarUrl={avatarUrl}
+        unreadMessages={unreadMessages}
+      />
+    </>
   );
 }
 
-function BottomNavItem({
+function BottomNavLink({
+  active,
   item,
-  pathname,
+  badge,
 }: {
+  active: boolean;
   item: Item;
-  pathname: string;
+  badge: number;
 }) {
   const Icon = item.icon;
-  const active = item.match(pathname);
   return (
     <Link
-      href={item.href}
+      href={item.href!}
       aria-current={active ? "page" : undefined}
+      aria-label={
+        badge > 0 ? `${item.label} — ${badge} non-lu${badge > 1 ? "s" : ""}` : item.label
+      }
       className={cn(
-        "relative flex flex-col items-center justify-center gap-[3px] min-w-[50px] min-h-[44px] py-1 transition-colors",
-        active ? "text-gold" : "text-cream/55 hover:text-cream/85",
+        /* Bordure-bas active = signature DIVARC. On utilise un span absolute
+           plutôt que border pour ne pas décaler le content. */
+        "relative flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] active:bg-bg-soft transition-colors",
+        active ? "text-night" : "text-night-dim",
       )}
     >
-      {/* Indicateur top -12 gold avec glow (proto BoldTabBar L180) */}
-      {active ? (
-        <span
+      <span className="relative">
+        <Icon
+          className="w-7 h-7"
+          strokeWidth={active ? 2.4 : 2}
           aria-hidden
-          className="absolute -top-3 left-1/2 -translate-x-1/2 w-[22px] h-[3px] rounded-[2px] bg-gold shadow-[0_0_12px_#F4B942]"
         />
-      ) : null}
-      <Icon
-        className="w-5 h-5"
-        strokeWidth={active ? 2.4 : 1.8}
-        aria-hidden
-      />
+        {badge > 0 ? (
+          <span
+            aria-hidden
+            className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-night text-[11px] font-bold flex items-center justify-center"
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        ) : null}
+      </span>
       <span
         className={cn(
-          "text-[10px] leading-none",
+          "text-[11px] leading-none",
           active ? "font-bold" : "font-medium",
         )}
       >
         {item.label}
       </span>
+      {active ? (
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gold"
+        />
+      ) : null}
     </Link>
+  );
+}
+
+function BottomNavTrigger({
+  active,
+  item,
+  badge,
+  onClick,
+}: {
+  active: boolean;
+  item: Item;
+  badge: number;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={item.label}
+      aria-expanded={active}
+      className={cn(
+        "relative flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] active:bg-bg-soft transition-colors",
+        active ? "text-night" : "text-night-dim",
+      )}
+    >
+      <span className="relative">
+        <Icon className="w-7 h-7" strokeWidth={active ? 2.4 : 2} aria-hidden />
+        {badge > 0 ? (
+          <span
+            aria-hidden
+            className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-night text-[11px] font-bold flex items-center justify-center"
+          >
+            {badge > 9 ? "9+" : badge}
+          </span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "text-[11px] leading-none",
+          active ? "font-bold" : "font-medium",
+        )}
+      >
+        {item.label}
+      </span>
+      {active ? (
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-0 right-0 h-[3px] bg-gold"
+        />
+      ) : null}
+    </button>
   );
 }
