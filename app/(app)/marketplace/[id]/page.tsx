@@ -6,6 +6,7 @@ import { CATEGORY_META, CONDITION_META } from "@/lib/utils/categories";
 import { getListingById, listListings } from "@/lib/queries/listings";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { createClient } from "@/lib/supabase/server";
+import { jsonLdScriptProps, listingJsonLd } from "@/lib/seo/jsonLd";
 import { ContactSellerButton } from "./_components/ContactSellerButton";
 import { ListingGallery } from "./_components/ListingGallery";
 import { ListingTopBar } from "./_components/ListingTopBar";
@@ -75,8 +76,25 @@ export default async function ListingPage({ params }: { params: Params }) {
       ? `${process.env.NEXT_PUBLIC_SITE_URL}/marketplace/${listing.id}`
       : `/marketplace/${listing.id}`;
 
+  /* JSON-LD Product (Schema.org) — n'est rendu que pour les listings actifs.
+     Sold/draft restent visibles mais non indexés comme produits achetables. */
+  const jsonLd = listingJsonLd({
+    id: listing.id,
+    title: listing.title,
+    description: listing.description,
+    priceAmount: Number(listing.price_amount),
+    priceCurrency: listing.price_currency,
+    condition: listing.condition,
+    status: listing.status,
+    category: listing.category,
+    photoUrl: listing.photos[0]?.url ?? null,
+    sellerName: listing.seller?.full_name ?? null,
+    sellerUsername: listing.seller?.username ?? null,
+  });
+
   return (
     <div className="bg-bg-soft min-h-screen pb-28 relative">
+      <script {...jsonLdScriptProps(jsonLd)} />
       {/* Hero gallery + glass top bar */}
       <div className="relative">
         <ListingGallery

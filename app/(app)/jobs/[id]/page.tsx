@@ -30,6 +30,7 @@ import {
   listMyExistingReferrals,
   listReferralsOnJob,
 } from "@/lib/queries/referrals";
+import { jobJsonLd, jsonLdScriptProps } from "@/lib/seo/jsonLd";
 import { createClient } from "@/lib/supabase/server";
 import { buildApplicationDraft } from "@/lib/utils/applicationDraft";
 import { ApplyDialog } from "./_components/ApplyDialog";
@@ -138,8 +139,30 @@ export default async function JobDetailPage({
     job.salary_period,
   );
 
+  /* JSON-LD JobPosting (Schema.org) — éligible Google for Jobs.
+     N'est rendu que pour les jobs ouverts (status active). */
+  const jsonLd =
+    job.status === "active"
+      ? jobJsonLd({
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          postedAt: job.created_at,
+          validThrough: job.closed_at,
+          employmentType: job.job_type,
+          location: job.location,
+          remote: job.work_mode === "remote",
+          salaryMin: job.salary_min,
+          salaryMax: job.salary_max,
+          currency: job.salary_currency ?? "EUR",
+          companyName: job.company_name,
+          companyLogo: null,
+        })
+      : null;
+
   return (
     <div className="bg-bg-soft min-h-screen pb-[120px] relative">
+      {jsonLd ? <script {...jsonLdScriptProps(jsonLd)} /> : null}
       <div className="mx-auto w-full max-w-2xl">
         {/* Top bar : back / share / save (proto L117-123) */}
         <div className="flex items-center justify-between gap-3 px-4 pt-12 sm:pt-14 pb-2">

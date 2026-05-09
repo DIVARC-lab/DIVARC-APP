@@ -22,6 +22,7 @@ import {
   getPublicStatsByUserId,
 } from "@/lib/queries/publicProfile";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
+import { jsonLdScriptProps, profileJsonLd } from "@/lib/seo/jsonLd";
 import { createClient } from "@/lib/supabase/server";
 import { safeFormatDate } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -148,8 +149,19 @@ export default async function PublicProfilePage({
 
   const tabBase = `/u/${profile.username}`;
 
+  /* JSON-LD Person — n'est rendu que pour les profils discoverable
+     (sinon notFound() plus haut a déjà court-circuité). */
+  const jsonLd = profileJsonLd({
+    username: profile.username ?? "",
+    fullName: profile.full_name,
+    bio: profile.bio,
+    avatarUrl: profile.avatar_url,
+    location: profile.show_location ? profile.location : null,
+  });
+
   return (
     <div className="mx-auto w-full max-w-4xl">
+      <script {...jsonLdScriptProps(jsonLd)} />
       <Hero
         profile={profile}
         stats={stats}
