@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design handoff prototypes : .jsx avec globals (Avatar/Icon/ArcDeco)
+    // qui ne sont pas du code source à linter.
+    "design_handoff_divarc_refonte/**",
   ]),
 ]);
 
