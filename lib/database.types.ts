@@ -149,6 +149,9 @@ export type PostPhoto = {
   url: string;
   position: number;
   created_at: string;
+  aspect_ratio: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export type PostLike = {
@@ -729,6 +732,9 @@ export type Story = {
   video_duration_ms: number | null;
   created_at: string;
   expires_at: string;
+  aspect_ratio: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export type StoryView = {
@@ -886,6 +892,9 @@ export type ListingPhoto = {
   url: string;
   position: number;
   created_at: string;
+  aspect_ratio: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export type Favorite = {
@@ -1167,9 +1176,23 @@ export type Database = {
       };
       listing_photos: {
         Row: ListingPhoto;
-        Insert: Omit<ListingPhoto, "id" | "created_at"> &
-          Partial<Pick<ListingPhoto, "id" | "created_at">>;
-        Update: Partial<Pick<ListingPhoto, "url" | "position">>;
+        Insert: Pick<ListingPhoto, "listing_id" | "url" | "position"> &
+          Partial<
+            Pick<
+              ListingPhoto,
+              | "id"
+              | "created_at"
+              | "aspect_ratio"
+              | "width"
+              | "height"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ListingPhoto,
+            "url" | "position" | "aspect_ratio" | "width" | "height"
+          >
+        >;
         Relationships: [];
       };
       favorites: {
@@ -1274,9 +1297,20 @@ export type Database = {
       };
       post_photos: {
         Row: PostPhoto;
-        Insert: Omit<PostPhoto, "id" | "created_at"> &
-          Partial<Pick<PostPhoto, "id" | "created_at">>;
-        Update: Partial<Pick<PostPhoto, "url" | "position">>;
+        Insert: Pick<PostPhoto, "post_id" | "url" | "position"> &
+          Partial<
+            Pick<
+              PostPhoto,
+              | "id"
+              | "created_at"
+              | "aspect_ratio"
+              | "width"
+              | "height"
+            >
+          >;
+        Update: Partial<
+          Pick<PostPhoto, "url" | "position" | "aspect_ratio" | "width" | "height">
+        >;
         Relationships: [];
       };
       post_likes: {
@@ -1488,8 +1522,30 @@ export type Database = {
       };
       stories: {
         Row: Story;
-        Insert: Omit<Story, "id" | "created_at" | "expires_at"> &
-          Partial<Pick<Story, "id" | "expires_at">>;
+        Insert: Pick<
+          Story,
+          | "author_id"
+          | "type"
+          | "photo_url"
+          | "caption"
+          | "background"
+          | "filter"
+          | "video_url"
+          | "video_thumbnail_url"
+          | "video_duration_ms"
+          | "caption_position"
+          | "stickers"
+        > &
+          Partial<
+            Pick<
+              Story,
+              | "id"
+              | "expires_at"
+              | "aspect_ratio"
+              | "width"
+              | "height"
+            >
+          >;
         Update: never;
         Relationships: [];
       };
