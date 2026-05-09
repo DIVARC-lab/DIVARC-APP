@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs } from "@/components/ui/Tabs";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -169,34 +170,3 @@ export default async function FriendsPage({
   );
 }
 
-function EmptyState({
-  emoji,
-  title,
-  body,
-  ctaHref,
-  ctaLabel,
-}: {
-  emoji: string;
-  title: string;
-  body: string;
-  ctaHref?: string;
-  ctaLabel?: string;
-}) {
-  return (
-    <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5 text-4xl leading-none"
-      >
-        {emoji}
-      </div>
-      <h2 className="font-display text-2xl text-night">{title}</h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto">{body}</p>
-      {ctaHref && ctaLabel ? (
-        <Button asChild className="mt-6">
-          <Link href={ctaHref}>{ctaLabel}</Link>
-        </Button>
-      ) : null}
-    </div>
-  );
-}

@@ -1,9 +1,10 @@
-import { Heart, ListPlus, Plus, Sparkles, Store } from "lucide-react";
+import { Heart, Plus, Sparkles, Store } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Button } from "@/components/ui/Button";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
 import { listListings } from "@/lib/queries/listings";
@@ -86,7 +87,25 @@ export default async function MarketplacePage({
       <CategoryChips />
 
       {listings.length === 0 ? (
-        <EmptyState category={validCategory} query={q} />
+        <EmptyState
+          emoji={validCategory ? CATEGORY_META[validCategory].emoji : "🛍️"}
+          kicker="Marketplace"
+          title={
+            q
+              ? `Aucune annonce pour « ${q} »`
+              : validCategory
+                ? `Pas encore d'annonces ${CATEGORY_META[validCategory].label.toLowerCase()}`
+                : "La marketplace démarre"
+          }
+          body={
+            q || validCategory
+              ? "Modifie tes filtres ou publie ta propre annonce."
+              : "Sois le premier à publier une annonce sur DIVARC."
+          }
+          ctaHref="/marketplace/new"
+          ctaLabel="Publier une annonce"
+          size="lg"
+        />
       ) : (
         <>
           {!validCategory && !q ? (
@@ -137,39 +156,3 @@ export default async function MarketplacePage({
   );
 }
 
-function EmptyState({
-  category,
-  query,
-}: {
-  category: ListingCategory | undefined;
-  query: string | undefined;
-}) {
-  return (
-    <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5 text-4xl leading-none"
-      >
-        {category ? CATEGORY_META[category].emoji : "🛍️"}
-      </div>
-      <h2 className="font-display text-2xl text-night">
-        {query
-          ? `Aucune annonce pour « ${query} »`
-          : category
-            ? `Pas encore d'annonces ${CATEGORY_META[category].label.toLowerCase()}`
-            : "La marketplace démarre"}
-      </h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto">
-        {query || category
-          ? "Modifie tes filtres ou publie ta propre annonce."
-          : "Sois le premier à publier une annonce sur DIVARC."}
-      </p>
-      <Button asChild className="mt-6">
-        <Link href="/marketplace/new">
-          <ListPlus className="w-4 h-4" aria-hidden />
-          Publier une annonce
-        </Link>
-      </Button>
-    </div>
-  );
-}

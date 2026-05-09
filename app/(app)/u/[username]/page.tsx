@@ -12,6 +12,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { listListings } from "@/lib/queries/listings";
 import { listJobs } from "@/lib/queries/jobs";
@@ -523,37 +524,3 @@ function JobMiniCard({ job }: { job: JobWithDetails }) {
   );
 }
 
-function EmptyState({
-  emoji,
-  title,
-  body,
-  ctaHref,
-  ctaLabel,
-}: {
-  emoji: string;
-  title: string;
-  body: string;
-  ctaHref?: string;
-  ctaLabel?: string;
-}) {
-  return (
-    <div className="text-center py-14 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-4 text-3xl leading-none"
-      >
-        {emoji}
-      </div>
-      <h2 className="font-display italic text-[22px] text-night">{title}</h2>
-      <p className="mt-1 text-sm text-muted max-w-sm mx-auto">{body}</p>
-      {ctaHref && ctaLabel ? (
-        <Link
-          href={ctaHref}
-          className="mt-5 inline-flex items-center gap-2 px-5 h-11 rounded-full bg-night text-cream font-semibold text-sm hover:bg-night-soft"
-        >
-          {ctaLabel}
-        </Link>
-      ) : null}
-    </div>
-  );
-}

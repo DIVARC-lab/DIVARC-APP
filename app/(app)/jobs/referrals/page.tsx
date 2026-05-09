@@ -2,6 +2,7 @@ import { ArrowLeft, Inbox, Send, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs } from "@/components/ui/Tabs";
 import {
   listReferralsByMe,
@@ -85,8 +86,11 @@ export default async function ReferralsPage({
         received.length === 0 ? (
           <EmptyState
             icon={Inbox}
+            kicker="Cooptations reçues"
             title="Pas encore de cooptation reçue"
             body="Quand un ami te recommandera pour un poste, tu le verras ici."
+            ctaHref="/jobs"
+            ctaLabel="Voir les offres"
           />
         ) : (
           <ul className="space-y-3">
@@ -103,8 +107,11 @@ export default async function ReferralsPage({
         sent.length === 0 ? (
           <EmptyState
             icon={Send}
+            kicker="Cooptations envoyées"
             title="Aucune cooptation envoyée"
             body="Trouve une offre intéressante et clique sur « Coopter un ami »."
+            ctaHref="/jobs"
+            ctaLabel="Voir les offres"
           />
         ) : (
           <ul className="space-y-3">
@@ -188,32 +195,3 @@ function ReferralCard({
   );
 }
 
-function EmptyState({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: typeof Inbox;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-      >
-        <Icon className="w-7 h-7 text-gold-deep" aria-hidden />
-      </div>
-      <h2 className="font-display text-2xl text-night">{title}</h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto">{body}</p>
-      <Link
-        href="/jobs"
-        className="inline-flex items-center gap-2 mt-6 px-4 h-10 rounded-full bg-night text-cream text-sm font-semibold hover:bg-night-soft"
-      >
-        <UserPlus className="w-4 h-4" aria-hidden />
-        Voir les offres
-      </Link>
-    </div>
-  );
-}

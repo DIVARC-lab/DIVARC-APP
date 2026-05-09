@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { JobCard } from "@/components/jobs/JobCard";
 import { listJobs } from "@/lib/queries/jobs";
 import {
@@ -145,7 +146,21 @@ export default async function JobsPage({
 
       {jobs.length === 0 ? (
         <EmptyState
-          hasFilters={Boolean(validCategory || validType || validMode || q)}
+          emoji="💼"
+          kicker="Jobs"
+          title={
+            validCategory || validType || validMode || q
+              ? "Aucune offre avec ces filtres"
+              : "Pas encore d'offres d'emploi"
+          }
+          body={
+            validCategory || validType || validMode || q
+              ? "Modifie tes filtres ou publie ta propre offre."
+              : "Sois le premier à publier une offre sur DIVARC."
+          }
+          ctaHref="/jobs/new"
+          ctaLabel="Publier une offre"
+          size="lg"
         />
       ) : (
         <>
@@ -166,31 +181,3 @@ export default async function JobsPage({
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
-  return (
-    <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5 text-4xl"
-      >
-        💼
-      </div>
-      <h2 className="font-display text-2xl text-night">
-        {hasFilters
-          ? "Aucune offre avec ces filtres"
-          : "Pas encore d'offres d'emploi"}
-      </h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto">
-        {hasFilters
-          ? "Modifie tes filtres ou publie ta propre offre."
-          : "Sois le premier à publier une offre sur DIVARC."}
-      </p>
-      <Button asChild className="mt-6">
-        <Link href="/jobs/new">
-          <Plus className="w-4 h-4" aria-hidden />
-          Publier une offre
-        </Link>
-      </Button>
-    </div>
-  );
-}
