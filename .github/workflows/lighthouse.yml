@@ -1,0 +1,45 @@
+name: Lighthouse CI
+
+# Mesure Core Web Vitals + a11y + best-practices + SEO sur les pages
+# publiques de DIVARC après chaque déploiement Vercel sur main.
+#
+# Stratégie :
+#  - Audit uniquement les routes publiques (/, /login, /signup, /offline)
+#    car les pages auth nécessitent une session
+#  - Storage public via temporary-public-storage (URL d'un rapport partageable)
+#  - Threshold non-bloquant (warn-only) pour permettre le merge même sur
+#    régression — la métrique sert à l'observabilité, pas au gating
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Délai pour laisser Vercel terminer le déploiement avant de lancer
+# Lighthouse contre la prod. Vercel met typiquement 30-90s.
+env:
+  WAIT_FOR_DEPLOY_S: 90
+
+jobs:
+  lighthouse:
+    name: Lighthouse audit (prod)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Wait for Vercel production deployment
+        run: |
+          echo "Waiting ${WAIT_FOR_DEPLOY_S}s for Vercel deployment to be live..."
+          sleep "${WAIT_FOR_DEPLOY_S}"
+
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14.x autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
