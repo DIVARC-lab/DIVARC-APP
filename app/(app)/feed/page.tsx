@@ -83,6 +83,30 @@ export default async function FeedPage({
   ]);
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
+  /* Données pour les enrichissements desktop : date du jour façon
+     "7 MAI" pour le kicker + count des posts < 24h pour le subtitle. */
+  const today = new Date();
+  const todayKicker = `${today.getDate()} ${
+    [
+      "JANV.",
+      "FÉVR.",
+      "MARS",
+      "AVR.",
+      "MAI",
+      "JUIN",
+      "JUIL.",
+      "AOÛT",
+      "SEPT.",
+      "OCT.",
+      "NOV.",
+      "DÉC.",
+    ][today.getMonth()]
+  }`;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const newPostsCount = posts.filter(
+    (p) => Date.now() - new Date(p.created_at).getTime() < dayMs,
+  ).length;
+
   return (
     <div className="relative bg-[#F1F3F8] min-h-screen pb-[86px]">
       <div className="mx-auto w-full max-w-6xl">
@@ -98,18 +122,28 @@ export default async function FeedPage({
               </div>
               <div className="relative">
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B88A2A]">
-                  · Le feed
+                  · Le feed · {todayKicker}
                 </p>
-                <h1 className="mt-2.5 font-display text-[44px] sm:text-[60px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
-                  Ce que tes proches
-                  <br />
+                <h1 className="mt-2.5 font-display text-[40px] sm:text-[56px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
+                  Ce que tes proches{" "}
                   <em className="italic bg-gradient-to-br from-[#F4B942] to-[#B88A2A] bg-clip-text text-transparent">
                     racontent
-                  </em>
-                  .
+                  </em>{" "}
+                  aujourd&apos;hui.
                 </h1>
-                <p className="mt-2 max-w-[280px] text-[13px] leading-[1.45] text-[#2A3D6B]">
-                  Ordre chronologique strict. Pas d&apos;algo, pas de pub.
+                <p className="mt-3 max-w-[420px] lg:max-w-[480px] text-[13px] sm:text-[14px] lg:text-[15px] leading-[1.45] lg:leading-relaxed text-[#2A3D6B]">
+                  Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
+                  {newPostsCount > 0 ? (
+                    <>
+                      {" "}
+                      <span className="font-semibold text-[#0A1F44]">
+                        {newPostsCount} nouveau
+                        {newPostsCount > 1 ? "x" : ""} post
+                        {newPostsCount > 1 ? "s" : ""}
+                      </span>{" "}
+                      depuis ta dernière visite.
+                    </>
+                  ) : null}
                 </p>
               </div>
             </header>
