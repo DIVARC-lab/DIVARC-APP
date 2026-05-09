@@ -10,10 +10,12 @@ import type {
   MessageReplyContext,
   MessageReactionSummary,
 } from "@/lib/database.types";
+import { useLongPress } from "@/lib/hooks/useLongPress";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
 import { AudioPlayer } from "./AudioPlayer";
+import { MessageActionsSheet } from "./MessageActionsSheet";
 import { MessageReactions } from "./MessageReactions";
 import { ReactionPicker } from "./ReactionPicker";
 import { ReplyPreview } from "./ReplyPreview";
@@ -42,6 +44,18 @@ export function MessageBubble({
   onReply,
 }: MessageBubbleProps) {
   const [pendingDelete, startDelete] = useTransition();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  /* Long-press tactile (mobile) → ouvre le bottom sheet d'actions. Sur
+     desktop le hover-to-reveal classique reste actif (le hook ignore les
+     pointerType="mouse"). */
+  const longPressHandlers = useLongPress(
+    () => {
+      if (message.type === "system") return;
+      setSheetOpen(true);
+    },
+    { delay: 380 },
+  );
 
   if (message.type === "system") {
     return (
@@ -151,9 +165,10 @@ export function MessageBubble({
 
           <div
             className={cn(
-              "flex flex-col",
+              "flex flex-col touch-manipulation",
               isOwn ? "items-end" : "items-start",
             )}
+            {...longPressHandlers}
           >
             {replyContext ? (
               <ReplyPreview
@@ -194,7 +209,7 @@ export function MessageBubble({
             {message.body ? (
               <div
                 className={cn(
-                  "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm",
+                  "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm select-none",
                   hasImage || hasFile || hasAudio ? "mt-1.5" : "",
                   isOwn
                     ? "bg-night text-cream rounded-br-md"
@@ -238,6 +253,16 @@ export function MessageBubble({
           </time>
         ) : null}
       </div>
+
+      <MessageActionsSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        isOwn={isOwn}
+        messageBody={message.body ?? null}
+        onReact={handleQuickReact}
+        onReply={onReply}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
