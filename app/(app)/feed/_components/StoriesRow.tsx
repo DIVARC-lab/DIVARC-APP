@@ -1,3 +1,22 @@
+/**
+ * StoriesRow — direction "Bold" du handoff design team.
+ *
+ * Implémenté pixel d'après design_handoff_divarc_refonte/feed-mobile-bold.jsx
+ * (section stories rail du BoldFeedScreen). JSX entièrement restructuré pour
+ * matcher la grammaire :
+ *
+ * - Tile "Toi" : w 70 h 70 rounded-full bg-white border-2 navy + FAB plus
+ *   gold 26x26 chevauchement -3/-3 avec border-2.5 bg + shadow gold 4/12
+ * - Avatar "Toi" centré 56x56, font-display italic initiale si pas d'image
+ * - Stories non-vues : ring conic-gradient gold (from 200deg) padding 3px +
+ *   shadow gold 6/18 -4 — anneau bien visible
+ * - Stories vues : bg-night/15 p-3 (anneau plat)
+ * - Inner ring bg-bg-deep p-2 pour la séparation entre ring et avatar
+ * - Label text-[11px] font-semibold text-night-soft max-w-[70px] truncate
+ *
+ * 100% Tailwind v4 (anneau conic via bg-[conic-gradient(...)], shadows
+ * arbitraires shadow-[...]). Aucun style={{}} inline. Props inchangées.
+ */
 import { Eye, Plus } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,13 +30,6 @@ type StoriesRowProps = {
   currentUserName: string | null;
 };
 
-/** Stories row — pattern Bold du proto handoff :
- *  - Anneau conic-gradient gold épais 70x70 (3px padding) avec
- *    shadow gold visible quand has_unviewed
- *  - "Toi" en card blanche border navy 2px + FAB plus gold 26px
- *    en chevauchement bas-droite (au lieu du dashed border subtil)
- *  - Avatars 56-58px à l'intérieur de l'anneau
- *  - Label sm font-semibold text-night (au lieu de night-muted) */
 export function StoriesRow({
   groups,
   currentUserId,
@@ -29,8 +41,9 @@ export function StoriesRow({
   const hasMyStories = !!myGroup && myGroup.stories.length > 0;
 
   return (
-    <div className="-mx-4 sm:mx-0 px-4 sm:px-0 py-1 overflow-x-auto">
+    <div className="-mx-4 sm:mx-0 overflow-x-auto px-4 sm:px-0 py-2">
       <ul className="flex items-start gap-3 min-w-max">
+        {/* Tile "Toi" — card blanche border navy + FAB gold pour ajouter */}
         <li className="flex flex-col items-center gap-1.5">
           <Link
             href={
@@ -39,9 +52,9 @@ export function StoriesRow({
                 : "/stories/new"
             }
             aria-label={hasMyStories ? "Voir mes stories" : "Ajouter une story"}
-            className="flex flex-col items-center gap-1.5 group"
+            className="group flex flex-col items-center gap-1.5"
           >
-            <span className="relative w-[70px] h-[70px] rounded-full bg-white border-2 border-night flex items-center justify-center group-hover:scale-105 transition-transform">
+            <span className="relative w-[70px] h-[70px] rounded-full bg-white border-2 border-night flex items-center justify-center transition-transform group-hover:scale-105">
               {hasMyStories ? (
                 <Avatar
                   src={currentUserAvatarUrl}
@@ -50,12 +63,15 @@ export function StoriesRow({
                   className="!w-[56px] !h-[56px]"
                 />
               ) : (
-                <span className="w-[56px] h-[56px] rounded-full bg-bg-deep flex items-center justify-center text-night-muted font-display italic text-2xl">
-                  {currentUserName?.charAt(0).toUpperCase() ?? "?"}
+                <span className="flex h-[56px] w-[56px] items-center justify-center rounded-full bg-bg-deep font-display italic text-2xl text-night-muted">
+                  {currentUserName?.charAt(0).toUpperCase() ?? "+"}
                 </span>
               )}
-              <span className="absolute -bottom-1 -right-1 w-[26px] h-[26px] rounded-full bg-gold text-night flex items-center justify-center border-[2.5px] border-bg shadow-[0_4px_12px_rgba(244,185,66,0.5)]">
-                <Plus className="w-3.5 h-3.5" aria-hidden strokeWidth={3} />
+              <span
+                aria-hidden
+                className="absolute -bottom-[3px] -right-[3px] flex h-[26px] w-[26px] items-center justify-center rounded-full bg-gold text-night border-[2.5px] border-bg shadow-[0_4px_12px_rgba(244,185,66,0.5)]"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={3} aria-hidden />
               </span>
             </span>
             <span className="text-[11px] font-semibold text-night max-w-[70px] truncate">
@@ -65,7 +81,7 @@ export function StoriesRow({
           {hasMyStories ? (
             <Link
               href="/stories/archive"
-              className="text-[10px] font-semibold text-gold-deep hover:underline inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold text-gold-deep hover:underline"
             >
               <Eye className="w-3 h-3" aria-hidden />
               Archive
@@ -73,6 +89,7 @@ export function StoriesRow({
           ) : null}
         </li>
 
+        {/* Stories des autres */}
         {otherGroups.map((group) => (
           <li key={group.author.id}>
             <StoryAvatarLink group={group} />
@@ -93,7 +110,7 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
   return (
     <Link
       href={`/stories/${firstStoryId}`}
-      className="flex flex-col items-center gap-1.5 group"
+      className="group flex flex-col items-center gap-1.5"
     >
       <span
         className={cn(
@@ -103,7 +120,7 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
             : "bg-night/15",
         )}
       >
-        <span className="block w-full h-full rounded-full p-[2px] bg-bg">
+        <span className="block w-full h-full rounded-full p-[2px] bg-bg-deep">
           <Avatar
             src={group.author.avatar_url}
             fullName={group.author.full_name ?? group.author.username}
@@ -112,7 +129,7 @@ function StoryAvatarLink({ group }: { group: StoryGroup }) {
           />
         </span>
       </span>
-      <span className="text-[11px] font-semibold text-night truncate max-w-[70px]">
+      <span className="text-[11px] font-semibold text-night-soft max-w-[70px] truncate">
         {displayName}
       </span>
     </Link>
