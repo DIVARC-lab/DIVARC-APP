@@ -22,21 +22,28 @@ export default async function LoginPage({
 
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold tracking-tight text-night">
-            Bon retour parmi nous
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+            · Connexion
+          </p>
+          <h1 className="mt-2 font-display text-[36px] sm:text-[44px] font-normal leading-[1.05] tracking-[-0.02em] text-night text-balance">
+            Bon retour parmi tes{" "}
+            <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+              proches
+            </em>
+            .
           </h1>
-          <p className="mt-2 text-muted">
+          <p className="mt-3 text-[14px] text-night-muted leading-relaxed">
             Connecte-toi pour continuer sur DIVARC.
           </p>
 
           {showConfirmationNotice ? (
-            <div className="mt-6 p-4 rounded-xl bg-gold/10 border border-gold/30 text-sm text-night-soft">
+            <div className="mt-6 p-4 rounded-2xl bg-gold/10 border border-gold/30 text-sm text-night-soft">
               📧 Vérifie ta boîte mail pour confirmer ton compte avant de te
               connecter.
             </div>
           ) : null}
 
-          <div className="mt-8">
+          <div className="mt-7">
             <LoginForm />
           </div>
 
@@ -44,7 +51,7 @@ export default async function LoginPage({
             Pas encore de compte ?{" "}
             <Link
               href="/signup"
-              className="font-semibold text-night hover:text-night-soft"
+              className="font-semibold text-gold-deep hover:text-night transition-colors"
             >
               Créer un compte
             </Link>
