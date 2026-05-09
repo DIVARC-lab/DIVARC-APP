@@ -30,6 +30,7 @@ import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Logo } from "@/components/Logo";
+import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { Avatar } from "@/components/ui/Avatar";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
@@ -133,9 +134,10 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="hidden lg:flex flex-col border-r border-line bg-gradient-to-b from-cream/80 via-white/60 to-white/60 backdrop-blur-md sticky top-0 h-screen relative overflow-hidden">
+        {/* Arc fin doré (signature) — opacity douce */}
         <div
           aria-hidden
-          className="absolute -bottom-16 -left-20 w-64 h-64 pointer-events-none opacity-25"
+          className="absolute -bottom-16 -left-20 w-64 h-64 pointer-events-none opacity-30"
         >
           <svg viewBox="0 0 320 320" fill="none" className="w-full h-full">
             <circle
@@ -151,6 +153,24 @@ export default async function DashboardLayout({
             <circle cx="55" cy="225" r="4" fill="#C8A14A" />
           </svg>
         </div>
+        {/* Arc plus épais navy/foncé qui croise le doré (proto pied de page) */}
+        <div
+          aria-hidden
+          className="absolute -bottom-24 -left-32 w-80 h-80 pointer-events-none opacity-20"
+        >
+          <svg viewBox="0 0 320 320" fill="none" className="w-full h-full">
+            <circle
+              cx="170"
+              cy="170"
+              r="155"
+              stroke="#4B5B87"
+              strokeWidth="3.5"
+              fill="none"
+              strokeDasharray="540 280"
+              strokeDashoffset="-220"
+            />
+          </svg>
+        </div>
         <div className="px-6 py-5 border-b border-line space-y-3 relative">
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={36} />
@@ -163,20 +183,26 @@ export default async function DashboardLayout({
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link
+              <SidebarNavLink
                 key={item.label}
                 href={item.available ? item.href : "#"}
-                aria-disabled={!item.available || undefined}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                ariaDisabled={!item.available}
+                baseClass="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                activeClass={
+                  item.available
+                    ? "bg-night text-cream shadow-[0_8px_22px_-12px_rgba(10,31,68,0.45)]"
+                    : "text-muted/70 cursor-default"
+                }
+                inactiveClass={
                   item.available
                     ? "text-night-muted hover:bg-night/5 hover:text-night"
                     : "text-muted/70 cursor-default"
-                }`}
+                }
               >
                 <Icon className="w-4 h-4 shrink-0" aria-hidden />
                 <span className="flex-1">{item.label}</span>
                 {item.badge ? (
-                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-night text-cream text-[10px] font-bold flex items-center justify-center">
+                  <span className="min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center bg-night text-cream group-data-[active=true]:bg-gold group-data-[active=true]:text-night">
                     {item.badge}
                   </span>
                 ) : null}
@@ -185,7 +211,7 @@ export default async function DashboardLayout({
                     Bientôt
                   </span>
                 ) : null}
-              </Link>
+              </SidebarNavLink>
             );
           })}
 
@@ -202,14 +228,16 @@ export default async function DashboardLayout({
           ].map((it) => {
             const Icon = it.icon;
             return (
-              <Link
+              <SidebarNavLink
                 key={it.href}
                 href={it.href}
-                className="group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-muted hover:bg-night/5 hover:text-night-muted transition-colors"
+                baseClass="group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+                activeClass="bg-night text-cream"
+                inactiveClass="text-muted hover:bg-night/5 hover:text-night-muted"
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />
                 <span className="flex-1">{it.label}</span>
-              </Link>
+              </SidebarNavLink>
             );
           })}
         </nav>
