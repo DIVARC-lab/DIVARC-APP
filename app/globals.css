@@ -22,6 +22,9 @@
   --color-muted-strong: var(--muted-strong);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  /* Indicateur "en ligne" — vert standard universel, conservé tel quel
+     pour l'a11y (la convention green = online est attendue). */
+  --color-online: #4caf50;
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
