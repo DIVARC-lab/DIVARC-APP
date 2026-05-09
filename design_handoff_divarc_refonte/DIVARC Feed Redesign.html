@@ -134,6 +134,8 @@
   <script type="text/babel" src="feed-empty.jsx"></script>
   <script type="text/babel" src="feed-stories.jsx"></script>
   <script type="text/babel" src="feed-circles.jsx"></script>
+  <script type="text/babel" src="feed-onboarding.jsx"></script>
+  <script type="text/babel" src="feed-map.jsx"></script>
 <script type="text/babel" src="feed-tweaks.jsx"></script>
 
 <script type="text/babel">
@@ -412,6 +414,39 @@
           </DCArtboard>
         </DCSection>
 
+        <DCSection id="onboarding-multi" title="Onboarding multi-step" subtitle="5 écrans · welcome → centres d'intérêt → quartier → connexions → premier post. Alterne fond navy (1, 5) et clair (2, 3, 4). Progress dots dorés.">
+          <DCArtboard id="ob-welcome" label="01 · Welcome" width={390} height={844}>
+            <PhoneFrame dark><window.OnboardWelcomeScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ob-interests" label="02 · Centres d'intérêt" width={390} height={844}>
+            <PhoneFrame><window.OnboardInterestsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ob-location" label="03 · Quartier" width={390} height={844}>
+            <PhoneFrame><window.OnboardLocationScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ob-connect" label="04 · Connexions" width={390} height={844}>
+            <PhoneFrame><window.OnboardConnectScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ob-first" label="05 · Premier post" width={390} height={844}>
+            <PhoneFrame dark><window.OnboardFirstPostScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="map" title="Carte · vue géo du quartier" subtitle="4 écrans · carte avec pins (events, jobs, market), bottom-sheet liste, détail pin, filtres. Pin AM avec halo gold pulsé pour la position user.">
+          <DCArtboard id="map-main" label="01 · Carte" width={390} height={844}>
+            <PhoneFrame><window.MapMainScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="map-list" label="02 · Liste (sheet)" width={390} height={844}>
+            <PhoneFrame><window.MapListSheetScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="map-pin" label="03 · Détail pin" width={390} height={844}>
+            <PhoneFrame><window.MapPinDetailScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="map-filters" label="04 · Filtres" width={390} height={844}>
+            <PhoneFrame><window.MapFiltersScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
         <DCSection id="desktop" title="Desktop · les deux directions" subtitle="Layout 3 colonnes (nav · feed · suggestions). Sage à gauche, Audacieux à droite — mêmes données, traitement différent.">
           <DCArtboard id="d-sage" label="Sage · 1280×860" width={1280} height={860}>
             <window.DesktopFeedSage />
@@ -448,6 +483,8 @@
     'EmptyFeedScreen', 'EmptySearchScreen', 'OfflineScreen', 'NotFoundScreen', 'ServerErrorScreen',
     // stories + circles
     'StoriesCaptureScreen', 'StoriesEditScreen', 'StoriesViewerScreen', 'StoriesArchiveScreen',
+    'OnboardWelcomeScreen', 'OnboardInterestsScreen', 'OnboardLocationScreen', 'OnboardConnectScreen', 'OnboardFirstPostScreen',
+    'MapMainScreen', 'MapListSheetScreen', 'MapPinDetailScreen', 'MapFiltersScreen',
     'CirclesListScreen', 'CircleDetailScreen', 'CircleEventsScreen', 'CircleInviteScreen',
     // desktop + canvas + tweaks
     'DesktopFeedSage', 'DesktopFeedBold', 'DesignCanvas', 'DCSection', 'DCArtboard',

@@ -26,7 +26,9 @@ Le design system est **déjà partiellement présent dans le repo** : `app/globa
 | 12 | États vides + erreurs | 5 | à appliquer partout |
 | 13 | Stories | 4 | nouvelle feature |
 | 14 | Cercles · groupes | 4 | nouvelle feature |
-| 15 | Desktop | 2 | layout 3 colonnes |
+| 15 | Onboarding multi-step | 5 | refonte `app/(welcome)/` |
+| 16 | Carte · géo | 4 | nouvelle feature `app/(app)/map/` |
+| 17 | Desktop | 2 | layout 3 colonnes |
 
 ## Fidélité
 
@@ -342,6 +344,8 @@ design_handoff_divarc_refonte/
 ├── feed-empty.jsx                  ← 5 écrans états vides
 ├── feed-stories.jsx                ← 4 écrans stories
 ├── feed-circles.jsx                ← 4 écrans cercles
+├── feed-onboarding.jsx             ← 5 écrans onboarding multi-step
+├── feed-map.jsx                    ← 4 écrans carte / géo
 ├── feed-tweaks.jsx                 ← panneau de tweaks (à ne PAS porter en prod)
 ├── tweaks-panel.jsx                ← shell tweaks (à ne PAS porter)
 ├── design-canvas.jsx               ← canvas de présentation (à ne PAS porter)
