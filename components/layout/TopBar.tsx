@@ -14,10 +14,12 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Avatar } from "@/components/ui/Avatar";
 import { Logo } from "@/components/Logo";
 import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
+import type { NotificationWithActor } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
+import { NotificationsDropdown } from "./NotificationsDropdown";
+import { ProfileDropdown } from "./ProfileDropdown";
 import { TopBarMobile } from "./TopBarMobile";
 
 /* TopBar — composant racine desktop ET mobile, monté UNE fois dans
@@ -77,10 +79,14 @@ type TopBarProps = {
       server layout via createClient + getCurrentProfile. */
   userId: string;
   fullName: string | null;
+  /** Username pour link profil (Avatar dropdown). */
+  username?: string | null;
   avatarUrl: string | null;
   /** Compteurs non-lus pour les badges sur Bell + MessageCircle. */
   unreadNotifications?: number;
   unreadMessages?: number;
+  /** 5 dernières notifications pour le dropdown header desktop. */
+  recentNotifications?: NotificationWithActor[];
 };
 
 export function TopBar(props: TopBarProps) {
@@ -199,13 +205,15 @@ function TopBarTabs() {
   );
 }
 
-/* --- Zone droite desktop : 4 boutons ronds (Menu / Messages / Bell / Avatar) */
+/* --- Zone droite desktop : 4 boutons (Grid / Messages link / Bell dropdown / Avatar dropdown) */
 function TopBarActionsDesktop({
   userId,
   fullName,
+  username,
   avatarUrl,
   unreadNotifications = 0,
   unreadMessages = 0,
+  recentNotifications = [],
 }: TopBarProps) {
   return (
     <div className="flex items-center gap-2 shrink-0">
@@ -216,23 +224,15 @@ function TopBarActionsDesktop({
         icon={MessageCircle}
         badgeCount={unreadMessages}
       />
-      <RoundActionButton
-        href="/notifications"
-        label="Notifications"
-        icon={Bell}
-        badgeCount={unreadNotifications}
+      <NotificationsDropdown
+        unreadCount={unreadNotifications}
+        notifications={recentNotifications}
       />
-      <Link
-        href="/profile"
-        aria-label={`Profil de ${fullName ?? "moi"}`}
-        className="ml-1 shrink-0 ring-2 ring-transparent hover:ring-gold/30 rounded-full transition-all"
-      >
-        <Avatar
-          src={avatarUrl}
-          fullName={fullName}
-          size="sm"
-        />
-      </Link>
+      <ProfileDropdown
+        fullName={fullName}
+        username={username ?? null}
+        avatarUrl={avatarUrl}
+      />
       <span className="sr-only">{userId}</span>
     </div>
   );

@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getTotalUnreadCount } from "@/lib/queries/conversations";
-import { countUnreadNotifications } from "@/lib/queries/notifications";
+import {
+  countUnreadNotifications,
+  listNotificationsForUser,
+} from "@/lib/queries/notifications";
 import { listMyCircles } from "@/lib/queries/circles";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { NotificationsRealtime } from "@/components/NotificationsRealtime";
@@ -47,11 +50,14 @@ export default async function DashboardLayout({
   const username = profile?.username ?? null;
   const avatarUrl = profile?.avatar_url ?? null;
 
-  const [unreadMessages, unreadNotifications, myCircles] = await Promise.all([
-    getTotalUnreadCount(user.id),
-    countUnreadNotifications(user.id),
-    listMyCircles(user.id),
-  ]);
+  const [unreadMessages, unreadNotifications, myCircles, recentNotifications] =
+    await Promise.all([
+      getTotalUnreadCount(user.id),
+      countUnreadNotifications(user.id),
+      listMyCircles(user.id),
+      /* 5 plus récentes pour le dropdown TopBar (le reste est dans /notifications) */
+      listNotificationsForUser(user.id, 5),
+    ]);
 
   /* Cercles épinglés pour la sidebar gauche (max 6, les plus récents). */
   const pinnedCircles = myCircles.slice(0, 6).map((c) => ({
@@ -68,9 +74,11 @@ export default async function DashboardLayout({
           <TopBar
             userId={user.id}
             fullName={fullName}
+            username={username}
             avatarUrl={avatarUrl}
             unreadNotifications={unreadNotifications}
             unreadMessages={unreadMessages}
+            recentNotifications={recentNotifications}
           />
 
           {/* Padding-top h-14 pour décaler sous TopBar fixed.
