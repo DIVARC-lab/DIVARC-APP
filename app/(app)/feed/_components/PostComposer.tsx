@@ -324,16 +324,23 @@ export function PostComposer({
     !uploading &&
     !uploadingVideo;
 
+  /* JSX entièrement refait d'après design_handoff_divarc_refonte/
+     feed-mobile-bold.jsx (composer hero du BoldFeedScreen). 100%
+     Tailwind v4 — gradient gold via bg-gradient-to-br + couleurs
+     arbitraires `to-[#B88A2A]` (pas de style={{}} inline). Logique
+     d'upload, VisibilityPicker, server actions, hidden inputs : tout
+     préservé tel quel. */
   return (
     <form
       action={formAction}
-      className="relative rounded-[28px] bg-white overflow-hidden shadow-[0_1px_2px_rgba(10,31,68,0.04),0_24px_60px_-28px_rgba(10,31,68,0.22)]"
+      className="relative overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_24px_60px_-28px_rgba(10,31,68,0.22)]"
     >
-      {/* Accent gold barre top centré (signature Bold du proto) */}
-      <div
+      {/* Accent gold top — signature Bold (barre dorée en haut) */}
+      <span
         aria-hidden
-        className="absolute top-0 left-9 w-20 h-1 bg-gold rounded-b-md pointer-events-none"
+        className="pointer-events-none absolute top-0 left-9 w-20 h-1 rounded-b-md bg-gold"
       />
+
       <input type="hidden" name="visibility" value={visibility} />
       <input
         type="hidden"
@@ -358,7 +365,7 @@ export function PostComposer({
         }
       />
 
-      <div className="p-4 sm:p-5 flex gap-3">
+      <div className="flex gap-3 px-[18px] pt-5 pb-3">
         <Avatar src={authorAvatarUrl} fullName={authorName} size="md" />
         <div className="flex-1 min-w-0">
           <textarea
@@ -376,10 +383,10 @@ export function PostComposer({
             }
             rows={2}
             maxLength={4000}
-            className="w-full resize-none border-0 bg-transparent text-night text-lg leading-snug font-display italic placeholder:text-muted-strong focus:outline-none"
+            className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-snug text-night placeholder:text-night-dim focus:outline-none"
           />
           {body.length === 0 ? (
-            <p className="text-xs text-muted -mt-1">
+            <p className="-mt-1 text-[11px] text-muted">
               Photo, pensée, annonce, un moment de ta journée…
             </p>
           ) : null}
@@ -394,7 +401,7 @@ export function PostComposer({
               {photos.map((photo) => (
                 <div
                   key={photo.storagePath}
-                  className="relative aspect-square rounded-2xl overflow-hidden border border-line bg-night/5 group"
+                  className="group relative aspect-square overflow-hidden rounded-2xl bg-night/5"
                 >
                   <Image
                     src={photo.url}
@@ -408,7 +415,7 @@ export function PostComposer({
                     type="button"
                     onClick={() => removePhoto(photo)}
                     aria-label="Retirer"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/95 text-red-500 hover:bg-white flex items-center justify-center"
+                    className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 hover:bg-white"
                   >
                     <X className="w-4 h-4" aria-hidden />
                   </button>
@@ -418,24 +425,24 @@ export function PostComposer({
           ) : null}
 
           {video ? (
-            <div className="mt-3 relative rounded-2xl overflow-hidden border border-line bg-night max-w-[220px] aspect-[9/16] group">
+            <div className="group relative mt-3 aspect-[9/16] max-w-[220px] overflow-hidden rounded-2xl bg-night">
               <video
                 src={video.url}
                 poster={video.thumbnail_url}
                 controls
                 playsInline
                 muted
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
               />
               <button
                 type="button"
                 onClick={removeVideo}
                 aria-label="Retirer la vidéo"
-                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/95 text-red-500 hover:bg-white flex items-center justify-center"
+                className="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-red-500 hover:bg-white"
               >
                 <X className="w-4 h-4" aria-hidden />
               </button>
-              <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-night/70 text-white text-[10px] font-bold">
+              <div className="absolute bottom-2 left-2 rounded-full bg-night/70 px-2 py-0.5 text-[10px] font-bold text-white">
                 {Math.round(video.duration_ms / 1000)} s
               </div>
             </div>
@@ -443,7 +450,8 @@ export function PostComposer({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 sm:px-5 py-3 border-t border-line bg-night/[0.02]">
+      {/* Toolbar — pills h-9 + bouton Publier gradient gold à droite */}
+      <div className="flex flex-wrap items-center gap-2 px-[18px] pt-3 pb-4 ml-[60px] sm:ml-[60px]">
         <input
           ref={inputRef}
           type="file"
@@ -463,12 +471,12 @@ export function PostComposer({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading || photos.length >= MAX_PHOTOS || video !== null}
-          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold/15 text-gold-deep hover:bg-gold/25 text-sm font-semibold disabled:opacity-60 border border-gold/30"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream text-gold-deep border border-gold/30 text-[13px] font-bold transition-colors hover:bg-gold/15 disabled:opacity-60"
         >
           {uploading ? (
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
           ) : (
-            <ImagePlus className="w-4 h-4" aria-hidden />
+            <ImagePlus className="w-3.5 h-3.5" aria-hidden />
           )}
           Photos
           {photos.length > 0 ? ` · ${photos.length}/${MAX_PHOTOS}` : ""}
@@ -478,36 +486,30 @@ export function PostComposer({
           type="button"
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadingVideo || video !== null || photos.length > 0}
-          className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold/15 text-gold-deep hover:bg-gold/25 text-sm font-semibold disabled:opacity-60 border border-gold/30"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-bg-deep text-night-soft text-[13px] font-bold transition-colors hover:bg-night/10 hover:text-night disabled:opacity-60"
         >
           {uploadingVideo ? (
-            <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
           ) : (
-            <Video className="w-4 h-4" aria-hidden />
+            <Video className="w-3.5 h-3.5" aria-hidden />
           )}
           Vidéo · 60 s
         </button>
 
         <VisibilityPicker value={visibility} onChange={setVisibility} />
 
-        <span className="ml-auto text-xs text-muted">{body.length}/4000</span>
+        <span className="ml-auto text-[11px] text-muted tabular-nums">
+          {body.length}/4000
+        </span>
         <button
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            "inline-flex items-center gap-1.5 px-5 h-10 rounded-full font-extrabold text-[13px] transition",
+            "inline-flex items-center gap-1.5 h-10 px-5 rounded-full font-extrabold text-[13px] transition",
             canSubmit
-              ? "text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.7)] hover:brightness-105"
+              ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)] hover:brightness-105"
               : "bg-gold/40 text-night/60 cursor-not-allowed",
           )}
-          style={
-            canSubmit
-              ? {
-                  backgroundImage:
-                    "linear-gradient(135deg, #F4B942, #B88A2A)",
-                }
-              : undefined
-          }
         >
           {pending ? (
             <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
