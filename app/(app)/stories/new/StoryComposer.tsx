@@ -1,16 +1,20 @@
 "use client";
 
 import { Camera, ImagePlus, Loader2, Send, Type, X } from "lucide-react";
-import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   CameraCapture,
   type CaptureResult,
 } from "@/components/stories/CameraCapture";
+import { StoryOverlayEditor } from "@/components/stories/StoryOverlayEditor";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
-import type { StoryFilter } from "@/lib/database.types";
+import type {
+  StoryCaptionPosition,
+  StoryFilter,
+  StorySticker,
+} from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/client";
 import { STORY_FILTERS, getFilterCss } from "@/lib/stories/filters";
 import { createStory } from "../actions";
@@ -50,6 +54,9 @@ export function StoryComposer({ userId }: StoryComposerProps) {
   const [caption, setCaption] = useState("");
   const [background, setBackground] = useState<string>(BACKGROUNDS[0]!.id);
   const [filter, setFilter] = useState<StoryFilter>("original");
+  const [captionPosition, setCaptionPosition] =
+    useState<StoryCaptionPosition | null>(null);
+  const [stickers, setStickers] = useState<StorySticker[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -246,6 +253,19 @@ export function StoryComposer({ userId }: StoryComposerProps) {
       "filter",
       effectiveType === "photo" ? filter : "original",
     );
+    /* Overlays sérialisés en JSON pour passer dans FormData. */
+    formData.set(
+      "caption_position",
+      effectiveType === "photo" && captionPosition
+        ? JSON.stringify(captionPosition)
+        : "",
+    );
+    formData.set(
+      "stickers",
+      effectiveType === "photo" && stickers.length > 0
+        ? JSON.stringify(stickers)
+        : "[]",
+    );
 
     startTransition(async () => {
       const result = await createStory(formData);
@@ -316,25 +336,16 @@ export function StoryComposer({ userId }: StoryComposerProps) {
               </div>
             </div>
           ) : photo ? (
-            <div className="relative aspect-[4/5] sm:aspect-square w-full max-w-sm mx-auto rounded-3xl overflow-hidden bg-night/5 border border-line">
-              <Image
-                src={photo.url}
-                alt=""
-                fill
-                sizes="400px"
-                className="object-cover"
-                style={{ filter: getFilterCss(filter) || undefined }}
-                unoptimized
-              />
-              <button
-                type="button"
-                onClick={removePhoto}
-                aria-label="Retirer"
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 text-red-500 flex items-center justify-center"
-              >
-                <X className="w-4 h-4" aria-hidden />
-              </button>
-            </div>
+            <StoryOverlayEditor
+              photoUrl={photo.url}
+              imageFilter={getFilterCss(filter)}
+              caption={caption}
+              captionPosition={captionPosition}
+              stickers={stickers}
+              onChangeCaptionPosition={setCaptionPosition}
+              onChangeStickers={setStickers}
+              onRemovePhoto={removePhoto}
+            />
           ) : (
             <div className="w-full max-w-sm mx-auto">
               <button

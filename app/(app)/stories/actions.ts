@@ -10,6 +10,24 @@ const storyFilterSchema = z
   .optional()
   .transform((v) => (v && v !== "original" ? v : null));
 
+const captionPositionSchema = z
+  .object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    scale: z.number().min(0.5).max(2),
+  })
+  .nullable()
+  .optional();
+
+const stickerSchema = z.object({
+  emoji: z.string().min(1).max(8),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  scale: z.number().min(0.5).max(3),
+  rotation: z.number().min(-180).max(180),
+});
+const stickersSchema = z.array(stickerSchema).max(16).optional().default([]);
+
 const storySchema = z
   .object({
     type: z.enum(["photo", "text", "video"]),
@@ -31,6 +49,8 @@ const storySchema = z
       .transform((v) => (v && v.length > 0 ? v : null)),
     background: z.string().max(80).optional().transform((v) => v ?? null),
     filter: storyFilterSchema,
+    caption_position: captionPositionSchema,
+    stickers: stickersSchema,
   })
   .refine(
     (value) =>
@@ -61,6 +81,22 @@ export async function createStory(formData: FormData) {
       ? Number(durationRaw)
       : null;
 
+  /* Parse JSON overlays côté server (resend en JSON.stringify côté composer). */
+  const captionPositionRaw = formData.get("caption_position");
+  const stickersRaw = formData.get("stickers");
+  let captionPositionParsed: unknown = null;
+  let stickersParsed: unknown = [];
+  try {
+    if (typeof captionPositionRaw === "string" && captionPositionRaw.length > 0) {
+      captionPositionParsed = JSON.parse(captionPositionRaw);
+    }
+    if (typeof stickersRaw === "string" && stickersRaw.length > 0) {
+      stickersParsed = JSON.parse(stickersRaw);
+    }
+  } catch {
+    return { ok: false, error: "Overlays mal formés." };
+  }
+
   const parsed = storySchema.safeParse({
     type: formData.get("type"),
     photo_url: formData.get("photo_url"),
@@ -70,6 +106,8 @@ export async function createStory(formData: FormData) {
     caption: formData.get("caption"),
     background: formData.get("background"),
     filter: formData.get("filter"),
+    caption_position: captionPositionParsed,
+    stickers: stickersParsed,
   });
 
   if (!parsed.success) {
@@ -89,6 +127,14 @@ export async function createStory(formData: FormData) {
     caption: parsed.data.caption,
     background: parsed.data.background,
     filter: parsed.data.filter,
+    /* Overlays uniquement pertinents pour les stories photo. Pour les autres
+       types on persiste null/[] pour rester cohérent côté lecture. */
+    caption_position:
+      parsed.data.type === "photo"
+        ? parsed.data.caption_position ?? null
+        : null,
+    stickers:
+      parsed.data.type === "photo" ? parsed.data.stickers : [],
   });
 
   if (error) {

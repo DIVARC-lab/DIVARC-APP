@@ -700,12 +700,28 @@ export type StoryFilter =
   | "pellicule"
   | "argent";
 
+export type StoryCaptionPosition = {
+  x: number; // 0..1, fraction of container width
+  y: number; // 0..1, fraction of container height
+  scale: number; // 0.5..2
+};
+
+export type StorySticker = {
+  emoji: string;
+  x: number; // 0..1
+  y: number; // 0..1
+  scale: number; // 0.5..3
+  rotation: number; // degrees
+};
+
 export type Story = {
   id: string;
   author_id: string;
   type: StoryType;
   photo_url: string | null;
   caption: string | null;
+  caption_position: StoryCaptionPosition | null;
+  stickers: StorySticker[];
   background: string | null;
   filter: StoryFilter | null;
   video_url: string | null;

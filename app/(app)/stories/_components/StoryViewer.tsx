@@ -210,17 +210,63 @@ export function StoryViewer({
 
         <div className="relative flex-1 flex items-center justify-center overflow-hidden">
           {currentStory.type === "photo" && currentStory.photo_url ? (
-            <Image
-              key={currentStory.id}
-              src={currentStory.photo_url}
-              alt={currentStory.caption ?? ""}
-              fill
-              priority
-              sizes="(max-width: 480px) 100vw, 480px"
-              className="object-contain"
-              style={{ filter: getFilterCss(currentStory.filter) || undefined }}
-              unoptimized={currentStory.photo_url.includes("?")}
-            />
+            <>
+              <Image
+                key={currentStory.id}
+                src={currentStory.photo_url}
+                alt={currentStory.caption ?? ""}
+                fill
+                priority
+                sizes="(max-width: 480px) 100vw, 480px"
+                className="object-contain"
+                style={{ filter: getFilterCss(currentStory.filter) || undefined }}
+                unoptimized={currentStory.photo_url.includes("?")}
+              />
+              {/* Overlays auteur : stickers emoji positionnés en fraction du
+                  conteneur (les fractions ont été enregistrées relatives au
+                  preview composer, on les replay ici). */}
+              {currentStory.stickers && currentStory.stickers.length > 0 ? (
+                <div className="absolute inset-0 pointer-events-none">
+                  {currentStory.stickers.map((sticker, index) => (
+                    <span
+                      key={index}
+                      aria-hidden
+                      className="absolute"
+                      style={{
+                        left: `${sticker.x * 100}%`,
+                        top: `${sticker.y * 100}%`,
+                        transform: `translate(-50%, -50%) scale(${sticker.scale}) rotate(${sticker.rotation}deg)`,
+                        fontSize: "48px",
+                        filter: "drop-shadow(0 4px 12px rgba(10,31,68,0.4))",
+                      }}
+                    >
+                      {sticker.emoji}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {/* Caption overlayé sur la photo si position définie. Sinon
+                  fallback en bas (rendu plus bas, hors de ce conteneur). */}
+              {currentStory.caption && currentStory.caption_position ? (
+                <div
+                  className="absolute -translate-x-1/2 -translate-y-1/2 px-4 pointer-events-none"
+                  style={{
+                    left: `${currentStory.caption_position.x * 100}%`,
+                    top: `${currentStory.caption_position.y * 100}%`,
+                  }}
+                >
+                  <p
+                    className="font-display italic text-cream text-2xl sm:text-3xl leading-tight text-center max-w-[280px] break-words"
+                    style={{
+                      textShadow:
+                        "0 2px 16px rgba(10,31,68,0.85), 0 0 4px rgba(10,31,68,0.6)",
+                    }}
+                  >
+                    {currentStory.caption}
+                  </p>
+                </div>
+              ) : null}
+            </>
           ) : currentStory.type === "video" && currentStory.video_url ? (
             <video
               key={currentStory.id}
@@ -251,7 +297,11 @@ export function StoryViewer({
           )}
         </div>
 
-        {currentStory.type === "photo" && currentStory.caption ? (
+        {/* Caption en bas standard : seulement si l'auteur n'a PAS choisi
+            le mode "caption sur photo" (caption_position null). */}
+        {currentStory.type === "photo" &&
+        currentStory.caption &&
+        !currentStory.caption_position ? (
           <div className="absolute bottom-20 left-6 right-6 z-10 text-center pointer-events-none">
             <p
               className="font-display italic text-cream text-2xl sm:text-3xl leading-tight tracking-[-0.015em]"
