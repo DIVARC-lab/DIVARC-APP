@@ -348,14 +348,17 @@ function Hero({
 
       <div className="px-4 sm:px-6 -mt-12 relative">
         <div className="flex items-end justify-between gap-3">
-          {/* Avatar 96px ring gold 4px (brief). */}
-          <div className="rounded-full ring-4 ring-gold ring-offset-4 ring-offset-bg shrink-0">
-            <Avatar
-              src={profile.avatar_url}
-              fullName={fullName}
-              size="xl"
-              priority
-            />
+          {/* Avatar 76px wrapped en double ring (handoff feed-profile L49-53) :
+              outer p-1 gradient gold 135deg + inner p-[3px] white. */}
+          <div className="rounded-full p-1 bg-gradient-to-br from-gold to-[#B88A2A] shrink-0">
+            <div className="rounded-full p-[3px] bg-white">
+              <Avatar
+                src={profile.avatar_url}
+                fullName={fullName}
+                size="profile"
+                priority
+              />
+            </div>
           </div>
           <div className="pb-1.5">{actionBar}</div>
         </div>
@@ -380,8 +383,10 @@ function Hero({
           ) : null}
         </div>
 
-        {/* Nom Instrument Serif italic 32px FIXE (brief). */}
-        <h1 className="mt-2 font-display italic text-[32px] text-night text-balance leading-[1.05]">
+        {/* Nom Instrument Serif italic 30px (handoff feed-profile L63 : 30px,
+            non-italic dans le proto mais on garde l'italic pour cohérence
+            grammaticale DIVARC). */}
+        <h1 className="mt-2 font-display italic text-[30px] text-night text-balance leading-[1.05] tracking-[-0.01em]">
           {fullName}
         </h1>
         <p className="text-sm text-muted-strong mt-0.5">@{profile.username}</p>

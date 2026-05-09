@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 
-type AvatarSize = "sm" | "md-bold" | "md" | "lg" | "xl";
+type AvatarSize = "sm" | "md-bold" | "md" | "lg" | "profile" | "xl";
 
 const SIZE_CLASSES: Record<AvatarSize, string> = {
   sm: "w-9 h-9 text-xs",
@@ -9,6 +9,8 @@ const SIZE_CLASSES: Record<AvatarSize, string> = {
   "md-bold": "w-[42px] h-[42px] text-sm",
   md: "w-12 h-12 text-sm",
   lg: "w-16 h-16 text-lg",
+  /* 76px — taille du proto ProfileHero (handoff feed-profile L51). */
+  profile: "w-[76px] h-[76px] text-xl",
   xl: "w-24 h-24 text-2xl",
 };
 
@@ -17,6 +19,7 @@ const PIXEL_SIZE: Record<AvatarSize, number> = {
   "md-bold": 42,
   md: 48,
   lg: 64,
+  profile: 76,
   xl: 96,
 };
 
