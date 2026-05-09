@@ -2,7 +2,6 @@
 
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
 import {
   INTEREST_SLUGS,
@@ -64,22 +63,26 @@ export function InterestsStep({
   const remaining = Math.max(0, MIN_RECOMMENDED - count);
 
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="space-y-8">
+      <header>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
           · Tes centres d&apos;intérêt
         </span>
-        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
-          Tu aimes <span className="text-gold-deep">quoi</span>, toi ?
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Tu aimes{" "}
+          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+            quoi
+          </em>
+          , toi ?
         </h2>
-        <p className="mt-3 text-night-muted leading-relaxed">
+        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
           Choisis-en au moins {MIN_RECOMMENDED}. On t&apos;aidera à trouver les
           bonnes personnes et les bons cercles.
         </p>
-      </div>
+      </header>
 
-      <div className="flex items-center gap-2">
-        <span className="font-display italic text-3xl text-gold-deep leading-none">
+      <div className="flex items-baseline gap-2">
+        <span className="font-display italic text-[40px] text-gold-deep leading-none">
           {count}
         </span>
         <span className="text-sm text-night-muted">
@@ -132,15 +135,23 @@ export function InterestsStep({
           <p className="text-sm text-red-600">{state.message}</p>
         ) : null}
 
-        <div className="flex items-center justify-between pt-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Retour
-          </Button>
-          <Button type="submit" loading={pending} size="lg">
+          </button>
+          <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
+          >
+            {pending ? "..." : "Continuer"}
             {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
-            Continuer
-          </Button>
+          </button>
         </div>
       </form>
     </div>

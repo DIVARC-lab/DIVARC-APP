@@ -1,11 +1,10 @@
 "use client";
 
-import { Camera, ImageOff } from "lucide-react";
+import { Camera, ImageOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 
 const MAX_SIZE_BYTES = 4 * 1024 * 1024;
@@ -94,33 +93,39 @@ export function AvatarStep({
 
   return (
     <div className="flex flex-col items-center gap-5 py-2">
-      <div className="rounded-full ring-4 ring-bg p-1 bg-gradient-to-br from-gold via-gold-soft to-gold-deep">
-        <div className="rounded-full bg-bg">
-          <Avatar src={avatar} fullName={fullName} size="xl" />
-        </div>
+      {/* Ring gold solide 4px aligné sur le hero /u/[username] (Session 6). */}
+      <div className="relative rounded-full ring-4 ring-gold ring-offset-4 ring-offset-bg-deep">
+        <Avatar src={avatar} fullName={fullName} size="xl" />
+        {uploading ? (
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-night/40 flex items-center justify-center"
+          >
+            <Loader2 className="w-6 h-6 text-cream animate-spin" />
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2 justify-center">
-        <Button
+        <button
           type="button"
-          variant="primary"
-          loading={uploading}
+          disabled={uploading}
           onClick={() => inputRef.current?.click()}
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-night text-cream font-semibold text-sm hover:bg-night-soft transition-colors disabled:opacity-60"
         >
           <Camera className="w-4 h-4" aria-hidden />
           {avatar ? "Changer la photo" : "Ajouter une photo"}
-        </Button>
+        </button>
         {avatar ? (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="md"
             disabled={uploading}
             onClick={handleRemove}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors disabled:opacity-60"
           >
             <ImageOff className="w-4 h-4" aria-hidden />
             Retirer
-          </Button>
+          </button>
         ) : null}
       </div>
 

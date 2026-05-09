@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  Loader2,
-  PartyPopper,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useActionState,
@@ -16,7 +10,6 @@ import {
   useTransition,
 } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/Button";
 import {
   Field,
   FieldError,
@@ -32,7 +25,6 @@ import {
   type Locale,
   type Profile,
 } from "@/lib/database.types";
-import { cn } from "@/lib/utils/cn";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Logo } from "@/components/Logo";
 import { AvatarStep } from "./_components/AvatarStep";
@@ -50,6 +42,13 @@ import {
   type PreferencesStepState,
 } from "./actions";
 
+/* Brief Session 7 — refonte Bold du wizard onboarding.
+   - 1 intro full-bleed navy + 5 vraies étapes (handoff "5 étapes")
+   - Plus de shadow-card central : chaque étape vit en pleine largeur sur
+     fond cream → bg, ArcDeco gold visible en filigrane
+   - StepProgress segmented bar gold (composant refait)
+   - CTAs primaires en pill gold h-14 (cohérent feed composer Publier)
+   - Container max-w-[640px] mobile-first, généreux desktop */
 const STEPS = [
   { id: "intro", label: "Bienvenue" },
   { id: "identite", label: "Identité" },
@@ -142,83 +141,108 @@ export function WelcomeWizard({
   }
 
   const visibleStep = useMemo(() => STEPS[stepIndex] ?? STEPS[0]!, [stepIndex]);
+  const isIntro = visibleStep.id === "intro";
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-2xl mx-auto w-full">
-      <header className="flex items-center justify-between gap-4 mb-10">
-        <div className="flex-1">
-          <StepProgress steps={STEPS} currentStep={stepIndex} />
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleSkip}
-          loading={completing}
-        >
-          Passer
-        </Button>
-      </header>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg">
+      {/* ArcDeco gold filigrane — caché sur intro (l'intro a son propre hero navy). */}
+      {!isIntro ? (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-32 -top-32 opacity-50"
+          >
+            <ArcDeco size={420} tone="gold" opacity={1} stroke={1.25} />
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-40 bottom-0 opacity-30"
+          >
+            <ArcDeco size={320} tone="gold" opacity={1} stroke={1} />
+          </div>
+        </>
+      ) : null}
 
-      <section
-        key={visibleStep.id}
-        className="reveal-up rounded-3xl bg-white border border-line shadow-soft p-7 sm:p-10"
-      >
-        {visibleStep.id === "intro" ? (
-          <Intro
-            fullName={fullName}
-            founderRank={founderRank}
-            onNext={() => setStepIndex(1)}
-          />
+      <div className="relative mx-auto w-full max-w-[640px] px-5 sm:px-6 py-8 sm:py-10">
+        {/* Header sticky : progression + skip — caché sur l'intro. */}
+        {!isIntro ? (
+          <header className="sticky top-2 z-10 flex items-center gap-4 mb-8 rounded-2xl bg-white/80 backdrop-blur-md border border-line px-4 py-3 shadow-soft">
+            <div className="flex-1 min-w-0">
+              <StepProgress steps={STEPS} currentStep={stepIndex} />
+            </div>
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={completing}
+              className="shrink-0 text-xs font-bold uppercase tracking-widest text-night-muted hover:text-night transition-colors disabled:opacity-50"
+            >
+              {completing ? "..." : "Passer"}
+            </button>
+          </header>
         ) : null}
 
-        {visibleStep.id === "identite" ? (
-          <Identity
-            profile={profile}
-            avatarUrl={avatarUrl}
-            onAvatarChange={setAvatarUrl}
-            state={identityState}
-            action={identityAction}
-            pending={identityPending}
-            onBack={() => setStepIndex(0)}
-          />
-        ) : null}
+        <section key={visibleStep.id} className="reveal-up">
+          {visibleStep.id === "intro" ? (
+            <Intro
+              fullName={fullName}
+              founderRank={founderRank}
+              onNext={() => setStepIndex(1)}
+              onSkip={handleSkip}
+              skipping={completing}
+            />
+          ) : null}
 
-        {visibleStep.id === "interets" ? (
-          <InterestsStep
-            initial={profile.interests ?? []}
-            state={interestsState}
-            action={interestsAction}
-            pending={interestsPending}
-            onBack={() => setStepIndex(1)}
-          />
-        ) : null}
+          {visibleStep.id === "identite" ? (
+            <Identity
+              profile={profile}
+              avatarUrl={avatarUrl}
+              onAvatarChange={setAvatarUrl}
+              state={identityState}
+              action={identityAction}
+              pending={identityPending}
+              onBack={() => setStepIndex(0)}
+            />
+          ) : null}
 
-        {visibleStep.id === "preferences" ? (
-          <Preferences
-            profile={profile}
-            state={preferencesState}
-            action={preferencesAction}
-            pending={preferencesPending}
-            onBack={() => setStepIndex(2)}
-          />
-        ) : null}
+          {visibleStep.id === "interets" ? (
+            <InterestsStep
+              initial={profile.interests ?? []}
+              state={interestsState}
+              action={interestsAction}
+              pending={interestsPending}
+              onBack={() => setStepIndex(1)}
+            />
+          ) : null}
 
-        {visibleStep.id === "amis" ? (
-          <FriendsScreen onNext={() => setStepIndex(5)} onBack={() => setStepIndex(3)} />
-        ) : null}
+          {visibleStep.id === "preferences" ? (
+            <Preferences
+              profile={profile}
+              state={preferencesState}
+              action={preferencesAction}
+              pending={preferencesPending}
+              onBack={() => setStepIndex(2)}
+            />
+          ) : null}
 
-        {visibleStep.id === "premier-post" ? (
-          <FirstPostStep
-            fullName={fullName}
-            avatarUrl={avatarUrl}
-            location={profile.location}
-            onBack={() => setStepIndex(4)}
-            onComplete={handleFinish}
-            completing={completing}
-          />
-        ) : null}
-      </section>
+          {visibleStep.id === "amis" ? (
+            <FriendsScreen
+              onNext={() => setStepIndex(5)}
+              onBack={() => setStepIndex(3)}
+            />
+          ) : null}
+
+          {visibleStep.id === "premier-post" ? (
+            <FirstPostStep
+              fullName={fullName}
+              avatarUrl={avatarUrl}
+              location={profile.location}
+              onBack={() => setStepIndex(4)}
+              onComplete={handleFinish}
+              completing={completing}
+            />
+          ) : null}
+        </section>
+      </div>
     </div>
   );
 }
@@ -227,45 +251,43 @@ function Intro({
   fullName,
   founderRank,
   onNext,
+  onSkip,
+  skipping,
 }: {
   fullName: string;
   founderRank: number | null;
   onNext: () => void;
+  onSkip: () => void;
+  skipping: boolean;
 }) {
-  const FEATURES = [
-    { l: "Cercles", icon: "✦" },
-    { l: "Jobs", icon: "·", hot: true },
-    { l: "Marketplace", icon: "·" },
-    { l: "Stories", icon: "·" },
-    { l: "Wallet", icon: "·" },
-  ];
+  const FEATURES = ["Cercles", "Jobs", "Marketplace", "Stories", "Wallet"];
   return (
-    <div className="relative -mx-7 sm:-mx-10 -my-7 sm:-my-10 px-7 sm:px-10 py-10 sm:py-14 rounded-3xl bg-night text-cream overflow-hidden">
+    <div className="relative -mx-5 sm:mx-0 sm:rounded-[36px] overflow-hidden bg-night text-cream px-7 sm:px-12 py-12 sm:py-16 min-h-[calc(100vh-80px)] sm:min-h-0 flex flex-col justify-center">
       <div
         aria-hidden
-        className="absolute -right-20 -top-24 pointer-events-none"
+        className="absolute -right-24 -top-28 pointer-events-none"
       >
-        <ArcDeco size={400} tone="gold" opacity={0.5} stroke={1.25} />
+        <ArcDeco size={420} tone="gold" opacity={0.55} stroke={1.5} />
       </div>
       <div
         aria-hidden
-        className="absolute -left-24 -bottom-32 pointer-events-none"
+        className="absolute -left-28 -bottom-32 pointer-events-none"
       >
-        <ArcDeco size={320} tone="gold" opacity={0.18} stroke={1} />
+        <ArcDeco size={340} tone="gold" opacity={0.2} stroke={1} />
       </div>
 
       <div className="relative text-center">
-        <div className="relative w-20 h-20 mx-auto mb-6">
+        <div className="relative w-20 h-20 mx-auto mb-7">
           <Logo size={80} />
         </div>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-gold">
           · Bienvenue
         </span>
-        <h1 className="mt-4 font-display italic text-5xl sm:text-[56px] text-cream text-balance leading-[1] tracking-[-0.025em]">
+        <h1 className="mt-4 font-display italic text-[48px] sm:text-[60px] text-cream text-balance leading-[1] tracking-[-0.025em]">
           Le réseau des{" "}
           <span className="text-gold">vrais&nbsp;liens</span>.
         </h1>
-        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto">
+        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto text-[15px]">
           Tes proches, ton quartier, tes opportunités. Pas d&apos;algorithme,
           pas de pub. Que des humains.
           {founderRank ? (
@@ -282,31 +304,39 @@ function Intro({
           aria-label="Fonctionnalités"
           className="mt-7 flex flex-wrap items-center justify-center gap-2"
         >
-          {FEATURES.map((f) => (
+          {FEATURES.map((label, i) => (
             <li
-              key={f.l}
+              key={label}
               className={
-                f.hot
+                i === 1
                   ? "px-3.5 h-9 inline-flex items-center rounded-full bg-gold/20 text-gold text-xs font-extrabold border border-gold/40"
                   : "px-3.5 h-9 inline-flex items-center rounded-full bg-cream/[0.06] text-cream/80 text-xs font-semibold border border-cream/15"
               }
             >
-              {f.l}
+              {label}
             </li>
           ))}
         </ul>
 
-        <div className="mt-9 flex justify-center">
+        <div className="mt-10 flex flex-col items-center gap-3">
           <button
             type="button"
             onClick={onNext}
-            className="inline-flex items-center gap-2 h-14 px-9 rounded-full bg-gold text-night font-extrabold text-base hover:bg-gold-soft transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
+            className="inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto sm:px-10 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
           >
             <Sparkles className="w-4 h-4" aria-hidden />
             Créer mon compte
           </button>
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={skipping}
+            className="text-xs font-bold uppercase tracking-widest text-cream/50 hover:text-cream/80 transition-colors disabled:opacity-50"
+          >
+            {skipping ? "..." : "Passer pour l'instant"}
+          </button>
         </div>
-        <p className="mt-4 text-xs text-cream/55">
+        <p className="mt-5 text-xs text-cream/55">
           Salut{" "}
           <em className="italic font-display text-cream">
             {fullName.split(" ")[0]}
@@ -338,19 +368,22 @@ function Identity({
   const fullName = profile.full_name ?? "";
 
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="space-y-8">
+      <header>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-          · Étape 1 · Identité
+          · Identité
         </span>
-        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Comment veux-tu{" "}
-          <span className="text-gold-deep">apparaître</span> ?
+          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+            apparaître
+          </em>{" "}
+          ?
         </h2>
-        <p className="mt-3 text-night-muted leading-relaxed">
+        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
           Ton nom, ton pseudo, une photo et une mini-bio.
         </p>
-      </div>
+      </header>
 
       <AvatarStep
         userId={profile.id}
@@ -426,16 +459,7 @@ function Identity({
           />
         </Field>
 
-        <div className="flex items-center justify-between pt-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4" aria-hidden />
-            Retour
-          </Button>
-          <Button type="submit" loading={pending} size="lg">
-            {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
-            Continuer
-          </Button>
-        </div>
+        <StepActions onBack={onBack} pending={pending} />
       </form>
     </div>
   );
@@ -455,19 +479,23 @@ function Preferences({
   onBack: () => void;
 }) {
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="space-y-8">
+      <header>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-          · Étape 2 · Région
+          · Région
         </span>
-        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
-          Tu habites <span className="text-gold-deep">où</span> ?
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Tu habites{" "}
+          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+            où
+          </em>{" "}
+          ?
         </h2>
-        <p className="mt-3 text-night-muted leading-relaxed">
+        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
           Pour t&apos;afficher les bons cercles, événements et offres locales.
           Tu pourras toujours changer dans tes préférences.
         </p>
-      </div>
+      </header>
 
       <form action={action} className="space-y-5" noValidate>
         <input type="hidden" name="theme" value={profile.theme} />
@@ -532,16 +560,7 @@ function Preferences({
           défaut. Tu pourras toujours en sélectionner d&apos;autres.
         </p>
 
-        <div className="flex items-center justify-between pt-2">
-          <Button type="button" variant="ghost" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4" aria-hidden />
-            Retour
-          </Button>
-          <Button type="submit" loading={pending} size="lg">
-            {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
-            Continuer
-          </Button>
-        </div>
+        <StepActions onBack={onBack} pending={pending} />
       </form>
     </div>
   );
@@ -555,32 +574,71 @@ function FriendsScreen({
   onBack: () => void;
 }) {
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="space-y-8">
+      <header>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-          · Étape 4 · Tes premières connexions
+          · Tes premières connexions
         </span>
-        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
-          Voici qui est <span className="text-gold-deep">déjà</span> chez toi
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Voici qui est{" "}
+          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+            déjà
+          </em>{" "}
+          chez toi
         </h2>
-        <p className="mt-3 text-night-muted leading-relaxed">
+        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
           Cherche-les par nom ou pseudo. Sans amis, l&apos;app reste calme — tu
           pourras toujours en ajouter plus tard.
         </p>
-      </div>
+      </header>
 
       <FriendsStep />
 
-      <div className="flex items-center justify-between pt-2">
-        <Button type="button" variant="ghost" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4" aria-hidden />
-          Retour
-        </Button>
-        <Button type="button" onClick={onNext} size="lg">
-          <ArrowRight className="w-4 h-4" aria-hidden />
+      <StepActions onBack={onBack} onNext={onNext} />
+    </div>
+  );
+}
+
+/* CTA bar Bold : Retour ghost à gauche, Continuer pill gold h-14 à droite.
+   Sur mobile : empilé verticalement (Continuer en haut, full-width). */
+function StepActions({
+  onBack,
+  onNext,
+  pending,
+}: {
+  onBack: () => void;
+  onNext?: () => void;
+  pending?: boolean;
+}) {
+  return (
+    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" aria-hidden />
+        Retour
+      </button>
+      {onNext ? (
+        <button
+          type="button"
+          onClick={onNext}
+          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)]"
+        >
           Continuer
-        </Button>
-      </div>
+          <ArrowRight className="w-4 h-4" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
+        >
+          {pending ? "..." : "Continuer"}
+          {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
+        </button>
+      )}
     </div>
   );
 }

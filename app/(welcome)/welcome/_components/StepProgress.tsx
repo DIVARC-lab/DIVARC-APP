@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 type StepProgressProps = {
@@ -6,61 +5,63 @@ type StepProgressProps = {
   currentStep: number;
 };
 
+/* Brief Session 7 — refonte Bold : segmented bar gold (couleur de marque),
+   plus de cercles emerald off-brand. Trois infos visibles :
+   - "Étape N · X" en kicker gold-deep
+   - le label de l'étape courante en Instrument Serif italic
+   - une barre segmentée : segments dorés pour le passé, pleins gold pour
+     l'actuel, neutres pour le futur. */
 export function StepProgress({ steps, currentStep }: StepProgressProps) {
+  const total = steps.length;
+  const safeIndex = Math.min(Math.max(currentStep, 0), total - 1);
+  const current = steps[safeIndex] ?? steps[0]!;
+
   return (
-    <ol className="flex items-center gap-2 sm:gap-3">
-      {steps.map((step, idx) => {
-        const isPast = idx < currentStep;
-        const isCurrent = idx === currentStep;
-        return (
-          <li
-            key={step.id}
-            className="flex items-center gap-2 sm:gap-3 flex-1"
-          >
-            <div
-              className={cn(
-                "flex items-center gap-2 sm:gap-3",
-                idx < steps.length - 1 ? "flex-1" : "",
-              )}
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+          · Étape {safeIndex + 1} · {total}
+        </span>
+        <span className="font-display italic text-[15px] text-night leading-none truncate">
+          {current.label}
+        </span>
+      </div>
+
+      <ol
+        aria-label="Progression onboarding"
+        className="flex items-center gap-1.5"
+      >
+        {steps.map((step, idx) => {
+          const isPast = idx < safeIndex;
+          const isCurrent = idx === safeIndex;
+          return (
+            <li
+              key={step.id}
+              aria-current={isCurrent ? "step" : undefined}
+              className="flex-1"
             >
               <span
                 className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-all",
+                  "block h-1.5 rounded-full transition-colors",
                   isPast
-                    ? "bg-emerald-600 text-cream"
+                    ? "bg-gold"
                     : isCurrent
-                      ? "bg-night text-cream"
-                      : "bg-night/10 text-night-muted",
+                      ? "bg-gold shadow-[0_0_0_3px_rgba(244,185,66,0.18)]"
+                      : "bg-night/10",
                 )}
-              >
-                {isPast ? (
-                  <Check className="w-3.5 h-3.5" aria-hidden />
-                ) : (
-                  idx + 1
-                )}
-              </span>
-              <span
-                className={cn(
-                  "text-xs font-semibold uppercase tracking-widest hidden sm:inline",
-                  isPast || isCurrent
-                    ? "text-night"
-                    : "text-night-muted/60",
-                )}
-              >
+              />
+              <span className="sr-only">
                 {step.label}
+                {isCurrent
+                  ? " (en cours)"
+                  : isPast
+                    ? " (terminée)"
+                    : " (à venir)"}
               </span>
-              {idx < steps.length - 1 ? (
-                <span
-                  className={cn(
-                    "h-px flex-1 transition-all",
-                    isPast ? "bg-emerald-600" : "bg-night/10",
-                  )}
-                />
-              ) : null}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

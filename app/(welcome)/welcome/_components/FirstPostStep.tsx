@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowLeft, Loader2, PartyPopper, Send } from "lucide-react";
+import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { createPost } from "@/app/(app)/feed/actions";
 
 type FirstPostStepProps = {
@@ -55,30 +54,35 @@ export function FirstPostStep({
   }
 
   return (
-    <div className="space-y-7">
-      <div>
+    <div className="space-y-8">
+      <header>
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
-          · Étape 5 · Ton premier post
+          · Ton premier post
         </span>
-        <h2 className="mt-3 font-display italic text-[34px] sm:text-[42px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
-          Dis bonjour à tes <span className="text-gold-deep">voisins</span>.
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+          Dis bonjour à tes{" "}
+          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+            voisins
+          </em>
+          .
         </h2>
-        <p className="mt-3 text-night-muted leading-relaxed">
+        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
           Une présentation rapide aide les autres à te répondre. Pas obligé,
           mais ça aide.
         </p>
-      </div>
+      </header>
 
-      {/* Composer card */}
-      <div className="rounded-2xl border-2 border-gold/40 bg-gold/[0.04] p-4 shadow-[0_0_0_4px_rgba(244,185,66,0.1)]">
+      {/* Composer card — bordure gold accentuée + barre dorée top-left
+         (rappel du PostComposer du feed Session 3). */}
+      <div className="relative rounded-3xl border border-gold/40 bg-gold/[0.05] p-5 shadow-[0_0_0_4px_rgba(244,185,66,0.08)]">
+        <span
+          aria-hidden
+          className="absolute top-0 left-9 w-20 h-1 rounded-b-md bg-gold"
+        />
         <div className="flex items-center gap-3">
-          <Avatar
-            src={avatarUrl}
-            fullName={fullName}
-            size="md"
-          />
+          <Avatar src={avatarUrl} fullName={fullName} size="md" />
           <div>
-            <p className="font-display italic text-lg text-night leading-tight">
+            <p className="font-display italic text-[19px] text-night leading-tight">
               {fullName}
             </p>
             <p className="text-[11px] text-muted">
@@ -93,11 +97,11 @@ export function FirstPostStep({
           maxLength={MAX_LENGTH}
           rows={5}
           placeholder="Salut ! Je viens d'arriver sur DIVARC. J'aime…"
-          className="mt-3 w-full bg-white rounded-xl border border-line px-3 py-2.5 text-base text-night font-display italic leading-snug placeholder:text-muted resize-none focus:outline-none focus:border-gold/50 focus:ring-4 focus:ring-gold/15"
+          className="mt-3 w-full bg-white rounded-2xl border border-line px-4 py-3 text-[15px] text-night font-display italic leading-snug placeholder:text-night-dim resize-none focus:outline-none focus:border-gold/50 focus:ring-4 focus:ring-gold/15"
         />
         <div className="mt-2 flex items-center justify-between">
           <p className="text-[11px] text-muted">
-            Tu pourras toujours le modifier ou le supprimer plus tard.
+            Modifiable ou supprimable plus tard.
           </p>
           <p className="text-[11px] text-muted tabular-nums">
             {body.length}/{MAX_LENGTH}
@@ -105,26 +109,29 @@ export function FirstPostStep({
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-2 gap-2">
-        <Button type="button" variant="ghost" onClick={onBack}>
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4" aria-hidden />
           Retour
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button
+        </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <button
             type="button"
-            variant="ghost"
             onClick={onComplete}
-            loading={completing && !publishing}
+            disabled={completing && !publishing}
+            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors disabled:opacity-60"
           >
-            Plus tard
-          </Button>
-          <Button
+            {completing && !publishing ? "..." : "Plus tard"}
+          </button>
+          <button
             type="button"
             onClick={handlePublish}
-            loading={publishing}
-            size="lg"
-            className="!bg-gold !text-night hover:!bg-gold-soft"
+            disabled={publishing}
+            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night font-extrabold text-[15px] hover:opacity-95 transition-opacity shadow-[0_16px_36px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
           >
             {publishing ? (
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
@@ -132,7 +139,7 @@ export function FirstPostStep({
               <Send className="w-4 h-4" aria-hidden />
             )}
             Publier et entrer
-          </Button>
+          </button>
         </div>
       </div>
     </div>
