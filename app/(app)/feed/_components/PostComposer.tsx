@@ -63,12 +63,22 @@ type PostComposerProps = {
   userId: string;
   authorName: string | null;
   authorAvatarUrl: string | null;
+  /** Mode "embedded" : skipper ChipTeaser + Modal interne. Le composant
+      rend juste le contenu formulaire, à plugger dans un shell modal
+      externe (ContentCreatorModal). Default false = comportement legacy
+      avec chip + modal. */
+  embedded?: boolean;
+  /** Callback quand le post est publié avec succès — utilisé en embedded
+      pour fermer le modal externe. */
+  onPublished?: () => void;
 };
 
 export function PostComposer({
   userId,
   authorName,
   authorAvatarUrl,
+  embedded = false,
+  onPublished,
 }: PostComposerProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<
@@ -105,12 +115,15 @@ export function PostComposer({
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
+        /* En embedded, signaler au parent (ContentCreatorModal) qu'il
+           peut se fermer. */
+        onPublished?.();
       }
       if (state.status === "error" && state.message) {
         toast.error(state.message);
       }
     });
-  }, [state, router]);
+  }, [state, router, onPublished]);
 
   /* ESC key ferme la modale. Body scroll lock when open. */
   useEffect(() => {
@@ -370,22 +383,10 @@ export function PostComposer({
      Sur desktop (pas de visualViewport API actif), reste 0 → pas d'impact. */
   const keyboardInset = useKeyboardInset();
 
-  return (
-    <>
-      <ChipTeaser
-        authorName={authorName}
-        authorAvatarUrl={authorAvatarUrl}
-        firstName={firstName}
-        onOpen={() => setOpen(true)}
-        onOpenWithPhotos={() => {
-          setOpen(true);
-          /* Open file picker after the modal mount tick. */
-          setTimeout(() => inputRef.current?.click(), 50);
-        }}
-      />
-
-      {open ? (
-        <Modal onClose={() => setOpen(false)}>
+  /* Form interne réutilisable — extrait pour pouvoir être rendu soit
+     dans le Modal interne legacy, soit pluggé dans ContentCreatorModal
+     (embedded=true) sans le wrapper modal. */
+  const formContent = (
           <form action={formAction} className="contents">
             <input type="hidden" name="visibility" value={visibility} />
             <input
@@ -643,8 +644,29 @@ export function PostComposer({
             {/* Spacer pour que le contenu scroll ne passe pas sous le sticky footer mobile. */}
             <div className="sm:hidden h-20" aria-hidden />
           </form>
-        </Modal>
-      ) : null}
+  );
+
+  /* En embedded, on retourne juste le formulaire (le shell modal externe
+     gère backdrop / fermeture / a11y). */
+  if (embedded) {
+    return formContent;
+  }
+
+  return (
+    <>
+      <ChipTeaser
+        authorName={authorName}
+        authorAvatarUrl={authorAvatarUrl}
+        firstName={firstName}
+        onOpen={() => setOpen(true)}
+        onOpenWithPhotos={() => {
+          setOpen(true);
+          /* Open file picker after the modal mount tick. */
+          setTimeout(() => inputRef.current?.click(), 50);
+        }}
+      />
+
+      {open ? <Modal onClose={() => setOpen(false)}>{formContent}</Modal> : null}
     </>
   );
 }
