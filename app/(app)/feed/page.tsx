@@ -1,10 +1,8 @@
-import { Bookmark, Compass, Sparkles, UserPlus } from "lucide-react";
+import { Bookmark, Compass, Plus, Sparkles, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
-import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listFeedPosts } from "@/lib/queries/posts";
 import {
   listFriendsOnlyFeed,
@@ -35,6 +33,23 @@ type FeedTabId = (typeof VALID_TABS)[number];
 
 type SearchParams = Promise<{ tab?: string }>;
 
+/* Implémentation directe des valeurs de design Bold (handoff
+ * feed-mobile-bold.jsx) :
+ *
+ * Hero — gradient cream → bg-soft (#F1F3F8), padding 64/22/28
+ *   ArcDeco gold filigrane visible top-right (opacity 0.55, size 320)
+ *   Kicker · Le feed gold-deep weight 700
+ *   H1 Instrument Serif 44 weight 400 leading-[1] tracking [-0.025em]
+ *     « Ce que tes proches <em italic gradient gold→#B88A2A>racontent</em>. »
+ *   Subtitle 13 navy-soft max-w-[280px]
+ *
+ * Stories rail full-bleed (StoriesRow gère son padding interne).
+ * Composer chip teaser (PostComposer rend le chip ; click → modal).
+ * Posts liste full-bleed mobile, hero={i===0} pour la première card.
+ *
+ * FAB navy 56×56 r-full border 2 gold avec shadow gold+navy double
+ * (proto L88-91), positionné right-[18px] bottom-[100px] absolute.
+ */
 export default async function FeedPage({
   searchParams,
 }: {
@@ -46,9 +61,6 @@ export default async function FeedPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  /* Default flow = chronological (matches handoff Sage screenshot:
-     "Ordre chronologique strict. Pas d'algo, pas de pub."). The
-     ?tab= param still works (deeplink-friendly) but no UI to switch. */
   const { tab: tabParam } = await searchParams;
   const tab: FeedTabId = (VALID_TABS.find((t) => t === tabParam) ??
     "latest") as FeedTabId;
@@ -72,14 +84,11 @@ export default async function FeedPage({
   ]);
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
-  /* "X nouveaux posts depuis ta dernière visite" — proxy : posts <24h.
-     Quand on aura un last_seen_at sur le profil, on basculera dessus. */
   const dayMs = 24 * 60 * 60 * 1000;
   const newPostsCount = posts.filter(
     (p) => Date.now() - new Date(p.created_at).getTime() < dayMs,
   ).length;
 
-  /* Date du jour façon "7 mai" pour le kicker (handoff desktop). */
   const today = new Date();
   const todayKicker = `${today.getDate()} ${
     [
@@ -98,128 +107,124 @@ export default async function FeedPage({
     ][today.getMonth()]
   }`;
 
-  /* Orchestration Session 5 — brief user :
-     - Container max-w-2xl mx-auto
-     - Padding latéral 0 sur mobile (cards full-bleed)
-     - Liste PostCard en gap-3 (au lieu de space-y-4)
-     - Pas de bg gris entre cards : le feed est aéré
-     - StoriesRow tout en haut, PostComposer juste après
-     - Right rail desktop préservé via grid lg externe (max-w-6xl
-       wrapper englobe le grid pour permettre la 2ème colonne)
-     - Server actions et queries Supabase intacts */
-  const visiblePosts = posts;
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
-        {/* Main column — max-w-2xl mx-auto sur mobile,
-            collée à gauche dans le grid lg+ */}
-        <div className="mx-auto w-full max-w-2xl lg:mx-0">
-          {/* Hero header — bandeau gradient cream + ArcDeco gold visible.
-              Padding aligné avec le container : px-5 sm:px-6 (au lieu
-              de px-5 sm:px-10 qui débordait du max-w-2xl) */}
-          <header className="relative overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg px-5 sm:px-6 pt-12 sm:pt-14 pb-8">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -right-20 -top-24 opacity-55"
-            >
-              <ArcDeco size={320} tone="gold" opacity={1} stroke={1.25} />
-            </div>
-            <div className="relative flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <KickerLabel>· Le feed · {todayKicker}</KickerLabel>
-                <DisplayHeading
-                  size="xl"
-                  className="mt-3 !leading-[1] !text-[44px] sm:!text-[60px] tracking-[-0.025em]"
-                >
-                  Ce que tes proches{" "}
-                  <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
-                    racontent
-                  </em>{" "}
-                  aujourd&apos;hui.
-                </DisplayHeading>
-                <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-night-muted">
-                  Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
-                  {newPostsCount > 0 ? (
-                    <>
-                      {" "}
-                      <span className="font-semibold text-night">
-                        {newPostsCount} nouveau{newPostsCount > 1 ? "x" : ""}{" "}
-                        post{newPostsCount > 1 ? "s" : ""}
-                      </span>{" "}
-                      depuis ta dernière visite.
-                    </>
-                  ) : null}
-                </p>
-              </div>
-              <Link
-                href="/feed/saved"
-                className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
-                title="Mes posts sauvegardés"
-                aria-label="Mes posts sauvegardés"
+    <div className="relative bg-[#F1F3F8] min-h-screen pb-[86px]">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
+          <div className="mx-auto w-full max-w-2xl lg:mx-0">
+            {/* Hero header — gradient cream → bg-soft, ArcDeco gold visible */}
+            <header className="relative overflow-hidden bg-gradient-to-b from-cream to-[#F1F3F8] pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
+              <div
+                aria-hidden
+                className="absolute -top-10 -right-14 opacity-55 pointer-events-none"
               >
-                <Bookmark className="w-4 h-4" aria-hidden />
-                <span>Sauvegardés</span>
-              </Link>
-            </div>
-          </header>
+                <ArcDeco size={260} tone="gold" opacity={1} stroke={1.25} />
+              </div>
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B88A2A]">
+                    · Le feed · {todayKicker}
+                  </p>
+                  <h1 className="mt-2.5 font-display text-[44px] sm:text-[60px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
+                    Ce que tes proches{" "}
+                    <em className="italic bg-gradient-to-br from-[#F4B942] to-[#B88A2A] bg-clip-text text-transparent">
+                      racontent
+                    </em>
+                    .
+                  </h1>
+                  <p className="mt-2 max-w-[280px] text-[13px] leading-[1.45] text-[#2A3D6B]">
+                    Ordre chronologique strict. Pas d&apos;algo, pas de pub.
+                    {newPostsCount > 0 ? (
+                      <>
+                        {" "}
+                        <span className="font-semibold text-[#0A1F44]">
+                          {newPostsCount} nouveau
+                          {newPostsCount > 1 ? "x" : ""} post
+                          {newPostsCount > 1 ? "s" : ""}
+                        </span>{" "}
+                        depuis ta dernière visite.
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+                <Link
+                  href="/feed/saved"
+                  className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white border border-[#E6E9F0] text-[12px] font-bold text-[#2A3D6B] hover:border-[#F4B942]/40 hover:text-[#B88A2A] transition-colors"
+                  aria-label="Mes posts sauvegardés"
+                >
+                  <Bookmark className="w-4 h-4" aria-hidden />
+                  Sauvegardés
+                </Link>
+              </div>
+            </header>
 
-          {/* Stories rail — full-bleed (StoriesRow gère son -mx-4 interne) */}
-          <div className="pt-4 pb-3">
+            {/* Stories rail */}
             <StoriesRow
               groups={storyGroups}
               currentUserId={user.id}
               currentUserAvatarUrl={profile?.avatar_url ?? null}
               currentUserName={fullName}
             />
+
+            {/* Composer chip teaser → modal */}
+            <div className="px-4 sm:px-6 pb-3.5">
+              <PostComposer
+                userId={user.id}
+                authorName={fullName}
+                authorAvatarUrl={profile?.avatar_url ?? null}
+              />
+            </div>
+
+            {/* Trending hashtags */}
+            {trendingTags.length > 0 ? (
+              <div className="px-4 sm:px-6 pb-3">
+                <TrendingHashtagsRow tags={trendingTags} />
+              </div>
+            ) : null}
+
+            {/* Posts */}
+            {posts.length === 0 ? (
+              <div className="px-4 sm:px-6 pb-10">
+                <FeedEmptyState tab={tab} />
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10">
+                {posts.map((post, index) => (
+                  <li key={post.id}>
+                    <PostViewTracker postId={post.id} />
+                    <PostCard
+                      post={post}
+                      currentUserId={user.id}
+                      hero={index === 0}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          {/* Composer — px-0 mobile (full-bleed), px-6 desktop */}
-          <div className="px-0 sm:px-6 pb-3">
-            <PostComposer
-              userId={user.id}
-              authorName={fullName}
-              authorAvatarUrl={profile?.avatar_url ?? null}
+          {/* Right rail desktop */}
+          <div className="hidden lg:block py-10 pr-4">
+            <FeedRightRail
+              suggestions={suggestions}
+              trendingTags={trendingTags}
+              recentFriends={storyGroups}
             />
           </div>
-
-          {/* Trending hashtags row — un peu de padding latéral */}
-          {trendingTags.length > 0 ? (
-            <div className="px-4 sm:px-6 pb-3">
-              <TrendingHashtagsRow tags={trendingTags} />
-            </div>
-          ) : null}
-
-          {/* Liste posts — gap-3 (brief), full-bleed mobile, pas de bg gris
-              entre les cards (chaque card a sa propre shadow soft) */}
-          {visiblePosts.length === 0 ? (
-            <div className="px-4 sm:px-6 pb-10">
-              <FeedEmptyState tab={tab} />
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-3 px-0 sm:px-6 pb-10">
-              {visiblePosts.map((post, index) => (
-                <li key={post.id}>
-                  <PostViewTracker postId={post.id} />
-                  <PostCard
-                    post={post}
-                    currentUserId={user.id}
-                    hero={index === 0}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Right rail (lg+) — préservé pour suggestions/tendances/TON ARC */}
-        <div className="hidden lg:block py-10 pr-4">
-          <FeedRightRail
-            suggestions={suggestions}
-            trendingTags={trendingTags}
-            recentFriends={storyGroups}
-          />
         </div>
       </div>
+
+      {/* FAB Créer — navy 56 r-full border-2 gold, double shadow gold+navy.
+          lg:hidden car la sidebar desktop a déjà un bouton + (et le bottom
+          nav floating mobile a son propre FAB +). Ce FAB-ci est spécifique
+          à la page feed selon le proto. */}
+      <Link
+        href="/create"
+        aria-label="Créer un post"
+        className="lg:hidden fixed right-[18px] bottom-[100px] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0A1F44] text-[#FFF8E8] border-2 border-[#F4B942] shadow-[0_12px_32px_-8px_rgba(244,185,66,0.6),0_4px_12px_rgba(10,31,68,0.4)] hover:scale-105 transition-transform"
+      >
+        <Plus className="w-[22px] h-[22px]" strokeWidth={2.6} aria-hidden />
+      </Link>
     </div>
   );
 }
