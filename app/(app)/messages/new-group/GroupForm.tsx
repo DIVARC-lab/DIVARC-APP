@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Search, Send, Users } from "lucide-react";
+import { Check, Search, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";

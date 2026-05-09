@@ -1,8 +1,7 @@
-import { ArrowLeft, Eye, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Avatar } from "@/components/ui/Avatar";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { KickerLabel } from "@/components/ui/KickerLabel";

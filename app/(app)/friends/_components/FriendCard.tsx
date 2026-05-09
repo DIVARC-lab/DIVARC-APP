@@ -2,13 +2,11 @@
 
 import {
   Check,
-  Loader2,
   MapPin,
   MessageSquareText,
   Quote,
   X,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";

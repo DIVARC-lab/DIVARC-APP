@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, RotateCcw, Square, Video, X, Zap } from "lucide-react";
+import { RotateCcw, Square, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";

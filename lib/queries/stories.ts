@@ -87,7 +87,7 @@ export function groupStoriesByAuthor(
   }
 
   const groups: StoryGroup[] = [];
-  for (const [authorId, authorStories] of byAuthor) {
+  for (const [, authorStories] of byAuthor) {
     const author = authorStories[0]?.author;
     if (!author) continue;
     const hasUnviewed = authorStories.some((s) => !s.is_viewed);

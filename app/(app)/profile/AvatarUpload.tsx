@@ -30,7 +30,7 @@ export function AvatarUpload({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [_, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [previewUrl, setPreviewUrl] = useState(currentAvatarUrl);
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {

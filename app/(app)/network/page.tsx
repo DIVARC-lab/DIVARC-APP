@@ -154,7 +154,6 @@ export default async function NetworkPage({
                     <ConnectionCard
                       connection={c}
                       variant="connected"
-                      currentUserId={user.id}
                     />
                   </li>
                 ))}
@@ -177,7 +176,6 @@ export default async function NetworkPage({
                     <ConnectionCard
                       connection={c}
                       variant="incoming"
-                      currentUserId={user.id}
                     />
                   </li>
                 ))}
@@ -200,7 +198,6 @@ export default async function NetworkPage({
                     <ConnectionCard
                       connection={c}
                       variant="outgoing"
-                      currentUserId={user.id}
                     />
                   </li>
                 ))}
@@ -286,11 +283,9 @@ const CONTEXT_LABELS: Record<string, string> = {
 function ConnectionCard({
   connection,
   variant,
-  currentUserId: _currentUserId,
 }: {
   connection: Awaited<ReturnType<typeof listMyProConnections>>[number];
   variant: "connected" | "incoming" | "outgoing";
-  currentUserId: string;
 }) {
   const profile = connection.other;
   const displayName = profile.full_name ?? profile.username ?? "Membre";

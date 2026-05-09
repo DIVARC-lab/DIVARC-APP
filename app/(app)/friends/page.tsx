@@ -1,6 +1,5 @@
 import {
   Inbox,
-  PaperclipIcon,
   Send,
   UserPlus,
   Users,

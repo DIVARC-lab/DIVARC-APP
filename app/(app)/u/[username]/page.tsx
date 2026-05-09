@@ -152,7 +152,6 @@ export default async function PublicProfilePage({
     <div className="mx-auto w-full max-w-4xl">
       <Hero
         profile={profile}
-        memberSince={memberSince}
         stats={stats}
         actionBar={
           <div className="flex flex-wrap items-center gap-2">
@@ -317,12 +316,10 @@ export default async function PublicProfilePage({
 
 function Hero({
   profile,
-  memberSince,
   stats,
   actionBar,
 }: {
   profile: NonNullable<Awaited<ReturnType<typeof getPublicProfileByUsername>>>;
-  memberSince: string;
   stats: Awaited<ReturnType<typeof getPublicStatsByUserId>>;
   actionBar: React.ReactNode;
 }) {

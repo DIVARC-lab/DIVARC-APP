@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 import path from "node:path";
 
 /* Visual check pour DIVARC.
@@ -19,7 +19,7 @@ const LABEL = process.env.SCREENSHOT_LABEL ?? "untitled";
 const SCREENSHOT_DIR = "tests/screenshots";
 
 test.describe("Visual check", () => {
-  test("capture /feed (current implementation)", async ({ page, context }) => {
+  test("capture /feed (current implementation)", async ({ page }) => {
     const email = process.env.TEST_USER_EMAIL;
     const password = process.env.TEST_USER_PASSWORD;
 

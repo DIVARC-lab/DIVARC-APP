@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 

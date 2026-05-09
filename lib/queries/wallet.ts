@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   Currency,
   Profile,
-  Transaction,
   TransactionWithCounterparty,
   Wallet,
 } from "@/lib/database.types";

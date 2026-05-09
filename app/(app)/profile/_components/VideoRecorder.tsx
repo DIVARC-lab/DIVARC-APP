@@ -4,14 +4,11 @@ import {
   Camera,
   RefreshCw,
   Square,
-  Trash2,
   Upload,
-  Video,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils/cn";
 
 const MAX_DURATION_MS = 60_000;
 const PREFERRED_MIME_TYPES = [

@@ -236,7 +236,6 @@ export function WelcomeWizard({
           {visibleStep.id === "preferences" ? (
             <Preferences
               profile={profile}
-              state={preferencesState}
               action={preferencesAction}
               pending={preferencesPending}
               onBack={() => setStepIndex(2)}
@@ -486,13 +485,11 @@ function Identity({
 
 function Preferences({
   profile,
-  state,
   action,
   pending,
   onBack,
 }: {
   profile: Profile;
-  state: PreferencesStepState;
   action: (formData: FormData) => void;
   pending: boolean;
   onBack: () => void;

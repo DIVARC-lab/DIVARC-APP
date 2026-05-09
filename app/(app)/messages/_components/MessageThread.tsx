@@ -416,7 +416,8 @@ function applyReactionDelete(
     });
   }
   if (nextList.length === 0) {
-    const { [messageId]: _, ...rest } = state;
+    const rest = { ...state };
+    delete rest[messageId];
     return rest;
   }
   return { ...state, [messageId]: nextList };

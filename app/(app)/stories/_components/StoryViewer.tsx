@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
-import type { StoryGroup, StoryWithAuthor } from "@/lib/database.types";
+import type { StoryGroup } from "@/lib/database.types";
 import { getFilterCss } from "@/lib/stories/filters";
 import { deleteStory, recordStoryView } from "../actions";
 

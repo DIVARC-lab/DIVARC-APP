@@ -1,4 +1,4 @@
-import { ArrowLeft, Inbox, Send, UserPlus } from "lucide-react";
+import { ArrowLeft, Inbox, Send } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";

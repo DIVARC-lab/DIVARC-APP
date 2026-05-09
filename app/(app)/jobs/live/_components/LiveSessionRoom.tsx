@@ -6,7 +6,6 @@ import {
   PlayCircle,
   Send,
   Square,
-  UserCheck,
   UserPlus,
 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
