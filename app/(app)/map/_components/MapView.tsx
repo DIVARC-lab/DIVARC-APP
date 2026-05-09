@@ -48,24 +48,39 @@ type MapViewProps = {
   hasCircles: boolean;
 };
 
-type FilterId = "all" | "events" | "jobs" | "marketplace";
+type FilterId = "all" | "events" | "jobs" | "marketplace" | "neighbors";
 
+/* Refonte audit S7 (handoff feed-map.jsx L66-98) :
+   pinColor = hex pour la teardrop (rotated -45deg), pinEmoji affiché en
+   contre-rotation au-dessus. Couleurs alignées sur le proto :
+   events social → gold #F4B942
+   events community → blue #2C4D8C (= proto jobs blue, on l'utilise pour
+                                     community qui est l'asso/voisinage)
+   events cultural → terra #D97757 */
 const CATEGORY_TONE: Record<
   CircleEventCategory,
-  { dot: string; label: string; chip: string }
+  {
+    pinColor: string;
+    pinEmoji: string;
+    label: string;
+    chip: string;
+  }
 > = {
   community: {
-    dot: "bg-emerald-500 ring-emerald-200",
+    pinColor: "#2C4D8C",
+    pinEmoji: "👥",
     label: "Communauté",
     chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   social: {
-    dot: "bg-gold ring-gold/30",
+    pinColor: "#F4B942",
+    pinEmoji: "🎉",
     label: "Social",
     chip: "bg-gold/10 text-gold-deep border-gold/30",
   },
   cultural: {
-    dot: "bg-violet-500 ring-violet-200",
+    pinColor: "#D97757",
+    pinEmoji: "🎨",
     label: "Culturel",
     chip: "bg-violet-50 text-violet-700 border-violet-200",
   },
@@ -138,7 +153,9 @@ export function MapView({
     };
   }, [initialCenter, initialZoom]);
 
-  /* Ajoute / met à jour les markers quand les events ou le filtre changent. */
+  /* Ajoute / met à jour les markers quand les events ou le filtre changent.
+     Refonte audit S7 — pins teardrop r `50% 50% 50% 0` rotated -45deg avec
+     emoji contre-tourné +45deg au centre (handoff feed-map L88-97). */
   useEffect(() => {
     if (!mapRef.current) return;
     markersRef.current.forEach((m) => m.remove());
@@ -153,11 +170,24 @@ export function MapView({
       const el = document.createElement("button");
       el.type = "button";
       el.setAttribute("aria-label", event.title);
-      el.className = cn(
-        "h-9 w-9 rounded-full ring-4 flex items-center justify-center cursor-pointer transition-transform hover:scale-110",
-        tone.dot,
-      );
-      el.innerHTML = `<span class="block h-2 w-2 rounded-full bg-white"></span>`;
+      el.className =
+        "relative cursor-pointer transition-transform hover:scale-110 focus:scale-110 outline-none";
+      /* Teardrop : div carrée 38x38 avec border-radius asymétrique +
+         rotation, emoji au-dessus en contre-rotation. */
+      el.innerHTML = `
+        <span
+          aria-hidden
+          class="block h-[38px] w-[38px] rounded-[50%_50%_50%_0] -rotate-45 border-[3px] border-white shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+          style="background:${tone.pinColor}"
+        ></span>
+        <span
+          aria-hidden
+          class="absolute top-[8px] left-1/2 -translate-x-1/2 text-[16px] leading-none select-none pointer-events-none"
+        >${tone.pinEmoji}</span>
+      `;
+      /* Origin du marker : pointe-bas. anchor "bottom" aligne la pointe
+         avec les coordonnées. */
+      el.style.transformOrigin = "center bottom";
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         setSelectedId(event.id);
@@ -168,7 +198,10 @@ export function MapView({
           essential: true,
         });
       });
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: "bottom",
+      })
         .setLngLat([event.lng, event.lat])
         .addTo(mapRef.current);
       markersRef.current.push(marker);
@@ -183,6 +216,14 @@ export function MapView({
   const selected = useMemo(
     () => events.find((e) => e.id === selectedId) ?? null,
     [events, selectedId],
+  );
+
+  /* "Plus proche" — l'event le plus proche dans le temps (1er ordre starts_at).
+     V1 sans geolocation user : on utilise l'ordre chronologique fourni par
+     listGeolocatedEventsForUser (ascending starts_at). */
+  const nearestEvent = useMemo(
+    () => (filtered.length > 0 ? filtered[0]! : null),
+    [filtered],
   );
 
   return (
@@ -222,6 +263,7 @@ export function MapView({
                 { id: "events", label: "🎉 Événements", count: events.length },
                 { id: "jobs", label: "💼 Jobs" },
                 { id: "marketplace", label: "🛍️ Marketplace" },
+                { id: "neighbors", label: "👥 Voisins" },
               ] as ReadonlyArray<{
                 id: FilterId;
                 label: string;
@@ -281,6 +323,27 @@ export function MapView({
           body="Tes cercles n'ont pas encore d'événement avec coordonnées GPS."
           ctaHref="/circles"
           ctaLabel="Aller aux cercles"
+        />
+      ) : null}
+
+      {/* Hero "Plus proche" — flottante au-dessus de la sheet en mode peek
+          quand aucun pin n'est sélectionné. Refonte audit S7 (handoff
+          feed-map L145-180). */}
+      {events.length > 0 &&
+      sheetMode === "peek" &&
+      !selected &&
+      nearestEvent ? (
+        <NearestEventCard
+          event={nearestEvent}
+          onOpen={() => {
+            setSelectedId(nearestEvent.id);
+            setSheetMode("expanded");
+            mapRef.current?.flyTo({
+              center: [nearestEvent.lng, nearestEvent.lat],
+              zoom: Math.max(mapRef.current.getZoom(), 14),
+              essential: true,
+            });
+          }}
         />
       ) : null}
 
@@ -580,8 +643,7 @@ function PinDetail({
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-gold text-night font-extrabold text-sm hover:bg-gold-soft transition-colors shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)]"
           >
-            <MapPin className="w-4 h-4" aria-hidden />
-            Itinéraire
+            Y aller →
           </a>
         </div>
       </div>
@@ -618,6 +680,114 @@ function DatePill({ date, large = false }: { date: Date; large?: boolean }) {
       </div>
       <div className="text-[9.5px] opacity-70 mt-px">{mo}</div>
     </div>
+  );
+}
+
+/* Refonte audit S7 (handoff feed-map L145-180) — hero card flottante
+   "Plus proche" qui sit au-dessus de la sheet en mode peek. DatePill
+   gold gradient avec ArcDeco filigrane + titre Instrument Serif italic
+   + meta location + RSVP count + CTA "Y aller →" navy. */
+function NearestEventCard({
+  event,
+  onOpen,
+}: {
+  event: GeolocatedEvent;
+  onOpen: () => void;
+}) {
+  const date = new Date(event.starts_at);
+  const wd = date
+    .toLocaleDateString("fr-FR", { weekday: "short" })
+    .replace(".", "")
+    .toUpperCase();
+  const day = date.getDate();
+  const mo = date
+    .toLocaleDateString("fr-FR", { month: "short" })
+    .replace(".", "");
+  const time = date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <div className="absolute inset-x-0 bottom-[100px] z-20 px-3 pointer-events-none">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="pointer-events-auto w-full max-w-md mx-auto block text-left rounded-2xl bg-white shadow-[0_12px_32px_rgba(10,31,68,0.18)] p-3.5 hover:shadow-[0_16px_40px_rgba(10,31,68,0.22)] transition-shadow"
+      >
+        <div className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-[0.14em] text-gold-deep">
+          · Plus proche · {time}
+        </div>
+        <div className="mt-2 flex gap-3 items-start">
+          {/* DatePill gradient gold avec ArcDeco filigrane interne */}
+          <div className="relative shrink-0 w-14 h-[70px] rounded-xl overflow-hidden bg-gradient-to-br from-gold to-[#B88A2A] flex flex-col items-center justify-center text-night">
+            <span
+              aria-hidden
+              className="absolute inset-0 opacity-20 pointer-events-none"
+            >
+              <ArcDecoInline />
+            </span>
+            <span className="relative text-[9px] font-extrabold tracking-[0.12em]">
+              {wd}
+            </span>
+            <span className="relative font-display italic text-[28px] leading-none">
+              {day}
+            </span>
+            <span className="relative text-[9px] font-bold">
+              {mo} · {time}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display italic text-[18px] text-night leading-tight line-clamp-2">
+              {event.title}
+            </h3>
+            <p className="mt-1 text-[11px] text-night-dim flex items-center gap-1.5 flex-wrap">
+              {event.location ? (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-2.5 h-2.5" aria-hidden />
+                  {event.location}
+                </span>
+              ) : null}
+              {event.attendance_count > 0 ? (
+                <>
+                  {event.location ? <span>·</span> : null}
+                  <span className="text-night font-bold">
+                    {event.attendance_count} voisin
+                    {event.attendance_count > 1 ? "s" : ""} y{" "}
+                    {event.attendance_count > 1 ? "vont" : "va"}
+                  </span>
+                </>
+              ) : null}
+            </p>
+          </div>
+        </div>
+        <span className="mt-3 block text-center py-2.5 rounded-full bg-night text-cream text-[12.5px] font-extrabold">
+          Y aller →
+        </span>
+      </button>
+    </div>
+  );
+}
+
+/* Inline ArcDeco mini — pour ne pas tirer le composant marketing dans le
+   client hot-path. SVG arc gold simple. */
+function ArcDecoInline() {
+  return (
+    <svg
+      viewBox="0 0 60 60"
+      className="w-full h-full"
+      fill="none"
+      aria-hidden
+    >
+      <circle
+        cx="30"
+        cy="30"
+        r="22"
+        stroke="#0A1F44"
+        strokeWidth="1"
+        strokeDasharray="100 30"
+      />
+    </svg>
   );
 }
 
