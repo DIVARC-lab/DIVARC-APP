@@ -1,71 +1,21 @@
-import {
-  Briefcase,
-  ImageIcon,
-  Sparkles,
-  Star,
-  Tag,
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils/cn";
+import { CreateOptions } from "./CreateOptions";
 
 export const metadata = {
   title: "Créer",
 };
 
-type Option = {
-  href: string;
-  label: string;
-  sub: string;
-  icon: typeof Sparkles;
-  /** Tailwind classes for the icon tile bg+text. */
-  tone: string;
-  popular?: boolean;
-};
-
-const OPTIONS: Option[] = [
-  {
-    href: "/feed#composer",
-    label: "Publier un post",
-    sub: "Texte, photo, sondage",
-    icon: Sparkles,
-    tone: "bg-night text-cream",
-  },
-  {
-    href: "/marketplace/new",
-    label: "Vendre un objet",
-    sub: "Mise en ligne en 30 sec.",
-    icon: Tag,
-    tone: "bg-gold text-night",
-    popular: true,
-  },
-  {
-    href: "/jobs/new",
-    label: "Publier une offre",
-    sub: "CDI, freelance, mission",
-    icon: Briefcase,
-    tone: "bg-night text-cream",
-  },
-  {
-    href: "/circles/new",
-    label: "Organiser un événement",
-    sub: "Atelier, meetup, soirée",
-    icon: Star,
-    tone: "bg-night text-cream",
-  },
-  {
-    href: "/stories/new",
-    label: "Story",
-    sub: "Visible 24 h",
-    icon: ImageIcon,
-    tone: "bg-gold text-night",
-  },
-];
-
+/* /create — hub bottom sheet style. Reste comme route bookmarkable
+ * (deep link), mais l'expérience interne dispatch directement vers le
+ * ContentCreatorModal global au lieu de naviguer vers d'autres routes.
+ *
+ * Logique migrée dans CreateOptions (client component) qui consume
+ * useCreator(). */
 export default async function CreatePage() {
   const supabase = await createClient();
   const {
@@ -101,52 +51,7 @@ export default async function CreatePage() {
           </Link>
         </header>
 
-        <ul className="space-y-2">
-          {OPTIONS.map((option) => {
-            const Icon = option.icon;
-            return (
-              <li key={option.label}>
-                <Link
-                  href={option.href}
-                  className={cn(
-                    "flex items-center gap-3 p-3.5 rounded-2xl bg-white border transition-colors hover:border-gold/40",
-                    option.popular
-                      ? "border-gold/40 ring-2 ring-gold/15"
-                      : "border-line",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "shrink-0 w-11 h-11 rounded-xl flex items-center justify-center",
-                      option.tone,
-                    )}
-                  >
-                    <Icon className="w-4 h-4" aria-hidden />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-night truncate">
-                        {option.label}
-                      </p>
-                      {option.popular ? (
-                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-cream text-gold-deep tracking-[0.06em] border border-gold/30">
-                          POPULAIRE
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-muted truncate">{option.sub}</p>
-                  </div>
-                  <span
-                    aria-hidden
-                    className="w-7 h-7 rounded-full bg-night/[0.04] flex items-center justify-center text-night-muted shrink-0"
-                  >
-                    →
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <CreateOptions />
       </section>
     </div>
   );

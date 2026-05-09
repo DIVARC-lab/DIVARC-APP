@@ -18,7 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { FeedRightRail } from "./_components/FeedRightRail";
 import { PostCard } from "./_components/PostCard";
-import { PostComposer } from "./_components/PostComposer";
+import { PostChipTrigger } from "@/components/creator/PostChipTrigger";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
 import type { PostWithDetails } from "@/lib/database.types";
@@ -157,10 +157,9 @@ export default async function FeedPage({
               currentUserName={fullName}
             />
 
-            {/* Composer chip teaser → modal */}
+            {/* Composer chip — trigger du ContentCreatorModal global. */}
             <div className="px-4 sm:px-6 pb-3.5">
-              <PostComposer
-                userId={user.id}
+              <PostChipTrigger
                 authorName={fullName}
                 authorAvatarUrl={profile?.avatar_url ?? null}
               />
