@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { runAction } from "@/lib/utils/clientAction";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/currency";
 import { formatRelative } from "@/lib/utils/relativeTime";
@@ -79,21 +80,17 @@ export function OfferCard({
         formData.set("counter_amount", counterAmount);
         formData.set("counter_message", counterMessage);
       }
-      const result = await respondToOffer(formData);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      const successMsg =
-        decision === "accept"
-          ? "Offre acceptée. Annonce marquée vendue."
-          : decision === "decline"
-            ? "Offre refusée."
-            : decision === "counter"
-              ? "Contre-offre envoyée."
-              : "Offre retirée.";
-      toast.success(successMsg);
-      setCounterMode(false);
+      const result = await runAction(() => respondToOffer(formData), {
+        successMessage:
+          decision === "accept"
+            ? "Offre acceptée. Annonce marquée vendue."
+            : decision === "decline"
+              ? "Offre refusée."
+              : decision === "counter"
+                ? "Contre-offre envoyée."
+                : "Offre retirée.",
+      });
+      if (result?.ok) setCounterMode(false);
     });
   }
 

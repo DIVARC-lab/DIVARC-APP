@@ -4,6 +4,7 @@ import { Handshake, Loader2, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { runAction } from "@/lib/utils/clientAction";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/currency";
 import { sendOffer } from "../../offers/actions";
@@ -56,13 +57,11 @@ export function MakeOfferDialog({
       formData.set("listing_id", listingId);
       formData.set("amount", String(amountInt));
       formData.set("message", message);
-      const result = await sendOffer(formData);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Offre envoyée. Le vendeur peut accepter, refuser ou contre-offrir.");
-      setOpen(false);
+      const result = await runAction(() => sendOffer(formData), {
+        successMessage:
+          "Offre envoyée. Le vendeur peut accepter, refuser ou contre-offrir.",
+      });
+      if (result?.ok) setOpen(false);
     });
   }
 

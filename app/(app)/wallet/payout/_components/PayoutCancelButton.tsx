@@ -2,7 +2,7 @@
 
 import { Loader2, X } from "lucide-react";
 import { useTransition } from "react";
-import { toast } from "sonner";
+import { runAction } from "@/lib/utils/clientAction";
 import { cancelPayout } from "../actions";
 
 export function PayoutCancelButton({ requestId }: { requestId: string }) {
@@ -17,12 +17,9 @@ export function PayoutCancelButton({ requestId }: { requestId: string }) {
       return;
     }
     startTransition(async () => {
-      const result = await cancelPayout(requestId);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Demande annulée. Solde re-crédité.");
+      await runAction(() => cancelPayout(requestId), {
+        successMessage: "Demande annulée. Solde re-crédité.",
+      });
     });
   }
 

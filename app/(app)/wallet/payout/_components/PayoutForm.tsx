@@ -2,8 +2,8 @@
 
 import { Banknote, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { runAction } from "@/lib/utils/clientAction";
 import { formatPrice } from "@/lib/utils/currency";
 import type { Currency } from "@/lib/database.types";
 import { requestPayout } from "../actions";
@@ -40,18 +40,16 @@ export function PayoutForm({ maxAmount, currency }: PayoutFormProps) {
       formData.set("iban", iban);
       formData.set("bic", bic);
       formData.set("account_holder", holder);
-      const result = await requestPayout(formData);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      const result = await runAction(() => requestPayout(formData), {
+        successMessage:
+          "Demande enregistrée. L'équipe la traite sous 1 à 2 jours ouvrés.",
+      });
+      if (result?.ok) {
+        setAmount("");
+        setIban("");
+        setBic("");
+        setHolder("");
       }
-      toast.success(
-        "Demande enregistrée. L'équipe la traite sous 1 à 2 jours ouvrés.",
-      );
-      setAmount("");
-      setIban("");
-      setBic("");
-      setHolder("");
     });
   }
 
