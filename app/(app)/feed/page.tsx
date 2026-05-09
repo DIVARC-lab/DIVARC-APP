@@ -103,8 +103,9 @@ export default async function FeedPage({
     ][today.getMonth()]
   }`;
   const dayMs = 24 * 60 * 60 * 1000;
+  const nowMs = today.getTime();
   const newPostsCount = posts.filter(
-    (p) => Date.now() - new Date(p.created_at).getTime() < dayMs,
+    (p) => nowMs - new Date(p.created_at).getTime() < dayMs,
   ).length;
 
   return (

@@ -358,7 +358,7 @@ export function MessageComposer({
                   type="button"
                   onClick={removeAttachment}
                   aria-label="Retirer"
-                  className="w-8 h-8 rounded-full hover:bg-red-50 text-red-500 flex items-center justify-center"
+                  className="w-11 h-11 rounded-full hover:bg-red-50 text-red-500 flex items-center justify-center shrink-0"
                 >
                   <X className="w-4 h-4" aria-hidden />
                 </button>
@@ -373,7 +373,7 @@ export function MessageComposer({
                   disabled={uploading || attachment !== null}
                   aria-label="Ajouter une image"
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
                     attachment !== null
                       ? "text-muted/50 cursor-not-allowed"
                       : "text-night-muted hover:bg-night/5 hover:text-night",
@@ -391,7 +391,7 @@ export function MessageComposer({
                   disabled={uploading || attachment !== null}
                   aria-label="Ajouter un fichier"
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
                     attachment !== null
                       ? "text-muted/50 cursor-not-allowed"
                       : "text-night-muted hover:bg-night/5 hover:text-night",
@@ -405,7 +405,7 @@ export function MessageComposer({
                   disabled={attachment !== null}
                   aria-label="Enregistrer un message vocal"
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
                     attachment !== null
                       ? "text-muted/50 cursor-not-allowed"
                       : "text-night-muted hover:bg-night/5 hover:text-night",

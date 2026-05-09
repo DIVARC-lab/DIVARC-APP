@@ -54,7 +54,7 @@ export function LikeButton({
       aria-pressed={liked}
       aria-label={liked ? "Retirer le j'aime" : "Aimer"}
       className={cn(
-        "inline-flex items-center gap-1.5 h-9 px-[14px] rounded-full transition-colors text-[13px] font-bold",
+        "inline-flex items-center gap-1.5 h-11 px-[14px] rounded-full transition-colors text-[13px] font-bold",
         liked
           ? "bg-[linear-gradient(135deg,#FEF2F2,#FFE4E4)] text-[#DC2626]"
           : "bg-transparent text-night-soft hover:bg-night/5",

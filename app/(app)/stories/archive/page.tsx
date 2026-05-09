@@ -26,6 +26,9 @@ export default async function StoriesArchivePage() {
 
   const stories = await listMyActiveStories(user.id);
 
+  /* now en ms calculé une seule fois pour éviter le call impur dans le
+     render (React 19 strict). new Date() n'est pas marqué impure. */
+  const nowMs = new Date().getTime();
   const totalViews = stories.reduce((sum, s) => sum + s.views_count, 0);
   const uniquePhoto = stories.filter((s) => s.type === "photo").length;
   const uniqueText = stories.filter((s) => s.type === "text").length;
@@ -87,7 +90,7 @@ export default async function StoriesArchivePage() {
             const expiresAt = new Date(story.expires_at);
             const hoursLeft = Math.max(
               0,
-              Math.round((expiresAt.getTime() - Date.now()) / HOUR_MS),
+              Math.round((expiresAt.getTime() - nowMs) / HOUR_MS),
             );
             return (
               <li key={story.id}>

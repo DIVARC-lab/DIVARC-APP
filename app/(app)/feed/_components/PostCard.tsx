@@ -170,7 +170,7 @@ export function PostCard({
           />
           <Link
             href={`/feed/${post.id}`}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-night-soft text-[13px] font-bold hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center gap-1.5 min-h-11 h-11 px-3 rounded-full text-night-soft text-[13px] font-bold hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
             <MessageCircle className="w-4 h-4" aria-hidden />
@@ -178,7 +178,7 @@ export function PostCard({
           </Link>
           <button
             type="button"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center justify-center h-11 w-11 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Partager"
           >
             <Send className="w-[15px] h-[15px]" aria-hidden />

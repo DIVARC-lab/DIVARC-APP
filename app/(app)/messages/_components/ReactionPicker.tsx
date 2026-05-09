@@ -41,9 +41,9 @@ export function ReactionPicker({ onPick, align = "start" }: ReactionPickerProps)
           setOpen((value) => !value);
         }}
         aria-label="Réagir"
-        className="w-7 h-7 rounded-full bg-white/95 border border-line text-night-muted hover:text-night hover:border-night/30 flex items-center justify-center shadow-soft"
+        className="w-11 h-11 rounded-full bg-white/95 border border-line text-night-muted hover:text-night hover:border-night/30 flex items-center justify-center shadow-soft"
       >
-        <SmilePlus className="w-3.5 h-3.5" aria-hidden />
+        <SmilePlus className="w-4 h-4" aria-hidden />
       </button>
       {open ? (
         <div
@@ -59,7 +59,7 @@ export function ReactionPicker({ onPick, align = "start" }: ReactionPickerProps)
               type="button"
               onClick={() => handlePick(emoji)}
               aria-label={`Réagir avec ${emoji}`}
-              className="w-8 h-8 rounded-full text-lg hover:bg-night/5 transition-transform hover:scale-110"
+              className="w-11 h-11 rounded-full text-lg hover:bg-night/5 transition-transform hover:scale-110 flex items-center justify-center"
             >
               {emoji}
             </button>

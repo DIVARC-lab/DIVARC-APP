@@ -21,12 +21,16 @@ const ACTIVITY_EVENTS: Array<keyof DocumentEventMap> = [
  *  - Away        → onglet en arrière-plan OU idle > 5 min
  *  - Offline     → onglet fermé (best effort via beforeunload + visibilitychange) */
 export function usePresenceHeartbeat() {
-  const lastActivityRef = useRef<number>(Date.now());
+  /* React 19 strict : Date.now() est marqué impure et ne peut pas être
+     appelé en initialisation de useRef pendant le render. On part de 0 et
+     on réinitialise dans l'effect (qui s'exécute après le commit). */
+  const lastActivityRef = useRef<number>(0);
   const lastSentStatusRef = useRef<PresenceStatus | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    lastActivityRef.current = Date.now();
     const supabase = createClient();
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;

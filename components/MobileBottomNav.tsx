@@ -117,7 +117,7 @@ function BottomNavItem({
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative flex flex-col items-center gap-[3px] min-w-[50px] py-1 transition-colors",
+        "relative flex flex-col items-center justify-center gap-[3px] min-w-[50px] min-h-[44px] py-1 transition-colors",
         active ? "text-gold" : "text-cream/55 hover:text-cream/85",
       )}
     >

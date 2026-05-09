@@ -35,8 +35,10 @@ export default async function WalletPage() {
   const eur = wallets.find((w) => w.currency === "EUR") ?? wallets[0] ?? null;
   const others = wallets.filter((w) => w !== eur);
 
-  /* Compute weekly + monthly delta for hero stats. */
-  const now = Date.now();
+  /* Compute weekly + monthly delta for hero stats.
+     React 19 strict : Date.now() est marqué impure par le lint en render,
+     contrairement à new Date().getTime() qui passe. */
+  const now = new Date().getTime();
   const oneWeek = 7 * 86_400_000;
   const oneMonth = 30 * 86_400_000;
 

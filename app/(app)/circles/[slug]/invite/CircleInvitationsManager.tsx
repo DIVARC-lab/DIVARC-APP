@@ -128,9 +128,12 @@ export function CircleInvitationsManager({
             const isRevoked = !!invitation.revoked_at;
             const isExhausted =
               !!invitation.max_uses && invitation.uses >= invitation.max_uses;
+            /* React 19 strict : Date.now() bloqué en render,
+               new Date().getTime() est autorisé. */
             const isExpired =
               !!invitation.expires_at &&
-              new Date(invitation.expires_at).getTime() <= Date.now();
+              new Date(invitation.expires_at).getTime() <=
+                new Date().getTime();
             const isActive = !isRevoked && !isExhausted && !isExpired;
 
             return (
