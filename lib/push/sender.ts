@@ -1,6 +1,10 @@
 import "server-only";
 import webpush from "web-push";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/database.types";
+
+type AdminOrServerClient = SupabaseClient<Database>;
 
 /* Configuration VAPID — clés à générer une fois via :
  *   npx web-push generate-vapid-keys
@@ -54,6 +58,10 @@ export type PushDeliveryResult = {
 export async function sendPushToUser(
   userId: string,
   payload: PushPayload,
+  /* Client optionnel — par défaut server client (RLS scoped à l'utilisateur
+     courant). Pour les cron jobs/webhooks, passer le admin client pour
+     bypasser RLS. */
+  client?: AdminOrServerClient,
 ): Promise<PushDeliveryResult> {
   const result: PushDeliveryResult = {
     delivered: 0,
@@ -63,7 +71,7 @@ export async function sendPushToUser(
 
   if (!ensureVapidConfigured()) return result;
 
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
   const { data: subs } = await supabase
     .from("push_subscriptions")
     .select("*")

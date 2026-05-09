@@ -807,6 +807,8 @@ export type CircleEvent = {
   lat: number | null;
   lng: number | null;
   created_at: string;
+  reminded_24h_at: string | null;
+  reminded_1h_at: string | null;
 };
 
 export type CircleEventAttendance = {
@@ -1560,6 +1562,8 @@ export type Database = {
             | "capacity"
             | "lat"
             | "lng"
+            | "reminded_24h_at"
+            | "reminded_1h_at"
           >
         >;
         Relationships: [];
