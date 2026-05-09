@@ -892,6 +892,34 @@ export type Favorite = {
   created_at: string;
 };
 
+export type ListingOfferStatus =
+  | "pending"
+  | "accepted"
+  | "declined"
+  | "countered"
+  | "expired"
+  | "withdrawn";
+
+export type ListingOffer = {
+  id: string;
+  listing_id: string;
+  from_user: string;
+  to_user: string;
+  parent_offer_id: string | null;
+  amount: number;
+  currency: Currency;
+  message: string | null;
+  status: ListingOfferStatus;
+  created_at: string;
+  responded_at: string | null;
+  expires_at: string;
+};
+
+export type ListingOfferWithCounterparty = ListingOffer & {
+  counterparty: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  listing: Pick<Listing, "id" | "title" | "price_amount" | "price_currency" | "status"> | null;
+};
+
 export type ListingWithDetails = Listing & {
   photos: ListingPhoto[];
   seller: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location"> | null;
@@ -1113,6 +1141,29 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      listing_offers: {
+        Row: ListingOffer;
+        Insert: Pick<
+          ListingOffer,
+          "listing_id" | "from_user" | "to_user" | "amount" | "currency"
+        > &
+          Partial<
+            Pick<
+              ListingOffer,
+              | "id"
+              | "parent_offer_id"
+              | "message"
+              | "status"
+              | "created_at"
+              | "responded_at"
+              | "expires_at"
+            >
+          >;
+        Update: Partial<
+          Pick<ListingOffer, "status" | "responded_at">
+        >;
         Relationships: [];
       };
       posts: {
@@ -1638,6 +1689,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      accept_listing_offer: {
+        Args: { offer_id: string };
+        Returns: void;
+      };
       get_or_create_direct_conversation: {
         Args: { other_user_id: string };
         Returns: string;

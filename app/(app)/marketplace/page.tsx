@@ -1,4 +1,4 @@
-import { Bookmark, Plus, Search, Store } from "lucide-react";
+import { Bookmark, Handshake, Plus, Search, Store } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
 import { listListings } from "@/lib/queries/listings";
+import { countPendingReceivedOffers } from "@/lib/queries/listingOffers";
 import { CATEGORY_META } from "@/lib/utils/categories";
 import { createClient } from "@/lib/supabase/server";
 import type { ListingCategory } from "@/lib/database.types";
@@ -47,11 +48,14 @@ export default async function MarketplacePage({
       ? (category as ListingCategory)
       : undefined;
 
-  const listings = await listListings(user.id, {
-    category: validCategory,
-    query: q,
-    limit: 60,
-  });
+  const [listings, pendingOffersCount] = await Promise.all([
+    listListings(user.id, {
+      category: validCategory,
+      query: q,
+      limit: 60,
+    }),
+    countPendingReceivedOffers(user.id),
+  ]);
 
   const showHero = !validCategory && !q && listings.length > 0;
 
@@ -72,6 +76,25 @@ export default async function MarketplacePage({
             </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/marketplace/offers"
+              aria-label={
+                pendingOffersCount > 0
+                  ? `Mes offres — ${pendingOffersCount} en attente`
+                  : "Mes offres"
+              }
+              className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white border border-line text-night hover:border-gold/40 transition-colors"
+            >
+              <Handshake className="w-[15px] h-[15px]" aria-hidden />
+              {pendingOffersCount > 0 ? (
+                <span
+                  aria-hidden
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-night text-[10px] font-extrabold flex items-center justify-center"
+                >
+                  {pendingOffersCount}
+                </span>
+              ) : null}
+            </Link>
             <Link
               href="/marketplace/favorites"
               aria-label="Mes favoris"

@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ContactSellerButton } from "./_components/ContactSellerButton";
 import { ListingGallery } from "./_components/ListingGallery";
 import { ListingTopBar } from "./_components/ListingTopBar";
+import { MakeOfferDialog } from "./_components/MakeOfferDialog";
 
 type Params = Promise<{ id: string }>;
 
@@ -273,10 +274,18 @@ export default async function ListingPage({ params }: { params: Params }) {
               Gérer mon annonce
             </Link>
           ) : (
-            <ContactSellerButton
-              listingId={listing.id}
-              sellerName={sellerName}
-            />
+            <>
+              <MakeOfferDialog
+                listingId={listing.id}
+                listingTitle={listing.title}
+                askingAmount={listing.price_amount}
+                currency={listing.price_currency}
+              />
+              <ContactSellerButton
+                listingId={listing.id}
+                sellerName={sellerName}
+              />
+            </>
           )}
         </div>
       </div>
