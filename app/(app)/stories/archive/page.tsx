@@ -76,7 +76,7 @@ export default async function StoriesArchivePage() {
           kicker="Aucune story active"
           title={
             <>
-              Tu n'as pas de story <em className="italic text-gold-deep">en cours</em>
+              Tu n&apos;as pas de story <em className="italic text-gold-deep">en cours</em>
             </>
           }
           body="Publie une photo ou un mot pour 24 h. Tes amis verront un cercle doré dans leur feed."

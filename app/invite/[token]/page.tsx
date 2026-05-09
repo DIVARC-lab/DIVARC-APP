@@ -38,11 +38,11 @@ export default async function InvitePage({ params }: { params: Params }) {
         <div className="max-w-md w-full text-center">
           <KickerLabel>Lien invalide</KickerLabel>
           <DisplayHeading size="lg" className="mt-2">
-            Cette invitation n'est <em className="italic text-gold-deep">plus active</em>.
+            Cette invitation n&apos;est <em className="italic text-gold-deep">plus active</em>.
           </DisplayHeading>
           <p className="mt-3 text-muted-strong">
             Le lien a peut-être expiré, été révoqué, ou toutes les places sont
-            prises. Demande à un membre de t'envoyer un nouveau lien.
+            prises. Demande à un membre de t&apos;envoyer un nouveau lien.
           </p>
           <div className="mt-6">
             <Button asChild variant="secondary">
@@ -147,7 +147,7 @@ export default async function InvitePage({ params }: { params: Params }) {
 
         {preview.expires_at ? (
           <p className="mt-4 text-[11px] text-muted text-center">
-            Lien valable jusqu'au{" "}
+            Lien valable jusqu&apos;au{" "}
             {new Date(preview.expires_at).toLocaleDateString("fr-FR", {
               day: "numeric",
               month: "long",

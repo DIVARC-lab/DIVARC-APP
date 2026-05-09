@@ -41,7 +41,7 @@ test.describe("Visual check", () => {
 
     const url = page.url();
     if (url.includes("/login")) {
-      // eslint-disable-next-line no-console
+       
       console.warn(
         `[visual-check] auth bloquée — capture sur ${url}. ` +
           `Ajoute TEST_USER_EMAIL + TEST_USER_PASSWORD pour capturer /feed.`,

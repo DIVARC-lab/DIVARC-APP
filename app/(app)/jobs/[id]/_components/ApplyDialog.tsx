@@ -51,14 +51,21 @@ export function ApplyDialog({
     toast.success("Brouillon généré depuis ton profil pro ✨");
   }
 
+  /* React 19 strict : queueMicrotask + dédup ref pour consommer un
+     résultat de server action sans cascading render synchrone. */
+  const lastHandledStateRef = useRef<typeof state | null>(null);
   useEffect(() => {
-    if (state.status === "success") {
-      toast.success(state.message ?? "Candidature envoyée.");
-      setOpen(false);
-    }
-    if (state.status === "error" && state.message) {
-      toast.error(state.message);
-    }
+    if (lastHandledStateRef.current === state) return;
+    lastHandledStateRef.current = state;
+    queueMicrotask(() => {
+      if (state.status === "success") {
+        toast.success(state.message ?? "Candidature envoyée.");
+        setOpen(false);
+      }
+      if (state.status === "error" && state.message) {
+        toast.error(state.message);
+      }
+    });
   }, [state]);
 
   useEffect(() => {

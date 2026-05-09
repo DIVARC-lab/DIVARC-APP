@@ -5,7 +5,6 @@ import {
   CornerDownLeft,
   Loader2,
   MapPin,
-  MessageSquareText,
   Search,
   ShoppingBag,
   Sparkle,
@@ -13,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { CATEGORY_META } from "@/lib/utils/categories";
 import { cn } from "@/lib/utils/cn";
@@ -37,6 +36,15 @@ export function GlobalSearch() {
   const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /* Reset query + results synchrone avec la fermeture, pas dans un effect.
+     Évite les cascading renders flaggés par react-hooks/set-state-in-effect. */
+  function closeSearch() {
+    setOpen(false);
+    setQuery("");
+    setResults(EMPTY_RESULTS);
+    setSearching(false);
+  }
+
   // Cmd+K / Ctrl+K to toggle
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -45,7 +53,7 @@ export function GlobalSearch() {
         setOpen((v) => !v);
       }
       if (event.key === "Escape") {
-        setOpen(false);
+        closeSearch();
       }
     }
     document.addEventListener("keydown", handleKey);
@@ -56,9 +64,6 @@ export function GlobalSearch() {
   useEffect(() => {
     if (open) {
       requestAnimationFrame(() => inputRef.current?.focus());
-    } else {
-      setQuery("");
-      setResults(EMPTY_RESULTS);
     }
   }, [open]);
 
@@ -72,15 +77,14 @@ export function GlobalSearch() {
     };
   }, [open]);
 
-  // Search
+  /* Search effect : on n'appelle setState que dans les callbacks async pour
+     respecter react-hooks/set-state-in-effect (React 19 strict). Le marker
+     "searching=true" passe par startTransition pour éviter le cascading
+     render synchrone. */
   useEffect(() => {
-    if (debounced.length < 2) {
-      setResults(EMPTY_RESULTS);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
+    if (debounced.length < 2) return;
     const controller = new AbortController();
+    startTransition(() => setSearching(true));
     fetch(`/api/search?q=${encodeURIComponent(debounced)}`, {
       signal: controller.signal,
       cache: "no-store",
@@ -101,13 +105,19 @@ export function GlobalSearch() {
   }, [debounced]);
 
   function navigate(href: string) {
-    setOpen(false);
+    closeSearch();
     router.push(href);
   }
 
-  const total =
-    results.users.length + results.listings.length + results.posts.length;
+  /* Quand le terme est trop court, on dérive l'affichage (pas de setState).
+     Évite la dépendance au useEffect pour reset, qui violait set-state-in-effect. */
   const hasSearchTerm = debounced.length >= 2;
+  const visibleResults = hasSearchTerm ? results : EMPTY_RESULTS;
+  const isSearching = hasSearchTerm && searching;
+  const total =
+    visibleResults.users.length +
+    visibleResults.listings.length +
+    visibleResults.posts.length;
 
   return (
     <>
@@ -119,7 +129,7 @@ export function GlobalSearch() {
           aria-modal="true"
           aria-label="Recherche globale"
           className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-night/40 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
+          onClick={closeSearch}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -135,7 +145,7 @@ export function GlobalSearch() {
                 placeholder="Recherche personnes, annonces, posts..."
                 className="flex-1 bg-transparent text-night placeholder:text-muted focus:outline-none text-base"
               />
-              {searching ? (
+              {isSearching ? (
                 <Loader2
                   className="w-4 h-4 text-muted animate-spin"
                   aria-hidden
@@ -158,13 +168,13 @@ export function GlobalSearch() {
             <div className="max-h-[60vh] overflow-y-auto">
               {!hasSearchTerm ? (
                 <EmptyHint />
-              ) : !searching && total === 0 ? (
+              ) : !isSearching && total === 0 ? (
                 <NoResults query={debounced} />
               ) : (
                 <div className="p-2 sm:p-3 space-y-2">
-                  {results.users.length > 0 ? (
+                  {visibleResults.users.length > 0 ? (
                     <Section title="Personnes" icon={Users}>
-                      {results.users.map((u) => (
+                      {visibleResults.users.map((u) => (
                         <ResultButton
                           key={u.id}
                           onClick={() => navigate(`/u/${u.username ?? ""}`)}
@@ -198,9 +208,9 @@ export function GlobalSearch() {
                     </Section>
                   ) : null}
 
-                  {results.listings.length > 0 ? (
+                  {visibleResults.listings.length > 0 ? (
                     <Section title="Annonces" icon={ShoppingBag}>
-                      {results.listings.map((l) => {
+                      {visibleResults.listings.map((l) => {
                         const cat = CATEGORY_META[l.category as ListingCategory];
                         return (
                           <ResultButton
@@ -241,9 +251,9 @@ export function GlobalSearch() {
                     </Section>
                   ) : null}
 
-                  {results.posts.length > 0 ? (
+                  {visibleResults.posts.length > 0 ? (
                     <Section title="Posts" icon={Sparkle}>
-                      {results.posts.map((p) => (
+                      {visibleResults.posts.map((p) => (
                         <ResultButton
                           key={p.id}
                           onClick={() => navigate(`/feed/${p.id}`)}

@@ -211,7 +211,7 @@ export default async function CircleDetailPage({
 
           {posts.length === 0 && pinnedPosts.length === 0 ? (
             <p className="mt-6 text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
-              Aucun message pour l'instant. <span className="italic font-display text-night">Lance la conversation.</span>
+              Aucun message pour l&apos;instant. <span className="italic font-display text-night">Lance la conversation.</span>
             </p>
           ) : null}
 
@@ -247,7 +247,7 @@ export default async function CircleDetailPage({
           ) : null}
         </div>
         {members.length === 0 ? (
-          <p className="text-sm text-muted">Personne pour l'instant.</p>
+          <p className="text-sm text-muted">Personne pour l&apos;instant.</p>
         ) : (
           <ul className="grid sm:grid-cols-2 gap-2">
             {members.map((m) => {

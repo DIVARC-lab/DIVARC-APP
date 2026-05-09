@@ -86,22 +86,30 @@ export function PostComposer({
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* On success : reset + auto-close modal. */
+  /* On success : reset + auto-close modal.
+     React 19 strict bloque les setState synchrones en effet (cascading
+     render). On déplace le reset dans queueMicrotask : callback async, pas
+     de cascade, et la garde de dédup `lastHandledStateRef` évite de
+     ré-appliquer le même résultat plusieurs fois. */
+  const lastHandledStateRef = useRef<typeof state | null>(null);
   useEffect(() => {
-    if (state.status === "success") {
-      setBody("");
-      setPhotos([]);
-      setVideo(null);
-      setVisibility("friends");
-      setOpen(false);
-      toast.success("Post publié ✨");
-      router.refresh();
-    }
-    if (state.status === "error" && state.message) {
-      toast.error(state.message);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+    if (lastHandledStateRef.current === state) return;
+    lastHandledStateRef.current = state;
+    queueMicrotask(() => {
+      if (state.status === "success") {
+        setBody("");
+        setPhotos([]);
+        setVideo(null);
+        setVisibility("friends");
+        setOpen(false);
+        toast.success("Post publié ✨");
+        router.refresh();
+      }
+      if (state.status === "error" && state.message) {
+        toast.error(state.message);
+      }
+    });
+  }, [state, router]);
 
   /* ESC key ferme la modale. Body scroll lock when open. */
   useEffect(() => {

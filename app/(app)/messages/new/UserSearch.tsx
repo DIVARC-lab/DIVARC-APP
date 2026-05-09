@@ -10,7 +10,12 @@ import {
   Search,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import {
+  startTransition as startReactTransition,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
@@ -45,16 +50,13 @@ export function UserSearch() {
   const [intros, setIntros] = useState<Record<string, string>>({});
   const [introOpen, setIntroOpen] = useState<string | null>(null);
 
+  /* React 19 strict : pas de setState synchrone dans un effet. On dérive
+     l'affichage de `debounced` (visibleResults) et on ne touche aux states
+     que dans les callbacks async. */
   useEffect(() => {
-    if (debounced.length < 2) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
-
-    setSearching(true);
+    if (debounced.length < 2) return;
     const controller = new AbortController();
-
+    startReactTransition(() => setSearching(true));
     fetch(`/api/users/search?q=${encodeURIComponent(debounced)}`, {
       signal: controller.signal,
       cache: "no-store",
@@ -70,9 +72,12 @@ export function UserSearch() {
       .finally(() => {
         if (!controller.signal.aborted) setSearching(false);
       });
-
     return () => controller.abort();
   }, [debounced]);
+
+  const hasSearchTerm = debounced.length >= 2;
+  const visibleResults = hasSearchTerm ? results : [];
+  const isSearching = hasSearchTerm && searching;
 
   function handleSendRequest(userId: string) {
     setActiveUserId(userId);
@@ -152,7 +157,7 @@ export function UserSearch() {
           onChange={(event) => setQuery(event.currentTarget.value)}
           className="w-full h-12 rounded-xl border border-line bg-white pl-11 pr-4 text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
         />
-        {searching ? (
+        {isSearching ? (
           <Loader2
             className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin"
             aria-hidden
@@ -161,7 +166,7 @@ export function UserSearch() {
       </div>
 
       <ul className="space-y-3">
-        {results.map((result) => {
+        {visibleResults.map((result) => {
           const displayName =
             result.full_name ?? result.username ?? "Utilisateur";
           const isBusy = activeUserId === result.id && pending;
@@ -261,7 +266,7 @@ export function UserSearch() {
         })}
       </ul>
 
-      {!searching && debounced.length >= 2 && results.length === 0 ? (
+      {!isSearching && debounced.length >= 2 && visibleResults.length === 0 ? (
         <p className="text-center text-sm text-muted py-8">
           Aucun utilisateur trouvé pour « {debounced} ».
         </p>

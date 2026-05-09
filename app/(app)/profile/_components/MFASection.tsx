@@ -30,8 +30,14 @@ export function MFASection() {
     setLoading(false);
   }
 
+  /* React 19 strict : on défère le reload via queueMicrotask pour que les
+     setState à l'intérieur ne tombent pas dans la passe synchrone de
+     l'effect (set-state-in-effect). */
   useEffect(() => {
-    void reload();
+    queueMicrotask(() => {
+      void reload();
+    });
+
   }, []);
 
   function handleUnenroll(factorId: string) {

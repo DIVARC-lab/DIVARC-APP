@@ -1,7 +1,11 @@
 "use client";
 
 import { Check, Loader2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  startTransition as startReactTransition,
+  useEffect,
+  useState,
+} from "react";
 import { Field, FieldError, FieldHint, FieldLabel } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
@@ -19,32 +23,38 @@ type UsernameFieldProps = {
   serverError?: string;
 };
 
+/* React 19 strict : on dérive l'état "client-side" (idle/invalid) au lieu
+   de le poser via setState dans l'effet. Le serveur (taken/available) lui
+   passe par fetch + setState async, ce qui est légitime. */
+function deriveClientStatus(
+  debounced: string,
+  initialValue: string,
+): Status | null {
+  if (!debounced || debounced === initialValue) return { kind: "idle" };
+  const parsed = usernameSchema.safeParse(debounced);
+  if (!parsed.success) {
+    return {
+      kind: "invalid",
+      message: parsed.error.issues[0]?.message ?? "Pseudo invalide.",
+    };
+  }
+  return null;
+}
+
 export function UsernameField({
   initialValue,
   serverError,
 }: UsernameFieldProps) {
   const [value, setValue] = useState(initialValue);
   const debounced = useDebouncedValue(value.trim().toLowerCase(), 350);
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [serverStatus, setServerStatus] = useState<Status>({ kind: "idle" });
+
+  const clientStatus = deriveClientStatus(debounced, initialValue);
 
   useEffect(() => {
-    if (!debounced || debounced === initialValue) {
-      setStatus({ kind: "idle" });
-      return;
-    }
-
-    const parsed = usernameSchema.safeParse(debounced);
-    if (!parsed.success) {
-      setStatus({
-        kind: "invalid",
-        message: parsed.error.issues[0]?.message ?? "Pseudo invalide.",
-      });
-      return;
-    }
-
-    setStatus({ kind: "checking" });
+    if (clientStatus) return;
     const controller = new AbortController();
-
+    startReactTransition(() => setServerStatus({ kind: "checking" }));
     fetch(
       `/api/profile/check-username?username=${encodeURIComponent(debounced)}`,
       { signal: controller.signal, cache: "no-store" },
@@ -58,26 +68,26 @@ export function UsernameField({
         }) => {
           if (controller.signal.aborted) return;
           if (data.reason === "invalid") {
-            setStatus({
+            setServerStatus({
               kind: "invalid",
               message: data.message ?? "Pseudo invalide.",
             });
           } else if (data.available) {
-            setStatus({ kind: "available" });
+            setServerStatus({ kind: "available" });
           } else {
-            setStatus({ kind: "taken" });
+            setServerStatus({ kind: "taken" });
           }
         },
       )
       .catch(() => {
         if (!controller.signal.aborted) {
-          setStatus({ kind: "idle" });
+          setServerStatus({ kind: "idle" });
         }
       });
-
     return () => controller.abort();
-  }, [debounced, initialValue]);
+  }, [debounced, clientStatus]);
 
+  const status: Status = clientStatus ?? serverStatus;
   const showError =
     serverError ??
     (status.kind === "taken"

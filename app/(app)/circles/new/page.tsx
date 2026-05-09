@@ -32,8 +32,8 @@ export default async function NewCirclePage() {
           Crée ton <em className="italic text-gold-deep">espace</em>.
         </DisplayHeading>
         <p className="mt-2 text-muted-strong">
-          Une communauté autour d'un quartier, d'un métier, d'une passion. Tu en
-          deviens automatiquement l'admin.
+          Une communauté autour d&apos;un quartier, d&apos;un métier, d&apos;une passion. Tu en
+          deviens automatiquement l&apos;admin.
         </p>
       </header>
 

@@ -21,10 +21,6 @@ export function MFAForm() {
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
 
-  useEffect(() => {
-    void load();
-  }, []);
-
   async function load() {
     const supabase = createClient();
     const { data, error: listError } = await supabase.auth.mfa.listFactors();
@@ -40,6 +36,15 @@ export function MFAForm() {
     }
     setFactorId(verified.id);
   }
+
+  /* `load` déclarée au-dessus pour respecter react-hooks/immutability.
+     queueMicrotask évite le set-state-in-effect indirect via la fonction. */
+  useEffect(() => {
+    queueMicrotask(() => {
+      void load();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

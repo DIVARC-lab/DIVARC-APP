@@ -29,12 +29,14 @@ export function PostVideoPlayer({
       ? `${width} / ${height}`
       : "9 / 16";
 
+  /* React 19 strict : setPlaying du fallback (pas d'IntersectionObserver)
+     déplacé dans queueMicrotask pour éviter set-state-in-effect. */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     if (typeof IntersectionObserver === "undefined") {
       void video.play().catch(() => undefined);
-      setPlaying(true);
+      queueMicrotask(() => setPlaying(true));
       return;
     }
     const observer = new IntersectionObserver(

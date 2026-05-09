@@ -54,7 +54,7 @@ export function CircleEventsSection({
 
       {events.length === 0 ? (
         <p className="text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
-          Pas d'événement à venir.{" "}
+          Pas d&apos;événement à venir.{" "}
           {isMember ? (
             <Link
               href={`/circles/${circleSlug}/events/new`}

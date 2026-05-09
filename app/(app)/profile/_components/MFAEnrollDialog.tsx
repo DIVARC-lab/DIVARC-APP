@@ -39,26 +39,6 @@ export function MFAEnrollDialog({
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
 
-  useEffect(() => {
-    if (!open) {
-      setState({ kind: "idle" });
-      setCode("");
-      setError(null);
-      return;
-    }
-    void start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
   async function start() {
     setState({ kind: "loading" });
     const supabase = createClient();
@@ -89,6 +69,33 @@ export function MFAEnrollDialog({
       secret: data.totp.secret,
     });
   }
+
+  /* React 19 strict : queueMicrotask pour le reset à la fermeture pour
+     éviter cascading render synchrone (set-state-in-effect). `start` est
+     déclarée au-dessus de l'effect pour respecter react-hooks/immutability. */
+  useEffect(() => {
+    if (!open) {
+      queueMicrotask(() => {
+        setState({ kind: "idle" });
+        setCode("");
+        setError(null);
+      });
+      return;
+    }
+    queueMicrotask(() => {
+      void start();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   async function verify() {
     if (state.kind !== "ready") return;

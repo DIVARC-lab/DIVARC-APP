@@ -60,18 +60,22 @@ export function MessageComposer({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /* Restore le draft depuis localStorage. queueMicrotask évite le
+     cascading render synchrone (set-state-in-effect, React 19 strict). */
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const stored = window.localStorage.getItem(draftKey(conversationId));
-      if (stored) {
-        setBody(stored);
-        requestAnimationFrame(() => resize());
+    queueMicrotask(() => {
+      try {
+        const stored = window.localStorage.getItem(draftKey(conversationId));
+        if (stored) {
+          setBody(stored);
+          requestAnimationFrame(() => resize());
+        }
+      } catch {
+        /* ignore */
       }
-    } catch {
-      /* ignore */
-    }
-     
+    });
+
   }, [conversationId]);
 
   useEffect(() => {

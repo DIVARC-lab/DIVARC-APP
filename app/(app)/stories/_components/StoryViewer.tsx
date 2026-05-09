@@ -52,11 +52,14 @@ export function StoryViewer({
     }
   }, [currentStory, currentUserId]);
 
+  /* React 19 strict : le reset `setProgress(0)` part dans queueMicrotask
+     pour éviter le cascading render synchrone à chaque changement de
+     story / pause. Le tick d'intervalle est déjà async. */
   useEffect(() => {
     if (!currentStory || paused) return;
 
     startTimeRef.current = Date.now();
-    setProgress(0);
+    queueMicrotask(() => setProgress(0));
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;

@@ -6,6 +6,7 @@ import {
   useActionState,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -95,34 +96,52 @@ export function WelcomeWizard({
 
   const [completing, startCompleting] = useTransition();
 
+  /* React 19 strict : queueMicrotask + dédup ref pour consommer les
+     résultats des server actions (identity / interests / preferences) sans
+     déclencher cascading render synchrone. */
+  const lastIdentityRef = useRef<typeof identityState | null>(null);
   useEffect(() => {
-    if (identityState.status === "success") {
-      setStepIndex(2);
-    } else if (identityState.status === "error" && identityState.message) {
-      toast.error(identityState.message);
-    }
+    if (lastIdentityRef.current === identityState) return;
+    lastIdentityRef.current = identityState;
+    queueMicrotask(() => {
+      if (identityState.status === "success") {
+        setStepIndex(2);
+      } else if (identityState.status === "error" && identityState.message) {
+        toast.error(identityState.message);
+      }
+    });
   }, [identityState]);
 
+  const lastInterestsRef = useRef<typeof interestsState | null>(null);
   useEffect(() => {
-    if (interestsState.status === "success") {
-      setStepIndex(3);
-    } else if (
-      interestsState.status === "error" &&
-      interestsState.message
-    ) {
-      toast.error(interestsState.message);
-    }
+    if (lastInterestsRef.current === interestsState) return;
+    lastInterestsRef.current = interestsState;
+    queueMicrotask(() => {
+      if (interestsState.status === "success") {
+        setStepIndex(3);
+      } else if (
+        interestsState.status === "error" &&
+        interestsState.message
+      ) {
+        toast.error(interestsState.message);
+      }
+    });
   }, [interestsState]);
 
+  const lastPreferencesRef = useRef<typeof preferencesState | null>(null);
   useEffect(() => {
-    if (preferencesState.status === "success") {
-      setStepIndex(4);
-    } else if (
-      preferencesState.status === "error" &&
-      preferencesState.message
-    ) {
-      toast.error(preferencesState.message);
-    }
+    if (lastPreferencesRef.current === preferencesState) return;
+    lastPreferencesRef.current = preferencesState;
+    queueMicrotask(() => {
+      if (preferencesState.status === "success") {
+        setStepIndex(4);
+      } else if (
+        preferencesState.status === "error" &&
+        preferencesState.message
+      ) {
+        toast.error(preferencesState.message);
+      }
+    });
   }, [preferencesState]);
 
   function handleSkip() {

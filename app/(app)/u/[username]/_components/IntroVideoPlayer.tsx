@@ -16,13 +16,15 @@ export function IntroVideoPlayer({ url, thumbnailUrl, durationMs }: Props) {
   const [playing, setPlaying] = useState(true);
   const [visible, setVisible] = useState(false);
 
-  // Autoplay only when in viewport (TikTok-style)
+  /* Autoplay only when in viewport (TikTok-style).
+     React 19 strict : setVisible du fallback déplacé dans queueMicrotask
+     pour éviter set-state-in-effect. */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     if (typeof IntersectionObserver === "undefined") {
       void video.play().catch(() => undefined);
-      setVisible(true);
+      queueMicrotask(() => setVisible(true));
       return;
     }
     const observer = new IntersectionObserver(

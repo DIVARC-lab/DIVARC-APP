@@ -222,8 +222,8 @@ export function CircleEventCreateForm({
           >
             openstreetmap.org
           </a>
-          , clic-droit sur le lieu → "Voir l'adresse" → copie la latitude et la
-          longitude. L'événement apparaîtra alors sur la carte DIVARC.
+          , clic-droit sur le lieu → &laquo;&nbsp;Voir l&apos;adresse&nbsp;&raquo; → copie la latitude et la
+          longitude. L&apos;événement apparaîtra alors sur la carte DIVARC.
         </p>
         <div className="grid sm:grid-cols-2 gap-4">
           <input
@@ -251,7 +251,7 @@ export function CircleEventCreateForm({
 
       <div className="flex justify-end pt-2">
         <Button type="submit" loading={pending}>
-          Créer l'événement
+          Créer l&apos;événement
         </Button>
       </div>
     </form>

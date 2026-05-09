@@ -78,7 +78,7 @@ export function CircleInvitationsManager({
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-night-muted mb-1">
-              Limite d'usages (facultatif)
+              Limite d&apos;usages (facultatif)
             </label>
             <input
               type="number"
@@ -117,7 +117,7 @@ export function CircleInvitationsManager({
 
       {invitations.length === 0 ? (
         <p className="text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
-          Pas encore d'invitation.{" "}
+          Pas encore d&apos;invitation.{" "}
           <span className="italic font-display text-night">
             Crée le premier lien.
           </span>

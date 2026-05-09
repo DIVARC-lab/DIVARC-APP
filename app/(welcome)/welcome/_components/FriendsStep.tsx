@@ -1,7 +1,12 @@
 "use client";
 
 import { Loader2, MapPin, Search, UserPlus } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import {
+  startTransition as startReactTransition,
+  useEffect,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -29,14 +34,14 @@ export function FriendsStep() {
   const [pending, startTransition] = useTransition();
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
 
+  /* React 19 strict : pas de setState synchrone dans un effet. On dérive
+     l'affichage de `debounced` (visibleResults) et on ne touche aux states
+     que dans les callbacks async. Le marker "searching=true" passe par
+     startTransition. */
   useEffect(() => {
-    if (debounced.length < 2) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
+    if (debounced.length < 2) return;
     const controller = new AbortController();
+    startReactTransition(() => setSearching(true));
     fetch(`/api/users/search?q=${encodeURIComponent(debounced)}`, {
       signal: controller.signal,
       cache: "no-store",
@@ -51,6 +56,10 @@ export function FriendsStep() {
       });
     return () => controller.abort();
   }, [debounced]);
+
+  const hasSearchTerm = debounced.length >= 2;
+  const visibleResults = hasSearchTerm ? results : [];
+  const isSearching = hasSearchTerm && searching;
 
   function handleSend(userId: string) {
     setActiveUserId(userId);
@@ -81,7 +90,7 @@ export function FriendsStep() {
           onChange={(event) => setQuery(event.currentTarget.value)}
           className="w-full h-12 rounded-xl border border-line bg-white pl-11 pr-4 text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
         />
-        {searching ? (
+        {isSearching ? (
           <Loader2
             className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin"
             aria-hidden
@@ -93,13 +102,13 @@ export function FriendsStep() {
         <p className="text-center text-xs text-muted py-8">
           Tape le nom d&apos;un proche pour démarrer ton réseau.
         </p>
-      ) : !searching && results.length === 0 ? (
+      ) : !isSearching && visibleResults.length === 0 ? (
         <p className="text-center text-sm text-muted py-8">
           Aucun résultat. Tu pourras toujours en ajouter plus tard.
         </p>
       ) : (
         <ul className="space-y-2">
-          {results.map((result) => {
+          {visibleResults.map((result) => {
             const sent =
               sentTo.has(result.id) ||
               result.friendship.state === "outgoing";
