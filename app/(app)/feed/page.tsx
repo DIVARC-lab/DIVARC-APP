@@ -98,17 +98,29 @@ export default async function FeedPage({
     ][today.getMonth()]
   }`;
 
+  /* Orchestration Session 5 — brief user :
+     - Container max-w-2xl mx-auto
+     - Padding latéral 0 sur mobile (cards full-bleed)
+     - Liste PostCard en gap-3 (au lieu de space-y-4)
+     - Pas de bg gris entre cards : le feed est aéré
+     - StoriesRow tout en haut, PostComposer juste après
+     - Right rail desktop préservé via grid lg externe (max-w-6xl
+       wrapper englobe le grid pour permettre la 2ème colonne)
+     - Server actions et queries Supabase intacts */
+  const visiblePosts = posts;
   return (
-    <div className="max-w-6xl mx-auto w-full">
+    <div className="mx-auto w-full max-w-6xl">
       <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
-        {/* Main column */}
-        <div className="max-w-2xl mx-auto w-full lg:mx-0">
-          {/* Hero header — gradient cream → bg + ArcDeco gold visible
-              (pattern BoldFeed du proto handoff) */}
-          <header className="relative overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg px-5 sm:px-10 pt-14 sm:pt-16 pb-9">
+        {/* Main column — max-w-2xl mx-auto sur mobile,
+            collée à gauche dans le grid lg+ */}
+        <div className="mx-auto w-full max-w-2xl lg:mx-0">
+          {/* Hero header — bandeau gradient cream + ArcDeco gold visible.
+              Padding aligné avec le container : px-5 sm:px-6 (au lieu
+              de px-5 sm:px-10 qui débordait du max-w-2xl) */}
+          <header className="relative overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg px-5 sm:px-6 pt-12 sm:pt-14 pb-8">
             <div
               aria-hidden
-              className="absolute -right-20 -top-24 pointer-events-none opacity-55"
+              className="pointer-events-none absolute -right-20 -top-24 opacity-55"
             >
               <ArcDeco size={320} tone="gold" opacity={1} stroke={1.25} />
             </div>
@@ -117,24 +129,15 @@ export default async function FeedPage({
                 <KickerLabel>· Le feed · {todayKicker}</KickerLabel>
                 <DisplayHeading
                   size="xl"
-                  className="mt-3 !leading-[1] !text-[44px] sm:!text-[64px] tracking-[-0.025em]"
+                  className="mt-3 !leading-[1] !text-[44px] sm:!text-[60px] tracking-[-0.025em]"
                 >
                   Ce que tes proches{" "}
-                  <em
-                    className="italic"
-                    style={{
-                      backgroundImage:
-                        "linear-gradient(120deg, #F4B942, #B88A2A)",
-                      WebkitBackgroundClip: "text",
-                      backgroundClip: "text",
-                      color: "transparent",
-                    }}
-                  >
+                  <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
                     racontent
                   </em>{" "}
                   aujourd&apos;hui.
                 </DisplayHeading>
-                <p className="mt-3 text-night-muted text-[15px] leading-relaxed max-w-xl">
+                <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-night-muted">
                   Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
                   {newPostsCount > 0 ? (
                     <>
@@ -150,49 +153,65 @@ export default async function FeedPage({
               </div>
               <Link
                 href="/feed/saved"
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
+                className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white border border-line text-sm font-semibold text-night-muted hover:border-gold/40 hover:text-gold-deep transition-colors"
                 title="Mes posts sauvegardés"
+                aria-label="Mes posts sauvegardés"
               >
                 <Bookmark className="w-4 h-4" aria-hidden />
-                <span className="hidden sm:inline">Sauvegardés</span>
+                <span>Sauvegardés</span>
               </Link>
             </div>
           </header>
 
-          <div className="px-4 sm:px-10 pb-10 space-y-6 -mt-2">
+          {/* Stories rail — full-bleed (StoriesRow gère son -mx-4 interne) */}
+          <div className="pt-4 pb-3">
             <StoriesRow
               groups={storyGroups}
               currentUserId={user.id}
               currentUserAvatarUrl={profile?.avatar_url ?? null}
               currentUserName={fullName}
             />
+          </div>
 
+          {/* Composer — px-0 mobile (full-bleed), px-6 desktop */}
+          <div className="px-0 sm:px-6 pb-3">
             <PostComposer
               userId={user.id}
               authorName={fullName}
               authorAvatarUrl={profile?.avatar_url ?? null}
             />
-
-            {trendingTags.length > 0 ? (
-              <TrendingHashtagsRow tags={trendingTags} />
-            ) : null}
-
-            {posts.length === 0 ? (
-              <FeedEmptyState tab={tab} />
-            ) : (
-              <ul className="space-y-4">
-                {posts.map((post) => (
-                  <li key={post.id}>
-                    <PostViewTracker postId={post.id} />
-                    <PostCard post={post} currentUserId={user.id} />
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
+
+          {/* Trending hashtags row — un peu de padding latéral */}
+          {trendingTags.length > 0 ? (
+            <div className="px-4 sm:px-6 pb-3">
+              <TrendingHashtagsRow tags={trendingTags} />
+            </div>
+          ) : null}
+
+          {/* Liste posts — gap-3 (brief), full-bleed mobile, pas de bg gris
+              entre les cards (chaque card a sa propre shadow soft) */}
+          {visiblePosts.length === 0 ? (
+            <div className="px-4 sm:px-6 pb-10">
+              <FeedEmptyState tab={tab} />
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-3 px-0 sm:px-6 pb-10">
+              {visiblePosts.map((post, index) => (
+                <li key={post.id}>
+                  <PostViewTracker postId={post.id} />
+                  <PostCard
+                    post={post}
+                    currentUserId={user.id}
+                    hero={index === 0}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        {/* Right rail (lg+) */}
+        {/* Right rail (lg+) — préservé pour suggestions/tendances/TON ARC */}
         <div className="hidden lg:block py-10 pr-4">
           <FeedRightRail
             suggestions={suggestions}
