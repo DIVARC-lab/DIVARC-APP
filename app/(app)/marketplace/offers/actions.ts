@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendPushToUser } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
+import { formatPrice } from "@/lib/utils/currency";
 
 const sendOfferSchema = z.object({
   listing_id: z.string().uuid(),
@@ -103,6 +105,30 @@ export async function sendOffer(formData: FormData): Promise<OfferActionResult> 
     return { ok: false, error: "Envoi impossible." };
   }
 
+  /* Push au seller. */
+  const [{ data: buyerProfile }, { data: listingDetails }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("listings")
+      .select("title")
+      .eq("id", parsed.data.listing_id)
+      .maybeSingle(),
+  ]);
+  const buyerName =
+    buyerProfile?.full_name ?? buyerProfile?.username ?? "Un acheteur";
+  void sendPushToUser(listing.seller_id, {
+    title: `Nouvelle offre de ${buyerName}`,
+    body: `${formatPrice(parsed.data.amount, listing.price_currency)} sur ${
+      listingDetails?.title ?? "ton annonce"
+    }`,
+    url: "/marketplace/offers",
+    tag: `offer-${parsed.data.listing_id}`,
+  });
+
   revalidatePath(`/marketplace/${parsed.data.listing_id}`);
   revalidatePath("/marketplace/offers");
   return { ok: true, offerId: created.id };
@@ -173,6 +199,13 @@ export async function respondToOffer(
       .update({ status: "declined", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
     if (error) return { ok: false, error: "Refus impossible." };
+    /* Push au buyer (informatif). */
+    void sendPushToUser(offer.from_user, {
+      title: "Offre refusée",
+      body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été refusée.`,
+      url: "/marketplace/offers?tab=sent",
+      tag: `offer-resp-${offer.id}`,
+    });
   } else if (decision === "accept") {
     /* On marque l'offre acceptée + le listing vendu en transaction. La
        fonction RPC `accept_listing_offer` garantit l'atomicité côté DB. */
@@ -180,6 +213,13 @@ export async function respondToOffer(
       offer_id: offer.id,
     });
     if (error) return { ok: false, error: "Acceptation impossible." };
+    /* Push au buyer pour célébrer. */
+    void sendPushToUser(offer.from_user, {
+      title: "🎉 Offre acceptée !",
+      body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été acceptée. Contacte le vendeur.`,
+      url: "/marketplace/offers?tab=sent",
+      tag: `offer-resp-${offer.id}`,
+    });
   } else if (decision === "counter") {
     if (!parsed.data.counter_amount) {
       return { ok: false, error: "Montant de la contre-offre requis." };
@@ -207,6 +247,13 @@ export async function respondToOffer(
     if (insertError || !counter) {
       return { ok: false, error: "Contre-offre impossible." };
     }
+    /* Push au buyer pour la contre-offre. */
+    void sendPushToUser(offer.from_user, {
+      title: "Contre-offre reçue",
+      body: `Le vendeur propose ${formatPrice(parsed.data.counter_amount, offer.currency)}.`,
+      url: "/marketplace/offers?tab=sent",
+      tag: `offer-resp-${offer.id}`,
+    });
     revalidatePath(`/marketplace/${offer.listing_id}`);
     revalidatePath("/marketplace/offers");
     return { ok: true, offerId: counter.id };

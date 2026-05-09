@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendPushToUser } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 
 const sendSchema = z.object({
@@ -45,6 +46,21 @@ export async function sendProConnection(
     return { ok: false, error: "Envoi impossible." };
   }
 
+  /* Push au recipient. */
+  const { data: requesterProfile } = await supabase
+    .from("profiles")
+    .select("full_name, username")
+    .eq("id", user.id)
+    .maybeSingle();
+  const requesterName =
+    requesterProfile?.full_name ?? requesterProfile?.username ?? "Quelqu'un";
+  void sendPushToUser(parsed.data.recipient_id, {
+    title: `Demande de connexion pro de ${requesterName}`,
+    body: parsed.data.intro ?? "Cette personne souhaite te connecter à son réseau pro.",
+    url: "/network?tab=recues",
+    tag: `pro-conn-${user.id}`,
+  });
+
   revalidatePath("/network");
   return { ok: true };
 }
@@ -59,12 +75,30 @@ export async function respondProConnection(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Connexion requise." };
 
-  const { error } = await supabase
+  const { data: connection, error } = await supabase
     .from("pro_connections")
     .update({ status, responded_at: new Date().toISOString() })
     .eq("id", connectionId)
-    .eq("recipient_id", user.id);
-  if (error) return { ok: false, error: "Réponse impossible." };
+    .eq("recipient_id", user.id)
+    .select("requester_id")
+    .single();
+  if (error || !connection) return { ok: false, error: "Réponse impossible." };
+
+  if (status === "accepted") {
+    const { data: acceptorProfile } = await supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", user.id)
+      .maybeSingle();
+    const acceptorName =
+      acceptorProfile?.full_name ?? acceptorProfile?.username ?? "Quelqu'un";
+    void sendPushToUser(connection.requester_id, {
+      title: `${acceptorName} a accepté ta connexion pro`,
+      body: "Vous êtes maintenant connectés sur DIVARC.",
+      url: `/network?tab=connectes`,
+      tag: `pro-conn-resp-${connectionId}`,
+    });
+  }
 
   revalidatePath("/network");
   return { ok: true };

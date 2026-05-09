@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendPushToUser } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 
 const sendRequestSchema = z.object({
@@ -50,6 +51,22 @@ export async function sendFriendRequest(
     return { ok: false, error: "Demande impossible. Réessaie." };
   }
 
+  /* Push notif au recipient — best-effort, ne bloque jamais l'action.
+     L'in-app notif est gérée par le trigger Postgres notify_friend_request_received. */
+  const { data: requesterProfile } = await supabase
+    .from("profiles")
+    .select("full_name, username")
+    .eq("id", user.id)
+    .maybeSingle();
+  const requesterName =
+    requesterProfile?.full_name ?? requesterProfile?.username ?? "Quelqu'un";
+  void sendPushToUser(parsed.data.recipientId, {
+    title: `${requesterName} veut être ton ami`,
+    body: parsed.data.intro ?? "Accepter pour pouvoir discuter ensemble.",
+    url: "/friends?tab=recues",
+    tag: `friend-req-${user.id}`,
+  });
+
   revalidatePath("/friends");
   revalidatePath("/messages");
   return { ok: true };
@@ -64,14 +81,31 @@ export async function acceptFriendRequest(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
 
-  const { error } = await supabase
+  const { data: friendship, error } = await supabase
     .from("friendships")
     .update({ status: "accepted" })
     .eq("id", friendshipId)
     .eq("recipient_id", user.id)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .select("requester_id")
+    .single();
 
-  if (error) return { ok: false, error: "Acceptation impossible." };
+  if (error || !friendship) return { ok: false, error: "Acceptation impossible." };
+
+  /* Push au requester originel pour lui dire que c'est accepté. */
+  const { data: acceptorProfile } = await supabase
+    .from("profiles")
+    .select("full_name, username")
+    .eq("id", user.id)
+    .maybeSingle();
+  const acceptorName =
+    acceptorProfile?.full_name ?? acceptorProfile?.username ?? "Quelqu'un";
+  void sendPushToUser(friendship.requester_id, {
+    title: `${acceptorName} a accepté ta demande`,
+    body: "Vous pouvez maintenant discuter ensemble.",
+    url: "/friends?tab=amis",
+    tag: `friend-accepted-${user.id}`,
+  });
 
   revalidatePath("/friends");
   revalidatePath("/messages");
