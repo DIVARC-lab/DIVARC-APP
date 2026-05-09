@@ -46,6 +46,7 @@ type MapViewProps = {
   initialCenter: [number, number];
   initialZoom: number;
   hasCircles: boolean;
+  currentUserName: string | null;
 };
 
 type FilterId = "all" | "events" | "jobs" | "marketplace" | "neighbors";
@@ -116,13 +117,72 @@ export function MapView({
   initialCenter,
   initialZoom,
   hasCircles,
+  currentUserName,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const markersRef = useRef<Marker[]>([]);
+  const selfMarkerRef = useRef<Marker | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterId>("all");
   const [sheetMode, setSheetMode] = useState<"peek" | "expanded">("peek");
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(
+    null,
+  );
+
+  /* Demande la position du user (sans nag : si refusée, juste pas de pin self).
+     Refonte audit S7 (handoff feed-map L83-87). */
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setUserPosition([pos.coords.longitude, pos.coords.latitude]),
+      () => {
+        /* Refus ou erreur — on ignore silencieusement. */
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
+    );
+  }, []);
+
+  const userInitials = useMemo(() => {
+    if (!currentUserName) return "·";
+    const parts = currentUserName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "·";
+    if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+    return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  }, [currentUserName]);
+
+  /* Self marker avec halo ping (proto feed-map L83-87) :
+     halo 70×70 r-full bg gold/22 animate-ping + pin 24×24 bg-gold border-4
+     white avec initiales. */
+  useEffect(() => {
+    if (!mapRef.current || !userPosition) return;
+    if (selfMarkerRef.current) {
+      selfMarkerRef.current.remove();
+      selfMarkerRef.current = null;
+    }
+    const el = document.createElement("div");
+    el.className = "relative pointer-events-none";
+    el.innerHTML = `
+      <span
+        aria-hidden
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70px] h-[70px] rounded-full bg-[rgba(244,185,66,0.22)] animate-ping"
+      ></span>
+      <span
+        class="relative flex h-6 w-6 items-center justify-center rounded-full bg-gold border-4 border-white text-night text-[11px] font-extrabold shadow-[0_6px_16px_rgba(0,0,0,0.3)]"
+      >${userInitials}</span>
+    `;
+    const marker = new maplibregl.Marker({ element: el, anchor: "center" })
+      .setLngLat(userPosition)
+      .addTo(mapRef.current);
+    selfMarkerRef.current = marker;
+    return () => {
+      if (selfMarkerRef.current) {
+        selfMarkerRef.current.remove();
+        selfMarkerRef.current = null;
+      }
+    };
+  }, [userPosition, userInitials]);
 
   /* Initialise la map une fois — référencée via useRef pour éviter les
      recreates sur re-render. */

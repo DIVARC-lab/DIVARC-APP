@@ -240,39 +240,45 @@ export default async function DashboardLayout({
       </aside>
 
       <div className="flex flex-col">
-        {/* Header mobile sticky 56px — brief Session 4 :
-            - h-14 (56px) bg-white/95 backdrop-blur-xl, border-b var(--line)
-            - Logo D doré 32px + label "DIVARC" Geist font-extrabold
-            - Right : icons Search + Bell (badge gold si unread) */}
-        <header className="lg:hidden sticky top-0 z-30 h-14 px-4 border-b border-line bg-white/95 backdrop-blur-xl flex items-center justify-between">
+        {/* Header mobile — refonte audit S4 (handoff feed-mobile-bold L12-22) :
+            - Logo 32 + label "DIVARC" Instrument Serif 24px tracking [-0.01em]
+              (au lieu de Geist 17 font-extrabold)
+            - Right : Search button blanc/border + Bell button navy/cream avec
+              badge gold dot 9x9 r-[5px] (proto pattern) */}
+        <header className="lg:hidden sticky top-0 z-30 h-14 px-4 border-b border-line bg-white/95 backdrop-blur-xl flex items-center gap-2.5">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2.5"
             aria-label="Accueil DIVARC"
           >
             <Logo size={32} />
-            <span className="font-sans font-extrabold text-[17px] text-night tracking-tight">
+            <span className="font-display text-[24px] text-night leading-none tracking-[-0.01em]">
               DIVARC
             </span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <Link
               href="/search"
               aria-label="Rechercher"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+              className="flex h-[38px] w-[38px] items-center justify-center rounded-[19px] bg-white border border-night/[0.06] shadow-[0_1px_2px_rgba(10,31,68,0.04)] text-night hover:border-night/15 transition-colors"
             >
-              <Search className="w-[18px] h-[18px]" aria-hidden />
+              <Search className="w-4 h-4" aria-hidden />
             </Link>
             <Link
               href="/notifications"
-              aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+              aria-label={
+                unreadNotifications > 0
+                  ? `Notifications (${unreadNotifications} non lue${unreadNotifications > 1 ? "s" : ""})`
+                  : "Notifications"
+              }
+              className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[19px] bg-night text-cream hover:bg-night-soft transition-colors"
             >
-              <Bell className="w-[18px] h-[18px]" aria-hidden />
+              <Bell className="w-4 h-4" aria-hidden />
               {unreadNotifications > 0 ? (
-                <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-gold text-night text-[9px] font-extrabold flex items-center justify-center">
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                </span>
+                <span
+                  aria-hidden
+                  className="absolute top-1.5 right-1.5 w-[9px] h-[9px] rounded-full bg-gold border-[1.5px] border-night"
+                />
               ) : null}
             </Link>
           </div>

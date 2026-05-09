@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { listGeolocatedEventsForUser } from "@/lib/queries/circle_events";
 import { listMyCircles } from "@/lib/queries/circles";
+import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { MapView } from "./_components/MapView";
 
@@ -42,10 +43,14 @@ export default async function MapPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [events, myCircles] = await Promise.all([
+  const [events, myCircles, profile] = await Promise.all([
     listGeolocatedEventsForUser(user.id, 50),
     listMyCircles(user.id),
+    getCurrentProfile(),
   ]);
+
+  const fullName =
+    profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
   /* On ne passe au client que les events qui ont vraiment des coordonnées
      (filtre déjà côté SQL mais TS exige le narrowing). */
@@ -64,6 +69,7 @@ export default async function MapPage() {
       initialCenter={camera.center}
       initialZoom={camera.zoom}
       hasCircles={myCircles.length > 0}
+      currentUserName={fullName}
     />
   );
 }
