@@ -1,4 +1,4 @@
-import { Bookmark, Compass, Plus, Sparkles, UserPlus } from "lucide-react";
+import { Compass, Plus, Sparkles, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
@@ -21,7 +21,6 @@ import { PostCard } from "./_components/PostCard";
 import { PostComposer } from "./_components/PostComposer";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
-import { TrendingHashtagsRow } from "./_components/TrendingHashtagsRow";
 import type { PostWithDetails } from "@/lib/database.types";
 
 export const metadata = {
@@ -84,29 +83,6 @@ export default async function FeedPage({
   ]);
   const storyGroups = groupStoriesByAuthor(stories, user.id);
 
-  const dayMs = 24 * 60 * 60 * 1000;
-  const newPostsCount = posts.filter(
-    (p) => Date.now() - new Date(p.created_at).getTime() < dayMs,
-  ).length;
-
-  const today = new Date();
-  const todayKicker = `${today.getDate()} ${
-    [
-      "JANV.",
-      "FÉVR.",
-      "MARS",
-      "AVR.",
-      "MAI",
-      "JUIN",
-      "JUIL.",
-      "AOÛT",
-      "SEPT.",
-      "OCT.",
-      "NOV.",
-      "DÉC.",
-    ][today.getMonth()]
-  }`;
-
   return (
     <div className="relative bg-[#F1F3F8] min-h-screen pb-[86px]">
       <div className="mx-auto w-full max-w-6xl">
@@ -120,41 +96,21 @@ export default async function FeedPage({
               >
                 <ArcDeco size={260} tone="gold" opacity={1} stroke={1.25} />
               </div>
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B88A2A]">
-                    · Le feed · {todayKicker}
-                  </p>
-                  <h1 className="mt-2.5 font-display text-[44px] sm:text-[60px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
-                    Ce que tes proches{" "}
-                    <em className="italic bg-gradient-to-br from-[#F4B942] to-[#B88A2A] bg-clip-text text-transparent">
-                      racontent
-                    </em>
-                    .
-                  </h1>
-                  <p className="mt-2 max-w-[280px] text-[13px] leading-[1.45] text-[#2A3D6B]">
-                    Ordre chronologique strict. Pas d&apos;algo, pas de pub.
-                    {newPostsCount > 0 ? (
-                      <>
-                        {" "}
-                        <span className="font-semibold text-[#0A1F44]">
-                          {newPostsCount} nouveau
-                          {newPostsCount > 1 ? "x" : ""} post
-                          {newPostsCount > 1 ? "s" : ""}
-                        </span>{" "}
-                        depuis ta dernière visite.
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-                <Link
-                  href="/feed/saved"
-                  className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-white border border-[#E6E9F0] text-[12px] font-bold text-[#2A3D6B] hover:border-[#F4B942]/40 hover:text-[#B88A2A] transition-colors"
-                  aria-label="Mes posts sauvegardés"
-                >
-                  <Bookmark className="w-4 h-4" aria-hidden />
-                  Sauvegardés
-                </Link>
+              <div className="relative">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B88A2A]">
+                  · Le feed
+                </p>
+                <h1 className="mt-2.5 font-display text-[44px] sm:text-[60px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
+                  Ce que tes proches
+                  <br />
+                  <em className="italic bg-gradient-to-br from-[#F4B942] to-[#B88A2A] bg-clip-text text-transparent">
+                    racontent
+                  </em>
+                  .
+                </h1>
+                <p className="mt-2 max-w-[280px] text-[13px] leading-[1.45] text-[#2A3D6B]">
+                  Ordre chronologique strict. Pas d&apos;algo, pas de pub.
+                </p>
               </div>
             </header>
 
@@ -175,12 +131,8 @@ export default async function FeedPage({
               />
             </div>
 
-            {/* Trending hashtags */}
-            {trendingTags.length > 0 ? (
-              <div className="px-4 sm:px-6 pb-3">
-                <TrendingHashtagsRow tags={trendingTags} />
-              </div>
-            ) : null}
+            {/* Trending hashtags : déplacés en right rail desktop seulement
+                (proto BoldFeedScreen mobile n'a pas cette section). */}
 
             {/* Posts */}
             {posts.length === 0 ? (
