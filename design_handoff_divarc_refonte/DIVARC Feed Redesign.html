@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>DIVARC — Refonte Feed</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #efece4; font-family: Geist, system-ui, sans-serif; color: #0A1F44; }
+  *, *::before, *::after { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(10,31,68,0.25); border-radius: 4px; }
+
+  /* ────────────── DIVARC TWEAKS ────────────── */
+  /* All rules scoped to [data-divarc] = the canvas root. We override the
+     inline-styled colors shipped by the feed components using attribute
+     selectors. !important is required to beat element-level inline styles. */
+
+  /* Gold intensity — exposed as CSS var that some accents already consume,
+     and used by the override block below. */
+  [data-divarc] { --dvc-gold: #F4B942; --dvc-gold-deep: #B88A2A; --dvc-gold-soft: #FFF8E8; }
+  [data-divarc][data-gold="discret"] { --dvc-gold: #C9A45A; --dvc-gold-deep: #8C6818; --dvc-gold-soft: #FBF6E8; }
+  [data-divarc][data-gold="poussé"]  { --dvc-gold: #FFC859; --dvc-gold-deep: #A87515; --dvc-gold-soft: #FFEDB8; }
+
+  /* Italic display toggle: when off, swap Instrument Serif headings to Geist. */
+  [data-divarc][data-italic="off"] [style*="Instrument Serif"] {
+    font-family: Geist, system-ui, sans-serif !important;
+    font-style: normal !important;
+    letter-spacing: -0.025em !important;
+    font-weight: 700 !important;
+  }
+  [data-divarc][data-italic="off"] em[style*="italic"] {
+    font-style: normal !important;
+  }
+
+  /* Card style — affects white card surfaces. */
+  [data-divarc][data-cards="flat"] [style*="background: rgb(255, 255, 255)"],
+  [data-divarc][data-cards="flat"] [style*="background:#fff"] {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  [data-divarc][data-cards="bordered"] [style*="background: rgb(255, 255, 255)"],
+  [data-divarc][data-cards="bordered"] [style*="background:#fff"] {
+    box-shadow: none !important;
+    border: 1.5px solid rgba(10,31,68,0.18) !important;
+  }
+  [data-divarc][data-cards="elevated"] article[style*="background: rgb(255, 255, 255)"],
+  [data-divarc][data-cards="elevated"] article[style*="background:#fff"] {
+    box-shadow: 0 1px 2px rgba(10,31,68,0.04), 0 24px 48px -24px rgba(10,31,68,0.22) !important;
+  }
+
+  /* Density — compress / loosen padding on cards & main containers. */
+  [data-divarc][data-density="compact"] article { padding-top: 14px !important; padding-bottom: 14px !important; }
+  [data-divarc][data-density="comfy"] article { padding-top: 26px !important; padding-bottom: 26px !important; }
+
+  /* Layout: 2-col masonry for desktop posts feed only. */
+  [data-divarc][data-layout="2col"] [data-feed-list] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+    align-items: start !important;
+  }
+
+  /* Dark theme: surgical overrides on the cream/paper/navy palette. */
+  [data-divarc][data-theme="dark"] {
+    --dvc-paper: #0A0F1F;
+    --dvc-card: #142A55;
+    --dvc-text: #FFF8E8;
+    --dvc-text-muted: rgba(255,248,232,0.65);
+    --dvc-line: rgba(244,185,66,0.18);
+  }
+  [data-divarc][data-theme="dark"] [style*="background: rgb(248, 249, 251)"],
+  [data-divarc][data-theme="dark"] [style*="background:#F8F9FB"],
+  [data-divarc][data-theme="dark"] [style*="background: rgb(241, 243, 248)"],
+  [data-divarc][data-theme="dark"] [style*="background:#F1F3F8"] {
+    background: #0A0F1F !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="background: rgb(255, 255, 255)"],
+  [data-divarc][data-theme="dark"] [style*="background:#fff"] {
+    background: #142A55 !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="background: rgb(255, 248, 232)"],
+  [data-divarc][data-theme="dark"] [style*="background:#FFF8E8"] {
+    background: rgba(244,185,66,0.12) !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="color: rgb(10, 31, 68)"],
+  [data-divarc][data-theme="dark"] [style*="color:#0A1F44"] {
+    color: #FFF8E8 !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="color: rgb(20, 42, 85)"],
+  [data-divarc][data-theme="dark"] [style*="color:#142A55"] {
+    color: #FFF8E8 !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="color: rgb(42, 61, 107)"] {
+    color: rgba(255,248,232,0.78) !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="color: rgb(75, 91, 135)"] {
+    color: rgba(255,248,232,0.65) !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="color: rgb(134, 150, 176)"] {
+    color: rgba(255,248,232,0.5) !important;
+  }
+  [data-divarc][data-theme="dark"] [style*="border-color: rgb(230, 233, 240)"],
+  [data-divarc][data-theme="dark"] [style*="border:"][style*="rgb(230, 233, 240)"] {
+    border-color: rgba(244,185,66,0.18) !important;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="feed-shared.jsx"></script>
+<script type="text/babel" src="feed-mobile-sage.jsx"></script>
+<script type="text/babel" src="feed-mobile-bold.jsx"></script>
+<script type="text/babel" src="feed-desktop.jsx"></script>
+<script type="text/babel" src="feed-prototype.jsx"></script>
+<script type="text/babel" src="feed-extra-screens.jsx"></script>
+<script type="text/babel" src="feed-marketplace.jsx"></script>
+<script type="text/babel" src="feed-jobs.jsx"></script>
+<script type="text/babel" src="feed-jobs-mine.jsx"></script>
+<script type="text/babel" src="feed-profile.jsx"></script>
+<script type="text/babel" src="feed-create.jsx"></script>
+  <script type="text/babel" src="feed-wallet.jsx"></script>
+  <script type="text/babel" src="feed-admin.jsx"></script>
+  <script type="text/babel" src="feed-empty.jsx"></script>
+  <script type="text/babel" src="feed-stories.jsx"></script>
+  <script type="text/babel" src="feed-circles.jsx"></script>
+<script type="text/babel" src="feed-tweaks.jsx"></script>
+
+<script type="text/babel">
+  const { DesignCanvas, DCSection, DCArtboard } = window;
+  const { IOSDevice } = window;
+
+  function PhoneFrame({ children, dark = false }) {
+    return (
+      <IOSDevice width={390} height={844} dark={dark} chrome="none" hideHomeIndicator={false}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>{children}</div>
+      </IOSDevice>
+    );
+  }
+
+  function App() {
+    return (
+      <div id="divarc-canvas" data-divarc data-density="regular" data-theme="light" data-gold="standard" data-cards="elevated" data-italic="on" data-layout="1col" style={{ minHeight: '100vh' }}>
+      <window.DivarcTweaksPanel />
+      <DesignCanvas>
+        <DCSection id="intro" title="DIVARC · Refonte du feed" subtitle="Deux directions visuelles — sage (proche du repo actuel) et audacieux (poussé). Mobile + desktop, fidèles à la palette navy / gold.">
+          <DCArtboard id="brief" label="Brief & système" width={720} height={860}>
+            <div style={{ width: '100%', height: '100%', background: '#0A1F44', color: '#FFF8E8', padding: 56, fontFamily: 'Geist, system-ui, sans-serif', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: -40, top: -40, opacity: 0.3 }}>
+                <window.ArcDeco size={420} opacity={1} />
+              </div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <window.DivarcLogo size={42} />
+                <div style={{ fontFamily: 'Instrument Serif', fontSize: 32, letterSpacing: '-0.01em' }}>DIVARC</div>
+                <div style={{ marginLeft: 'auto', fontSize: 11, padding: '6px 12px', borderRadius: 999, border: '1px solid rgba(244,185,66,0.4)', color: '#F4B942', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Refonte feed · 7 mai</div>
+              </div>
+              <div style={{ marginTop: 48, position: 'relative' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F4B942', fontWeight: 800 }}>Le brief</div>
+                <h1 style={{ fontFamily: 'Instrument Serif, Georgia, serif', fontSize: 64, lineHeight: 1, fontWeight: 400, letterSpacing: '-0.025em', margin: '12px 0 18px' }}>
+                  Le feed comme une <em style={{ fontStyle: 'italic', color: '#F4B942' }}>place de quartier</em>, pas un fil sans fin.
+                </h1>
+                <p style={{ fontSize: 17, lineHeight: 1.55, color: 'rgba(255,248,232,0.78)', maxWidth: 580, margin: 0 }}>
+                  Lecture chronologique, pas d&rsquo;algorithme, le visage et la voix d&rsquo;abord. On garde la palette navy / gold du repo et la typo Geist + Instrument Serif déjà présentes.
+                </p>
+              </div>
+              <div style={{ marginTop: 56, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, position: 'relative' }}>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F4B942', fontWeight: 800, marginBottom: 12 }}>Palette</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[
+                      { c: '#0A1F44', n: 'navy 950' },
+                      { c: '#142A55', n: 'navy 900' },
+                      { c: '#F4B942', n: 'gold 500' },
+                      { c: '#B88A2A', n: 'gold 700' },
+                      { c: '#FFF8E8', n: 'cream' },
+                      { c: '#F8F9FB', n: 'paper' },
+                    ].map(s => (
+                      <div key={s.c} style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ height: 56, borderRadius: 10, background: s.c, border: s.c === '#FFF8E8' || s.c === '#F8F9FB' ? '1px solid rgba(255,248,232,0.18)' : 'none' }} />
+                        <div style={{ fontSize: 9.5, marginTop: 6, fontWeight: 700, letterSpacing: '0.04em' }}>{s.n}</div>
+                        <div style={{ fontSize: 9, opacity: 0.6 }}>{s.c}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#F4B942', fontWeight: 800, marginBottom: 12 }}>Typographie</div>
+                  <div style={{ fontFamily: 'Instrument Serif, Georgia, serif', fontSize: 36, fontStyle: 'italic', lineHeight: 1, marginBottom: 4 }}>Instrument Serif</div>
+                  <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: '0.02em' }}>display · italic · pour les titres</div>
+                  <div style={{ marginTop: 18, fontSize: 22, fontWeight: 600, letterSpacing: '-0.01em' }}>Geist Sans 500/700</div>
+                  <div style={{ fontSize: 11, opacity: 0.6 }}>UI · paragraphes · labels</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 56, position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                {[
+                  { n: '01', t: 'Sage', d: 'Très fidèle au repo : composer compact, cards blanches, hiérarchie claire, micro-touches gold sur les accents.' },
+                  { n: '02', t: 'Audacieux', d: 'Même palette, mais display Instrument Serif italique en titre, hero post pleine largeur, FAB et arc décoratif marqué.' },
+                ].map(v => (
+                  <div key={v.n} style={{ borderTop: '1px solid rgba(244,185,66,0.3)', paddingTop: 16 }}>
+                    <div style={{ fontSize: 11, letterSpacing: '0.2em', color: '#F4B942', fontWeight: 800 }}>{v.n}</div>
+                    <div style={{ fontFamily: 'Instrument Serif', fontSize: 28, fontStyle: 'italic', margin: '6px 0 8px' }}>{v.t}</div>
+                    <div style={{ fontSize: 13, opacity: 0.78, lineHeight: 1.5 }}>{v.d}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="mobile-sage" title="Mobile · Sage" subtitle="Flow Feed → Story → Composer → Détail. Reste très proche du repo actuel : cards blanches, hiérarchie nette, micro-touches gold.">
+          <DCArtboard id="m-sage-feed" label="01 · Feed (chrono)" width={390} height={844}>
+            <PhoneFrame><window.SageFeedScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-sage-story" label="02 · Story" width={390} height={844}>
+            <PhoneFrame dark><window.SageStoryScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-sage-composer" label="03 · Nouveau post" width={390} height={844}>
+            <PhoneFrame><window.SageComposerScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-sage-detail" label="04 · Détail + commentaires" width={390} height={844}>
+            <PhoneFrame><window.SageDetailScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="mobile-bold" title="Mobile · Audacieux" subtitle="Mêmes 4 écrans, mais le display passe en avant : Instrument Serif italique, hero card, FAB doré, arc décoratif visible.">
+          <DCArtboard id="m-bold-feed" label="01 · Feed" width={390} height={844}>
+            <PhoneFrame><window.BoldFeedScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-bold-story" label="02 · Story" width={390} height={844}>
+            <PhoneFrame dark><window.BoldStoryScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-bold-composer" label="03 · Nouveau post" width={390} height={844}>
+            <PhoneFrame><window.BoldComposerScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="m-bold-detail" label="04 · Détail" width={390} height={844}>
+            <PhoneFrame><window.BoldDetailScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="prototype" title="Prototype cliquable" subtitle="Mini-app fonctionnelle : tabs en bas (Accueil, Marché, Emploi, Profil), bouton + au centre. Tape une story, le composer ou un post pour ouvrir l'écran correspondant. Le panneau Tweaks affecte aussi le prototype.">
+          <DCArtboard id="proto-mobile" label="Prototype · mobile" width={390} height={844}>
+            <PhoneFrame><window.MobilePrototype /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="extra-flow" title="Flow étendu" subtitle="8 écrans qui complètent le produit : onboarding, profils (toi + autre), notifs, recherche, messages (liste + 1-1), paramètres. Tous suivent la même grammaire que le feed et réagissent aux Tweaks.">
+          <DCArtboard id="x-onboarding" label="01 · Onboarding" width={390} height={844}>
+            <PhoneFrame dark><window.OnboardingScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-profile-self" label="02 · Profil (toi)" width={390} height={844}>
+            <PhoneFrame><window.ProfileSelfScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-profile-public" label="03 · Profil public" width={390} height={844}>
+            <PhoneFrame><window.ProfilePublicScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-notifs" label="04 · Notifications" width={390} height={844}>
+            <PhoneFrame><window.NotificationsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-search" label="05 · Recherche" width={390} height={844}>
+            <PhoneFrame><window.SearchScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-messages" label="06 · Discussions" width={390} height={844}>
+            <PhoneFrame><window.MessagesListScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-chat" label="07 · Chat 1-1" width={390} height={844}>
+            <PhoneFrame><window.ChatScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="x-settings" label="08 · Paramètres" width={390} height={844}>
+            <PhoneFrame><window.SettingsScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="marketplace" title="Marketplace" subtitle="Achète, vends, échange dans ton réseau de confiance. Mêmes tokens et grammaire que le feed.">
+          <DCArtboard id="mk-list" label="01 · Marché (browse)" width={390} height={844}>
+            <PhoneFrame><window.MarketplaceListScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="mk-detail" label="02 · Détail listing" width={390} height={844}>
+            <PhoneFrame><window.MarketplaceDetailScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="mk-favs" label="03 · Favoris" width={390} height={844}>
+            <PhoneFrame><window.MarketplaceFavoritesScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="jobs" title="Jobs" subtitle="Liste, détail offre, candidature en sheet. Récupéré du repo : tons CDI/CDD/Freelance, 1-clic apply, profil DIVARC partagé.">
+          <DCArtboard id="jb-list" label="01 · Offres" width={390} height={844}>
+            <PhoneFrame><window.JobsListScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="jb-detail" label="02 · Détail offre" width={390} height={844}>
+            <PhoneFrame><window.JobsDetailScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="jb-apply" label="03 · Postuler (sheet)" width={390} height={844}>
+            <PhoneFrame><window.JobsApplyScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="jb-applied" label="04 · Mes candidatures" width={390} height={844}>
+            <PhoneFrame><window.JobsAppliedScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="jb-mine" label="05 · Mes offres (recruteur)" width={390} height={844}>
+            <PhoneFrame><window.JobsMineScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="profile" title="Profil public · /u/aissata" subtitle="Hero avec cover navy + ArcDeco, badge fondateur gold, 3 onglets (Posts, Annonces, À propos). Repris du repo.">
+          <DCArtboard id="pf-posts" label="01 · Posts" width={390} height={844}>
+            <PhoneFrame><window.ProfilePostsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="pf-listings" label="02 · Annonces" width={390} height={844}>
+            <PhoneFrame><window.ProfileListingsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="pf-about" label="03 · À propos" width={390} height={844}>
+            <PhoneFrame><window.ProfileAboutScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="create" title="Création" subtitle="Sheet de choix → annonce marketplace → offre emploi (multi-step). Prix italique, focus gold, slider salaire.">
+          <DCArtboard id="cr-choose" label="01 · Choisir le format" width={390} height={844}>
+            <PhoneFrame><window.CreateChooseScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="cr-listing" label="02 · Vendre un objet" width={390} height={844}>
+            <PhoneFrame><window.CreateListingScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="cr-job" label="03 · Publier une offre" width={390} height={844}>
+            <PhoneFrame><window.CreateJobScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="wallet" title="Wallet · paiements" subtitle="Solde, historique, vente reçue, encaissement vers banque. KYC, frais 2,5% et virement SEPA gratuit.">
+          <DCArtboard id="wl-home" label="01 · Wallet (solde)" width={390} height={844}>
+            <PhoneFrame><window.WalletHomeScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="wl-history" label="02 · Historique" width={390} height={844}>
+            <PhoneFrame><window.WalletHistoryScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="wl-sale" label="03 · Vente reçue" width={390} height={844}>
+            <PhoneFrame dark><window.WalletSaleScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="wl-payout" label="04 · Encaisser" width={390} height={844}>
+            <PhoneFrame><window.WalletPayoutScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="admin" title="Admin · modération" subtitle="Tableau de bord modos, file de signalements, fiche détail (preview du contenu + actions Avertir/Retirer), gestion utilisateurs avec score d'alertes.">
+          <DCArtboard id="ad-dash" label="01 · Dashboard" width={390} height={844}>
+            <PhoneFrame><window.AdminDashboardScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ad-reports" label="02 · Signalements" width={390} height={844}>
+            <PhoneFrame><window.AdminReportsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ad-review" label="03 · Détail" width={390} height={844}>
+            <PhoneFrame><window.AdminReviewScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="ad-users" label="04 · Utilisateurs" width={390} height={844}>
+            <PhoneFrame><window.AdminUsersScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="empty" title="États vides + erreurs" subtitle="Souvent oubliés mais critiques. Feed vide premier login, recherche sans résultat, hors ligne, 404, erreur serveur 503.">
+          <DCArtboard id="em-feed" label="01 · Feed vide" width={390} height={844}>
+            <PhoneFrame><window.EmptyFeedScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="em-search" label="02 · Recherche · 0 résultat" width={390} height={844}>
+            <PhoneFrame><window.EmptySearchScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="em-offline" label="03 · Hors ligne" width={390} height={844}>
+            <PhoneFrame dark><window.OfflineScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="em-404" label="04 · 404" width={390} height={844}>
+            <PhoneFrame><window.NotFoundScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="em-503" label="05 · Erreur serveur" width={390} height={844}>
+            <PhoneFrame><window.ServerErrorScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="stories" title="Stories — création + détail" subtitle="Capture façon caméra (mode Texte/Photo/Vidéo/Boomerang), édition (filtres dorés, stickers, texte serif), viewer plein écran avec progress bars + question sticker, archive perso avec stats.">
+          <DCArtboard id="st-capture" label="01 · Capture" width={390} height={844}>
+            <PhoneFrame dark><window.StoriesCaptureScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="st-edit" label="02 · Édition" width={390} height={844}>
+            <PhoneFrame dark><window.StoriesEditScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="st-viewer" label="03 · Viewer" width={390} height={844}>
+            <PhoneFrame dark><window.StoriesViewerScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="st-archive" label="04 · Mes stories (archive)" width={390} height={844}>
+            <PhoneFrame><window.StoriesArchiveScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="circles" title="Cercles · groupes" subtitle="Espaces plus calmes que le feed pour le quartier, parents, devs, vélo, bookclub. Liste, détail (Voisins de Belleville), événements, invitation privée.">
+          <DCArtboard id="cr-list" label="01 · Mes cercles" width={390} height={844}>
+            <PhoneFrame><window.CirclesListScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="cr-detail" label="02 · Détail · Voisins de Belleville" width={390} height={844}>
+            <PhoneFrame><window.CircleDetailScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="cr-events" label="03 · Événements" width={390} height={844}>
+            <PhoneFrame><window.CircleEventsScreen /></PhoneFrame>
+          </DCArtboard>
+          <DCArtboard id="cr-invite" label="04 · Invitation" width={390} height={844}>
+            <PhoneFrame><window.CircleInviteScreen /></PhoneFrame>
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="desktop" title="Desktop · les deux directions" subtitle="Layout 3 colonnes (nav · feed · suggestions). Sage à gauche, Audacieux à droite — mêmes données, traitement différent.">
+          <DCArtboard id="d-sage" label="Sage · 1280×860" width={1280} height={860}>
+            <window.DesktopFeedSage />
+          </DCArtboard>
+          <DCArtboard id="d-bold" label="Audacieux · 1280×860" width={1280} height={860}>
+            <window.DesktopFeedBold />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+      </div>
+    );
+  }
+
+  // Wait for all babel scripts to register globals — but cap the retries
+  // so a single failed fetch doesn't block the whole canvas.
+  let mountAttempts = 0;
+  let mounted = false;
+  const REQUIRED = [
+    // sage + bold mobile
+    'SageFeedScreen', 'SageStoryScreen', 'SageComposerScreen', 'SageDetailScreen',
+    'BoldFeedScreen', 'BoldStoryScreen', 'BoldComposerScreen', 'BoldDetailScreen',
+    // prototype + extra flow
+    'MobilePrototype', 'OnboardingScreen', 'ProfileSelfScreen', 'ProfilePublicScreen',
+    'NotificationsScreen', 'SearchScreen', 'MessagesListScreen', 'ChatScreen', 'SettingsScreen',
+    // marketplace + jobs
+    'MarketplaceListScreen', 'MarketplaceDetailScreen', 'MarketplaceFavoritesScreen',
+    'JobsListScreen', 'JobsDetailScreen', 'JobsApplyScreen', 'JobsAppliedScreen', 'JobsMineScreen',
+    // profile + create + wallet
+    'ProfilePostsScreen', 'ProfileListingsScreen', 'ProfileAboutScreen',
+    'CreateChooseScreen', 'CreateListingScreen', 'CreateJobScreen',
+    'WalletHomeScreen', 'WalletHistoryScreen', 'WalletSaleScreen', 'WalletPayoutScreen',
+    // admin + empty/error states
+    'AdminDashboardScreen', 'AdminReportsScreen', 'AdminReviewScreen', 'AdminUsersScreen',
+    'EmptyFeedScreen', 'EmptySearchScreen', 'OfflineScreen', 'NotFoundScreen', 'ServerErrorScreen',
+    // stories + circles
+    'StoriesCaptureScreen', 'StoriesEditScreen', 'StoriesViewerScreen', 'StoriesArchiveScreen',
+    'CirclesListScreen', 'CircleDetailScreen', 'CircleEventsScreen', 'CircleInviteScreen',
+    // desktop + canvas + tweaks
+    'DesktopFeedSage', 'DesktopFeedBold', 'DesignCanvas', 'DCSection', 'DCArtboard',
+    'DivarcTweaksPanel', 'TweaksPanel',
+  ];
+  function ensurePlaceholders() {
+    REQUIRED.forEach(name => {
+      if (!window[name]) {
+        window[name] = function MissingScreen() {
+          return (
+            <div style={{ padding: 24, fontFamily: 'Geist, system-ui', fontSize: 13, color: '#8993A8', background: '#F8F9FB', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', border: '1px dashed #C8D2E5' }}>
+              <div>
+                <div style={{ fontFamily: 'Instrument Serif', fontStyle: 'italic', fontSize: 22, color: '#0A1F44' }}>{name}</div>
+                <div style={{ marginTop: 6 }}>script non chargé</div>
+              </div>
+            </div>
+          );
+        };
+      }
+    });
+  }
+  function mount() {
+    if (mounted) return;
+    const missing = REQUIRED.filter(n => !window[n]);
+    if (missing.length === 0 || mountAttempts > 80) {
+      if (missing.length) {
+        console.warn('[divarc] missing globals after timeout, rendering placeholders:', missing);
+        ensurePlaceholders();
+      }
+      mounted = true;
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+      return;
+    }
+    mountAttempts++;
+    setTimeout(mount, 40);
+  }
+  mount();
+</script>
+
+</body>
+</html>
