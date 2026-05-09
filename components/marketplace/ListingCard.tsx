@@ -74,9 +74,14 @@ export function ListingCard({
           </div>
         ) : null}
 
+        {/* État vendu : overlay grayscale + badge centré "VENDU" weight 800.
+            Le grayscale est appliqué sur l'image via la className conditionnelle
+            au-dessus (cn `isSold && grayscale opacity-70`). */}
         {isSold ? (
-          <div className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-night text-cream text-[10px] font-bold uppercase tracking-widest">
-            Vendu
+          <div className="absolute inset-0 flex items-center justify-center bg-night/35 backdrop-blur-[2px]">
+            <span className="px-3 py-1 rounded-full bg-night text-cream text-[10px] font-extrabold uppercase tracking-[0.18em] shadow-[0_8px_22px_-8px_rgba(10,31,68,0.55)]">
+              Vendu
+            </span>
           </div>
         ) : null}
       </div>

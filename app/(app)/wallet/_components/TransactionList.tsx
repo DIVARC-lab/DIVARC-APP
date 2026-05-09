@@ -79,24 +79,32 @@ function TransactionRow({
       ? "text-gold-deep"
       : "text-night";
 
+  /* Refonte audit /wallet (handoff feed-wallet L191-217) :
+     - Row padding 14/16
+     - Icon container 38×38 r-full bg color/14, color match (in green / fee
+       gold / out navy)
+     - Title 14 navy weight 600 truncate
+     - Sub : description · time, 11.5 #8993A8
+     - Amount Instrument Serif italic 18 weight 500 (in green / autre navy) */
   return (
-    <div className="flex items-center gap-4 px-4 sm:px-6 py-4">
+    <div className="flex items-center gap-3 px-4 py-3.5">
       {counterparty ? (
         <Link
           href={`/u/${counterparty.username ?? ""}`}
           aria-label={counterpartyName ?? ""}
+          className="shrink-0"
         >
           <Avatar
             src={counterparty.avatar_url}
             fullName={counterpartyName}
-            size="md"
+            size="md-bold"
           />
         </Link>
       ) : (
         <div
           aria-hidden
           className={cn(
-            "w-12 h-12 rounded-full flex items-center justify-center",
+            "w-[38px] h-[38px] rounded-full flex items-center justify-center shrink-0",
             bgClass,
           )}
         >
@@ -104,22 +112,28 @@ function TransactionRow({
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-night truncate">{title}</p>
-        {transaction.description ? (
-          <p className="text-xs text-muted truncate">
-            {transaction.description}
-          </p>
-        ) : null}
-        <p className="text-[10px] text-muted mt-0.5">
+        <p className="text-[14px] font-semibold text-night truncate leading-tight">
+          {title}
+        </p>
+        <p className="mt-0.5 text-[11.5px] text-[#8993A8] truncate">
+          {transaction.description ? (
+            <>
+              {transaction.description}
+              <span aria-hidden> · </span>
+            </>
+          ) : null}
           {formatRelative(transaction.created_at)}
         </p>
       </div>
-      <div className="text-right shrink-0">
-        <p className={cn("font-display text-lg", amountClass)}>
-          {sign}
-          {formatPrice(transaction.amount, transaction.currency)}
-        </p>
-      </div>
+      <p
+        className={cn(
+          "shrink-0 font-display italic text-[18px] font-medium leading-none",
+          amountClass,
+        )}
+      >
+        {sign}
+        {formatPrice(transaction.amount, transaction.currency)}
+      </p>
     </div>
   );
 }

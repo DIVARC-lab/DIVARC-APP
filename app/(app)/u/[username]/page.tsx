@@ -31,6 +31,7 @@ import {
 } from "./_components/UserActionBar";
 import { IntroVideoPlayer } from "./_components/IntroVideoPlayer";
 import { ProConnectButton } from "./_components/ProConnectButton";
+import { ProfileTopBar } from "./_components/ProfileTopBar";
 import type { JobWithDetails, PostWithDetails } from "@/lib/database.types";
 
 type Params = Promise<{ username: string }>;
@@ -329,7 +330,7 @@ function Hero({
 
   return (
     <section className="relative">
-      {/* Cover navy 160px + ArcDeco gold (handoff /u/aissata).
+      {/* Cover navy 160px + ArcDeco gold (handoff feed-profile L36-44).
           Pas de border-radius sur mobile (full-bleed), arrondi sur desktop. */}
       <div className="relative h-40 bg-night overflow-hidden sm:rounded-b-[28px]">
         <div
@@ -344,6 +345,7 @@ function Hero({
         >
           <ArcDeco size={240} tone="gold" opacity={0.28} stroke={1} />
         </div>
+        <ProfileTopBar />
       </div>
 
       <div className="px-4 sm:px-6 -mt-12 relative">
