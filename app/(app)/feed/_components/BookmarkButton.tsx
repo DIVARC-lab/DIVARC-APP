@@ -44,7 +44,7 @@ export function BookmarkButton({ postId, initialBookmarked }: Props) {
       aria-label={bookmarked ? "Retirer des favoris" : "Sauvegarder"}
       className={cn(
         "inline-flex items-center gap-1.5 h-11 px-3 rounded-full text-[13px] font-bold transition-colors",
-        "bg-[#FFF8E8] text-[#B88A2A]",
+        "bg-cream text-gold-deep",
         bookmarked ? "ring-2 ring-[#B88A2A]/25" : "hover:bg-[#FCEFCE]",
       )}
     >

@@ -69,7 +69,7 @@ export default async function CirclesPage() {
           <Link
             href="/circles/new"
             aria-label="Créer un cercle"
-            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
           >
             <Plus className="w-4 h-4" aria-hidden strokeWidth={2.5} />
           </Link>
@@ -100,7 +100,7 @@ export default async function CirclesPage() {
                 "shrink-0 inline-flex items-center h-7 px-3.5 rounded-full text-[12px] font-bold transition-colors",
                 f.active
                   ? "bg-night text-cream"
-                  : "bg-bg-soft border border-line text-[#4B5B87]",
+                  : "bg-bg-soft border border-line text-night-dim",
               )}
             >
               {f.l}

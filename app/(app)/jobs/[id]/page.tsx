@@ -207,7 +207,7 @@ export default async function JobDetailPage({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-1 items-center">
-                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-[#4B5B87] text-[9px] font-extrabold uppercase tracking-[0.06em]">
+                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-night-dim text-[9px] font-extrabold uppercase tracking-[0.06em]">
                     {typeMeta.label}
                   </span>
                   <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-cream text-gold-deep text-[9px] font-extrabold uppercase tracking-[0.06em]">
@@ -222,7 +222,7 @@ export default async function JobDetailPage({
                       Clôturée
                     </span>
                   )}
-                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-[#4B5B87] text-[9px] font-extrabold uppercase tracking-[0.06em]">
+                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-night-dim text-[9px] font-extrabold uppercase tracking-[0.06em]">
                     {modeMeta.label}
                   </span>
                 </div>
@@ -274,7 +274,7 @@ export default async function JobDetailPage({
                   </p>
                   <p className="mt-0.5 font-display italic text-[22px] text-night leading-none">
                     {salaryFormatted.amount}
-                    <span className="not-italic text-[12px] text-[#8696B0] ml-1">
+                    <span className="not-italic text-[12px] text-night-dim ml-1">
                       /{salaryFormatted.period}
                     </span>
                   </p>
@@ -313,7 +313,7 @@ export default async function JobDetailPage({
                 size="md-bold"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#8696B0]">
+                <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-night-dim">
                   Publié par
                 </p>
                 <p className="mt-0.5 text-[14px] font-bold text-night truncate">
@@ -325,7 +325,7 @@ export default async function JobDetailPage({
                     </span>
                   ) : null}
                 </p>
-                <p className="text-[11px] text-[#8696B0]">
+                <p className="text-[11px] text-night-dim">
                   Voir le profil →
                 </p>
               </div>
@@ -421,7 +421,7 @@ export default async function JobDetailPage({
                   « {myApplication.message} »
                 </p>
               ) : null}
-              <p className="mt-2 text-[11px] text-[#8696B0]">
+              <p className="mt-2 text-[11px] text-night-dim">
                 Envoyée {formatRelative(myApplication.created_at)}
               </p>
             </article>
@@ -494,7 +494,7 @@ function Fact({
 }) {
   return (
     <div className="rounded-[12px] bg-night/[0.03] border border-line p-2.5">
-      <div className="inline-flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8696B0]">
+      <div className="inline-flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-night-dim">
         <Icon className="w-[10px] h-[10px]" aria-hidden />
         {label}
       </div>

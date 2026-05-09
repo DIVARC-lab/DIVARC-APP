@@ -2,9 +2,11 @@
 
 import { toast } from "sonner";
 
-type ActionLikeResult =
-  | { ok: true; [key: string]: unknown }
-  | { ok: false; error: string };
+type ActionLikeResult = {
+  ok: boolean;
+  error?: string;
+  [key: string]: unknown;
+};
 
 type RunOptions<T> = {
   /** Toast affiché en cas de succès. Si fonction, reçoit le result. */
@@ -48,7 +50,8 @@ export async function runAction<T extends ActionLikeResult>(
         toast.success(msg);
       }
     } else {
-      const error = options.errorMessage ?? result.error;
+      const error =
+        options.errorMessage ?? result.error ?? "Une erreur est survenue.";
       options.onError?.(error);
       if (!options.silent) toast.error(error);
     }

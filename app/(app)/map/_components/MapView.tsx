@@ -780,7 +780,7 @@ function NearestEventCard({
         </div>
         <div className="mt-2 flex gap-3 items-start">
           {/* DatePill gradient gold avec ArcDeco filigrane interne */}
-          <div className="relative shrink-0 w-14 h-[70px] rounded-xl overflow-hidden bg-gradient-to-br from-gold to-[#B88A2A] flex flex-col items-center justify-center text-night">
+          <div className="relative shrink-0 w-14 h-[70px] rounded-xl overflow-hidden bg-gradient-to-br from-gold to-gold-deep flex flex-col items-center justify-center text-night">
             <span
               aria-hidden
               className="absolute inset-0 opacity-20 pointer-events-none"

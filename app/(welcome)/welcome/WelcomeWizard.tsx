@@ -393,7 +393,7 @@ function Identity({
         </span>
         <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Comment veux-tu{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             apparaître
           </em>{" "}
           ?
@@ -502,7 +502,7 @@ function Preferences({
         </span>
         <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Tu habites{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             où
           </em>{" "}
           ?
@@ -597,7 +597,7 @@ function FriendsScreen({
         </span>
         <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Voici qui est{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             déjà
           </em>{" "}
           chez toi

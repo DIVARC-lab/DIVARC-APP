@@ -4,6 +4,7 @@ import { CheckCircle2, ShieldAlert, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { createClient } from "@/lib/supabase/client";
 import { MFAEnrollDialog } from "./MFAEnrollDialog";
 
@@ -16,6 +17,7 @@ type Factor = {
 };
 
 export function MFASection() {
+  const confirm = useConfirm();
   const [factors, setFactors] = useState<Factor[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -40,14 +42,15 @@ export function MFASection() {
 
   }, []);
 
-  function handleUnenroll(factorId: string) {
-    if (
-      !confirm(
-        "Désactiver la 2FA ? Ton compte sera moins protégé tant que tu ne réactives pas la double authentification.",
-      )
-    ) {
-      return;
-    }
+  async function handleUnenroll(factorId: string) {
+    const ok = await confirm({
+      title: "Désactiver la 2FA ?",
+      description:
+        "Ton compte sera moins protégé tant que tu ne réactives pas la double authentification. Tu peux réactiver à tout moment.",
+      confirmLabel: "Désactiver",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const supabase = createClient();
       const { error } = await supabase.auth.mfa.unenroll({ factorId });

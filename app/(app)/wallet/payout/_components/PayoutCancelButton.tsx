@@ -2,20 +2,24 @@
 
 import { Loader2, X } from "lucide-react";
 import { useTransition } from "react";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { runAction } from "@/lib/utils/clientAction";
 import { cancelPayout } from "../actions";
 
 export function PayoutCancelButton({ requestId }: { requestId: string }) {
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
 
-  function handleCancel() {
-    if (
-      !confirm(
-        "Annuler la demande ? Ton solde te sera re-crédité immédiatement.",
-      )
-    ) {
-      return;
-    }
+  async function handleCancel() {
+    const ok = await confirm({
+      title: "Annuler la demande ?",
+      description:
+        "Ton solde te sera re-crédité immédiatement. Tu pourras refaire une demande ensuite.",
+      confirmLabel: "Annuler la demande",
+      cancelLabel: "Garder",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
       await runAction(() => cancelPayout(requestId), {
         successMessage: "Demande annulée. Solde re-crédité.",

@@ -124,7 +124,7 @@ export default async function ListingPage({ params }: { params: Params }) {
               {listing.title}
             </h1>
             {listing.location ? (
-              <p className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-[#8696B0]">
+              <p className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] text-night-dim">
                 <MapPin className="w-3 h-3" aria-hidden />
                 {listing.location}
               </p>
@@ -200,7 +200,7 @@ export default async function ListingPage({ params }: { params: Params }) {
                   </span>
                 ) : null}
               </div>
-              <p className="mt-0.5 text-[11px] text-[#8696B0]">
+              <p className="mt-0.5 text-[11px] text-night-dim">
                 {listing.seller.location
                   ? `${listing.seller.location} · `
                   : ""}
@@ -314,7 +314,7 @@ export default async function ListingPage({ params }: { params: Params }) {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[12px] bg-white border border-line p-2.5">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#8696B0]">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-night-dim">
         {label}
       </p>
       <p className="mt-1 text-[13px] font-semibold text-night truncate">

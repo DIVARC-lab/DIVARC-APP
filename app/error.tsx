@@ -30,7 +30,7 @@ export default function GlobalError({
       title={
         <>
           On a un{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             petit souci
           </em>{" "}
           de notre côté.

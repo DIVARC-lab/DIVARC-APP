@@ -70,7 +70,7 @@ export function InterestsStep({
         </span>
         <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Tu aimes{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             quoi
           </em>
           , toi ?

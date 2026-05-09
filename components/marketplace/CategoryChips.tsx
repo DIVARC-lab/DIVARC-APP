@@ -64,7 +64,7 @@ function Chip({
         "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-2xl text-[12px] whitespace-nowrap transition-colors",
         active
           ? "bg-night text-cream font-bold"
-          : "bg-white text-[#4B5B87] border border-line font-medium hover:border-night/30",
+          : "bg-white text-night-dim border border-line font-medium hover:border-night/30",
       )}
     >
       <span aria-hidden className="text-[12px] leading-none">

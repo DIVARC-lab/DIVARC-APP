@@ -10,6 +10,8 @@ import {
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { runAction } from "@/lib/utils/clientAction";
 import { deletePost } from "../actions";
 
 type PostMenuProps = {
@@ -24,6 +26,7 @@ type PostMenuProps = {
    - !isOwn : Copier le lien, Masquer cet auteur (stub), Signaler (stub) */
 export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -39,16 +42,20 @@ export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  function handleDelete() {
-    if (!confirm("Supprimer ce post définitivement ?")) return;
+  async function handleDelete() {
+    const ok = await confirm({
+      title: "Supprimer ce post ?",
+      description: "Cette action est définitive et ne peut pas être annulée.",
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const result = await deletePost(postId);
-      if (result.ok) {
-        toast.success("Post supprimé.");
-        router.refresh();
-      } else {
-        toast.error("Suppression impossible.");
-      }
+      const result = await runAction(() => deletePost(postId), {
+        successMessage: "Post supprimé.",
+        errorMessage: "Suppression impossible.",
+      });
+      if (result?.ok) router.refresh();
     });
   }
 
@@ -80,7 +87,7 @@ export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Options du post"
-        className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-[#8696B0] hover:text-night transition-colors"
+        className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-dim hover:text-night transition-colors"
       >
         <MoreHorizontal className="w-[18px] h-[18px]" aria-hidden />
       </button>

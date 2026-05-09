@@ -69,7 +69,7 @@ export default async function MarketplacePage({
               · Le marché
             </span>
             <h1 className="mt-1 font-display text-[38px] sm:text-[48px] text-night leading-[1] font-normal tracking-[-0.02em] text-balance">
-              <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+              <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                 Près de toi
               </em>
               , aujourd&apos;hui.
@@ -112,26 +112,52 @@ export default async function MarketplacePage({
             <Link
               href="/marketplace/new"
               aria-label="Vendre quelque chose"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
             >
               <Plus className="w-4 h-4" aria-hidden strokeWidth={2.5} />
             </Link>
           </div>
         </header>
 
-        {/* Search bar (visual placeholder, lien vers /search avec scope marketplace) */}
-        <div className="px-5 sm:px-8 pt-1 pb-3.5">
-          <Link
-            href="/search?scope=marketplace"
-            className="flex h-[42px] items-center gap-2.5 rounded-[21px] bg-white border border-line px-3.5 text-[13px] text-night-dim hover:border-gold/40 transition-colors"
-          >
-            <Search className="w-[15px] h-[15px]" aria-hidden />
-            <span className="truncate">Rechercher dans le marché…</span>
-            <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-md bg-bg-deep text-[10px] font-bold text-night-dim">
-              5 km
-            </span>
-          </Link>
-        </div>
+        {/* Search bar fonctionnelle — submit GET sur la même page, le `q`
+            arrive dans searchParams et est bookmarkable / shareable.
+            Le filtre catégorie est préservé via hidden input. */}
+        <form
+          action="/marketplace"
+          method="GET"
+          className="px-5 sm:px-8 pt-1 pb-3.5"
+        >
+          {validCategory ? (
+            <input type="hidden" name="category" value={validCategory} />
+          ) : null}
+          <label className="flex h-[42px] items-center gap-2.5 rounded-[21px] bg-white border border-line px-3.5 focus-within:border-gold/40 transition-colors">
+            <Search className="w-[15px] h-[15px] text-night-dim" aria-hidden />
+            <input
+              type="search"
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Rechercher dans le marché…"
+              className="flex-1 bg-transparent text-[13px] text-night placeholder:text-night-dim focus:outline-none"
+            />
+            {q ? (
+              <Link
+                href={
+                  validCategory
+                    ? `/marketplace?category=${validCategory}`
+                    : "/marketplace"
+                }
+                aria-label="Effacer la recherche"
+                className="text-night-dim hover:text-night text-xs font-bold"
+              >
+                ×
+              </Link>
+            ) : (
+              <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-md bg-bg-deep text-[10px] font-bold text-night-dim">
+                5 km
+              </span>
+            )}
+          </label>
+        </form>
 
         {/* Categories chips */}
         <div className="px-4 sm:px-7 pb-3.5">

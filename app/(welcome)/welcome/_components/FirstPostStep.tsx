@@ -61,7 +61,7 @@ export function FirstPostStep({
         </span>
         <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
           Dis bonjour à tes{" "}
-          <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
             voisins
           </em>
           .
@@ -131,7 +131,7 @@ export function FirstPostStep({
             type="button"
             onClick={handlePublish}
             disabled={publishing}
-            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night font-extrabold text-[15px] hover:opacity-95 transition-opacity shadow-[0_16px_36px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night font-extrabold text-[15px] hover:opacity-95 transition-opacity shadow-[0_16px_36px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
           >
             {publishing ? (
               <Loader2 className="w-4 h-4 animate-spin" aria-hidden />

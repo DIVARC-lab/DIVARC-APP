@@ -430,7 +430,7 @@ export function PostComposer({
                 className={cn(
                   "inline-flex items-center gap-1.5 h-[38px] px-[18px] rounded-[19px] font-bold text-[13px] transition-opacity",
                   canSubmit
-                    ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)]"
+                    ? "bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)]"
                     : "bg-gold/30 text-night/50 cursor-not-allowed",
                 )}
               >
@@ -628,7 +628,7 @@ export function PostComposer({
                 className={cn(
                   "w-full inline-flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-opacity",
                   canSubmit
-                    ? "bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.7)]"
+                    ? "bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.7)]"
                     : "bg-gold/30 text-night/50 cursor-not-allowed",
                 )}
               >
@@ -688,9 +688,9 @@ function ChipTeaser({
             Quoi de neuf
           </span>
           {firstName ? (
-            <span className="text-[#8696B0]">, {firstName} ?</span>
+            <span className="text-night-dim">, {firstName} ?</span>
           ) : (
-            <span className="text-[#8696B0]"> ?</span>
+            <span className="text-night-dim"> ?</span>
           )}
         </div>
       </button>

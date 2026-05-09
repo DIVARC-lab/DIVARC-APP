@@ -10,6 +10,7 @@ import type {
   MessageReplyContext,
   MessageReactionSummary,
 } from "@/lib/database.types";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useLongPress } from "@/lib/hooks/useLongPress";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +44,7 @@ export function MessageBubble({
   replyContext,
   onReply,
 }: MessageBubbleProps) {
+  const confirm = useConfirm();
   const [pendingDelete, startDelete] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -106,8 +108,14 @@ export function MessageBubble({
     }
   }
 
-  function handleDelete() {
-    if (!confirm("Supprimer ce message pour tout le monde ?")) return;
+  async function handleDelete() {
+    const ok = await confirm({
+      title: "Supprimer ce message ?",
+      description: "Le message sera retiré pour tout le monde dans la conversation.",
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startDelete(async () => {
       const supabase = createClient();
       const { error } = await supabase

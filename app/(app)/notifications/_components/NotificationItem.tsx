@@ -141,7 +141,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
           <span className="text-night-soft">{notification.title}</span>
         </p>
         {notification.body ? (
-          <p className="mt-0.5 text-[12px] text-[#8696B0] truncate">
+          <p className="mt-0.5 text-[12px] text-night-dim truncate">
             {notification.body}
           </p>
         ) : null}
@@ -172,7 +172,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
 
       <time
         dateTime={notification.created_at}
-        className="text-[11px] text-[#8696B0] shrink-0 self-start mt-0.5"
+        className="text-[11px] text-night-dim shrink-0 self-start mt-0.5"
       >
         {formatRelative(notification.created_at)}
       </time>

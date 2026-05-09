@@ -3,8 +3,9 @@
 import { CheckCircle2, RotateCcw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { runAction } from "@/lib/utils/clientAction";
 import {
   deleteListing,
   markListingSold,
@@ -22,42 +23,43 @@ export function ManageListingActions({
   status,
 }: ManageListingActionsProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
 
   function handleSold() {
     startTransition(async () => {
-      const result = await markListingSold(listingId);
-      if (result.ok) {
-        toast.success("Annonce marquée comme vendue.");
-        router.refresh();
-      } else {
-        toast.error(result.error ?? "Action impossible.");
-      }
+      const result = await runAction(() => markListingSold(listingId), {
+        successMessage: "Annonce marquée comme vendue.",
+        errorMessage: "Action impossible.",
+      });
+      if (result?.ok) router.refresh();
     });
   }
 
   function handleReactivate() {
     startTransition(async () => {
-      const result = await reactivateListing(listingId);
-      if (result.ok) {
-        toast.success("Annonce réactivée.");
-        router.refresh();
-      } else {
-        toast.error(result.error ?? "Action impossible.");
-      }
+      const result = await runAction(() => reactivateListing(listingId), {
+        successMessage: "Annonce réactivée.",
+        errorMessage: "Action impossible.",
+      });
+      if (result?.ok) router.refresh();
     });
   }
 
-  function handleDelete() {
-    if (!confirm("Supprimer définitivement cette annonce ?")) return;
+  async function handleDelete() {
+    const ok = await confirm({
+      title: "Supprimer cette annonce ?",
+      description: "Cette action est définitive. Les éventuelles offres en attente seront perdues.",
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const result = await deleteListing(listingId);
-      if (result.ok) {
-        toast.success("Annonce supprimée.");
-        router.refresh();
-      } else {
-        toast.error(result.error ?? "Action impossible.");
-      }
+      const result = await runAction(() => deleteListing(listingId), {
+        successMessage: "Annonce supprimée.",
+        errorMessage: "Action impossible.",
+      });
+      if (result?.ok) router.refresh();
     });
   }
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import type { StoryGroup } from "@/lib/database.types";
@@ -26,6 +27,7 @@ export function StoryViewer({
   initialStoryId,
 }: StoryViewerProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
 
   const initialPos = (() => {
@@ -132,9 +134,15 @@ export function StoryViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupIndex, storyIndex]);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!currentStory) return;
-    if (!confirm("Supprimer cette story ?")) return;
+    const ok = await confirm({
+      title: "Supprimer cette story ?",
+      description: "Elle disparaîtra immédiatement et tes vues seront perdues.",
+      confirmLabel: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const result = await deleteStory(currentStory.id);
       if (result.ok) {

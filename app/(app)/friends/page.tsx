@@ -108,6 +108,8 @@ export default async function FriendsPage({
               body="Trouve des proches pour démarrer ton réseau."
               ctaHref="/messages/new"
               ctaLabel="Trouver des amis"
+              secondaryHref="/explore"
+              secondaryLabel="Découvrir des suggestions"
             />
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
@@ -129,6 +131,8 @@ export default async function FriendsPage({
               emoji="📭"
               title="Aucune demande reçue"
               body="Quand quelqu'un t'enverra une demande d'ami, tu la verras ici."
+              ctaHref="/messages/new"
+              ctaLabel="Trouver des amis"
             />
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
@@ -151,6 +155,8 @@ export default async function FriendsPage({
               body="Lance une recherche pour trouver des proches."
               ctaHref="/messages/new"
               ctaLabel="Trouver des amis"
+              secondaryHref="/explore"
+              secondaryLabel="Voir les suggestions"
             />
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">

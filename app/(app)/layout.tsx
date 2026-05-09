@@ -29,6 +29,7 @@ import { NotificationsRealtime } from "@/components/NotificationsRealtime";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
 import { Logo } from "@/components/Logo";
 import { SidebarNavLink } from "@/components/SidebarNavLink";
 import { Avatar } from "@/components/ui/Avatar";
@@ -132,6 +133,7 @@ export default async function DashboardLayout({
      Entreprises / Réseau pro restent dans /search et liens contextuels. */
 
   return (
+    <ConfirmProvider>
     <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
       <aside className="hidden lg:flex flex-col border-r border-line bg-gradient-to-b from-cream/80 via-white/60 to-white/60 backdrop-blur-md sticky top-0 h-screen relative overflow-hidden">
         {/* Arc fin doré (signature) — opacity douce */}
@@ -327,5 +329,6 @@ export default async function DashboardLayout({
       <PresenceHeartbeat />
       <ThemeProvider initialTheme={profile?.theme ?? "system"} />
     </div>
+    </ConfirmProvider>
   );
 }

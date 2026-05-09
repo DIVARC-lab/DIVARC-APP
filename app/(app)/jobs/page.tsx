@@ -107,7 +107,7 @@ export default async function JobsPage({
             </span>
             <h1 className="mt-1 font-display text-[38px] sm:text-[48px] text-night leading-[1] font-normal tracking-[-0.02em] text-balance">
               Trouve ton prochain{" "}
-              <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+              <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                 job
               </em>
               .
@@ -124,7 +124,7 @@ export default async function JobsPage({
             <Link
               href="/jobs/new"
               aria-label="Publier une offre"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
             >
               <Plus className="w-4 h-4" aria-hidden strokeWidth={2.5} />
             </Link>

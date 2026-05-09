@@ -39,7 +39,7 @@ export function ContactSellerButton({
       type="button"
       onClick={handle}
       disabled={pending}
-      className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night font-extrabold text-[14px] shadow-[0_12px_24px_-10px_rgba(244,185,66,0.6)] hover:opacity-95 transition-opacity disabled:opacity-60"
+      className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night font-extrabold text-[14px] shadow-[0_12px_24px_-10px_rgba(244,185,66,0.6)] hover:opacity-95 transition-opacity disabled:opacity-60"
     >
       {pending ? (
         <Loader2 className="w-[15px] h-[15px] animate-spin" aria-hidden />

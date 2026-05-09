@@ -361,7 +361,7 @@ function Hero({
         <div className="flex items-end justify-between gap-3">
           {/* Avatar 76px wrapped en double ring (handoff feed-profile L49-53) :
               outer p-1 gradient gold 135deg + inner p-[3px] white. */}
-          <div className="rounded-full p-1 bg-gradient-to-br from-gold to-[#B88A2A] shrink-0">
+          <div className="rounded-full p-1 bg-gradient-to-br from-gold to-gold-deep shrink-0">
             <div className="rounded-full p-[3px] bg-white">
               <Avatar
                 src={profile.avatar_url}
@@ -425,7 +425,7 @@ function Hero({
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-center px-3 py-3 rounded-2xl bg-night/[0.03] border border-line">
-      <dt className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8696B0]">
+      <dt className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-night-dim">
         {label}
       </dt>
       <dd className="mt-1 font-display italic text-2xl text-night leading-none">

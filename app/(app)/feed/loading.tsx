@@ -5,12 +5,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
  * stories, suggestions, trending). */
 export default function FeedLoading() {
   return (
-    <div className="relative bg-[#F1F3F8] min-h-screen pb-[86px]" aria-busy>
+    <div className="relative bg-bg-soft min-h-screen pb-[86px]" aria-busy>
       <div className="mx-auto w-full max-w-6xl">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
           <div className="mx-auto w-full max-w-2xl lg:mx-0">
             {/* Hero header */}
-            <header className="bg-gradient-to-b from-cream to-[#F1F3F8] pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
+            <header className="bg-gradient-to-b from-cream to-bg-soft pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
               <Skeleton shape="text" className="w-32 h-3 mb-3" />
               <Skeleton className="w-full h-12 mb-3" />
               <Skeleton className="w-3/4 h-12 mb-4" />

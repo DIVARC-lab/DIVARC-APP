@@ -109,12 +109,12 @@ export default async function FeedPage({
   ).length;
 
   return (
-    <div className="relative bg-[#F1F3F8] min-h-screen pb-[86px]">
+    <div className="relative bg-bg-soft min-h-screen pb-[86px]">
       <div className="mx-auto w-full max-w-6xl">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
           <div className="mx-auto w-full max-w-2xl lg:mx-0">
             {/* Hero header — gradient cream → bg-soft, ArcDeco gold visible */}
-            <header className="relative overflow-hidden bg-gradient-to-b from-cream to-[#F1F3F8] pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
+            <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
               <div
                 aria-hidden
                 className="absolute -top-10 -right-14 opacity-55 pointer-events-none"
@@ -122,22 +122,22 @@ export default async function FeedPage({
                 <ArcDeco size={260} tone="gold" opacity={1} stroke={1.25} />
               </div>
               <div className="relative">
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B88A2A]">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
                   · Le feed · {todayKicker}
                 </p>
-                <h1 className="mt-2.5 font-display text-[40px] sm:text-[56px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-[#0A1F44]">
+                <h1 className="mt-2.5 font-display text-[40px] sm:text-[56px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-night">
                   Ce que tes proches{" "}
-                  <em className="italic bg-gradient-to-br from-[#F4B942] to-[#B88A2A] bg-clip-text text-transparent">
+                  <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                     racontent
                   </em>{" "}
                   aujourd&apos;hui.
                 </h1>
-                <p className="mt-3 max-w-[420px] lg:max-w-[480px] text-[13px] sm:text-[14px] lg:text-[15px] leading-[1.45] lg:leading-relaxed text-[#2A3D6B]">
+                <p className="mt-3 max-w-[420px] lg:max-w-[480px] text-[13px] sm:text-[14px] lg:text-[15px] leading-[1.45] lg:leading-relaxed text-night-muted">
                   Ordre chronologique strict. Pas d&apos;algorithme, pas de pub.
                   {newPostsCount > 0 ? (
                     <>
                       {" "}
-                      <span className="font-semibold text-[#0A1F44]">
+                      <span className="font-semibold text-night">
                         {newPostsCount} nouveau
                         {newPostsCount > 1 ? "x" : ""} post
                         {newPostsCount > 1 ? "s" : ""}
@@ -208,7 +208,7 @@ export default async function FeedPage({
       <Link
         href="/create"
         aria-label="Créer un post"
-        className="lg:hidden fixed right-[18px] bottom-[100px] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-[#0A1F44] text-[#FFF8E8] border-2 border-[#F4B942] shadow-[0_12px_32px_-8px_rgba(244,185,66,0.6),0_4px_12px_rgba(10,31,68,0.4)] hover:scale-105 transition-transform"
+        className="lg:hidden fixed right-[18px] bottom-[100px] z-30 flex h-14 w-14 items-center justify-center rounded-full bg-night text-cream border-2 border-gold shadow-[0_12px_32px_-8px_rgba(244,185,66,0.6),0_4px_12px_rgba(10,31,68,0.4)] hover:scale-105 transition-transform"
       >
         <Plus className="w-[22px] h-[22px]" strokeWidth={2.6} aria-hidden />
       </Link>

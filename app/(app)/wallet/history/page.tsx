@@ -116,7 +116,7 @@ export default async function WalletHistoryPage({
             </p>
             <h1 className="mt-2 font-display text-[36px] sm:text-[44px] font-normal leading-[1.05] tracking-[-0.02em] text-night text-balance">
               Toutes tes{" "}
-              <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+              <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                 transactions
               </em>
               .

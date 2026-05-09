@@ -48,7 +48,7 @@ export default async function MyListingsPage() {
               </p>
               <h1 className="mt-2 font-display text-[36px] sm:text-[48px] font-normal leading-[1.05] tracking-[-0.02em] text-night text-balance">
                 Tes{" "}
-                <em className="italic bg-gradient-to-br from-gold to-[#B88A2A] bg-clip-text text-transparent">
+                <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                   annonces
                 </em>
                 .
@@ -62,7 +62,7 @@ export default async function MyListingsPage() {
             <Link
               href="/marketplace/new"
               aria-label="Nouvelle annonce"
-              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-[#B88A2A] text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
+              className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_22px_-8px_rgba(244,185,66,0.55)] hover:opacity-95 transition-opacity"
             >
               <Plus className="w-4 h-4" aria-hidden strokeWidth={2.5} />
             </Link>
