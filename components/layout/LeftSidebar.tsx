@@ -103,8 +103,37 @@ export function LeftSidebar({
   return (
     <aside
       aria-label="Navigation secondaire"
-      className="hidden xl:flex flex-col gap-1 px-2 py-3 h-full overflow-y-auto"
+      className="hidden xl:flex flex-col gap-1 px-2 py-3 h-full overflow-y-auto relative bg-gradient-to-b from-cream/80 via-white/60 to-white/60 backdrop-blur-md"
     >
+      {/* Arc fin doré (signature DIVARC) — opacity douce, derrière le contenu.
+          Restaure l'élément décoratif perdu lors de la refonte FB-style. */}
+      <div
+        aria-hidden
+        className="absolute -bottom-16 -left-20 w-64 h-64 pointer-events-none opacity-30"
+      >
+        <svg viewBox="0 0 320 320" fill="none" className="w-full h-full">
+          <circle
+            cx="160"
+            cy="160"
+            r="120"
+            stroke="#F4B942"
+            strokeWidth="1.5"
+            fill="none"
+          />
+          <circle
+            cx="160"
+            cy="160"
+            r="80"
+            stroke="#F4B942"
+            strokeWidth="1"
+            fill="none"
+            opacity="0.6"
+          />
+          <circle cx="160" cy="40" r="3" fill="#F4B942" />
+          <circle cx="40" cy="160" r="2.5" fill="#F4B942" opacity="0.8" />
+        </svg>
+      </div>
+
       {/* Item user */}
       <Link
         href={username ? `/u/${username}` : "/profile"}
