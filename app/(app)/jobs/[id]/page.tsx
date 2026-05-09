@@ -1,18 +1,19 @@
 import {
   ArrowLeft,
-  Building2,
-  Calendar,
+  Briefcase,
   CheckCircle2,
   Clock,
-  MapPin,
-  Tag,
+  Compass,
+  MessageSquareText,
+  Share2,
+  Sparkles,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { Avatar } from "@/components/ui/Avatar";
 import { SaveJobButton } from "@/components/jobs/SaveJobButton";
-import { SalaryRange } from "@/components/jobs/SalaryRange";
 import {
   APPLICATION_STATUS_META,
   EXPERIENCE_META,
@@ -51,6 +52,17 @@ export async function generateMetadata({ params }: { params: Params }) {
   };
 }
 
+/* Refonte audit /jobs/[id] (handoff feed-jobs.jsx JobsDetailScreen
+ * L113-217) — mobile-first Bold :
+ * - Top bar : back/share/save chips white border
+ * - Header card r-[24px] white avec ArcDeco gold filigrane top-right :
+ *   icone navy 56 + chips type/cat/active + title italic 26 + company
+ *   verified ✓
+ * - Facts grid 2x2 : Localisation/Niveau/Candidatures/Publiée
+ * - Salary card gradient cream + €
+ * - Description avec kicker + bullets ✓ gold
+ * - Poster card r-[18px] avatar 44 + name + meta
+ * - Sticky CTA bottom : SaveJobButton lg + ApplyDialog primary-pill */
 export default async function JobDetailPage({
   params,
 }: {
@@ -68,25 +80,21 @@ export default async function JobDetailPage({
 
   const isOwn = job.poster_id === user.id;
 
-  // Cooptation : amis + déjà cooptés (uniquement si offre active)
   const canRefer = job.status === "active" && !isOwn;
-  const [friendsRaw, alreadyReferred, referralsOnThisJob] = canRefer
+  const [friendsRaw, alreadyReferred] = canRefer
     ? await Promise.all([
         listFriendsForUser(user.id),
         listMyExistingReferrals({ userId: user.id, jobId: job.id }),
-        isOwn ? Promise.resolve([]) : Promise.resolve([]),
       ])
-    : [[], [], []];
+    : [[], []];
   const friends = friendsRaw.map((f) => ({
     user_id: f.other.id,
     full_name: f.other.full_name,
     username: f.other.username,
     avatar_url: f.other.avatar_url,
   }));
-  // Pour le poster du job : voir qui a coopté qui
   const referralsForOwner = isOwn ? await listReferralsOnJob(job.id) : [];
 
-  // Préremplissage du message de candidature depuis le profil pro
   const canApply = !isOwn && !job.has_applied && job.status === "active";
   const [proProfile, currentProfile] = canApply
     ? await Promise.all([getProProfile(user.id), getCurrentProfile()])
@@ -114,196 +122,235 @@ export default async function JobDetailPage({
           skills: proProfile.skills,
         })
       : null;
+
   const isClosed = job.status === "closed";
   const typeMeta = JOB_TYPE_META[job.job_type];
   const modeMeta = WORK_MODE_META[job.work_mode];
   const categoryMeta = JOB_CATEGORY_META[job.category];
   const posterName =
     job.poster?.full_name ?? job.poster?.username ?? "Recruteur";
-
   const myApplication = job.my_application;
 
-  return (
-    <div className="px-4 sm:px-10 py-10 max-w-4xl mx-auto w-full">
-      <Link
-        href="/jobs"
-        className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" aria-hidden />
-        Retour aux offres
-      </Link>
+  const salaryFormatted = formatSalary(
+    job.salary_min,
+    job.salary_max,
+    job.salary_currency,
+    job.salary_period,
+  );
 
-      <div className="grid lg:grid-cols-[1fr_320px] gap-8">
-        <div className="space-y-6">
-          <header className="p-6 sm:p-8 rounded-3xl bg-white border border-line shadow-soft">
-            <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-night/5 border border-line flex items-center justify-center text-2xl shrink-0">
+  return (
+    <div className="bg-bg-soft min-h-screen pb-[120px] relative">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* Top bar : back / share / save (proto L117-123) */}
+        <div className="flex items-center justify-between gap-3 px-4 pt-12 sm:pt-14 pb-2">
+          <Link
+            href="/jobs"
+            aria-label="Retour aux offres"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-line text-night hover:border-night/30 transition-colors"
+          >
+            <ArrowLeft className="w-[15px] h-[15px]" aria-hidden />
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Partager"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-line text-night hover:border-night/30 transition-colors"
+            >
+              <Share2 className="w-[14px] h-[14px]" aria-hidden />
+            </button>
+            <SaveJobButton
+              jobId={job.id}
+              initialSaved={job.is_saved}
+              size="md"
+              className="!bg-cream !border-gold/40 !text-gold-deep"
+            />
+          </div>
+        </div>
+
+        {/* Header card */}
+        <div className="px-4 pt-1">
+          <article className="relative overflow-hidden rounded-[24px] bg-white border border-line p-[18px]">
+            <div
+              aria-hidden
+              className="absolute -right-14 -top-14 opacity-50 pointer-events-none"
+            >
+              <ArcDeco size={180} tone="gold" opacity={0.5} stroke={1.25} />
+            </div>
+
+            <div className="relative flex items-start gap-3.5">
+              {/* Icone navy 56 */}
+              <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-night text-cream text-[28px] shrink-0">
                 {typeMeta.emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-night/5 text-night-muted text-[10px] font-bold uppercase tracking-widest">
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-[#4B5B87] text-[9px] font-extrabold uppercase tracking-[0.06em]">
                     {typeMeta.label}
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cream text-night-muted text-[10px] font-bold uppercase tracking-widest">
-                    <span aria-hidden>{modeMeta.emoji}</span>
-                    {modeMeta.label}
-                  </span>
-                  <Link
-                    href={`/jobs?category=${job.category}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-night/5 text-night-muted text-[10px] font-bold uppercase tracking-widest hover:bg-night/10"
-                  >
-                    <span aria-hidden>{categoryMeta.emoji}</span>
+                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-cream text-gold-deep text-[9px] font-extrabold uppercase tracking-[0.06em]">
                     {categoryMeta.label}
-                  </Link>
-                  {isClosed ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-night text-cream text-[10px] font-bold uppercase tracking-widest">
+                  </span>
+                  {!isClosed ? (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-[2px] rounded-md bg-emerald-100/60 text-emerald-700 text-[9px] font-extrabold uppercase tracking-[0.06em]">
+                      ● Active
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night text-cream text-[9px] font-extrabold uppercase tracking-[0.06em]">
                       Clôturée
                     </span>
-                  ) : null}
+                  )}
+                  <span className="inline-flex items-center px-1.5 py-[2px] rounded-md bg-night/[0.06] text-[#4B5B87] text-[9px] font-extrabold uppercase tracking-[0.06em]">
+                    {modeMeta.label}
+                  </span>
                 </div>
-                <h1 className="mt-3 font-display italic text-[32px] sm:text-5xl text-night text-balance leading-[1.05] tracking-[-0.02em]">
+                <h1 className="mt-2 font-display text-[26px] text-night leading-[1.05] font-normal tracking-[-0.01em] text-balance">
                   {job.title}
                 </h1>
                 {job.company_name ? (
-                  <p className="mt-1 text-night-muted flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" aria-hidden />
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-bold text-night">
                     {job.company_name}
+                    <span
+                      aria-label="Profil vérifié"
+                      className="inline-flex h-3 w-3 items-center justify-center rounded-full bg-gold text-night text-[7px] font-extrabold"
+                    >
+                      ✓
+                    </span>
                   </p>
                 ) : null}
               </div>
-              <SaveJobButton
-                jobId={job.id}
-                initialSaved={job.is_saved}
-                size="md"
-              />
             </div>
 
-            <ul className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            {/* Facts grid 2x2 */}
+            <div className="mt-3.5 grid grid-cols-2 gap-2 relative">
               {job.location ? (
-                <Stat
-                  icon={MapPin}
-                  label="Localisation"
-                  value={job.location}
-                />
+                <Fact icon={Compass} label="Localisation" value={job.location} />
               ) : null}
-              <Stat
-                icon={Tag}
+              <Fact
+                icon={Sparkles}
                 label="Niveau"
                 value={EXPERIENCE_META[job.experience_level]}
               />
-              <Stat
+              <Fact
                 icon={Users}
                 label="Candidatures"
-                value={String(job.applications_count)}
+                value={`${job.applications_count} reçue${job.applications_count > 1 ? "s" : ""}`}
               />
-              <Stat
+              <Fact
                 icon={Clock}
                 label="Publiée"
                 value={formatRelative(job.created_at)}
               />
-            </ul>
+            </div>
 
-            <div className="mt-6 p-4 rounded-2xl bg-cream/50 border border-gold/30 flex items-center justify-between gap-4">
-              <SalaryRange
-                min={job.salary_min}
-                max={job.salary_max}
-                currency={job.salary_currency}
-                period={job.salary_period}
-                className="font-display italic text-2xl text-night"
-              />
-              {!isOwn && !isClosed ? (
-                myApplication && myApplication.status !== "withdrawn" ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                    <CheckCircle2 className="w-4 h-4" aria-hidden />
-                    {APPLICATION_STATUS_META[myApplication.status].label}
-                  </span>
-                ) : (
-                  <ApplyDialog
-                    jobId={job.id}
-                    jobTitle={job.title}
-                    draftFromProfile={draftFromProfile}
-                    hasProProfile={hasProProfile}
-                  />
-                )
-              ) : null}
-              {isOwn ? (
-                <Link
-                  href={`/jobs/${job.id}/applicants`}
-                  className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full bg-night text-cream text-sm font-semibold hover:bg-night-soft"
+            {/* Salary card */}
+            {salaryFormatted ? (
+              <div className="mt-3 p-3.5 rounded-[16px] bg-gradient-to-br from-cream to-white border border-gold/30 flex items-center justify-between gap-2.5 relative">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-gold-deep">
+                    Rémunération
+                  </p>
+                  <p className="mt-0.5 font-display italic text-[22px] text-night leading-none">
+                    {salaryFormatted.amount}
+                    <span className="not-italic text-[12px] text-[#8696B0] ml-1">
+                      /{salaryFormatted.period}
+                    </span>
+                  </p>
+                </div>
+                <span
+                  aria-hidden
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-night text-gold text-base font-bold shrink-0"
                 >
-                  <Users className="w-4 h-4" aria-hidden />
-                  Voir les candidats
-                </Link>
-              ) : null}
-            </div>
-          </header>
-
-          <article className="p-6 sm:p-8 rounded-3xl bg-white border border-line shadow-soft">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
-              Description
-            </h2>
-            <div className="text-night-muted whitespace-pre-wrap leading-relaxed">
-              {job.description}
-            </div>
+                  €
+                </span>
+              </div>
+            ) : null}
           </article>
         </div>
 
-        <aside className="space-y-4">
-          {job.poster ? (
-            <article className="p-6 rounded-3xl bg-white border border-line shadow-soft">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-muted mb-4">
-                Publié par
-              </h2>
-              <Link
-                href={`/u/${job.poster.username ?? ""}`}
-                className="flex items-center gap-3 group"
-              >
-                <Avatar
-                  src={job.poster.avatar_url}
-                  fullName={posterName}
-                  size="lg"
-                />
-                <div className="min-w-0">
-                  <p className="font-display text-lg text-night group-hover:text-night-soft truncate">
-                    {posterName}
-                  </p>
-                  {job.poster.username ? (
-                    <p className="text-sm text-muted">@{job.poster.username}</p>
-                  ) : null}
-                </div>
-              </Link>
-            </article>
-          ) : null}
+        {/* Description */}
+        <section className="px-6 pt-5">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep">
+            · Description
+          </p>
+          <p className="mt-2 text-[14px] text-night-soft leading-[1.6] whitespace-pre-wrap text-pretty">
+            {job.description}
+          </p>
+        </section>
 
-          {canRefer && friends.length > 0 ? (
-            <article className="p-6 rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/10 border-2 border-gold/30 shadow-soft">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-gold-deep mb-2">
-                Cooptation
-              </h2>
-              <p className="text-sm text-night-muted leading-relaxed mb-4">
-                Tu connais quelqu&apos;un qui ferait l&apos;affaire ? Recommande-le
-                en 1 clic — il recevra une notif personnalisée.
-              </p>
-              <ReferDialog
-                jobId={job.id}
-                jobTitle={job.title}
-                friends={friends}
-                alreadyReferredIds={alreadyReferred}
+        {/* Poster card */}
+        {job.poster ? (
+          <section className="px-4 pt-5">
+            <Link
+              href={`/u/${job.poster.username ?? ""}`}
+              className="flex items-center gap-3 p-3.5 rounded-[18px] bg-white border border-line hover:border-gold/40 transition-colors"
+            >
+              <Avatar
+                src={job.poster.avatar_url}
+                fullName={posterName}
+                size="md-bold"
               />
-            </article>
-          ) : null}
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#8696B0]">
+                  Publié par
+                </p>
+                <p className="mt-0.5 text-[14px] font-bold text-night truncate">
+                  {posterName}
+                  {job.company_name ? (
+                    <span className="font-medium text-night-soft">
+                      {" · "}
+                      {job.company_name}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="text-[11px] text-[#8696B0]">
+                  Voir le profil →
+                </p>
+              </div>
+              <span
+                aria-hidden
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-night"
+              >
+                <MessageSquareText className="w-[14px] h-[14px]" aria-hidden />
+              </span>
+            </Link>
+          </section>
+        ) : null}
 
-          {isOwn && referralsForOwner.length > 0 ? (
-            <article className="p-6 rounded-3xl bg-white border border-line shadow-soft">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-gold-deep mb-3">
-                Cooptations reçues ({referralsForOwner.length})
-              </h2>
-              <ul className="space-y-2">
+        {/* Cooptation card */}
+        {canRefer && friends.length > 0 ? (
+          <section className="px-4 pt-3">
+            <article className="p-4 rounded-[18px] bg-gradient-to-br from-cream via-bg to-gold/10 border border-gold/30">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep">
+                · Cooptation
+              </p>
+              <p className="mt-1.5 text-[13px] text-night-soft leading-[1.5]">
+                Tu connais quelqu&apos;un qui ferait l&apos;affaire ?
+                Recommande-le en 1 clic.
+              </p>
+              <div className="mt-3">
+                <ReferDialog
+                  jobId={job.id}
+                  jobTitle={job.title}
+                  friends={friends}
+                  alreadyReferredIds={alreadyReferred}
+                />
+              </div>
+            </article>
+          </section>
+        ) : null}
+
+        {/* Owner : referrals received */}
+        {isOwn && referralsForOwner.length > 0 ? (
+          <section className="px-4 pt-3">
+            <article className="p-4 rounded-[18px] bg-white border border-line">
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep">
+                · Cooptations reçues ({referralsForOwner.length})
+              </p>
+              <ul className="mt-2 space-y-1.5">
                 {referralsForOwner.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-center gap-2 text-sm text-night-muted"
+                    className="flex items-center gap-2 text-[13px] text-night-soft"
                   >
                     <Avatar
                       src={r.referrer?.avatar_url ?? null}
@@ -317,12 +364,12 @@ export default async function JobDetailPage({
                       </strong>{" "}
                       coopte{" "}
                       <strong className="text-night">
-                        {r.referred?.full_name ?? "@" + (r.referred?.username ?? "")}
+                        {r.referred?.full_name ??
+                          "@" + (r.referred?.username ?? "")}
                       </strong>
                       {r.application_id ? (
                         <span className="text-emerald-700 font-semibold">
-                          {" "}
-                          · a postulé ✓
+                          {" · a postulé ✓"}
                         </span>
                       ) : null}
                     </span>
@@ -330,46 +377,141 @@ export default async function JobDetailPage({
                 ))}
               </ul>
             </article>
-          ) : null}
+          </section>
+        ) : null}
 
-          {myApplication ? (
-            <article className="p-6 rounded-3xl bg-gradient-to-br from-cream to-bg border border-gold/30">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-gold-deep mb-3">
-                Ta candidature
-              </h2>
-              <p className="text-sm text-night-muted leading-relaxed line-clamp-4">
-                « {myApplication.message ?? ""} »
-              </p>
-              <p className="mt-3 text-xs text-muted flex items-center gap-1.5">
-                <Calendar className="w-3 h-3" aria-hidden />
+        {/* Application existante */}
+        {myApplication && myApplication.status !== "withdrawn" ? (
+          <section className="px-4 pt-3">
+            <article className="p-4 rounded-[18px] bg-gradient-to-br from-cream to-bg border border-gold/30">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep">
+                  · Ta candidature
+                </p>
+                <span className="inline-flex items-center gap-1 px-2.5 h-6 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold">
+                  <CheckCircle2 className="w-3 h-3" aria-hidden />
+                  {APPLICATION_STATUS_META[myApplication.status].label}
+                </span>
+              </div>
+              {myApplication.message ? (
+                <p className="mt-2 text-[13px] text-night-soft leading-[1.5] line-clamp-4">
+                  « {myApplication.message} »
+                </p>
+              ) : null}
+              <p className="mt-2 text-[11px] text-[#8696B0]">
                 Envoyée {formatRelative(myApplication.created_at)}
               </p>
             </article>
-          ) : null}
-        </aside>
+          </section>
+        ) : null}
+      </div>
+
+      {/* Sticky CTA bottom */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 px-4 pt-3 bg-[rgba(248,249,251,0.92)] backdrop-blur-md border-t border-line"
+        style={{
+          paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)",
+        }}
+      >
+        <div className="max-w-2xl mx-auto flex items-center gap-2.5">
+          {isOwn ? (
+            <Link
+              href={`/jobs/${job.id}/applicants`}
+              className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-night text-cream font-extrabold text-[14px] hover:bg-night-soft transition-colors"
+            >
+              <Users className="w-[15px] h-[15px]" aria-hidden />
+              Voir les candidats
+            </Link>
+          ) : isClosed ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-night/30 text-night/60 font-extrabold text-[14px] cursor-not-allowed"
+            >
+              <Briefcase className="w-[15px] h-[15px]" aria-hidden />
+              Offre clôturée
+            </button>
+          ) : myApplication && myApplication.status !== "withdrawn" ? (
+            <span className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[14px]">
+              <CheckCircle2 className="w-[15px] h-[15px]" aria-hidden />
+              Candidature envoyée
+            </span>
+          ) : (
+            <>
+              <SaveJobButton
+                jobId={job.id}
+                initialSaved={job.is_saved}
+                size="lg"
+                className="!bg-white !border-line shrink-0"
+              />
+              <ApplyDialog
+                jobId={job.id}
+                jobTitle={job.title}
+                draftFromProfile={draftFromProfile}
+                hasProProfile={hasProProfile}
+                triggerVariant="primary-pill"
+                triggerLabel="Postuler · 1 clic"
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function Stat({
+function Fact({
   icon: Icon,
   label,
   value,
 }: {
-  icon: typeof MapPin;
+  icon: typeof Compass;
   label: string;
   value: string;
 }) {
   return (
-    <li className="p-3 rounded-2xl bg-night/[0.02] border border-line">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
-        <Icon className="w-3 h-3" aria-hidden />
+    <div className="rounded-[12px] bg-night/[0.03] border border-line p-2.5">
+      <div className="inline-flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8696B0]">
+        <Icon className="w-[10px] h-[10px]" aria-hidden />
         {label}
       </div>
-      <p className="mt-1 text-sm font-medium text-night truncate" title={value}>
+      <p className="mt-0.5 text-[12px] font-bold text-night truncate">
         {value}
       </p>
-    </li>
+    </div>
   );
+}
+
+function formatSalary(
+  min: number | null,
+  max: number | null,
+  currency: string | null,
+  period: string | null,
+): { amount: string; period: string } | null {
+  if (!min && !max) return null;
+  const symbol =
+    currency === "EUR" ? "€" : currency === "USD" ? "$" : currency ?? "€";
+  const minK = min ? formatK(min) : null;
+  const maxK = max ? formatK(max) : null;
+  const amount =
+    minK && maxK ? `${minK}–${maxK}${symbol}` : `${minK ?? maxK}${symbol}`;
+  const periodLabel =
+    period === "year"
+      ? "an"
+      : period === "month"
+        ? "mois"
+        : period === "day"
+          ? "jour"
+          : period === "hour"
+            ? "h"
+            : "mois";
+  return { amount, period: periodLabel };
+}
+
+function formatK(amount: number): string {
+  if (amount >= 1000) {
+    const k = amount / 1000;
+    return Number.isInteger(k) ? `${k}k` : `${k.toFixed(1)}k`;
+  }
+  return amount.toString();
 }

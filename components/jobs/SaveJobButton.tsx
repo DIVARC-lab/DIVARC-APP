@@ -10,7 +10,7 @@ import { toggleSaveJob } from "@/app/(app)/jobs/actions";
 type SaveJobButtonProps = {
   jobId: string;
   initialSaved: boolean;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   className?: string;
 };
 
@@ -41,8 +41,14 @@ export function SaveJobButton({
     });
   }
 
-  const dim = size === "sm" ? "w-8 h-8" : "w-10 h-10";
-  const iconSize = size === "sm" ? "w-4 h-4" : "w-4.5 h-4.5";
+  const dim =
+    size === "sm" ? "w-8 h-8" : size === "lg" ? "w-12 h-12" : "w-10 h-10";
+  const iconSize =
+    size === "sm"
+      ? "w-4 h-4"
+      : size === "lg"
+        ? "w-[17px] h-[17px]"
+        : "w-4.5 h-4.5";
 
   return (
     <button

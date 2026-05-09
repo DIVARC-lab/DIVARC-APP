@@ -11,6 +11,7 @@ import {
   FieldLabel,
 } from "@/components/ui/Field";
 import { Textarea } from "@/components/ui/Input";
+import { cn } from "@/lib/utils/cn";
 import { applyToJob, type ApplicationFormState } from "../../actions";
 
 const INITIAL: ApplicationFormState = { status: "idle" };
@@ -20,6 +21,10 @@ type ApplyDialogProps = {
   jobTitle: string;
   draftFromProfile: string | null;
   hasProProfile: boolean;
+  /* Quand "primary-pill" : trigger en pill navy/cream weight 800
+     pour le sticky CTA Bold (handoff feed-jobs L211). Sinon Button standard. */
+  triggerVariant?: "default" | "primary-pill";
+  triggerLabel?: string;
 };
 
 export function ApplyDialog({
@@ -27,6 +32,8 @@ export function ApplyDialog({
   jobTitle,
   draftFromProfile,
   hasProProfile,
+  triggerVariant = "default",
+  triggerLabel = "Postuler",
 }: ApplyDialogProps) {
   const [open, setOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -65,10 +72,24 @@ export function ApplyDialog({
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} size="lg">
-        <Send className="w-4 h-4" aria-hidden />
-        Postuler
-      </Button>
+      {triggerVariant === "primary-pill" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-full bg-night text-cream font-extrabold text-[14px]",
+            "shadow-[0_12px_24px_-10px_rgba(10,31,68,0.5)] hover:bg-night-soft transition-colors",
+          )}
+        >
+          <Send className="w-[15px] h-[15px]" aria-hidden />
+          {triggerLabel}
+        </button>
+      ) : (
+        <Button onClick={() => setOpen(true)} size="lg">
+          <Send className="w-4 h-4" aria-hidden />
+          {triggerLabel}
+        </Button>
+      )}
 
       {open ? (
         <div
