@@ -6,25 +6,32 @@ import {
 } from "./ContentCreatorModal";
 import { useCreator } from "./CreatorProvider";
 import { PostMode } from "./modes/PostMode";
+import { SimpleRedirectMode } from "./modes/SimpleRedirectMode";
 import { StoryMode } from "./modes/StoryMode";
 
 /* CreatorModalHost — monté UNE seule fois dans (app)/layout.tsx.
  *
- * Consume le CreatorContext et dispatch vers le composant Mode* approprié.
- * Les modes encore à brancher (listing/job/event, étapes 7) tombent sur
- * le placeholder. */
+ * Dispatch vers le composant Mode* approprié selon state.mode :
+ *  - post / story : modes inlinés complets (étapes 4-5)
+ *  - listing / job / event : SimpleRedirectMode (teaser + CTA route
+ *    dédiée). Inline complet de ces forms reporté à un cycle ultérieur
+ *    de polish. */
 export function CreatorModalHost() {
   const { state } = useCreator();
   if (!state.open || !state.mode) return null;
 
+  const m = state.mode;
+
   return (
     <CreatorModalShell>
-      {state.mode === "post" ? (
+      {m === "post" ? (
         <PostMode />
-      ) : state.mode === "story" ? (
+      ) : m === "story" ? (
         <StoryMode />
+      ) : m === "listing" || m === "job" || m === "event" ? (
+        <SimpleRedirectMode mode={m} />
       ) : (
-        <CreatorModePlaceholder mode={state.mode} />
+        <CreatorModePlaceholder mode={m} />
       )}
     </CreatorModalShell>
   );
