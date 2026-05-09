@@ -3,7 +3,10 @@
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-deep: var(--bg-deep);
+  --color-bg-soft: var(--bg-soft);
   --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
   --color-night: var(--night);
   --color-night-soft: var(--night-soft);
   --color-night-muted: var(--night-muted);
@@ -11,6 +14,7 @@
   --color-gold: #f4b942;
   --color-gold-soft: #f8cd76;
   --color-gold-deep: var(--gold-deep);
+  --color-terra: #d97757;
   --color-cream: #fff8e8;
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
@@ -22,6 +26,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-instrument);
+  --font-serif: var(--font-instrument);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -38,11 +43,20 @@
 }
 
 /* ===== Light theme (default) ===== */
+/* Tokens spec brief user :
+   --bg #FFFFFF, --bg-deep #FFF8E8 (cream chaud), --bg-soft #F8F9FB
+   --fg #0A1F44 (navy), --fg-muted #4B5B87, --fg-subtle #8993A8
+   --line #E6E9F0, --gold #F4B942, --gold-deep #B88A2A, --terra #D97757
+   Le bg-deep change de gris froid (#F1F3F8) à cream chaud (#FFF8E8) pour
+   le pattern hero "Beta privée" et les zones tintées. */
 :root,
 [data-theme="light"] {
-  --bg: #f8f9fb;
-  --bg-deep: #f1f3f8;
-  --fg: #0a0d18;
+  --bg: #ffffff;
+  --bg-deep: #fff8e8;
+  --bg-soft: #f8f9fb;
+  --fg: #0a1f44;
+  --fg-muted: #4b5b87;
+  --fg-subtle: #8993a8;
 
   --night: #0a1f44;
   --night-soft: #142a55;
@@ -63,10 +77,17 @@
 }
 
 /* ===== Dark theme ===== */
+/* Tokens spec brief user :
+   --bg #0A1F44, --bg-deep #050E22, --bg-soft #1F2A4A
+   --fg #FFF8E8, --fg-muted rgba(255,248,232,0.7), --fg-subtle 0.5
+   --line rgba(255,248,232,0.12) */
 [data-theme="dark"] {
-  --bg: #0a0d18;
-  --bg-deep: #050811;
-  --fg: #f1f3f8;
+  --bg: #0a1f44;
+  --bg-deep: #050e22;
+  --bg-soft: #1f2a4a;
+  --fg: #fff8e8;
+  --fg-muted: rgba(255, 248, 232, 0.7);
+  --fg-subtle: rgba(255, 248, 232, 0.5);
 
   /* "night" devient clair pour rester lisible (titres, accents) */
   --night: #f1f3f8;
@@ -76,8 +97,8 @@
 
   --gold-deep: #f8cd76;
 
-  --line: #1d2333;
-  --line-strong: #2a3148;
+  --line: rgba(255, 248, 232, 0.12);
+  --line-strong: rgba(255, 248, 232, 0.2);
   --muted: #8696b0;
   --muted-strong: #a3b0c4;
 

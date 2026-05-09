@@ -10,6 +10,7 @@ import {
   Map as MapIcon,
   MessageSquareText,
   Network,
+  Search,
   Sparkles,
   Sparkle,
   ShoppingBag,
@@ -239,21 +240,40 @@ export default async function DashboardLayout({
       </aside>
 
       <div className="flex flex-col">
-        <header className="lg:hidden px-6 py-4 border-b border-line bg-white/80 backdrop-blur-xl flex items-center justify-between sticky top-0 z-30">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo size={28} />
-            <span className="font-display text-xl text-night">DIVARC</span>
+        {/* Header mobile sticky 56px — brief Session 4 :
+            - h-14 (56px) bg-white/95 backdrop-blur-xl, border-b var(--line)
+            - Logo D doré 32px + label "DIVARC" Geist font-extrabold
+            - Right : icons Search + Bell (badge gold si unread) */}
+        <header className="lg:hidden sticky top-0 z-30 h-14 px-4 border-b border-line bg-white/95 backdrop-blur-xl flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2"
+            aria-label="Accueil DIVARC"
+          >
+            <Logo size={32} />
+            <span className="font-sans font-extrabold text-[17px] text-night tracking-tight">
+              DIVARC
+            </span>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block w-56">
-              <GlobalSearch />
-            </div>
-            <Link href="/profile">
-              <Avatar
-                src={profile?.avatar_url ?? null}
-                fullName={fullName}
-                size="sm"
-              />
+            <Link
+              href="/search"
+              aria-label="Rechercher"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+            >
+              <Search className="w-[18px] h-[18px]" aria-hidden />
+            </Link>
+            <Link
+              href="/notifications"
+              aria-label="Notifications"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+            >
+              <Bell className="w-[18px] h-[18px]" aria-hidden />
+              {unreadNotifications > 0 ? (
+                <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-gold text-night text-[9px] font-extrabold flex items-center justify-center">
+                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                </span>
+              ) : null}
             </Link>
           </div>
         </header>
