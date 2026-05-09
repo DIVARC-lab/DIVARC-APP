@@ -95,11 +95,14 @@ export function MessageComposer({
     if (replyTo) textareaRef.current?.focus();
   }, [replyTo]);
 
+  /* Autosize 1-5 lignes : 1 ligne = 44px (text-sm leading-5 + py-3),
+     chaque ligne ajoute ~20px → cap à 124px (~5 lignes). Au-delà
+     overflow-y interne. */
   function resize() {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 180)}px`;
+    ta.style.height = `${Math.min(ta.scrollHeight, 124)}px`;
   }
 
   async function getImageDimensions(

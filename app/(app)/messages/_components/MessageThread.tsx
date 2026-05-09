@@ -422,28 +422,35 @@ function applyReactionDelete(
   return { ...state, [messageId]: nextList };
 }
 
+/* Read receipt subtil : un petit point gold + "Lu" gold-deep en micro
+   quand l'autre a lu. Sinon "Envoyé" gris discret. */
 function ReadReceipt({
   read,
-  otherMember,
 }: {
   delivered: boolean;
   read: boolean;
   otherMember: OtherMember | null;
 }) {
-  if (read && otherMember) {
+  if (read) {
     return (
-      <div className="flex items-center gap-1.5 text-[10px] text-muted">
-        <span>Lu</span>
-        <Avatar
-          src={otherMember.avatar_url}
-          fullName={otherMember.full_name}
-          size="sm"
-          className="!w-4 !h-4 !text-[8px]"
+      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.08em] text-gold-deep">
+        <span
+          aria-hidden
+          className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_6px_rgba(244,185,66,0.8)]"
         />
-      </div>
+        Lu
+      </span>
     );
   }
-  return <span className="text-[10px] text-muted">Envoyé</span>;
+  return (
+    <span className="inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-[0.08em] text-muted">
+      <span
+        aria-hidden
+        className="w-1.5 h-1.5 rounded-full bg-night/15"
+      />
+      Envoyé
+    </span>
+  );
 }
 
 function findLastIndex<T>(
