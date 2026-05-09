@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
@@ -142,7 +141,11 @@ export async function createStory(formData: FormData) {
   }
 
   revalidatePath("/feed");
-  redirect("/feed");
+  /* Pas de redirect server-side : le caller (StoryComposer) navigue
+     lui-même via router.push en mode standalone, ou ferme le modal
+     externe en mode embedded. Permet d'utiliser la même action dans
+     le ContentCreatorModal universel. */
+  return { ok: true };
 }
 
 export async function deleteStory(storyId: string) {

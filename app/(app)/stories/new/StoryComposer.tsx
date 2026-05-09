@@ -1,6 +1,7 @@
 "use client";
 
 import { Camera, ImagePlus, Loader2, Send, Type, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -37,9 +38,15 @@ const VIDEO_MAX_BYTES = 30 * 1024 * 1024; // 30 Mo cap soft
 
 type StoryComposerProps = {
   userId: string;
+  /** Mode embedded : pas de navigation à la publication (le shell modal
+      externe gère via onPublished). Default false = comportement legacy
+      (route /stories/new) avec redirect /feed. */
+  embedded?: boolean;
+  onPublished?: () => void;
 };
 
-export function StoryComposer({ userId }: StoryComposerProps) {
+export function StoryComposer({ userId, embedded = false, onPublished }: StoryComposerProps) {
+  const router = useRouter();
   const [mode, setMode] = useState<ComposerMode>("photo");
   const [photo, setPhoto] = useState<{ url: string; storagePath: string } | null>(
     null,
@@ -271,6 +278,13 @@ export function StoryComposer({ userId }: StoryComposerProps) {
       const result = await createStory(formData);
       if (result?.ok === false) {
         toast.error(result.error ?? "Publication impossible.");
+        return;
+      }
+      toast.success("Story publiée ✨");
+      if (embedded) {
+        onPublished?.();
+      } else {
+        router.push("/feed");
       }
     });
   }
