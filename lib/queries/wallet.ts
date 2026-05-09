@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Currency,
+  PayoutRequest,
   Profile,
   TransactionWithCounterparty,
   Wallet,
@@ -98,4 +99,31 @@ export async function listTransactions(
             : "credit",
     } satisfies TransactionWithCounterparty;
   });
+}
+
+/* Liste les demandes de payout du user (pour la page wallet/payout history). */
+export async function listMyPayoutRequests(
+  userId: string,
+  limit = 20,
+): Promise<PayoutRequest[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payout_requests")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as PayoutRequest[];
+}
+
+/* True si une demande est en pending/processing (gate UI : empêche d'en
+ * créer une nouvelle tant que la précédente n'est pas traitée). */
+export async function hasOpenPayoutRequest(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("payout_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .in("status", ["pending", "processing"]);
+  return (count ?? 0) > 0;
 }

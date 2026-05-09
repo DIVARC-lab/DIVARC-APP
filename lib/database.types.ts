@@ -920,6 +920,28 @@ export type ListingOfferWithCounterparty = ListingOffer & {
   listing: Pick<Listing, "id" | "title" | "price_amount" | "price_currency" | "status"> | null;
 };
 
+export type PayoutRequestStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "rejected"
+  | "cancelled";
+
+export type PayoutRequest = {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: Currency;
+  iban: string;
+  bic: string | null;
+  account_holder: string;
+  status: PayoutRequestStatus;
+  admin_note: string | null;
+  created_at: string;
+  processed_at: string | null;
+  processed_by: string | null;
+};
+
 export type ListingWithDetails = Listing & {
   photos: ListingPhoto[];
   seller: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location"> | null;
@@ -1141,6 +1163,29 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      payout_requests: {
+        Row: PayoutRequest;
+        Insert: Pick<
+          PayoutRequest,
+          "user_id" | "amount" | "currency" | "iban" | "account_holder"
+        > &
+          Partial<
+            Pick<
+              PayoutRequest,
+              | "id"
+              | "bic"
+              | "status"
+              | "admin_note"
+              | "created_at"
+              | "processed_at"
+              | "processed_by"
+            >
+          >;
+        Update: Partial<
+          Pick<PayoutRequest, "status" | "admin_note">
+        >;
         Relationships: [];
       };
       listing_offers: {
@@ -1691,6 +1736,20 @@ export type Database = {
     Functions: {
       accept_listing_offer: {
         Args: { offer_id: string };
+        Returns: void;
+      };
+      create_payout_request: {
+        Args: {
+          amount_cents: number;
+          currency_code: string;
+          iban_value: string;
+          bic_value: string | null;
+          holder: string;
+        };
+        Returns: string;
+      };
+      cancel_payout_request: {
+        Args: { request_id: string };
         Returns: void;
       };
       get_or_create_direct_conversation: {
