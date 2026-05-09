@@ -18,6 +18,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
+import { PushNotificationToggle } from "./_components/PushNotificationToggle";
 
 export const metadata = {
   title: "Paramètres",
@@ -156,6 +157,16 @@ export default async function SettingsPage() {
       </Link>
 
       <SectionGroup title="Compte" items={compte} />
+
+      {/* Push notifications — composant client (browser API). Placé en
+          tête d'Activité car c'est un toggle binaire à fort impact UX. */}
+      <section className="mb-7">
+        <p className="px-2 mb-2 text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted">
+          Notifications
+        </p>
+        <PushNotificationToggle />
+      </section>
+
       <SectionGroup title="Activité" items={activite} />
       <SectionGroup title="Sécurité" items={securite} />
 

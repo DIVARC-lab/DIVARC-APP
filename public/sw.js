@@ -8,7 +8,7 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v5";
+const CACHE_NAME = "divarc-v6";
 const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
@@ -110,11 +110,14 @@ async function cacheFirst(request) {
   }
 }
 
-// ---- Push notifications (VAPID à venir) ---------------------------------
+// ---- Push notifications (VAPID) ----------------------------------------
+// Payload shape envoyé par lib/push/sender.ts :
+//   { title, body, url, tag?, icon?, badge? }
+// Le SW affiche la notif et ouvre / focus le tab existant au clic.
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  let payload = { title: "DIVARC", body: "" };
+  let payload = { title: "DIVARC", body: "", url: "/" };
   try {
     payload = event.data.json();
   } catch {
@@ -124,10 +127,11 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title ?? "DIVARC", {
       body: payload.body ?? "",
-      icon: "/logo.svg",
-      badge: "/logo.svg",
+      icon: payload.icon ?? "/icon-192.png",
+      badge: payload.badge ?? "/icon-192.png",
       tag: payload.tag ?? "divarc",
-      data: payload.data ?? {},
+      // `data.url` consommé par notificationclick handler ci-dessous.
+      data: { url: payload.url ?? "/" },
       requireInteraction: false,
     }),
   );
@@ -135,11 +139,13 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.href ?? "/notifications";
+  const targetUrl = event.notification.data?.url ?? "/notifications";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clients) => {
+        // Cherche un tab DIVARC déjà ouvert et focus + navigate vers l'URL
+        // cible. Sinon ouvre un nouveau tab.
         for (const client of clients) {
           if ("focus" in client) {
             client.focus();

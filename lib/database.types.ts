@@ -920,6 +920,17 @@ export type ListingOfferWithCounterparty = ListingOffer & {
   listing: Pick<Listing, "id" | "title" | "price_amount" | "price_currency" | "status"> | null;
 };
 
+export type PushSubscriptionRow = {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  last_success_at: string | null;
+};
+
 export type PayoutRequestStatus =
   | "pending"
   | "processing"
@@ -1163,6 +1174,21 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: PushSubscriptionRow;
+        Insert: Pick<
+          PushSubscriptionRow,
+          "user_id" | "endpoint" | "p256dh" | "auth"
+        > &
+          Partial<
+            Pick<
+              PushSubscriptionRow,
+              "id" | "user_agent" | "created_at" | "last_success_at"
+            >
+          >;
+        Update: Partial<Pick<PushSubscriptionRow, "last_success_at">>;
         Relationships: [];
       };
       payout_requests: {
