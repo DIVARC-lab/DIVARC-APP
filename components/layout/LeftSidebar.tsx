@@ -167,9 +167,13 @@ export function LeftSidebar({
           />
         ))}
 
-        {/* CTA Ads Manager — toujours visible, style proéminent gold. */}
+        {/* CTA Ads Manager — toujours visible, style proéminent gold.
+            Ouvre dans un nouvel onglet pour permettre de naviguer
+            l'app principale en parallèle de la régie. */}
         <Link
           href="/ads-manager"
+          target="_blank"
+          rel="noopener"
           className={cn(
             "flex items-center gap-3 px-2 h-12 rounded-lg my-1 transition-colors group",
             pathname.startsWith("/ads-manager")
