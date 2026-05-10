@@ -14,6 +14,11 @@ import { redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
+import {
+  EXPERIMENTS,
+  getExperimentVariant,
+  type ExperimentId,
+} from "@/lib/experiments";
 
 export const metadata = {
   title: "Comment fonctionne mon algorithme",
@@ -189,6 +194,20 @@ export default async function TransparencyPage() {
   const topTopics = Object.entries(topicAffinity)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 8);
+
+  /* Expériences actives auxquelles cet utilisateur est exposé. */
+  const activeExperiments = (Object.keys(EXPERIMENTS) as ExperimentId[])
+    .map((id) => {
+      const config = EXPERIMENTS[id];
+      if (!config.is_active) return null;
+      return {
+        id,
+        description: config.description,
+        variant: getExperimentVariant(id, user.id),
+        endsAt: config.ends_at,
+      };
+    })
+    .filter((e): e is NonNullable<typeof e> => e !== null);
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
@@ -452,6 +471,49 @@ export default async function TransparencyPage() {
             </div>
             <p className="mt-2 text-[11px] text-muted px-1">
               Tu peux masquer un sujet depuis la page parente.
+            </p>
+          </section>
+        ) : null}
+
+        {/* A/B tests en cours auxquels l'utilisateur participe.
+            Transparence active : on expose le variant assigné. */}
+        {activeExperiments.length > 0 ? (
+          <section className="px-5 sm:px-8 pb-6">
+            <h2 className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted mb-3">
+              <span className="text-gold-deep">·</span> Tests A/B en cours
+            </h2>
+            <ul className="rounded-2xl bg-white border border-line overflow-hidden divide-y divide-line">
+              {activeExperiments.map((e) => (
+                <li key={e.id} className="p-4 sm:p-5">
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1.5">
+                    <h3 className="text-[14px] font-semibold text-night">
+                      {e.id}
+                    </h3>
+                    <span className="text-[11px] font-mono text-night px-2 py-0.5 rounded bg-gold/15 border border-gold/30">
+                      ton variant : {e.variant}
+                    </span>
+                  </div>
+                  <p className="text-[12.5px] leading-[1.5] text-night-soft">
+                    {e.description}
+                  </p>
+                  {e.endsAt ? (
+                    <p className="mt-1.5 text-[11px] text-muted">
+                      Fin prévue :{" "}
+                      {new Date(e.endsAt).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[11px] text-muted px-1">
+              Aucune information personnelle n&apos;est exposée à un tiers
+              dans le cadre de ces tests. Tu peux changer manuellement
+              d&apos;onglet à tout moment pour ne pas suivre le variant
+              assigné.
             </p>
           </section>
         ) : null}

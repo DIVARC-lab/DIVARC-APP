@@ -12,6 +12,8 @@ import {
 import { suggestPeople } from "@/lib/queries/explore";
 import { listTrendingHashtags } from "@/lib/queries/hashtags";
 import { getCurrentProfile } from "@/lib/queries/profile";
+import { getExperimentVariant } from "@/lib/experiments";
+import { trackExperimentExposure } from "@/lib/experiments/track";
 import {
   groupStoriesByAuthor,
   listVisibleStories,
@@ -62,8 +64,33 @@ export default async function FeedPage({
   if (!user) redirect("/login");
 
   const { tab: tabParam } = await searchParams;
+
+  /* A/B test "feed-ranking-v2026" : le variant détermine le tab par
+     défaut quand l'utilisateur n'a pas explicité de tab dans l'URL.
+     - chronological → /feed ouvre sur "latest" (ordre temporel strict)
+     - algorithmic   → /feed ouvre sur "for-you" (ranker recsys)
+     L'user peut toujours basculer manuellement via les onglets — on
+     mesure l'effet du défaut, pas du choix. */
+  const experimentVariant = getExperimentVariant(
+    "feed-ranking-v2026",
+    user.id,
+  );
+  const defaultTab: FeedTabId =
+    experimentVariant === "algorithmic" ? "for-you" : "latest";
   const tab: FeedTabId = (VALID_TABS.find((t) => t === tabParam) ??
-    "latest") as FeedTabId;
+    defaultTab) as FeedTabId;
+
+  /* Track exposure uniquement au premier render (sans tabParam) pour
+     mesurer l'effet net du variant. Les navigations ultérieures
+     (?tab=friends, etc.) ne ré-exposent pas. */
+  if (!tabParam) {
+    await trackExperimentExposure({
+      userId: user.id,
+      experimentId: "feed-ranking-v2026",
+      variant: experimentVariant,
+      surface: "feed_home",
+    });
+  }
 
   const profile = await getCurrentProfile();
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
