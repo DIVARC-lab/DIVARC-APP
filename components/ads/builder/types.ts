@@ -91,6 +91,25 @@ export type CampaignFormState = {
   billing_event: string;
   frequency_max: string;
   frequency_period_days: string;
+  /* V4 — Attribution + CBO/ABO + frequency template. */
+  attribution_setting:
+    | "last_click_7d"
+    | "last_click_1d"
+    | "linear_7d"
+    | "linear_28d"
+    | "position_based_7d"
+    | "time_decay_7d"
+    | "data_driven"
+    | "view_through_1d";
+  attribution_window_click_days: 1 | 7 | 28;
+  attribution_window_view_days: 1 | 7;
+  budget_optimization_mode: "cbo" | "abo";
+  frequency_cap_template:
+    | "awareness"
+    | "standard"
+    | "conversion"
+    | "low_pressure"
+    | "custom";
   start_date: string;
   end_date: string;
 
@@ -142,6 +161,11 @@ export const DEFAULT_FORM: CampaignFormState = {
   billing_event: "clicks",
   frequency_max: "3",
   frequency_period_days: "7",
+  attribution_setting: "last_click_7d",
+  attribution_window_click_days: 7,
+  attribution_window_view_days: 1,
+  budget_optimization_mode: "abo",
+  frequency_cap_template: "standard",
   start_date: "",
   end_date: "",
   creative_type: "single_image",

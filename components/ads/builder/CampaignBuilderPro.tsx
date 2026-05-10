@@ -17,6 +17,7 @@ import {
   DEFAULT_ADVANCED_CONFIG,
   type AdvancedConfig,
 } from "@/components/ads/builder/AdvancedConfigSection";
+import { OptimizationBuilder } from "@/components/ads/builder/OptimizationBuilder";
 import { PlacementsBuilder } from "@/components/ads/builder/PlacementsBuilder";
 import { createFullCampaign } from "@/app/(app)/ads-manager/[accountId]/campaigns/new/actions";
 import {
@@ -317,6 +318,10 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
           form.excluded_keywords.length > 0
             ? form.excluded_keywords
             : undefined,
+        attribution_setting: form.attribution_setting,
+        attribution_window_click_days: form.attribution_window_click_days,
+        attribution_window_view_days: form.attribution_window_view_days,
+        budget_optimization_mode: form.budget_optimization_mode,
         bid_strategy: advBidStrategy as Parameters<
           typeof createFullCampaign
         >[0]["bid_strategy"],
@@ -905,7 +910,7 @@ function BudgetStep({
         />
       </Section>
 
-      <Section title="Optimisation">
+      <Section title="Optimisation — basique">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="Stratégie d'enchère">
             <select
@@ -917,6 +922,8 @@ function BudgetStep({
               <option value="cost_cap">Cap coût moyen</option>
               <option value="bid_cap">Cap enchère</option>
               <option value="target_cost">Coût cible</option>
+              <option value="target_roas">Target ROAS</option>
+              <option value="minimum_roas">Minimum ROAS</option>
             </select>
           </Field>
           <Field label="Objectif d'optimisation">
@@ -960,33 +967,43 @@ function BudgetStep({
         ) : null}
       </Section>
 
-      <Section
-        title="Plafond de fréquence"
-        helper="Évite la fatigue publicitaire en limitant le nombre de fois qu'un même utilisateur voit ton ad."
-      >
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[13px] text-night">Maximum</span>
-          <input
-            type="number"
-            value={form.frequency_max}
-            onChange={(e) => setFormVal("frequency_max", e.target.value)}
-            min={1}
-            max={50}
-            className="w-20 px-3 py-2 rounded-xl border border-line bg-white text-[13px] text-night focus:outline-none focus:border-night"
-          />
-          <span className="text-[13px] text-night">impressions par user, sur</span>
-          <input
-            type="number"
-            value={form.frequency_period_days}
-            onChange={(e) =>
-              setFormVal("frequency_period_days", e.target.value)
+      <Section title="Attribution & frequency cap">
+        <OptimizationBuilder
+          attributionSetting={form.attribution_setting}
+          onAttributionSettingChange={(next) =>
+            setFormVal("attribution_setting", next)
+          }
+          attributionWindowClickDays={form.attribution_window_click_days}
+          onAttributionWindowClickDaysChange={(next) =>
+            setFormVal("attribution_window_click_days", next)
+          }
+          attributionWindowViewDays={form.attribution_window_view_days}
+          onAttributionWindowViewDaysChange={(next) =>
+            setFormVal("attribution_window_view_days", next)
+          }
+          budgetOptimizationMode={form.budget_optimization_mode}
+          onBudgetOptimizationModeChange={(next) =>
+            setFormVal("budget_optimization_mode", next)
+          }
+          frequencyCapTemplate={form.frequency_cap_template}
+          onFrequencyCapTemplateChange={(next, presetMax, presetPeriod) => {
+            setFormVal("frequency_cap_template", next);
+            if (next !== "custom" && presetMax && presetPeriod) {
+              setFormVal("frequency_max", presetMax);
+              setFormVal("frequency_period_days", presetPeriod);
             }
-            min={1}
-            max={30}
-            className="w-20 px-3 py-2 rounded-xl border border-line bg-white text-[13px] text-night focus:outline-none focus:border-night"
-          />
-          <span className="text-[13px] text-night">jours</span>
-        </div>
+          }}
+          frequencyMax={form.frequency_max}
+          onFrequencyMaxChange={(next) => setFormVal("frequency_max", next)}
+          frequencyPeriodDays={form.frequency_period_days}
+          onFrequencyPeriodDaysChange={(next) =>
+            setFormVal("frequency_period_days", next)
+          }
+          deliveryType={advancedConfig.delivery_type}
+          onDeliveryTypeChange={(next) =>
+            onAdvancedChange({ ...advancedConfig, delivery_type: next })
+          }
+        />
       </Section>
 
       {/* Configuration avancée — collapsible, défaut fermé. */}

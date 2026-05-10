@@ -135,6 +135,26 @@ const campaignFormSchema = z
       .optional(),
     excluded_topics: z.array(z.string().max(40)).max(15).optional(),
     excluded_keywords: z.array(z.string().max(40)).max(50).optional(),
+    /* V4 — Attribution + CBO/ABO + frequency template. */
+    attribution_setting: z
+      .enum([
+        "last_click_7d",
+        "last_click_1d",
+        "linear_7d",
+        "linear_28d",
+        "position_based_7d",
+        "time_decay_7d",
+        "data_driven",
+        "view_through_1d",
+      ])
+      .optional(),
+    attribution_window_click_days: z
+      .union([z.literal(1), z.literal(7), z.literal(28)])
+      .optional(),
+    attribution_window_view_days: z
+      .union([z.literal(1), z.literal(7)])
+      .optional(),
+    budget_optimization_mode: z.enum(["cbo", "abo"]).optional(),
     bid_strategy: z
       .enum([
         "lowest_cost",
@@ -294,6 +314,7 @@ export async function createFullCampaign(
       special_ad_category: data.special_ad_category ?? null,
       compliance_review_status: "pending",
       target_roas: data.target_roas ?? null,
+      attribution_setting: data.attribution_setting ?? "last_click_7d",
       created_by: user.id,
     })
     .select("id")
@@ -378,6 +399,9 @@ export async function createFullCampaign(
       bid_cap: data.bid_cap ?? null,
       minimum_roas: data.minimum_roas ?? null,
       delivery_type: data.delivery_type ?? "standard",
+      attribution_window_click_days: data.attribution_window_click_days ?? 7,
+      attribution_window_view_days: data.attribution_window_view_days ?? 1,
+      budget_optimization_mode: data.budget_optimization_mode ?? "abo",
       dayparting: daypartingFinal,
       targeting:
         data.targeting as Database["public"]["Tables"]["ads_ad_sets"]["Insert"]["targeting"],
