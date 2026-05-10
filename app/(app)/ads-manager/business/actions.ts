@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 /* Server actions pour la gestion business + ad_accounts.
  *
@@ -50,9 +50,13 @@ export async function createBusinessAccount(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
 
-  /* Anti-doublon SIRET. */
+  /* Anti-doublon SIRET — lecture admin pour ne pas dépendre des RLS
+     (la policy `ads_business_select` filtre normalement seulement à
+     primary_contact_user_id, mais un autre user peut avoir le même
+     SIRET et être invisible). */
+  const admin = createAdminClient();
   if (parsed.data.siret) {
-    const { data: existing } = await supabase
+    const { data: existing } = await admin
       .from("ads_business_accounts")
       .select("id")
       .eq("siret", parsed.data.siret)
@@ -66,7 +70,11 @@ export async function createBusinessAccount(
     }
   }
 
-  const { data, error } = await supabase
+  /* Insert via admin client : la policy `ads_business_insert` exige
+     déjà que primary_contact_user_id = auth.uid(), mais elle peut
+     échouer si current_user_is_admin RPC manque. Sécurité garantie
+     par primary_contact_user_id explicite ci-dessous. */
+  const { data, error } = await admin
     .from("ads_business_accounts")
     .insert({
       legal_name: parsed.data.legal_name,
@@ -86,7 +94,7 @@ export async function createBusinessAccount(
     console.error("[ads:createBusinessAccount]", error);
     return {
       ok: false,
-      error: "Création impossible. Réessaie dans quelques instants.",
+      error: `Création impossible : ${error?.message ?? "erreur inconnue"}`,
     };
   }
 
@@ -118,12 +126,24 @@ export async function createAdAccount(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
 
-  /* Vérification : le user est primary_contact du business_account. */
-  const { data: business } = await supabase
+  /* Vérification applicative : le user est primary_contact du
+     business_account. On utilise admin client pour la lecture car
+     les policies RLS pourraient bloquer (ex. si current_user_is_admin
+     RPC manque). La sécurité est garantie par le check explicite ici. */
+  const adminPre = createAdminClient();
+  const { data: business, error: bizErr } = await adminPre
     .from("ads_business_accounts")
     .select("primary_contact_user_id")
     .eq("id", parsed.data.business_account_id)
     .maybeSingle();
+  if (bizErr) {
+    console.error("[ads:createAdAccount:bizLookup]", bizErr);
+    return {
+      ok: false,
+      error:
+        "Impossible de vérifier ton entreprise. Réessaie ou contacte le support.",
+    };
+  }
   if (!business) return { ok: false, error: "Compte business introuvable." };
   if (business.primary_contact_user_id !== user.id) {
     return {
@@ -133,7 +153,13 @@ export async function createAdAccount(
     };
   }
 
-  const { data, error } = await supabase
+  /* Insert ad_account via service_role pour bypasser les RLS qui
+     pourraient échouer (ex. si helper functions current_user_is_admin
+     ou user_has_ad_account_role ne sont pas créées en prod). La
+     sécurité est garantie par le check primary_contact_user_id juste
+     au-dessus. */
+  const adminWrite = createAdminClient();
+  const { data, error } = await adminWrite
     .from("ad_accounts")
     .insert({
       business_account_id: parsed.data.business_account_id,
@@ -147,32 +173,58 @@ export async function createAdAccount(
 
   if (error || !data) {
     console.error("[ads:createAdAccount]", error);
-    return { ok: false, error: "Création impossible." };
+    return {
+      ok: false,
+      error: `Création impossible : ${error?.message ?? "erreur inconnue"}`,
+    };
   }
 
-  /* Auto-attribution du rôle admin au créateur. */
-  await supabase.from("ad_account_users").insert({
+  /* Auto-attribution du rôle admin au créateur + auto-création d'une
+     advertiser_entity par défaut.
+
+     Important : ces 2 inserts utilisent createAdminClient() pour
+     bypasser les policies RLS. La policy ad_account_users_admin_write
+     exige déjà d'être admin pour INSERT un admin (cercle vicieux pour
+     le premier user d'un ad_account). De même, advertiser_entities
+     exige role editor qui n'existe pas tant que l'ad_account_users
+     row n'est pas créée. Le service_role résout ces 2 dead-locks. */
+  const admin = createAdminClient();
+
+  const { error: linkErr } = await admin.from("ad_account_users").insert({
     ad_account_id: data.id,
     user_id: user.id,
     role: "admin",
     granted_by: user.id,
   });
+  if (linkErr) {
+    console.error("[ads:createAdAccount:linkAdmin]", linkErr);
+    /* Cleanup : supprime l'ad_account orphelin pour éviter les comptes
+       fantômes sans aucun user assigné. */
+    await admin.from("ad_accounts").delete().eq("id", data.id);
+    return {
+      ok: false,
+      error:
+        "Impossible d'attribuer le rôle admin. Le compte a été annulé pour éviter un état incohérent.",
+    };
+  }
 
-  /* Auto-création d'une advertiser_entity par défaut (page représentée).
-     Sans elle, le wizard de création de campagne est bloqué (le champ
-     "Page représentée" est obligatoire). On crée une entité minimale
-     que l'utilisateur pourra enrichir plus tard. */
-  const { data: bizForEntity } = await supabase
+  const { data: bizForEntity } = await admin
     .from("ads_business_accounts")
     .select("legal_name")
     .eq("id", parsed.data.business_account_id)
     .maybeSingle();
-  await supabase.from("advertiser_entities").insert({
-    ad_account_id: data.id,
-    type: "external_site",
-    name: bizForEntity?.legal_name ?? parsed.data.name,
-    verified_owner: false,
-  });
+  const { error: entityErr } = await admin
+    .from("advertiser_entities")
+    .insert({
+      ad_account_id: data.id,
+      type: "external_site",
+      name: bizForEntity?.legal_name ?? parsed.data.name,
+      verified_owner: false,
+    });
+  if (entityErr) {
+    /* Non-fatal — la page wizard recreée à la volée si manquant. */
+    console.error("[ads:createAdAccount:entity]", entityErr);
+  }
 
   revalidatePath("/ads-manager");
   return { ok: true, data: { id: data.id } };
