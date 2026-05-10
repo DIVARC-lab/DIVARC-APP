@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
 import { getPalette } from "@/lib/posts/backgroundColors";
+import { ACTIVITIES } from "@/lib/posts/sentiments";
 import { cn } from "@/lib/utils/cn";
 import { renderPostBody } from "@/lib/utils/postBody";
 import { formatRelative } from "@/lib/utils/relativeTime";
@@ -112,6 +113,34 @@ export function PostCard({
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-night truncate">
             {displayName}
+            {(() => {
+              /* Plugin Moment : "X se sent heureux 😊" ou "X regarde Y 🎬"
+                 affiché en italique non-bold après le nom. */
+              if (post.activity_type) {
+                const kind = ACTIVITIES.find(
+                  (a) => a.type === post.activity_type,
+                );
+                if (!kind) return null;
+                return (
+                  <span className="font-normal text-night-soft italic">
+                    {" "}
+                    {kind.verb}
+                    {post.activity_detail ? ` ${post.activity_detail}` : ""}{" "}
+                    <span className="not-italic">{kind.emoji}</span>
+                  </span>
+                );
+              }
+              if (post.sentiment_emoji && post.sentiment_label) {
+                return (
+                  <span className="font-normal text-night-soft italic">
+                    {" "}
+                    se sent {post.sentiment_label}{" "}
+                    <span className="not-italic">{post.sentiment_emoji}</span>
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-night-dim">
             <span

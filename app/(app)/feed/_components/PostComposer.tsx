@@ -33,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -42,6 +43,12 @@ import {
   getPalette,
   nextBackgroundColor,
 } from "@/lib/posts/backgroundColors";
+import {
+  ACTIVITIES,
+  formatMomentLine,
+  type ActivitySelection,
+  type SentimentSelection,
+} from "@/lib/posts/sentiments";
 import { createPost, type PostFormState } from "../actions";
 
 const INITIAL: PostFormState = { status: "idle" };
@@ -103,6 +110,10 @@ export function PostComposer({
      média n'est attaché. Sinon le mode est désactivé automatiquement. */
   const [backgroundColor, setBackgroundColor] =
     useState<PostBackgroundColor | null>(null);
+  /* Plugin "Moment" : sentiment XOR activité (jamais les deux). */
+  const [sentiment, setSentiment] = useState<SentimentSelection | null>(null);
+  const [activity, setActivity] = useState<ActivitySelection | null>(null);
+  const [sentimentPickerOpen, setSentimentPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -123,6 +134,8 @@ export function PostComposer({
         setVideo(null);
         setVisibility("friends");
         setBackgroundColor(null);
+        setSentiment(null);
+        setActivity(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -441,6 +454,26 @@ export function PostComposer({
               name="background_color"
               value={isThoughtModeActive ? (backgroundColor ?? "") : ""}
             />
+            <input
+              type="hidden"
+              name="sentiment_emoji"
+              value={!activity && sentiment ? sentiment.emoji : ""}
+            />
+            <input
+              type="hidden"
+              name="sentiment_label"
+              value={!activity && sentiment ? sentiment.label : ""}
+            />
+            <input
+              type="hidden"
+              name="activity_type"
+              value={activity?.type ?? ""}
+            />
+            <input
+              type="hidden"
+              name="activity_detail"
+              value={activity?.detail ?? ""}
+            />
 
             {/* Top bar : Back + Nouveau post + Publier */}
             <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
@@ -491,6 +524,21 @@ export function PostComposer({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-night truncate">
                     {authorName ?? "Toi"}
+                    {(() => {
+                      const line = formatMomentLine({
+                        firstName: "",
+                        sentiment,
+                        activity,
+                      });
+                      if (!line) return null;
+                      const trimmed = line.trim();
+                      return (
+                        <span className="font-normal text-night-soft italic">
+                          {" "}
+                          {trimmed}
+                        </span>
+                      );
+                    })()}
                   </p>
                   <VisibilityChip
                     value={visibility}
@@ -697,9 +745,17 @@ export function PostComposer({
                 label={palette ? palette.label : "Fond"}
               />
               <ToolbarPill
-                disabled
+                onClick={() => setSentimentPickerOpen(true)}
+                active={sentiment !== null || activity !== null}
                 icon={<Sparkles className="w-3.5 h-3.5" aria-hidden />}
-                label="Moment"
+                label={
+                  activity
+                    ? ACTIVITIES.find((a) => a.type === activity.type)?.verb ??
+                      "Activité"
+                    : sentiment
+                      ? sentiment.label
+                      : "Moment"
+                }
               />
               <ToolbarPill
                 disabled
@@ -742,6 +798,34 @@ export function PostComposer({
             </div>
             {/* Spacer pour que le contenu scroll ne passe pas sous le sticky footer mobile. */}
             <div className="sm:hidden h-20" aria-hidden />
+
+            {/* Plugin Sentiment / Activité — overlay modal au-dessus du
+                composer. Le SentimentPicker est rendu ici pour avoir
+                accès au state (sentiment / activity / setters). */}
+            {sentimentPickerOpen ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setSentimentPickerOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+                  <SentimentPicker
+                    initialSentiment={sentiment}
+                    initialActivity={activity}
+                    onApply={(s, a) => {
+                      setSentiment(s);
+                      setActivity(a);
+                    }}
+                    onClose={() => setSentimentPickerOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
           </form>
   );
 

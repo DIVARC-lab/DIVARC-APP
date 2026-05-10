@@ -102,6 +102,47 @@ export async function createPost(
   const backgroundColor: AllowedBg | null =
     bgIsValid && bodyShort && noMedia ? (bgRaw as AllowedBg) : null;
 
+  /* Plugin Sentiment / Activité (mutuellement exclusifs). */
+  const allowedActivityTypes = [
+    "watching",
+    "listening",
+    "playing",
+    "reading",
+    "eating",
+    "traveling",
+    "celebrating",
+    "feeling",
+  ] as const;
+  type AllowedActivity = (typeof allowedActivityTypes)[number];
+  const sentimentEmoji = formData.get("sentiment_emoji");
+  const sentimentLabel = formData.get("sentiment_label");
+  const activityType = formData.get("activity_type");
+  const activityDetail = formData.get("activity_detail");
+
+  let normalizedSentimentEmoji: string | null = null;
+  let normalizedSentimentLabel: string | null = null;
+  let normalizedActivityType: AllowedActivity | null = null;
+  let normalizedActivityDetail: string | null = null;
+
+  if (
+    typeof activityType === "string" &&
+    (allowedActivityTypes as readonly string[]).includes(activityType)
+  ) {
+    normalizedActivityType = activityType as AllowedActivity;
+    if (typeof activityDetail === "string" && activityDetail.trim().length > 0) {
+      normalizedActivityDetail = activityDetail.trim().slice(0, 120);
+    }
+  } else if (
+    typeof sentimentEmoji === "string" &&
+    sentimentEmoji.length > 0 &&
+    sentimentEmoji.length <= 8 &&
+    typeof sentimentLabel === "string" &&
+    sentimentLabel.trim().length > 0
+  ) {
+    normalizedSentimentEmoji = sentimentEmoji;
+    normalizedSentimentLabel = sentimentLabel.trim().slice(0, 50);
+  }
+
   if (!parsed.data.body && photos.length === 0 && !video) {
     return {
       status: "error",
@@ -121,6 +162,10 @@ export async function createPost(
       video_width: video?.width ?? null,
       video_height: video?.height ?? null,
       background_color: backgroundColor,
+      sentiment_emoji: normalizedSentimentEmoji,
+      sentiment_label: normalizedSentimentLabel,
+      activity_type: normalizedActivityType,
+      activity_detail: normalizedActivityDetail,
     })
     .select("id")
     .single();
