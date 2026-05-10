@@ -12,6 +12,7 @@ import {
   Flag,
   GraduationCap,
   Map as MapIcon,
+  Megaphone,
   MessageCircle,
   Network,
   Settings,
@@ -76,6 +77,7 @@ const SECONDARY_ITEMS: NavItemDef[] = [
   { href: "/jobs/saved", label: "Enregistrements", icon: Bookmark },
   { href: "/circles/events", label: "Événements", icon: Calendar },
   { href: "/explore", label: "Pages que je suis", icon: Flag },
+  { href: "/ads-manager", label: "Ads Manager", icon: Megaphone },
 ];
 
 type LeftSidebarProps = {
