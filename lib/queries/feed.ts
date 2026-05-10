@@ -292,11 +292,21 @@ export async function listPersonalizedFeed(
   nextCursor: string | null;
 }> {
   const supabase = await createClient();
-  const { items, nextCursor } = await rankFeedForUser(
-    supabase,
-    currentUserId,
-    { limit },
-  );
+  /* Si une dépendance recsys (table user_interest_profiles, RPC
+     find_similar_posts_to_user, etc.) est absente en prod (migrations
+     0042/0043/0044 pas encore appliquées), on retourne un résultat vide
+     plutôt que de faire crash le Server Component. Le caller (feed page)
+     fait déjà fallback sur listRankedFeed dans ce cas. */
+  let items: Awaited<ReturnType<typeof rankFeedForUser>>["items"] = [];
+  let nextCursor: string | null = null;
+  try {
+    const result = await rankFeedForUser(supabase, currentUserId, { limit });
+    items = result.items;
+    nextCursor = result.nextCursor;
+  } catch (err) {
+    console.error("[listPersonalizedFeed] ranker failed:", err);
+    return { posts: [], rankingByPostId: new Map(), nextCursor: null };
+  }
 
   if (items.length === 0) {
     return { posts: [], rankingByPostId: new Map(), nextCursor };
