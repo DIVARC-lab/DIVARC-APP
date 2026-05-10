@@ -33,33 +33,48 @@ async function attachReelDetails(
     new Set(reels.map((r) => r.sound_id).filter((s): s is string => !!s)),
   );
   const reelIds = reels.map((r) => r.id);
+  /* V3.8 — IDs des reels source de duet à hydrater. */
+  const duetSourceIds = Array.from(
+    new Set(
+      reels
+        .map((r) => r.duet_source_reel_id)
+        .filter((s): s is string => !!s),
+    ),
+  );
 
-  const [authorsRes, soundsRes, likesRes, savesRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, username, avatar_url")
-      .in("id", authorIds),
-    soundIds.length > 0
-      ? supabase
-          .from("sounds")
-          .select("id, title, artist, audio_url")
-          .in("id", soundIds)
-      : Promise.resolve({ data: [] }),
-    currentUserId
-      ? supabase
-          .from("reel_likes")
-          .select("reel_id")
-          .eq("user_id", currentUserId)
-          .in("reel_id", reelIds)
-      : Promise.resolve({ data: [] }),
-    currentUserId
-      ? supabase
-          .from("reel_saves")
-          .select("reel_id")
-          .eq("user_id", currentUserId)
-          .in("reel_id", reelIds)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [authorsRes, soundsRes, likesRes, savesRes, duetSourcesRes] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", authorIds),
+      soundIds.length > 0
+        ? supabase
+            .from("sounds")
+            .select("id, title, artist, audio_url")
+            .in("id", soundIds)
+        : Promise.resolve({ data: [] }),
+      currentUserId
+        ? supabase
+            .from("reel_likes")
+            .select("reel_id")
+            .eq("user_id", currentUserId)
+            .in("reel_id", reelIds)
+        : Promise.resolve({ data: [] }),
+      currentUserId
+        ? supabase
+            .from("reel_saves")
+            .select("reel_id")
+            .eq("user_id", currentUserId)
+            .in("reel_id", reelIds)
+        : Promise.resolve({ data: [] }),
+      duetSourceIds.length > 0
+        ? supabase
+            .from("reels")
+            .select("id, video_url, video_mp4_fallback, author_id")
+            .in("id", duetSourceIds)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const authorById = new Map<string, AuthorPick>();
   for (const a of (authorsRes.data ?? []) as AuthorPick[]) {
@@ -78,12 +93,55 @@ async function attachReelDetails(
     ((savesRes.data ?? []) as Array<{ reel_id: string }>).map((r) => r.reel_id),
   );
 
+  /* V3.8 — map des sources de duet hydratées avec username de l'auteur. */
+  const duetSourceById = new Map<
+    string,
+    {
+      id: string;
+      video_url: string;
+      video_mp4_fallback: string | null;
+      author_username: string | null;
+    }
+  >();
+  if (duetSourceIds.length > 0) {
+    const sourceRows = (duetSourcesRes.data ?? []) as Array<{
+      id: string;
+      video_url: string;
+      video_mp4_fallback: string | null;
+      author_id: string;
+    }>;
+    /* Fetch usernames pour les sources si pas déjà dans authorById. */
+    const missingAuthorIds = sourceRows
+      .map((s) => s.author_id)
+      .filter((id) => !authorById.has(id));
+    if (missingAuthorIds.length > 0) {
+      const { data: extraAuthors } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", missingAuthorIds);
+      for (const a of (extraAuthors ?? []) as AuthorPick[]) {
+        authorById.set(a.id, a);
+      }
+    }
+    for (const s of sourceRows) {
+      duetSourceById.set(s.id, {
+        id: s.id,
+        video_url: s.video_url,
+        video_mp4_fallback: s.video_mp4_fallback,
+        author_username: authorById.get(s.author_id)?.username ?? null,
+      });
+    }
+  }
+
   return reels.map((r) => ({
     ...r,
     author: authorById.get(r.author_id) ?? null,
     sound: r.sound_id ? (soundById.get(r.sound_id) ?? null) : null,
     is_liked: likedSet.has(r.id),
     is_saved: savedSet.has(r.id),
+    duet_source: r.duet_source_reel_id
+      ? (duetSourceById.get(r.duet_source_reel_id) ?? null)
+      : null,
   }));
 }
 

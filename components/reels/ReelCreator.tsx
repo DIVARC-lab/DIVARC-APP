@@ -56,9 +56,19 @@ type SoundPick = {
   audio_url: string;
 } | null;
 
+type DuetSourceInit = {
+  reelId: string;
+  videoUrl: string;
+  videoMp4Fallback: string | null;
+  layout: "right" | "left" | "top" | "bottom";
+};
+
 type Props = {
   userId: string;
   preselectedSound: SoundPick;
+  /** V3.8 — mode Duo : si présent, démarre directement en step camera
+   *  avec la vidéo source en parallèle. */
+  duetSource?: DuetSourceInit | null;
 };
 
 type Step = "upload" | "camera" | "compose";
@@ -71,11 +81,16 @@ type UploadedVideo = {
   posterStoragePath: string | null;
 };
 
-export function ReelCreator({ userId, preselectedSound }: Props) {
+export function ReelCreator({
+  userId,
+  preselectedSound,
+  duetSource = null,
+}: Props) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<Step>("upload");
+  /* Si on arrive en mode Duo, on saute directement à la caméra. */
+  const [step, setStep] = useState<Step>(duetSource ? "camera" : "upload");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [video, setVideo] = useState<UploadedVideo | null>(null);
@@ -249,6 +264,8 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
         voiceover_url: voiceoverUrl,
         video_volume: videoVolume,
         voiceover_volume: voiceoverVolume,
+        duet_source_reel_id: duetSource?.reelId ?? null,
+        duet_layout: duetSource?.layout ?? null,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -331,6 +348,7 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
         <CameraCapture
           onCapture={handleCameraCapture}
           onCancel={() => setStep("upload")}
+          duetSource={duetSource}
         />
       ) : null}
 

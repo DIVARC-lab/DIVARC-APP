@@ -587,6 +587,9 @@ export type Reel = {
   voiceover_url: string | null;
   video_volume: number;
   voiceover_volume: number;
+  /* V3.8 — mode Duo (migration 0060). */
+  duet_source_reel_id: string | null;
+  duet_layout: ReelDuetLayout | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -659,6 +662,14 @@ export type ReelWithDetails = Reel & {
   sound: Pick<Sound, "id" | "title" | "artist" | "audio_url"> | null;
   is_liked: boolean;
   is_saved: boolean;
+  /* V3.8 — si duet_source_reel_id est défini, on hydrate la source pour
+     pouvoir render side-by-side au playback. */
+  duet_source?: {
+    id: string;
+    video_url: string;
+    video_mp4_fallback: string | null;
+    author_username: string | null;
+  } | null;
 };
 
 export type PostPollWithDetails = PostPoll & {

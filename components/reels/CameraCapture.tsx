@@ -42,12 +42,23 @@ const MIN_DURATION_S = 1;
 type FacingMode = "user" | "environment";
 type Speed = 0.5 | 1 | 2;
 
+type DuetSource = {
+  reelId: string;
+  videoUrl: string;
+  videoMp4Fallback: string | null;
+  layout: "right" | "left" | "top" | "bottom";
+};
+
 type Props = {
   onCapture: (file: File, durationSeconds: number) => void;
   onCancel: () => void;
+  /** V3.8 — mode Duo : affiche le reel source en parallèle de la capture
+   *  et démarre la lecture sync au début de l'enregistrement. */
+  duetSource?: DuetSource | null;
 };
 
-export function CameraCapture({ onCapture, onCancel }: Props) {
+export function CameraCapture({ onCapture, onCancel, duetSource }: Props) {
+  const sourceVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -171,6 +182,11 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
       recordStartRef.current = Date.now();
       setRecording(true);
       setRecordedSeconds(0);
+      /* V3.8 — mode Duo : démarre la vidéo source au moment de l'enregistrement. */
+      if (duetSource && sourceVideoRef.current) {
+        sourceVideoRef.current.currentTime = 0;
+        void sourceVideoRef.current.play().catch(() => undefined);
+      }
     } catch (err) {
       console.error("[reels:camera:record]", err);
       toast.error("Erreur lors de l'enregistrement.");
@@ -186,6 +202,7 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
     }
     recordStartRef.current = null;
     setRecording(false);
+    sourceVideoRef.current?.pause();
     if (autoStop) {
       toast.success("Durée max atteinte — clip prêt !");
     }
@@ -201,19 +218,49 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
     setFacingMode((m) => (m === "user" ? "environment" : "user"));
   }
 
+  /* V3.8 — calcul split layout pour mode Duo. */
+  const layout = duetSource?.layout ?? "right";
+  const cameraSlot: React.CSSProperties = duetSource
+    ? layout === "right"
+      ? { position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }
+      : layout === "left"
+        ? { position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }
+        : layout === "top"
+          ? { position: "absolute", left: 0, bottom: 0, width: "100%", height: "50%" }
+          : { position: "absolute", left: 0, top: 0, width: "100%", height: "50%" }
+    : { position: "absolute", inset: 0, width: "100%", height: "100%" };
+  const sourceSlot: React.CSSProperties = duetSource
+    ? layout === "right"
+      ? { position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }
+      : layout === "left"
+        ? { position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }
+        : layout === "top"
+          ? { position: "absolute", left: 0, top: 0, width: "100%", height: "50%" }
+          : { position: "absolute", left: 0, bottom: 0, width: "100%", height: "50%" }
+    : { display: "none" };
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
-      {/* Preview caméra fullscreen. */}
+      {/* V3.8 — vidéo source du duet (gauche/droite/haut/bas). */}
+      {duetSource ? (
+        <video
+          ref={sourceVideoRef}
+          src={duetSource.videoMp4Fallback ?? duetSource.videoUrl}
+          playsInline
+          muted={false}
+          style={sourceSlot}
+          className="object-cover"
+        />
+      ) : null}
+
+      {/* Preview caméra fullscreen (ou moitié si duet). */}
       <video
         ref={videoRef}
         playsInline
         muted
         autoPlay
-        className={cn(
-          "absolute inset-0 w-full h-full object-cover",
-          facingMode === "user" && "scale-x-[-1]", // mirror selfie
-        )}
         style={{
+          ...cameraSlot,
           filter:
             speed === 0.5
               ? "brightness(1.05) saturate(1.1)"
@@ -221,6 +268,10 @@ export function CameraCapture({ onCapture, onCancel }: Props) {
                 ? "contrast(1.1) saturate(1.2)"
                 : undefined,
         }}
+        className={cn(
+          "object-cover",
+          facingMode === "user" && "scale-x-[-1]", // mirror selfie
+        )}
       />
 
       {/* Permission denied state. */}

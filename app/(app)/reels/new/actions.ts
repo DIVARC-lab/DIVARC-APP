@@ -44,6 +44,8 @@ const reelInputSchema = z.object({
   voiceover_url: z.string().url().optional().nullable(),
   video_volume: z.number().min(0).max(1).default(1),
   voiceover_volume: z.number().min(0).max(1).default(1),
+  duet_source_reel_id: z.string().uuid().optional().nullable(),
+  duet_layout: z.enum(["right", "left", "top", "bottom"]).optional().nullable(),
 });
 
 export type CreateReelResult =
@@ -123,6 +125,8 @@ export async function createReel(
       voiceover_url: data.voiceover_url ?? null,
       video_volume: data.video_volume,
       voiceover_volume: data.voiceover_volume,
+      duet_source_reel_id: data.duet_source_reel_id ?? null,
+      duet_layout: data.duet_layout ?? null,
     })
     .select("id")
     .single();

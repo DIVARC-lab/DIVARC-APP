@@ -9,6 +9,7 @@ import {
   Play,
   Send,
   UserPlus,
+  Users2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -50,6 +51,7 @@ type Props = {
 export function ReelView({ reel, isActive, currentUserId }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const voiceoverRef = useRef<HTMLAudioElement>(null);
+  const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
   const [liked, setLiked] = useState(reel.is_liked);
@@ -104,9 +106,17 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
         voiceover.currentTime = video.currentTime;
         void voiceover.play().catch(() => undefined);
       }
+      /* V3.8 — start duet source en sync. */
+      const duetVideo = duetSourceVideoRef.current;
+      if (duetVideo && reel.duet_source) {
+        duetVideo.muted = true; // toujours muted, l'audio principal vient du reel
+        duetVideo.currentTime = video.currentTime;
+        void duetVideo.play().catch(() => undefined);
+      }
     } else {
       video.pause();
       voiceoverRef.current?.pause();
+      duetSourceVideoRef.current?.pause();
       flushWatchTime();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,9 +273,46 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const sound = reel.sound;
   const isOwn = currentUserId === reel.author_id;
 
+  /* V3.8 — calcule la disposition split pour le mode Duo. */
+  const isDuet = reel.duet_source != null;
+  const duetLayout = reel.duet_layout ?? "right";
+  const mainSlot: React.CSSProperties = isDuet
+    ? duetLayout === "right"
+      ? { position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }
+      : duetLayout === "left"
+        ? { position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }
+        : duetLayout === "top"
+          ? { position: "absolute", left: 0, bottom: 0, width: "100%", height: "50%" }
+          : { position: "absolute", left: 0, top: 0, width: "100%", height: "50%" }
+    : { position: "absolute", inset: 0, width: "100%", height: "100%" };
+  const sourceSlot: React.CSSProperties = isDuet
+    ? duetLayout === "right"
+      ? { position: "absolute", right: 0, top: 0, width: "50%", height: "100%" }
+      : duetLayout === "left"
+        ? { position: "absolute", left: 0, top: 0, width: "50%", height: "100%" }
+        : duetLayout === "top"
+          ? { position: "absolute", left: 0, top: 0, width: "100%", height: "50%" }
+          : { position: "absolute", left: 0, bottom: 0, width: "100%", height: "50%" }
+    : { display: "none" };
+
   return (
     <div className="relative w-full h-full bg-black">
-      {/* Vidéo. */}
+      {/* V3.8 — vidéo source du duet (toujours muted). */}
+      {reel.duet_source ? (
+        <video
+          ref={duetSourceVideoRef}
+          src={
+            reel.duet_source.video_mp4_fallback ?? reel.duet_source.video_url
+          }
+          playsInline
+          loop
+          muted
+          style={sourceSlot}
+          className="object-cover"
+        />
+      ) : null}
+
+      {/* Vidéo principale (caméra de l'auteur). */}
       <video
         ref={videoRef}
         poster={reel.poster_url ?? undefined}
@@ -284,8 +331,16 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
               voiceover.currentTime = v.currentTime;
             }
           }
+          /* Resync duet source si drift > 0.25s. */
+          const duetVideo = duetSourceVideoRef.current;
+          if (duetVideo && reel.duet_source) {
+            if (Math.abs(duetVideo.currentTime - v.currentTime) > 0.25) {
+              duetVideo.currentTime = v.currentTime;
+            }
+          }
         }}
-        className="w-full h-full object-cover cursor-pointer"
+        style={mainSlot}
+        className="object-cover cursor-pointer"
       />
 
       {/* Voix off — synchronisée avec la vidéo. */}
@@ -447,6 +502,23 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
             strokeWidth={2}
           />
         </ActionBtn>
+
+        {/* Bouton Duo — visible si le reel autorise les duets et n'est
+            pas lui-même un duet. */}
+        {reel.allow_duets && !reel.duet_source_reel_id && !isOwn ? (
+          <Link
+            href={`/reels/new?duet=${reel.id}&layout=right`}
+            aria-label="Créer un Duo avec ce reel"
+            className="flex flex-col items-center gap-1"
+          >
+            <span className="w-12 h-12 rounded-full bg-cream/10 hover:bg-cream/20 flex items-center justify-center">
+              <Users2 className="w-6 h-6 text-cream" aria-hidden />
+            </span>
+            <span className="text-[10.5px] font-semibold text-cream/80">
+              Duo
+            </span>
+          </Link>
+        ) : null}
 
         {/* Disque musique animé. */}
         {sound ? (
