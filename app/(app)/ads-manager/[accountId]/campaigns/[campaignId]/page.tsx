@@ -4,10 +4,7 @@ import {
   Eye,
   Layers,
   MousePointerClick,
-  Pause,
-  Play,
   Plus,
-  Settings,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +13,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { OBJECTIVE_BY_ID } from "@/components/ads/builder/objectives";
 import { createClient } from "@/lib/supabase/server";
+import { CampaignActions } from "../../_components/CampaignActions";
 
 export const metadata = { title: "Détail campagne" };
 
@@ -146,35 +144,11 @@ export default async function CampaignDetailPage({
               ) : null}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {campaign.status === "active" ? (
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-line text-[12.5px] font-semibold text-night hover:bg-bg-soft disabled:opacity-50"
-              >
-                <Pause className="w-3.5 h-3.5" aria-hidden />
-                Mettre en pause
-              </button>
-            ) : campaign.status === "paused" ? (
-              <button
-                type="button"
-                disabled
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-[12.5px] font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-              >
-                <Play className="w-3.5 h-3.5" aria-hidden />
-                Reprendre
-              </button>
-            ) : null}
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-line text-[12.5px] font-semibold text-night hover:bg-bg-soft disabled:opacity-50"
-            >
-              <Settings className="w-3.5 h-3.5" aria-hidden />
-              Modifier
-            </button>
-          </div>
+          <CampaignActions
+            campaignId={campaign.id}
+            adAccountId={accountId}
+            status={campaign.status}
+          />
         </div>
       </header>
 
