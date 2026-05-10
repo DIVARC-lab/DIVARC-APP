@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/reels/CameraCapture";
 import { MultiClipRecorder } from "@/components/reels/MultiClipRecorder";
@@ -24,6 +24,7 @@ import {
 } from "@/components/reels/SoundLibrary";
 import { StickersEditor } from "@/components/reels/StickersEditor";
 import { TextOverlaysEditor } from "@/components/reels/TextOverlaysEditor";
+import { TimelineEditor } from "@/components/reels/TimelineEditor";
 import { VoiceoverRecorder } from "@/components/reels/VoiceoverRecorder";
 import type { Sticker } from "@/lib/reels/stickers";
 import type { TextOverlay } from "@/lib/reels/textOverlays";
@@ -113,6 +114,7 @@ export function ReelCreator({
   const [voiceoverOpen, setVoiceoverOpen] = useState(false);
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [stickersOpen, setStickersOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
@@ -222,6 +224,38 @@ export function ReelCreator({
       toast.error("Upload échoué. Réessaie.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  /* V3.11 — replace la vidéo après un trim. Upload le nouveau blob sans
+     repasser par le step upload. L'ancien fichier reste en storage (V4 :
+     remove). */
+  async function replaceVideoWithTrim(blob: Blob, newDuration: number) {
+    if (!video) return;
+    try {
+      const supabase = createClient();
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      const newPath = `reels/${userId}/${crypto.randomUUID()}.${ext}`;
+      const file = new File([blob], `trim-${Date.now()}.${ext}`, {
+        type: blob.type,
+      });
+      const { error } = await supabase.storage
+        .from("post-photos")
+        .upload(newPath, file, { contentType: blob.type, upsert: false });
+      if (error) throw error;
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("post-photos").getPublicUrl(newPath);
+      setVideo({
+        ...video,
+        url: publicUrl,
+        storagePath: newPath,
+        duration_seconds: newDuration,
+      });
+      toast.success("Vidéo trimmée.");
+    } catch (err) {
+      console.error("[reels:trim:upload]", err);
+      toast.error("Sauvegarde du trim échouée.");
     }
   }
 
@@ -390,6 +424,7 @@ export function ReelCreator({
           onOpenVoiceover={() => setVoiceoverOpen(true)}
           stickersCount={stickers.length}
           onOpenStickers={() => setStickersOpen(true)}
+          onOpenTimeline={() => setTimelineOpen(true)}
         />
       ) : null}
 
@@ -439,7 +474,89 @@ export function ReelCreator({
           onClose={() => setStickersOpen(false)}
         />
       ) : null}
+
+      {timelineOpen && video ? (
+        <TimelineEditorLoader
+          videoUrl={video.url}
+          durationSeconds={video.duration_seconds}
+          onApply={async (blob, newDuration) => {
+            setTimelineOpen(false);
+            await replaceVideoWithTrim(blob, newDuration);
+          }}
+          onClose={() => setTimelineOpen(false)}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/* Wrapper qui fetch le blob depuis videoUrl avant de monter TimelineEditor.
+ * Évite de stocker le blob en state ReelCreator (cleanup auto à la fermeture). */
+function TimelineEditorLoader({
+  videoUrl,
+  durationSeconds,
+  onApply,
+  onClose,
+}: {
+  videoUrl: string;
+  durationSeconds: number;
+  onApply: (blob: Blob, newDuration: number) => Promise<void> | void;
+  onClose: () => void;
+}) {
+  const [blob, setBlob] = useState<Blob | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(videoUrl);
+        if (!res.ok) throw new Error("fetch failed");
+        const b = await res.blob();
+        if (!cancelled) setBlob(b);
+      } catch {
+        if (!cancelled) setError("Impossible de charger la vidéo.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [videoUrl]);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center px-6">
+        <div className="text-center text-cream">
+          <p className="font-display italic text-[20px] mb-2">Erreur</p>
+          <p className="text-[12.5px] text-cream/70 mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-full bg-cream text-night text-[13px] font-bold"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!blob) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-cream">
+        <Loader2 className="w-8 h-8 animate-spin" aria-hidden />
+      </div>
+    );
+  }
+
+  return (
+    <TimelineEditor
+      videoUrl={videoUrl}
+      videoBlob={blob}
+      durationSeconds={durationSeconds}
+      onApply={onApply}
+      onClose={onClose}
+    />
   );
 }
 
@@ -549,6 +666,7 @@ function ComposeStep({
   onOpenVoiceover,
   stickersCount,
   onOpenStickers,
+  onOpenTimeline,
 }: {
   video: UploadedVideo;
   description: string;
@@ -572,6 +690,7 @@ function ComposeStep({
   onOpenVoiceover: () => void;
   stickersCount: number;
   onOpenStickers: () => void;
+  onOpenTimeline: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
@@ -688,6 +807,26 @@ function ComposeStep({
           </div>
           <span className="text-[11px] font-bold text-gold shrink-0">
             {textOverlaysCount > 0 ? "Éditer" : "Ouvrir"}
+          </span>
+        </button>
+
+        {/* V3.11 — Trim (ffmpeg.wasm) */}
+        <button
+          type="button"
+          onClick={onOpenTimeline}
+          className="w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left bg-cream/5 border-cream/10 hover:border-cream/30"
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <span aria-hidden className="text-[14px] font-extrabold">✂</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-cream">Trim la vidéo</p>
+            <p className="text-[11px] text-cream/60">
+              Coupe début/fin · re-encode ffmpeg
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            Ouvrir
           </span>
         </button>
 
