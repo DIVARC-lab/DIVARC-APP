@@ -1,13 +1,17 @@
 "use client";
 
 import {
+  AtSign,
   Bell,
   Check,
+  Heart,
+  MessageCircle,
   MessageSquareText,
   Scale,
   Shield,
   Trash2,
   UserPlus,
+  Video,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -47,6 +51,14 @@ const TYPE_ICONS: Record<
   moderation_report_resolved: { icon: Scale, color: "#0A1F44" },
   moderation_appeal_resolved: { icon: Scale, color: "#16A34A" },
   system: { icon: Bell, color: "#142A55" },
+  post_liked: { icon: Heart, color: "#DC2626" },
+  post_commented: { icon: MessageCircle, color: "#0A1F44" },
+  post_mention: { icon: AtSign, color: "#B88A2A" },
+  reel_liked: { icon: Heart, color: "#DC2626" },
+  reel_commented: { icon: MessageCircle, color: "#0A1F44" },
+  reel_comment_replied: { icon: MessageCircle, color: "#B88A2A" },
+  reel_comment_liked: { icon: Heart, color: "#B88A2A" },
+  reel_mention: { icon: Video, color: "#B88A2A" },
 };
 
 type NotificationItemProps = {

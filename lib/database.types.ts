@@ -152,7 +152,15 @@ export type NotificationType =
   | "moderation_decision"
   | "moderation_report_resolved"
   | "moderation_appeal_resolved"
-  | "system";
+  | "system"
+  | "post_liked"
+  | "post_commented"
+  | "post_mention"
+  | "reel_liked"
+  | "reel_commented"
+  | "reel_comment_replied"
+  | "reel_comment_liked"
+  | "reel_mention";
 
 export type PostVisibility = "public" | "friends" | "private";
 
@@ -1354,6 +1362,9 @@ export type Notification = {
   related_user_id: string | null;
   related_conversation_id: string | null;
   related_friendship_id: string | null;
+  related_post_id: string | null;
+  related_reel_id: string | null;
+  related_reel_comment_id: string | null;
   href: string | null;
   read_at: string | null;
   created_at: string;
@@ -2469,8 +2480,26 @@ export type Database = {
       };
       notifications: {
         Row: Notification;
-        Insert: Omit<Notification, "id" | "created_at" | "read_at"> &
-          Partial<Pick<Notification, "id" | "created_at" | "read_at">>;
+        Insert: Omit<
+          Notification,
+          | "id"
+          | "created_at"
+          | "read_at"
+          | "related_post_id"
+          | "related_reel_id"
+          | "related_reel_comment_id"
+        > &
+          Partial<
+            Pick<
+              Notification,
+              | "id"
+              | "created_at"
+              | "read_at"
+              | "related_post_id"
+              | "related_reel_id"
+              | "related_reel_comment_id"
+            >
+          >;
         Update: Partial<Pick<Notification, "read_at">>;
         Relationships: [];
       };
