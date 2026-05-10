@@ -12,6 +12,20 @@ import { createClient } from "@/lib/supabase/server";
  * background après l'insert).
  */
 
+const textOverlaySchema = z.object({
+  id: z.string(),
+  text: z.string().min(1).max(100),
+  start_s: z.number().min(0),
+  end_s: z.number().positive(),
+  x_pct: z.number().min(0).max(100),
+  y_pct: z.number().min(0).max(100),
+  font_size_px: z.number().min(12).max(200),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  weight: z.enum(["bold", "regular"]),
+  bg: z.enum(["none", "solid", "outline"]),
+  align: z.enum(["left", "center", "right"]),
+});
+
 const reelInputSchema = z.object({
   video_url: z.string().url(),
   duration_seconds: z.number().positive().max(90),
@@ -26,6 +40,7 @@ const reelInputSchema = z.object({
   allow_stitches: z.boolean().default(true),
   allow_downloads: z.boolean().default(false),
   scheduled_for: z.string().datetime().optional().nullable(),
+  text_overlays: z.array(textOverlaySchema).max(10).default([]),
 });
 
 export type CreateReelResult =
@@ -101,6 +116,7 @@ export async function createReel(
       status,
       scheduled_for: scheduledFor,
       moderation_status: "approved", // V1 : auto-approve. V1.5 : pipeline modération NSFW.
+      text_overlays: data.text_overlays,
     })
     .select("id")
     .single();

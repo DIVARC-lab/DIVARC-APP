@@ -13,12 +13,17 @@ import {
   VolumeX,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
 import { cn } from "@/lib/utils/cn";
 import { linkifyMentions } from "@/lib/utils/linkifyMentions";
+import {
+  getActiveOverlays,
+  parseOverlays,
+  type TextOverlay,
+} from "@/lib/reels/textOverlays";
 import type { ReelWithDetails } from "@/lib/database.types";
 
 /* ReelView — un reel individuel dans le feed Reels.
@@ -52,8 +57,21 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const [showHeart, setShowHeart] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
   const watchStartRef = useRef<number | null>(null);
   const totalWatchMsRef = useRef(0);
+
+  /* Text overlays — parsés une fois (memoized) puis filtrés par
+     currentTime à chaque tick. parseOverlays() tolère les schemas
+     partiels. */
+  const overlays = useMemo<TextOverlay[]>(
+    () => parseOverlays(reel.text_overlays),
+    [reel.text_overlays],
+  );
+  const activeOverlays = useMemo(
+    () => getActiveOverlays(overlays, currentTime),
+    [overlays, currentTime],
+  );
   const reachedEndRef = useRef(false);
   const replayCountRef = useRef(0);
   const lastTapRef = useRef(0);
@@ -243,8 +261,45 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
         autoPlay={isActive}
         muted={muted}
         onClick={handleTap}
+        onTimeUpdate={(e) =>
+          setCurrentTime((e.target as HTMLVideoElement).currentTime)
+        }
         className="w-full h-full object-cover cursor-pointer"
       />
+
+      {/* Text overlays V3.6 — synchronisés avec currentTime. Pointer-events
+          none pour ne pas bloquer le tap/double-tap sur la vidéo. */}
+      {activeOverlays.length > 0 ? (
+        <div className="pointer-events-none absolute inset-0">
+          {activeOverlays.map((o) => (
+            <span
+              key={o.id}
+              className="absolute -translate-x-1/2 -translate-y-1/2 max-w-[80%] break-words rounded"
+              style={{
+                left: `${o.x_pct}%`,
+                top: `${o.y_pct}%`,
+                color: o.color,
+                fontSize: `clamp(14px, ${o.font_size_px / 18}vh, ${o.font_size_px}px)`,
+                fontWeight: o.weight === "bold" ? 800 : 500,
+                textAlign: o.align,
+                ...(o.bg === "solid"
+                  ? {
+                      backgroundColor: "rgba(0,0,0,0.55)",
+                      padding: "4px 10px",
+                    }
+                  : o.bg === "outline"
+                    ? {
+                        textShadow:
+                          "0 0 6px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9)",
+                      }
+                    : undefined),
+              }}
+            >
+              {o.text}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {/* Overlay gradient bottom pour lisibilité texte. */}
       <div

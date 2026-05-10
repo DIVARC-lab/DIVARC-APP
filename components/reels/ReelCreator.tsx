@@ -21,6 +21,8 @@ import {
   SoundLibrary,
   type SoundLibraryItem,
 } from "@/components/reels/SoundLibrary";
+import { TextOverlaysEditor } from "@/components/reels/TextOverlaysEditor";
+import type { TextOverlay } from "@/lib/reels/textOverlays";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -84,6 +86,8 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
   const [allowDuets, setAllowDuets] = useState(true);
   const [allowStitches, setAllowStitches] = useState(true);
   const [allowDownloads, setAllowDownloads] = useState(false);
+  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+  const [textEditorOpen, setTextEditorOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
@@ -236,6 +240,7 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
         allow_duets: allowDuets,
         allow_stitches: allowStitches,
         allow_downloads: allowDownloads,
+        text_overlays: textOverlays,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -339,6 +344,8 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           sound={selectedSound}
           onOpenSoundLibrary={() => setSoundLibraryOpen(true)}
           onRemoveVideo={removeVideo}
+          textOverlaysCount={textOverlays.length}
+          onOpenTextEditor={() => setTextEditorOpen(true)}
         />
       ) : null}
 
@@ -347,6 +354,16 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           initialSelectedId={selectedSound?.id ?? null}
           onPick={(sound) => setSelectedSound(sound)}
           onClose={() => setSoundLibraryOpen(false)}
+        />
+      ) : null}
+
+      {textEditorOpen && video ? (
+        <TextOverlaysEditor
+          videoUrl={video.url}
+          durationSeconds={video.duration_seconds}
+          initial={textOverlays}
+          onApply={setTextOverlays}
+          onClose={() => setTextEditorOpen(false)}
         />
       ) : null}
     </div>
@@ -442,6 +459,8 @@ function ComposeStep({
   sound,
   onOpenSoundLibrary,
   onRemoveVideo,
+  textOverlaysCount,
+  onOpenTextEditor,
 }: {
   video: UploadedVideo;
   description: string;
@@ -459,6 +478,8 @@ function ComposeStep({
   sound: SoundLibraryItem | null;
   onOpenSoundLibrary: () => void;
   onRemoveVideo: () => void;
+  textOverlaysCount: number;
+  onOpenTextEditor: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
@@ -546,6 +567,35 @@ function ComposeStep({
           </div>
           <span className="text-[11px] font-bold text-gold shrink-0">
             {sound ? "Changer" : "Choisir"}
+          </span>
+        </button>
+
+        {/* Text overlays — opens TextOverlaysEditor */}
+        <button
+          type="button"
+          onClick={onOpenTextEditor}
+          className={cn(
+            "w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left",
+            textOverlaysCount > 0
+              ? "bg-cream/5 border-cream/10 hover:border-cream/30"
+              : "bg-cream/5 border-dashed border-cream/30 hover:border-cream/60",
+          )}
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <span aria-hidden className="text-[14px] font-extrabold">Aa</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-cream">
+              {textOverlaysCount > 0
+                ? `${textOverlaysCount} texte${textOverlaysCount > 1 ? "s" : ""} ajouté${textOverlaysCount > 1 ? "s" : ""}`
+                : "Ajouter du texte"}
+            </p>
+            <p className="text-[11px] text-cream/60">
+              Position, timing, couleur, taille
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            {textOverlaysCount > 0 ? "Éditer" : "Ouvrir"}
           </span>
         </button>
 

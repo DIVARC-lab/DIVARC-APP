@@ -580,6 +580,9 @@ export type Reel = {
   moderation_reason: string | null;
   status: ReelStatus;
   scheduled_for: string | null;
+  /* V3.6 — text overlays jsonb (migration 0058). Array stocké tel quel,
+     parsé via parseOverlays() côté client pour validation. */
+  text_overlays: unknown;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
