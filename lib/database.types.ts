@@ -1445,6 +1445,351 @@ export type LegalDataRequest = {
   created_at: string;
 };
 
+/* ========================================================================
+ * Régie publicitaire / Ads Manager (migration 0048)
+ * ======================================================================== */
+
+export type AdsBusinessAccount = {
+  id: string;
+  legal_name: string;
+  legal_form: string | null;
+  siret: string | null;
+  vat_number: string | null;
+  billing_address: Record<string, unknown>;
+  primary_contact_user_id: string;
+  primary_contact_email: string;
+  primary_contact_phone: string | null;
+  verification_status: "pending" | "submitted" | "verified" | "rejected";
+  verification_documents: Record<string, unknown>[];
+  verification_notes: string | null;
+  verified_at: string | null;
+  industry: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdAccount = {
+  id: string;
+  business_account_id: string;
+  name: string;
+  currency: "EUR" | "USD" | "GBP" | "CAD" | "CHF";
+  timezone: string;
+  spend_limit_daily: number | null;
+  spend_limit_monthly: number | null;
+  prepaid_balance: number;
+  total_spent: number;
+  status: "active" | "paused" | "suspended" | "closed";
+  suspension_reason: string | null;
+  industry: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdAccountUser = {
+  ad_account_id: string;
+  user_id: string;
+  role: "admin" | "editor" | "analyst" | "finance";
+  granted_by: string | null;
+  granted_at: string;
+};
+
+export type AdvertiserEntity = {
+  id: string;
+  ad_account_id: string;
+  type: "divarc_company" | "external_site" | "mobile_app" | "physical_store";
+  name: string;
+  url: string | null;
+  logo_url: string | null;
+  divarc_company_id: string | null;
+  verified_owner: boolean;
+  verification_method: string | null;
+  verified_at: string | null;
+  created_at: string;
+};
+
+export type AdsAudience = {
+  id: string;
+  ad_account_id: string;
+  name: string;
+  type:
+    | "saved"
+    | "custom_list"
+    | "custom_pixel"
+    | "custom_engagement"
+    | "lookalike"
+    | "divarc_special";
+  targeting_spec: Record<string, unknown> | null;
+  custom_list_count: number | null;
+  custom_match_count: number | null;
+  custom_match_rate: number | null;
+  lookalike_source_id: string | null;
+  lookalike_countries: string[] | null;
+  lookalike_size_pct: number | null;
+  divarc_special_config: Record<string, unknown> | null;
+  estimated_size: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdsAudienceMember = {
+  audience_id: string;
+  identifier_hash: string;
+  identifier_type: "email" | "phone" | "external_id";
+  matched_user_id: string | null;
+  uploaded_at: string;
+};
+
+export type AdsCampaign = {
+  id: string;
+  ad_account_id: string;
+  name: string;
+  objective: string;
+  status:
+    | "draft"
+    | "pending_review"
+    | "active"
+    | "paused"
+    | "completed"
+    | "rejected";
+  buying_type: "auction" | "reservation";
+  daily_budget: number | null;
+  lifetime_budget: number | null;
+  spend_cap: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_split_test: boolean;
+  split_test_variant_ids: string[];
+  special_ad_category: "housing" | "employment" | "credit" | "social" | null;
+  compliance_review_status: "pending" | "approved" | "rejected" | "holding";
+  compliance_notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdsAdSet = {
+  id: string;
+  campaign_id: string;
+  ad_account_id: string;
+  name: string;
+  daily_budget: number | null;
+  lifetime_budget: number | null;
+  bid_strategy: "lowest_cost" | "cost_cap" | "bid_cap" | "target_cost";
+  bid_amount: number | null;
+  targeting: Record<string, unknown>;
+  placements: string[];
+  optimization_goal: string;
+  billing_event: "impressions" | "clicks" | "video_views" | "app_installs" | "conversions";
+  pacing_type: "standard" | "no_pacing";
+  frequency_cap: Record<string, unknown> | null;
+  start_time: string | null;
+  end_time: string | null;
+  dayparting: Record<string, unknown> | null;
+  status: "active" | "paused" | "archived";
+  total_impressions: number;
+  total_clicks: number;
+  total_spend: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdsCreative = {
+  id: string;
+  ad_account_id: string;
+  type:
+    | "single_image"
+    | "single_video"
+    | "carousel"
+    | "collection"
+    | "instant_experience";
+  media_url: string | null;
+  media_thumbnail_url: string | null;
+  carousel_cards: Record<string, unknown>[];
+  primary_text: string;
+  headline: string;
+  description: string | null;
+  call_to_action: string;
+  destination_url: string | null;
+  deep_link: string | null;
+  advertiser_entity_id: string;
+  lead_form_id: string | null;
+  media_sha256: string | null;
+  auto_disclaimer: string | null;
+  manual_disclaimer: string | null;
+  paid_for_by: string | null;
+  created_at: string;
+};
+
+export type AdsAd = {
+  id: string;
+  ad_set_id: string;
+  ad_account_id: string;
+  campaign_id: string;
+  creative_id: string;
+  name: string;
+  pixel_id: string | null;
+  utm_params: Record<string, unknown> | null;
+  status: "active" | "paused" | "archived" | "rejected";
+  review_status:
+    | "pending"
+    | "auto_approved"
+    | "approved"
+    | "rejected"
+    | "limited"
+    | "re_review";
+  review_feedback: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  quality_score: number;
+  total_impressions: number;
+  total_clicks: number;
+  total_spend: number;
+  observed_ctr: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdsPixel = {
+  id: string;
+  ad_account_id: string;
+  name: string;
+  api_token: string;
+  authorized_domains: string[];
+  total_events: number;
+  last_event_at: string | null;
+  created_at: string;
+};
+
+export type AdsCharge = {
+  id: string;
+  ad_account_id: string;
+  amount: number;
+  currency: string;
+  type: "topup" | "threshold" | "monthly" | "manual" | "refund" | "spend";
+  wallet_transaction_id: string | null;
+  stripe_payment_method_id: string | null;
+  stripe_charge_id: string | null;
+  invoice_url: string | null;
+  status: "pending" | "succeeded" | "failed" | "refunded";
+  description: string | null;
+  created_at: string;
+};
+
+export type AdImpression = {
+  id: string;
+  ad_id: string;
+  ad_set_id: string;
+  campaign_id: string;
+  ad_account_id: string;
+  user_id: string | null;
+  session_id: string | null;
+  surface: string;
+  position: number | null;
+  bid_amount: number | null;
+  charged_amount: number | null;
+  device_type: string | null;
+  locale: string | null;
+  country: string | null;
+  viewability_pct: number | null;
+  view_duration_ms: number | null;
+  client_ip_anon: string | null;
+  client_user_agent: string | null;
+  created_at: string;
+};
+
+export type AdClick = {
+  id: string;
+  ad_id: string;
+  ad_set_id: string;
+  campaign_id: string;
+  ad_account_id: string;
+  user_id: string | null;
+  session_id: string | null;
+  surface: string | null;
+  source_impression_id: string | null;
+  destination_url: string | null;
+  fraud_score: number;
+  is_invalid: boolean;
+  invalid_reason: string | null;
+  client_ip_anon: string | null;
+  client_user_agent: string | null;
+  created_at: string;
+};
+
+export type AdConversion = {
+  id: string;
+  pixel_id: string;
+  ad_account_id: string;
+  event_id: string;
+  event_name: string;
+  event_time: string;
+  event_source: "pixel" | "conversions_api" | "both";
+  attributed_ad_id: string | null;
+  attributed_click_id: string | null;
+  attribution_model: string | null;
+  attribution_window_days: number | null;
+  user_data: Record<string, unknown> | null;
+  user_id: string | null;
+  custom_data: Record<string, unknown> | null;
+  client_ip_anon: string | null;
+  fraud_score: number;
+  is_invalid: boolean;
+  created_at: string;
+};
+
+export type AdsLibraryEntry = {
+  id: string;
+  ad_id: string | null;
+  ad_account_id: string;
+  business_name: string;
+  business_id: string | null;
+  campaign_objective: string | null;
+  creative_snapshot: Record<string, unknown>;
+  targeting_summary: Record<string, unknown>;
+  placements: string[];
+  paid_for_by: string | null;
+  first_served_at: string;
+  last_served_at: string | null;
+  is_active: boolean;
+  impressions_range: string | null;
+  spend_range: string | null;
+  retention_until: string | null;
+  created_at: string;
+};
+
+export type UserAdPreferences = {
+  user_id: string;
+  personalized_ads_consent: boolean;
+  behavioral_data_consent: boolean;
+  location_data_consent: boolean;
+  blocked_categories: string[];
+  blocked_advertisers: string[];
+  removed_interests: string[];
+  consent_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdReport = {
+  id: string;
+  reporter_id: string;
+  ad_id: string | null;
+  ads_library_entry_id: string | null;
+  category:
+    | "misleading"
+    | "illegal"
+    | "offensive"
+    | "political_undisclosed"
+    | "targeting_minors"
+    | "sensitive_data"
+    | "spam"
+    | "other";
+  description: string | null;
+  status: "pending" | "reviewed" | "actioned" | "dismissed";
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -2572,6 +2917,248 @@ export type Database = {
         >;
         Relationships: [];
       };
+      /* ===== Ads Manager (migration 0048) ===== */
+      ads_business_accounts: {
+        Row: AdsBusinessAccount;
+        Insert: Pick<
+          AdsBusinessAccount,
+          "legal_name" | "primary_contact_user_id" | "primary_contact_email"
+        > &
+          Partial<Omit<AdsBusinessAccount, "legal_name" | "primary_contact_user_id" | "primary_contact_email">>;
+        Update: Partial<Omit<AdsBusinessAccount, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ad_accounts: {
+        Row: AdAccount;
+        Insert: Pick<AdAccount, "business_account_id" | "name"> &
+          Partial<Omit<AdAccount, "business_account_id" | "name">>;
+        Update: Partial<Omit<AdAccount, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ad_account_users: {
+        Row: AdAccountUser;
+        Insert: Pick<AdAccountUser, "ad_account_id" | "user_id" | "role"> &
+          Partial<Pick<AdAccountUser, "granted_by" | "granted_at">>;
+        Update: Partial<Pick<AdAccountUser, "role">>;
+        Relationships: [];
+      };
+      advertiser_entities: {
+        Row: AdvertiserEntity;
+        Insert: Pick<AdvertiserEntity, "ad_account_id" | "type" | "name"> &
+          Partial<Omit<AdvertiserEntity, "ad_account_id" | "type" | "name">>;
+        Update: Partial<Omit<AdvertiserEntity, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_audiences: {
+        Row: AdsAudience;
+        Insert: Pick<AdsAudience, "ad_account_id" | "name" | "type"> &
+          Partial<Omit<AdsAudience, "ad_account_id" | "name" | "type">>;
+        Update: Partial<Omit<AdsAudience, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_audience_members: {
+        Row: AdsAudienceMember;
+        Insert: Pick<
+          AdsAudienceMember,
+          "audience_id" | "identifier_hash" | "identifier_type"
+        > &
+          Partial<Pick<AdsAudienceMember, "matched_user_id" | "uploaded_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      ads_campaigns: {
+        Row: AdsCampaign;
+        Insert: Pick<AdsCampaign, "ad_account_id" | "name" | "objective"> &
+          Partial<Omit<AdsCampaign, "ad_account_id" | "name" | "objective">>;
+        Update: Partial<Omit<AdsCampaign, "id" | "ad_account_id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_ad_sets: {
+        Row: AdsAdSet;
+        Insert: Pick<
+          AdsAdSet,
+          | "campaign_id"
+          | "ad_account_id"
+          | "name"
+          | "targeting"
+          | "optimization_goal"
+          | "billing_event"
+        > &
+          Partial<
+            Omit<
+              AdsAdSet,
+              | "campaign_id"
+              | "ad_account_id"
+              | "name"
+              | "targeting"
+              | "optimization_goal"
+              | "billing_event"
+            >
+          >;
+        Update: Partial<Omit<AdsAdSet, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_creatives: {
+        Row: AdsCreative;
+        Insert: Pick<
+          AdsCreative,
+          | "ad_account_id"
+          | "type"
+          | "primary_text"
+          | "headline"
+          | "advertiser_entity_id"
+        > &
+          Partial<
+            Omit<
+              AdsCreative,
+              | "ad_account_id"
+              | "type"
+              | "primary_text"
+              | "headline"
+              | "advertiser_entity_id"
+            >
+          >;
+        Update: Partial<Omit<AdsCreative, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_ads: {
+        Row: AdsAd;
+        Insert: Pick<
+          AdsAd,
+          "ad_set_id" | "ad_account_id" | "campaign_id" | "creative_id" | "name"
+        > &
+          Partial<
+            Omit<
+              AdsAd,
+              "ad_set_id" | "ad_account_id" | "campaign_id" | "creative_id" | "name"
+            >
+          >;
+        Update: Partial<Omit<AdsAd, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_pixels: {
+        Row: AdsPixel;
+        Insert: Pick<AdsPixel, "ad_account_id" | "name" | "api_token"> &
+          Partial<Omit<AdsPixel, "ad_account_id" | "name" | "api_token">>;
+        Update: Partial<Omit<AdsPixel, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_charges: {
+        Row: AdsCharge;
+        Insert: Pick<
+          AdsCharge,
+          "ad_account_id" | "amount" | "currency" | "type"
+        > &
+          Partial<Omit<AdsCharge, "ad_account_id" | "amount" | "currency" | "type">>;
+        Update: Partial<Pick<AdsCharge, "status" | "stripe_charge_id" | "invoice_url">>;
+        Relationships: [];
+      };
+      ad_impressions: {
+        Row: AdImpression;
+        Insert: Pick<
+          AdImpression,
+          "ad_id" | "ad_set_id" | "campaign_id" | "ad_account_id" | "surface"
+        > &
+          Partial<
+            Omit<
+              AdImpression,
+              "ad_id" | "ad_set_id" | "campaign_id" | "ad_account_id" | "surface"
+            >
+          >;
+        Update: never;
+        Relationships: [];
+      };
+      ad_clicks: {
+        Row: AdClick;
+        Insert: Pick<
+          AdClick,
+          "ad_id" | "ad_set_id" | "campaign_id" | "ad_account_id"
+        > &
+          Partial<
+            Omit<AdClick, "ad_id" | "ad_set_id" | "campaign_id" | "ad_account_id">
+          >;
+        Update: Partial<Pick<AdClick, "is_invalid" | "invalid_reason" | "fraud_score">>;
+        Relationships: [];
+      };
+      ad_conversions: {
+        Row: AdConversion;
+        Insert: Pick<
+          AdConversion,
+          | "pixel_id"
+          | "ad_account_id"
+          | "event_id"
+          | "event_name"
+          | "event_time"
+          | "event_source"
+        > &
+          Partial<
+            Omit<
+              AdConversion,
+              | "pixel_id"
+              | "ad_account_id"
+              | "event_id"
+              | "event_name"
+              | "event_time"
+              | "event_source"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            AdConversion,
+            "attributed_ad_id"
+            | "attributed_click_id"
+            | "attribution_model"
+            | "attribution_window_days"
+            | "fraud_score"
+            | "is_invalid"
+          >
+        >;
+        Relationships: [];
+      };
+      ads_library_entries: {
+        Row: AdsLibraryEntry;
+        Insert: Pick<
+          AdsLibraryEntry,
+          | "ad_account_id"
+          | "business_name"
+          | "creative_snapshot"
+          | "targeting_summary"
+          | "placements"
+          | "first_served_at"
+        > &
+          Partial<
+            Omit<
+              AdsLibraryEntry,
+              | "ad_account_id"
+              | "business_name"
+              | "creative_snapshot"
+              | "targeting_summary"
+              | "placements"
+              | "first_served_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            AdsLibraryEntry,
+            "last_served_at" | "is_active" | "impressions_range" | "spend_range"
+          >
+        >;
+        Relationships: [];
+      };
+      user_ad_preferences: {
+        Row: UserAdPreferences;
+        Insert: Pick<UserAdPreferences, "user_id"> &
+          Partial<Omit<UserAdPreferences, "user_id">>;
+        Update: Partial<Omit<UserAdPreferences, "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      ad_reports: {
+        Row: AdReport;
+        Insert: Pick<AdReport, "reporter_id" | "category"> &
+          Partial<Omit<AdReport, "reporter_id" | "category">>;
+        Update: Partial<Pick<AdReport, "status">>;
+        Relationships: [];
+      };
     };
     Views: {
       /* Vue matérialisée — migration 0043_post_engagement_stats.sql.
@@ -2663,6 +3250,10 @@ export type Database = {
       };
       current_user_is_admin: {
         Args: Record<string, never>;
+        Returns: boolean;
+      };
+      user_has_ad_account_role: {
+        Args: { p_ad_account_id: string; p_min_role?: string };
         Returns: boolean;
       };
       get_or_create_direct_conversation: {
