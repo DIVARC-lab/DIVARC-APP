@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
+import { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
 import { cn } from "@/lib/utils/cn";
 import type { ReelWithDetails } from "@/lib/database.types";
@@ -49,6 +50,7 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const [likeCount, setLikeCount] = useState(reel.likes_count);
   const [showHeart, setShowHeart] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const watchStartRef = useRef<number | null>(null);
   const totalWatchMsRef = useRef(0);
   const reachedEndRef = useRef(false);
@@ -332,11 +334,7 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
         <ActionBtn
           label="Commenter"
           count={reel.comments_count}
-          onClick={() => {
-            /* V1 : redirige vers le détail (commentaires en bottom-sheet
-               sera V1.5). */
-            window.location.href = `/reels/${reel.id}`;
-          }}
+          onClick={() => setCommentsOpen(true)}
         >
           <MessageCircle className="w-7 h-7 text-cream" aria-hidden />
         </ActionBtn>
@@ -441,6 +439,17 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
           </Link>
         ) : null}
       </div>
+
+      {/* Bottom-sheet commentaires (V1.5). */}
+      {commentsOpen ? (
+        <ReelCommentsSheet
+          reelId={reel.id}
+          currentUserId={currentUserId}
+          initialCount={reel.comments_count}
+          allowComments={reel.allow_comments}
+          onClose={() => setCommentsOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
