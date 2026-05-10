@@ -51,6 +51,7 @@ import {
   PollCreator,
   type PollDraft,
 } from "@/components/creator/plugins/PollCreator";
+import { SchedulePicker } from "@/components/creator/plugins/SchedulePicker";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
 import type { PostLinkPreview } from "@/lib/database.types";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
@@ -152,6 +153,9 @@ export function PostComposer({
   const [mentionTrigger, setMentionTrigger] = useState<MentionTrigger | null>(
     null,
   );
+  /* Plugin "Programmer" — datetime ISO ou null. */
+  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+  const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -179,6 +183,7 @@ export function PostComposer({
         setPoll(null);
         setLinkPreview(null);
         setDismissedLinkUrl(null);
+        setScheduledFor(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -635,6 +640,11 @@ export function PostComposer({
               name="link_preview"
               value={linkPreview ? JSON.stringify(linkPreview) : ""}
             />
+            <input
+              type="hidden"
+              name="scheduled_for"
+              value={scheduledFor ?? ""}
+            />
 
             {/* Top bar : Back + Nouveau post + Publier */}
             <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
@@ -962,6 +972,20 @@ export function PostComposer({
                 }
                 label={poll ? "Sondage prêt" : "Sondage"}
               />
+              <ToolbarPill
+                onClick={() => setSchedulePickerOpen(true)}
+                active={scheduledFor !== null}
+                icon={
+                  <span aria-hidden className="font-bold text-[12px]">
+                    ⏰
+                  </span>
+                }
+                label={
+                  scheduledFor
+                    ? formatScheduledLabel(scheduledFor)
+                    : "Programmer"
+                }
+              />
               <span className="ml-auto self-center text-[11px] text-muted tabular-nums">
                 {body.length}/4000
               </span>
@@ -1089,6 +1113,27 @@ export function PostComposer({
                 </div>
               </div>
             ) : null}
+
+            {schedulePickerOpen ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setSchedulePickerOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+                  <SchedulePicker
+                    initialValue={scheduledFor}
+                    onApply={setScheduledFor}
+                    onClose={() => setSchedulePickerOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
           </form>
   );
 
@@ -1115,6 +1160,29 @@ export function PostComposer({
       {open ? <Modal onClose={() => setOpen(false)}>{formContent}</Modal> : null}
     </>
   );
+}
+
+/* Format un label court pour le pill "⏰ Programmer" :
+   ex: "Lun. 14 mars 09:00" ou "Demain 18:30". */
+function formatScheduledLabel(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const sameDay = date.toDateString() === now.toDateString();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  const time = date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (sameDay) return `Aujourd'hui ${time}`;
+  if (isTomorrow) return `Demain ${time}`;
+  const dateLabel = date.toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return `${dateLabel} ${time}`;
 }
 
 /* Chip teaser : carte inline cliquable. Avatar + texte d'invitation

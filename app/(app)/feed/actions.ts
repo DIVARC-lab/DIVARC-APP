@@ -81,6 +81,19 @@ export async function createPost(
       .slice(0, 30);
   }
 
+  /* Plugin "Programmer" : datetime ISO. Si > now() + 5min on bascule
+     status='scheduled', sinon ignoré (publication immédiate). */
+  const scheduledForRaw = formData.get("scheduled_for");
+  let scheduledFor: string | null = null;
+  let postStatus: "published" | "scheduled" = "published";
+  if (typeof scheduledForRaw === "string" && scheduledForRaw.length > 0) {
+    const ms = new Date(scheduledForRaw).getTime();
+    if (Number.isFinite(ms) && ms > Date.now() + 5 * 60 * 1000) {
+      scheduledFor = new Date(ms).toISOString();
+      postStatus = "scheduled";
+    }
+  }
+
   /* Plugin Link preview : payload JSON validé. */
   const linkPreviewSchema = z.object({
     url: z.string().url(),
@@ -283,6 +296,12 @@ export async function createPost(
             fetched_at: linkPreview.fetched_at,
           }
         : null,
+      scheduled_for: scheduledFor,
+      status: postStatus,
+      /* Si scheduled, published_at = scheduled_for (le cron mettra à
+         jour status quand l'heure est passée). Si publication immédiate,
+         published_at = now() via default. */
+      published_at: postStatus === "scheduled" ? scheduledFor : undefined,
     })
     .select("id")
     .single();

@@ -224,6 +224,7 @@ export async function listFriendsOnlyFeed(
     .select("*")
     .is("deleted_at", null)
     .is("circle_id", null)
+    .eq("status", "published")
     .in("author_id", Array.from(friendIds))
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -340,10 +341,11 @@ export async function listPersonalizedFeed(
   const { data: rawPosts } = await supabase
     .from("posts")
     .select(
-      "id, author_id, body, visibility, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height, circle_id, pinned_at, pinned_by, created_at, updated_at, edited_at, deleted_at",
+      "id, author_id, body, visibility, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height, circle_id, pinned_at, pinned_by, created_at, updated_at, edited_at, deleted_at, status",
     )
     .in("id", postIds)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .eq("status", "published");
 
   if (!rawPosts) {
     return { posts: [], rankingByPostId: new Map(), nextCursor };

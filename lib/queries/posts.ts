@@ -176,6 +176,7 @@ export async function listFeedPosts(
     .select("*")
     .is("deleted_at", null)
     .is("circle_id", null)
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -195,6 +196,7 @@ export async function listCirclePosts(
     .eq("circle_id", circleId)
     .is("deleted_at", null)
     .is("pinned_at", null)
+    .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -213,6 +215,7 @@ export async function listCirclePinnedPosts(
     .select("*")
     .eq("circle_id", circleId)
     .is("deleted_at", null)
+    .eq("status", "published")
     .not("pinned_at", "is", null)
     .order("pinned_at", { ascending: false })
     .limit(limit);
