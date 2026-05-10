@@ -119,7 +119,7 @@ export default async function AdsManagerHome() {
               </span>
             ) : null}
           </div>
-          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          <ul className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
             <StatTile
               icon={LayoutDashboard}
               label="Comptes pub"
@@ -132,8 +132,8 @@ export default async function AdsManagerHome() {
             />
             <StatTile
               icon={BarChart3}
-              label="Dépense"
-              value={`${stats.total_spend_30d.toFixed(0)} ${primaryCurrency}`}
+              label="Dépense 30j"
+              value={`${formatMoneyCompact(stats.total_spend_30d)} ${primaryCurrency}`}
             />
             <StatTile
               icon={Eye}
@@ -148,7 +148,7 @@ export default async function AdsManagerHome() {
             <StatTile
               icon={ShieldCheck}
               label="Solde total"
-              value={`${totalBalance.toFixed(0)} ${primaryCurrency}`}
+              value={`${formatMoneyCompact(totalBalance)} ${primaryCurrency}`}
             />
           </ul>
         </section>
@@ -358,21 +358,21 @@ function StatTile({
   value: string;
 }) {
   return (
-    <li className="rounded-2xl bg-white border border-line p-3 flex items-start gap-2.5 min-w-0">
-      <span
-        aria-hidden
-        className="w-9 h-9 rounded-xl bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
-      >
-        <Icon className="w-[15px] h-[15px]" aria-hidden />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[10px] uppercase tracking-wider text-night-muted font-bold">
+    <li className="rounded-2xl bg-white border border-line p-3 min-w-0 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="text-[10px] uppercase tracking-wider text-night-muted font-bold truncate">
           {label}
-        </p>
-        <p className="text-[16px] font-bold text-night leading-tight truncate">
-          {value}
-        </p>
+        </span>
+        <span
+          aria-hidden
+          className="w-7 h-7 rounded-lg bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
+        >
+          <Icon className="w-[13px] h-[13px]" aria-hidden />
+        </span>
       </div>
+      <p className="text-[18px] font-bold text-night leading-tight tabular-nums truncate">
+        {value}
+      </p>
     </li>
   );
 }
@@ -383,10 +383,10 @@ function AccountCard({ account }: { account: AccountListItem }) {
   return (
     <Link
       href={`/ads-manager/${account.id}`}
-      className="group block rounded-2xl bg-white border border-line p-4 hover:border-night/30 hover:shadow-soft transition-all"
+      className="group flex flex-col rounded-2xl bg-white border border-line p-4 hover:border-night/30 hover:shadow-soft transition-all min-w-0"
     >
-      <div className="flex items-baseline justify-between gap-2 mb-2">
-        <p className="text-[14.5px] font-bold text-night truncate">
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <p className="text-[14.5px] font-bold text-night truncate min-w-0 flex-1">
           {account.name}
         </p>
         <StatusBadge status={account.status} />
@@ -394,18 +394,18 @@ function AccountCard({ account }: { account: AccountListItem }) {
       <p className="text-[11px] text-night-muted truncate">
         {account.business_legal_name ?? "—"}
       </p>
-      <div className="mt-3 pt-3 border-t border-line flex items-baseline justify-between gap-2">
-        <div>
+      <div className="mt-3 pt-3 border-t border-line flex items-end justify-between gap-2 min-w-0">
+        <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-wider text-night-muted font-bold">
             Solde
           </p>
-          <p className="text-[15px] font-bold text-night leading-none mt-0.5">
+          <p className="text-[15px] font-bold text-night leading-none mt-1 tabular-nums truncate">
             {Number(account.prepaid_balance).toFixed(2)} {account.currency}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {account.role ? (
-            <span className="text-[10px] uppercase tracking-wider font-bold text-night-muted bg-bg-soft px-1.5 py-0.5 rounded">
+            <span className="text-[9.5px] uppercase tracking-wider font-bold text-night-muted bg-bg-soft px-1.5 py-0.5 rounded">
               {labelRole(account.role)}
             </span>
           ) : null}
@@ -435,42 +435,45 @@ function ToolCard({
   return (
     <Link
       href={href}
-      className={`group block rounded-2xl border p-4 transition-all ${
+      className={`group flex items-start gap-3 min-w-0 rounded-2xl border p-4 transition-all ${
         accent
           ? "bg-gold/10 border-gold-deep/30 hover:bg-gold/20"
           : "bg-white border-line hover:border-night/30 hover:shadow-soft"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <span
-          aria-hidden
-          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            accent
-              ? "bg-gold-deep text-cream"
-              : "bg-gold/15 text-gold-deep"
-          }`}
+      <span
+        aria-hidden
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+          accent ? "bg-gold-deep text-cream" : "bg-gold/15 text-gold-deep"
+        }`}
+      >
+        <Icon className="w-[18px] h-[18px]" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-bold text-night flex items-center gap-1 min-w-0">
+          <span className="truncate">{title}</span>
+          {accent ? (
+            <Sparkles
+              className="w-[11px] h-[11px] text-gold-deep shrink-0"
+              aria-hidden
+            />
+          ) : null}
+        </p>
+        <p
+          className="text-[11.5px] text-night-muted leading-snug mt-0.5 overflow-hidden"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+          }}
         >
-          <Icon className="w-[18px] h-[18px]" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-bold text-night flex items-center gap-1">
-            {title}
-            {accent ? (
-              <Sparkles
-                className="w-[11px] h-[11px] text-gold-deep"
-                aria-hidden
-              />
-            ) : null}
-          </p>
-          <p className="text-[11.5px] text-night-muted leading-snug mt-0.5">
-            {description}
-          </p>
-        </div>
-        <ArrowRight
-          className="w-[14px] h-[14px] text-night-muted group-hover:text-night transition-colors shrink-0"
-          aria-hidden
-        />
+          {description}
+        </p>
       </div>
+      <ArrowRight
+        className="w-[14px] h-[14px] text-night-muted group-hover:text-night transition-colors shrink-0 mt-1"
+        aria-hidden
+      />
     </Link>
   );
 }
@@ -627,4 +630,13 @@ function formatCompact(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)} k`;
   return String(n);
+}
+
+/* Format monnaie compact pour les tuiles : 1234.56 → "1.2k", 1500000 → "1.5M".
+   Évite que "12 345,67 EUR" déborde sur les tuiles xl:grid-cols-6. */
+function formatMoneyCompact(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 10_000) return (n / 1_000).toFixed(0) + "k";
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
+  return n.toFixed(0);
 }
