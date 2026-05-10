@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { listFeedPosts } from "@/lib/queries/posts";
 import {
   listFriendsOnlyFeed,
+  listPersonalizedFeed,
   listRankedFeed,
 } from "@/lib/queries/feed";
 import { suggestPeople } from "@/lib/queries/explore";
@@ -68,8 +69,24 @@ export default async function FeedPage({
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
   let posts: PostWithDetails[] = [];
+  /* Map post_id → ranking_metadata pour le tab "for-you", utilisé par
+     <WhyThisPost /> dans chaque PostCard. NULL pour les autres tabs
+     (legacy queries SQL sans signaux explicites). */
+  let rankingByPostId: Awaited<
+    ReturnType<typeof listPersonalizedFeed>
+  >["rankingByPostId"] = new Map();
   if (tab === "for-you") {
-    posts = await listRankedFeed(user.id, 40);
+    /* Utilise le ranker recsys (lib/recsys/ranker) qui produit posts
+       ordonnés + ranking_metadata.primary_signals par post pour la
+       transparence DSA. Fallback sur listRankedFeed (RPC SQL legacy)
+       si le ranker ne retourne rien (cold start, pas de profil). */
+    const personalized = await listPersonalizedFeed(user.id, 30);
+    if (personalized.posts.length > 0) {
+      posts = personalized.posts;
+      rankingByPostId = personalized.rankingByPostId;
+    } else {
+      posts = await listRankedFeed(user.id, 40);
+    }
   } else if (tab === "friends") {
     posts = await listFriendsOnlyFeed(user.id, 30);
   } else {
@@ -182,6 +199,9 @@ export default async function FeedPage({
                       post={post}
                       currentUserId={user.id}
                       hero={index === 0}
+                      rankingSignals={
+                        rankingByPostId.get(post.id)?.primary_signals
+                      }
                     />
                   </li>
                 ))}

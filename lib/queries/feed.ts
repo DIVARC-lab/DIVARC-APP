@@ -271,3 +271,65 @@ export async function listFriendsOnlyFeed(
     is_bookmarked: bookmarkedSet.has(post.id),
   }));
 }
+
+import {
+  rankFeedForUser,
+  type RankingMetadata,
+} from "@/lib/recsys/ranker";
+
+/* listPersonalizedFeed — wrapper qui appelle le ranker recsys (étapes
+ * 8/13/14) puis hydrate les posts via les queries existantes.
+ *
+ * Usage : sur le feed page (server component) pour le tab "for-you".
+ * Retourne posts en ordre du ranker + ranking_metadata par post pour
+ * alimenter <WhyThisPost />. */
+export async function listPersonalizedFeed(
+  currentUserId: string,
+  limit: number = 15,
+): Promise<{
+  posts: PostWithDetails[];
+  rankingByPostId: Map<string, RankingMetadata>;
+  nextCursor: string | null;
+}> {
+  const supabase = await createClient();
+  const { items, nextCursor } = await rankFeedForUser(
+    supabase,
+    currentUserId,
+    { limit },
+  );
+
+  if (items.length === 0) {
+    return { posts: [], rankingByPostId: new Map(), nextCursor };
+  }
+
+  const postIds = items.map((i) => i.post_id);
+  /* Récupère les posts complets (auteur, photos, counts, is_liked, etc.)
+     via une query similaire à listFeedPosts mais filtrée sur les ids
+     retournés par le ranker. */
+  const { data: rawPosts } = await supabase
+    .from("posts")
+    .select(
+      "id, author_id, body, visibility, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height, circle_id, pinned_at, pinned_by, created_at, updated_at, edited_at, deleted_at",
+    )
+    .in("id", postIds)
+    .is("deleted_at", null);
+
+  if (!rawPosts) {
+    return { posts: [], rankingByPostId: new Map(), nextCursor };
+  }
+
+  const enriched = await attachPhotos(rawPosts as Post[], new Map(), currentUserId);
+
+  /* Préserve l'ordre du ranker (vs ordre arbitraire de la query .in). */
+  const orderById = new Map(items.map((it, idx) => [it.post_id, idx]));
+  enriched.sort(
+    (a, b) =>
+      (orderById.get(a.id) ?? 999) - (orderById.get(b.id) ?? 999),
+  );
+
+  const rankingByPostId = new Map(
+    items.map((i) => [i.post_id, i.ranking_metadata]),
+  );
+
+  return { posts: enriched, rankingByPostId, nextCursor };
+}
