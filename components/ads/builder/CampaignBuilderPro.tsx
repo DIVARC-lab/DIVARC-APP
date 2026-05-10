@@ -25,6 +25,7 @@ import {
 import { MediaSourcePanel } from "@/components/ads/builder/MediaSourcePanel";
 import { OptimizationBuilder } from "@/components/ads/builder/OptimizationBuilder";
 import { PlacementsBuilder } from "@/components/ads/builder/PlacementsBuilder";
+import { ReviewBuilder } from "@/components/ads/builder/ReviewBuilder";
 import { createFullCampaign } from "@/app/(app)/ads-manager/[accountId]/campaigns/new/actions";
 import {
   ALWAYS_FORBIDDEN_AD_CATEGORIES,
@@ -412,8 +413,12 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
       } catch {
         /* Ignore quota errors silently. */
       }
-      toast.success("Campagne créée. En attente de revue conformité.");
-      router.push(`/ads-manager/${accountId}`);
+      toast.success(
+        "Campagne créée ! Conformité en cours — diffusion dès validation.",
+        { duration: 5000 },
+      );
+      /* Redirect direct vers la page détail campagne pour suivi statut. */
+      router.push(`/ads-manager/${accountId}/campaigns/${result.campaign_id}`);
     });
   }
 
@@ -477,11 +482,18 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
           ) : null}
 
           {step === "review" ? (
-            <ReviewStep
+            <ReviewBuilder
               form={form}
+              advancedConfig={advancedConfig}
               currency={currency}
               objectiveDef={objectiveDef}
               estimatedAudience={audienceEstimate}
+              validationErrors={targetingValidation.errors}
+              validationWarnings={targetingValidation.warnings}
+              onJumpToStep={(s) => {
+                setStep(s);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             />
           ) : null}
 
