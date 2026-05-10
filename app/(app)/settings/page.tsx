@@ -71,8 +71,8 @@ export default async function SettingsPage() {
     {
       icon: Bell,
       label: "Notifications",
-      sub: "Tout activé · son désactivé la nuit",
-      href: "/profile?tab=preferences",
+      sub: "Choisis ce que tu reçois — par catégorie",
+      href: "/settings/notifications",
     },
     {
       icon: MessageSquareText,

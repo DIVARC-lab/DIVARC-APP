@@ -1374,6 +1374,20 @@ export type NotificationWithActor = Notification & {
   actor: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
+/* V3.5 — user_notification_preferences (migration 0057). 1 row par user,
+   opt-out granulaire par catégorie. */
+export type UserNotificationPreferences = {
+  user_id: string;
+  friend_requests: boolean;
+  messages: boolean;
+  mentions: boolean;
+  likes: boolean;
+  comments: boolean;
+  moderation: boolean;
+  system: boolean;
+  updated_at: string;
+};
+
 export type Friendship = {
   id: string;
   requester_id: string;
@@ -2501,6 +2515,15 @@ export type Database = {
             >
           >;
         Update: Partial<Pick<Notification, "read_at">>;
+        Relationships: [];
+      };
+      user_notification_preferences: {
+        Row: UserNotificationPreferences;
+        Insert: Pick<UserNotificationPreferences, "user_id"> &
+          Partial<
+            Omit<UserNotificationPreferences, "user_id">
+          >;
+        Update: Partial<Omit<UserNotificationPreferences, "user_id">>;
         Relationships: [];
       };
       listings: {
@@ -4198,6 +4221,22 @@ export type Database = {
       accept_listing_offer: {
         Args: { offer_id: string };
         Returns: void;
+      };
+      get_notification_preferences: {
+        Args: Record<string, never>;
+        Returns: UserNotificationPreferences;
+      };
+      mark_reel_notifications_read: {
+        Args: { reel_id: string };
+        Returns: void;
+      };
+      mark_post_notifications_read: {
+        Args: { post_id: string };
+        Returns: void;
+      };
+      should_notify_user: {
+        Args: { target_user_id: string; notif_type: string };
+        Returns: boolean;
       };
       create_payout_request: {
         Args: {
