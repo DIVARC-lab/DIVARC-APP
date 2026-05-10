@@ -1,4 +1,4 @@
-import { BarChart3, Code2, Filter, Plus, TrendingUp } from "lucide-react";
+import { BarChart3, Code2, Filter, Plus, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
@@ -67,6 +67,13 @@ export default async function AdAccountDashboard({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={`/ads-manager/${accountId}/events`}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-line text-[13px] font-semibold text-night hover:bg-bg-soft"
+          >
+            <Zap className="w-4 h-4" aria-hidden />
+            Events
+          </Link>
           <Link
             href={`/ads-manager/${accountId}/funnel`}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-line text-[13px] font-semibold text-night hover:bg-bg-soft"
