@@ -292,19 +292,21 @@ function Kpi({
   icon: typeof Eye;
 }) {
   return (
-    <div className="rounded-2xl bg-white border border-line p-3">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="rounded-2xl bg-white border border-line p-3 min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
+        <span className="text-[10px] uppercase tracking-wider text-night-muted font-bold truncate">
+          {label}
+        </span>
         <span
           aria-hidden
-          className="w-7 h-7 rounded-lg bg-gold/15 text-gold-deep flex items-center justify-center"
+          className="w-7 h-7 rounded-lg bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
         >
           <Icon className="w-3.5 h-3.5" aria-hidden />
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-night-muted font-bold">
-          {label}
-        </span>
       </div>
-      <p className="text-[20px] font-bold text-night leading-tight">{value}</p>
+      <p className="text-[20px] font-bold text-night leading-tight tabular-nums truncate">
+        {value}
+      </p>
     </div>
   );
 }

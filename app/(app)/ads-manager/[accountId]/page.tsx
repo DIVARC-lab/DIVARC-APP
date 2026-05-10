@@ -215,21 +215,21 @@ function Stat({
   icon: typeof TrendingUp;
 }) {
   return (
-    <li className="rounded-2xl bg-white border border-line px-4 py-3 flex items-center gap-3">
-      <span
-        aria-hidden
-        className="w-9 h-9 rounded-xl bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
-      >
-        <Icon className="w-[16px] h-[16px]" aria-hidden />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[10.5px] uppercase tracking-wider text-night-muted">
+    <li className="rounded-2xl bg-white border border-line p-3 flex flex-col gap-2 min-w-0">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="text-[10px] uppercase tracking-wider text-night-muted font-bold truncate">
           {label}
-        </p>
-        <p className="text-[16px] font-bold text-night leading-tight">
-          {value}
-        </p>
+        </span>
+        <span
+          aria-hidden
+          className="w-7 h-7 rounded-lg bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
+        >
+          <Icon className="w-[13px] h-[13px]" aria-hidden />
+        </span>
       </div>
+      <p className="text-[18px] font-bold text-night leading-tight tabular-nums truncate">
+        {value}
+      </p>
     </li>
   );
 }
