@@ -590,6 +590,8 @@ export type Reel = {
   /* V3.8 — mode Duo (migration 0060). */
   duet_source_reel_id: string | null;
   duet_layout: ReelDuetLayout | null;
+  /* V3.9 — stickers jsonb (migration 0061), parsé via parseStickers(). */
+  stickers: unknown;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

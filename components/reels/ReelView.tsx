@@ -25,6 +25,12 @@ import {
   parseOverlays,
   type TextOverlay,
 } from "@/lib/reels/textOverlays";
+import {
+  getActiveStickers,
+  parseStickers,
+  STICKER_BASE_SIZE_PX,
+  type Sticker,
+} from "@/lib/reels/stickers";
 import type { ReelWithDetails } from "@/lib/database.types";
 
 /* ReelView — un reel individuel dans le feed Reels.
@@ -74,6 +80,15 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const activeOverlays = useMemo(
     () => getActiveOverlays(overlays, currentTime),
     [overlays, currentTime],
+  );
+  /* V3.9 — stickers parsés et filtrés par currentTime. */
+  const stickers = useMemo<Sticker[]>(
+    () => parseStickers(reel.stickers),
+    [reel.stickers],
+  );
+  const activeStickers = useMemo(
+    () => getActiveStickers(stickers, currentTime),
+    [stickers, currentTime],
   );
   const reachedEndRef = useRef(false);
   const replayCountRef = useRef(0);
@@ -352,6 +367,45 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
           loop
           className="sr-only"
         />
+      ) : null}
+
+      {/* Stickers V3.9 — synchronisés avec currentTime, pointer-events none. */}
+      {activeStickers.length > 0 ? (
+        <div className="pointer-events-none absolute inset-0">
+          {activeStickers.map((s) => {
+            const size = STICKER_BASE_SIZE_PX * s.scale;
+            return (
+              <div
+                key={s.id}
+                className="absolute flex items-center justify-center"
+                style={{
+                  left: `${s.x_pct}%`,
+                  top: `${s.y_pct}%`,
+                  width: size,
+                  height: size,
+                  transform: `translate(-50%, -50%) rotate(${s.rotation_deg}deg)`,
+                }}
+              >
+                {s.kind === "emoji" ? (
+                  <span
+                    aria-hidden
+                    style={{ fontSize: size * 0.85, lineHeight: 1 }}
+                  >
+                    {s.content}
+                  </span>
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={s.content}
+                    alt=""
+                    draggable={false}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : null}
 
       {/* Text overlays V3.6 — synchronisés avec currentTime. Pointer-events

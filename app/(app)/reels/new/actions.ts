@@ -46,6 +46,22 @@ const reelInputSchema = z.object({
   voiceover_volume: z.number().min(0).max(1).default(1),
   duet_source_reel_id: z.string().uuid().optional().nullable(),
   duet_layout: z.enum(["right", "left", "top", "bottom"]).optional().nullable(),
+  stickers: z
+    .array(
+      z.object({
+        id: z.string(),
+        kind: z.enum(["emoji", "image"]),
+        content: z.string().min(1).max(500),
+        start_s: z.number().min(0),
+        end_s: z.number().positive(),
+        x_pct: z.number().min(0).max(100),
+        y_pct: z.number().min(0).max(100),
+        scale: z.number().min(0.2).max(3),
+        rotation_deg: z.number().min(-180).max(180),
+      }),
+    )
+    .max(10)
+    .default([]),
 });
 
 export type CreateReelResult =
@@ -127,6 +143,7 @@ export async function createReel(
       voiceover_volume: data.voiceover_volume,
       duet_source_reel_id: data.duet_source_reel_id ?? null,
       duet_layout: data.duet_layout ?? null,
+      stickers: data.stickers,
     })
     .select("id")
     .single();

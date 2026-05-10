@@ -21,8 +21,10 @@ import {
   SoundLibrary,
   type SoundLibraryItem,
 } from "@/components/reels/SoundLibrary";
+import { StickersEditor } from "@/components/reels/StickersEditor";
 import { TextOverlaysEditor } from "@/components/reels/TextOverlaysEditor";
 import { VoiceoverRecorder } from "@/components/reels/VoiceoverRecorder";
+import type { Sticker } from "@/lib/reels/stickers";
 import type { TextOverlay } from "@/lib/reels/textOverlays";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -108,6 +110,8 @@ export function ReelCreator({
   const [videoVolume, setVideoVolume] = useState(1.0);
   const [voiceoverVolume, setVoiceoverVolume] = useState(1.0);
   const [voiceoverOpen, setVoiceoverOpen] = useState(false);
+  const [stickers, setStickers] = useState<Sticker[]>([]);
+  const [stickersOpen, setStickersOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
@@ -266,6 +270,7 @@ export function ReelCreator({
         voiceover_volume: voiceoverVolume,
         duet_source_reel_id: duetSource?.reelId ?? null,
         duet_layout: duetSource?.layout ?? null,
+        stickers,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -374,6 +379,8 @@ export function ReelCreator({
           onOpenTextEditor={() => setTextEditorOpen(true)}
           hasVoiceover={voiceoverUrl !== null}
           onOpenVoiceover={() => setVoiceoverOpen(true)}
+          stickersCount={stickers.length}
+          onOpenStickers={() => setStickersOpen(true)}
         />
       ) : null}
 
@@ -411,6 +418,16 @@ export function ReelCreator({
             setVoiceoverVolume(state.voiceover_volume);
           }}
           onClose={() => setVoiceoverOpen(false)}
+        />
+      ) : null}
+
+      {stickersOpen && video ? (
+        <StickersEditor
+          videoUrl={video.url}
+          durationSeconds={video.duration_seconds}
+          initial={stickers}
+          onApply={setStickers}
+          onClose={() => setStickersOpen(false)}
         />
       ) : null}
     </div>
@@ -510,6 +527,8 @@ function ComposeStep({
   onOpenTextEditor,
   hasVoiceover,
   onOpenVoiceover,
+  stickersCount,
+  onOpenStickers,
 }: {
   video: UploadedVideo;
   description: string;
@@ -531,6 +550,8 @@ function ComposeStep({
   onOpenTextEditor: () => void;
   hasVoiceover: boolean;
   onOpenVoiceover: () => void;
+  stickersCount: number;
+  onOpenStickers: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
@@ -647,6 +668,35 @@ function ComposeStep({
           </div>
           <span className="text-[11px] font-bold text-gold shrink-0">
             {textOverlaysCount > 0 ? "Éditer" : "Ouvrir"}
+          </span>
+        </button>
+
+        {/* Stickers — opens StickersEditor */}
+        <button
+          type="button"
+          onClick={onOpenStickers}
+          className={cn(
+            "w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left",
+            stickersCount > 0
+              ? "bg-cream/5 border-cream/10 hover:border-cream/30"
+              : "bg-cream/5 border-dashed border-cream/30 hover:border-cream/60",
+          )}
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <span aria-hidden className="text-[16px]">🎨</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-cream">
+              {stickersCount > 0
+                ? `${stickersCount} sticker${stickersCount > 1 ? "s" : ""}`
+                : "Ajouter des stickers"}
+            </p>
+            <p className="text-[11px] text-cream/60">
+              Emojis · drag, pinch, rotate
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            {stickersCount > 0 ? "Éditer" : "Ouvrir"}
           </span>
         </button>
 
