@@ -167,6 +167,50 @@ export function LeftSidebar({
           />
         ))}
 
+        {/* CTA Ads Manager — toujours visible, style proéminent gold. */}
+        <Link
+          href="/ads-manager"
+          className={cn(
+            "flex items-center gap-3 px-2 h-12 rounded-lg my-1 transition-colors group",
+            pathname.startsWith("/ads-manager")
+              ? "bg-night text-cream"
+              : "bg-gold/15 hover:bg-gold/25 text-night",
+          )}
+        >
+          <span
+            className={cn(
+              "w-9 h-9 rounded-full flex items-center justify-center shrink-0",
+              pathname.startsWith("/ads-manager")
+                ? "bg-cream/15 text-cream"
+                : "bg-gold-deep text-cream",
+            )}
+          >
+            <Megaphone className="w-[18px] h-[18px]" aria-hidden />
+          </span>
+          <span className="flex flex-col min-w-0">
+            <span
+              className={cn(
+                "font-semibold text-[14px] truncate leading-tight",
+                pathname.startsWith("/ads-manager")
+                  ? "text-cream"
+                  : "text-night",
+              )}
+            >
+              Ads Manager
+            </span>
+            <span
+              className={cn(
+                "text-[10.5px] uppercase tracking-wider font-bold leading-tight",
+                pathname.startsWith("/ads-manager")
+                  ? "text-cream/70"
+                  : "text-gold-deep",
+              )}
+            >
+              · Créer une pub
+            </span>
+          </span>
+        </Link>
+
         {/* Bouton Voir plus / Voir moins */}
         <button
           type="button"
