@@ -6,6 +6,13 @@ import type {
   ReelWithDetails,
   Sound,
 } from "@/lib/database.types";
+import {
+  computeAffinityFromViews,
+  diversifyByAuthor,
+  isColdStart,
+  rankByPopularity,
+  rankReels,
+} from "@/lib/reels/forYouRanking";
 
 const MIGRATION_MISSING_CODE = "42P01";
 
@@ -81,9 +88,15 @@ async function attachReelDetails(
 }
 
 /* Liste les reels du feed "Pour toi" (For You).
- * Heuristique V1 : reels publics récents, exclut les reels déjà vus
- * par l'user dans les 24h, alterne créateurs (anti-bulle).
- * V2 : utilise recsys_events + sound_graph + watch_time. */
+ *
+ * V2 ranking ML : calcule un AffinityProfile à partir des reel_views
+ * de l'user (last 30j) → score chaque candidat sur 6 signaux :
+ *   creator affinity, sound affinity, hashtag affinity, engagement
+ *   velocity, recency, skip penalty. Cold start (< 5 views historiques) :
+ *   fallback sur popularité globale (likes + saves + plays).
+ *
+ * Toutes les heuristiques V1 sont préservées : exclusion vues 24h,
+ * diversification créateur (anti-bulle), pagination via beforeCreatedAt. */
 export async function listForYouReels(
   currentUserId: string | null,
   limit: number = 20,
@@ -91,7 +104,7 @@ export async function listForYouReels(
 ): Promise<ReelWithDetails[]> {
   const supabase = await createClient();
 
-  /* Reels vus dans les 24h dernières — pour les exclure. */
+  /* 1. Reels vus dans les 24h dernières — exclus du candidate set. */
   let excludedIds: string[] = [];
   if (currentUserId) {
     const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -106,6 +119,7 @@ export async function listForYouReels(
     );
   }
 
+  /* 2. Candidate set : 4× limit pour avoir matière à scorer. */
   let query = supabase
     .from("reels")
     .select("*")
@@ -114,13 +128,12 @@ export async function listForYouReels(
     .eq("moderation_status", "approved")
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(limit * 2); /* fetch double pour filtrer + diversifier */
+    .limit(limit * 4);
 
   if (beforeCreatedAt) {
     query = query.lt("created_at", beforeCreatedAt);
   }
   if (excludedIds.length > 0) {
-    /* PostgREST not().in() */
     query = query.not("id", "in", `(${excludedIds.join(",")})`);
   }
 
@@ -132,9 +145,54 @@ export async function listForYouReels(
     return [];
   }
   if (!data) return [];
+  const candidates = data as Reel[];
 
-  /* Diversification créateur : max 1 reel consécutif par auteur. */
-  const diversified = diversifyByAuthor(data as Reel[]);
+  /* 3. Compute affinity profile (last 30j signals).
+   *    - Cold start si pas d'user OU < 5 views : fallback popularité. */
+  let ranked: Reel[];
+  if (currentUserId) {
+    const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const { data: views } = await supabase
+      .from("reel_views")
+      .select(
+        "reel_id, watch_ms, completed_pct, skipped, did_like, did_save, did_share, did_comment",
+      )
+      .eq("user_id", currentUserId)
+      .gte("viewed_at", since30d)
+      .limit(500);
+
+    /* Hydrate les metas des reels vus pour calculer les affinités. */
+    const viewedReelIds = Array.from(
+      new Set(((views ?? []) as Array<{ reel_id: string }>).map((v) => v.reel_id)),
+    );
+    let viewedMetas: Array<{
+      id: string;
+      author_id: string;
+      sound_id: string | null;
+      hashtags: string[];
+    }> = [];
+    if (viewedReelIds.length > 0) {
+      const { data: metas } = await supabase
+        .from("reels")
+        .select("id, author_id, sound_id, hashtags")
+        .in("id", viewedReelIds);
+      viewedMetas = (metas ?? []) as typeof viewedMetas;
+    }
+
+    const profile = computeAffinityFromViews(
+      (views ?? []) as Parameters<typeof computeAffinityFromViews>[0],
+      viewedMetas,
+    );
+
+    ranked = isColdStart(profile)
+      ? rankByPopularity(candidates)
+      : rankReels(candidates, profile);
+  } else {
+    ranked = rankByPopularity(candidates);
+  }
+
+  /* 4. Diversification anti-bulle : max 1 reel consec par auteur. */
+  const diversified = diversifyByAuthor(ranked);
   return attachReelDetails(diversified.slice(0, limit), currentUserId);
 }
 
@@ -241,19 +299,5 @@ export async function listReelsBySound(
   return attachReelDetails(data as Reel[], currentUserId);
 }
 
-/* Diversification : alterne les auteurs pour éviter d'avoir 5 reels
- * du même créateur d'affilée. */
-function diversifyByAuthor(reels: Reel[]): Reel[] {
-  if (reels.length <= 2) return reels;
-  const result: Reel[] = [];
-  const remaining = [...reels];
-  let lastAuthor: string | null = null;
-  while (remaining.length > 0) {
-    const idx = remaining.findIndex((r) => r.author_id !== lastAuthor);
-    const pickIdx = idx >= 0 ? idx : 0;
-    const picked = remaining.splice(pickIdx, 1)[0]!;
-    result.push(picked);
-    lastAuthor = picked.author_id;
-  }
-  return result;
-}
+/* `diversifyByAuthor` déplacé dans lib/reels/forYouRanking.ts (import en
+ * tête) — partagé avec le scoring engine. */
