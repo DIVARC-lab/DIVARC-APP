@@ -1,4 +1,11 @@
-import { ArrowLeft, BarChart3, Clock, Download } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  ChevronRight,
+  Clock,
+  Download,
+  ScrollText,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
@@ -74,6 +81,31 @@ export default async function AlgorithmSettingsPage() {
             efface ton profil quand tu veux.
           </p>
         </header>
+
+        {/* Lien transparence DSA art. 27 — détaille les critères du ranker
+            avec leurs poids réels + agrégats personnels. */}
+        <section className="px-5 sm:px-8 pb-4">
+          <Link
+            href="/settings/algorithm/transparency"
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-white border border-line hover:bg-bg-soft transition-colors"
+          >
+            <span
+              aria-hidden
+              className="w-10 h-10 rounded-xl bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
+            >
+              <ScrollText className="w-5 h-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-night">
+                Comment ton feed est trié
+              </p>
+              <p className="text-[12px] text-night-muted">
+                Critères, poids, garde-fous · transparence DSA art. 27
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-night-dim" aria-hidden />
+          </Link>
+        </section>
 
         {/* Stats du profil actuel */}
         {profile ? (
