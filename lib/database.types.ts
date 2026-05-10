@@ -56,6 +56,17 @@ export type Profile = {
   intro_video_duration_ms: number | null;
   intro_video_uploaded_at: string | null;
   interests: string[];
+  /* Trust & Safety (migration 0047) */
+  email_verified_at: string | null;
+  phone_verified_at: string | null;
+  phone_number: string | null;
+  identity_verified_at: string | null;
+  identity_verification_provider: string | null;
+  warnings_count: number;
+  content_removed_count: number;
+  timeouts_received: number;
+  trust_score: number;
+  trust_score_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -1161,6 +1172,258 @@ export type ConversationListItem = {
   } | null;
 };
 
+/* ========================================================================
+ * Trust & Safety / Modération (migrations 0046 + 0047)
+ * ======================================================================== */
+
+export type ModerationTargetType =
+  | "post"
+  | "comment"
+  | "user"
+  | "message"
+  | "listing"
+  | "story"
+  | "job"
+  | "listing_offer";
+
+export type ModerationCategory =
+  | "hate_speech"
+  | "harassment"
+  | "violence"
+  | "nudity_sexual"
+  | "child_safety"
+  | "self_harm"
+  | "spam"
+  | "scam_fraud"
+  | "impersonation"
+  | "intellectual_property"
+  | "privacy"
+  | "illegal_activity"
+  | "other";
+
+export type ModerationReportStatus =
+  | "pending"
+  | "triaging"
+  | "under_review"
+  | "actioned"
+  | "dismissed"
+  | "duplicate";
+
+export type ModerationActionType =
+  | "no_action"
+  | "warn"
+  | "hide"
+  | "delete"
+  | "restrict_24h"
+  | "restrict_7d"
+  | "restrict_30d"
+  | "suspend"
+  | "ban_permanent"
+  | "escalate"
+  | "authority_report";
+
+export type ModerationAppealStatus =
+  | "pending"
+  | "assigned"
+  | "accepted"
+  | "rejected"
+  | "escalated_external";
+
+export type SanctionType = "warning" | "readonly" | "suspended" | "banned";
+
+export type ModerationReport = {
+  id: string;
+  reporter_id: string;
+  target_type: ModerationTargetType;
+  target_post_id: string | null;
+  target_comment_id: string | null;
+  target_user_id: string | null;
+  target_message_id: string | null;
+  target_listing_id: string | null;
+  target_story_id: string | null;
+  target_job_id: string | null;
+  category: ModerationCategory;
+  subcategory: string | null;
+  description: string | null;
+  evidence_urls: string[];
+  reporter_ip: string | null;
+  reporter_user_agent: string | null;
+  status: ModerationReportStatus;
+  priority_score: number;
+  assigned_moderator_id: string | null;
+  assigned_at: string | null;
+  resolved_at: string | null;
+  resolution_action_id: string | null;
+  created_at: string;
+};
+
+export type ModerationAction = {
+  id: string;
+  moderator_id: string | null;
+  is_automated: boolean;
+  target_type: ModerationTargetType;
+  target_post_id: string | null;
+  target_comment_id: string | null;
+  target_user_id: string | null;
+  target_message_id: string | null;
+  target_listing_id: string | null;
+  target_story_id: string | null;
+  target_job_id: string | null;
+  action: ModerationActionType;
+  category: ModerationCategory;
+  reason_internal: string | null;
+  reason_user: string;
+  legal_basis: string | null;
+  content_snapshot: Record<string, unknown>;
+  ml_scores: Record<string, unknown> | null;
+  reports_referenced: string[];
+  appealable: boolean;
+  appeal_deadline: string | null;
+  created_at: string;
+};
+
+export type ModerationAppeal = {
+  id: string;
+  action_id: string;
+  appellant_id: string;
+  user_explanation: string;
+  additional_evidence_urls: string[];
+  status: ModerationAppealStatus;
+  assigned_moderator_id: string | null;
+  resolution_note: string | null;
+  resolution_action_id: string | null;
+  resolved_at: string | null;
+  sla_deadline: string;
+  created_at: string;
+};
+
+export type UserSanction = {
+  id: string;
+  user_id: string;
+  level: number;
+  type: SanctionType;
+  reason: string;
+  source_action_id: string | null;
+  starts_at: string;
+  expires_at: string | null;
+  is_active: boolean;
+  lifted_at: string | null;
+  lifted_reason: string | null;
+  created_at: string;
+};
+
+export type TrustedFlagger = {
+  id: string;
+  user_id: string | null;
+  organization_name: string | null;
+  contact_email: string;
+  expertise_categories: string[];
+  awarded_by: string | null;
+  awarded_at: string | null;
+  is_active: boolean;
+  reports_submitted: number;
+  reports_actioned: number;
+  precision_rate: number | null;
+  created_at: string;
+};
+
+export type ModerationQueueJobType =
+  | "preflight_text"
+  | "preflight_image"
+  | "deep_scan"
+  | "behavioral_check"
+  | "csam_scan"
+  | "review_handoff"
+  | "appeal_handoff";
+
+export type ModerationQueueItem = {
+  id: string;
+  job_type: ModerationQueueJobType;
+  payload: Record<string, unknown>;
+  priority: number;
+  status: "queued" | "running" | "done" | "failed" | "dead_letter";
+  attempts: number;
+  max_attempts: number;
+  scheduled_for: string;
+  picked_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+  created_at: string;
+};
+
+export type ModerationKnownHash = {
+  id: string;
+  hash: string;
+  hash_type: "sha256" | "phash" | "blockhash" | "photodna";
+  category: string;
+  source_action_id: string | null;
+  added_by: string | null;
+  created_at: string;
+  is_active: boolean;
+};
+
+export type ModerationTextCacheRow = {
+  text_hash: string;
+  scan_result: Record<string, unknown>;
+  detected_categories: string[];
+  highest_score: number;
+  scanned_at: string;
+};
+
+export type ModerationImageCacheRow = {
+  image_hash: string;
+  phash: string | null;
+  scan_result: Record<string, unknown>;
+  nsfw_score: number | null;
+  violence_score: number | null;
+  csam_match: boolean;
+  scanned_at: string;
+};
+
+export type ModerationCriticalIncident = {
+  id: string;
+  incident_type: "csam" | "terrorism" | "imminent_violence" | "revenge_porn";
+  evidence_storage_path: string;
+  evidence_metadata: Record<string, unknown>;
+  perpetrator_user_id: string | null;
+  perpetrator_email: string | null;
+  perpetrator_ip: string | null;
+  ncmec_submitted_at: string | null;
+  ncmec_report_id: string | null;
+  pharos_submitted_at: string | null;
+  pharos_reference: string | null;
+  detected_by: "photodna" | "user_report" | "moderator" | "external_api";
+  status: "detected" | "authorities_notified" | "closed";
+  closed_at: string | null;
+  created_at: string;
+};
+
+export type LegalDataRequest = {
+  id: string;
+  request_type:
+    | "judicial"
+    | "administrative"
+    | "dpa"
+    | "court_order"
+    | "urgent_life_at_risk";
+  authority_name: string;
+  authority_reference: string | null;
+  contact_email: string;
+  target_user_id: string | null;
+  target_scope: string;
+  scope_details: Record<string, unknown> | null;
+  sla_deadline: string;
+  legal_basis: string;
+  received_at: string;
+  acknowledged_at: string | null;
+  responded_at: string | null;
+  response_payload_path: string | null;
+  handled_by: string | null;
+  status: "received" | "validated" | "responded" | "rejected" | "withdrawn";
+  rejection_reason: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -1995,6 +2258,299 @@ export type Database = {
         >;
         Relationships: [];
       };
+      /* ===== Trust & Safety (migrations 0046 + 0047) ===== */
+      moderation_reports: {
+        Row: ModerationReport;
+        Insert: Pick<
+          ModerationReport,
+          "reporter_id" | "target_type" | "category"
+        > &
+          Partial<
+            Pick<
+              ModerationReport,
+              | "id"
+              | "target_post_id"
+              | "target_comment_id"
+              | "target_user_id"
+              | "target_message_id"
+              | "target_listing_id"
+              | "target_story_id"
+              | "target_job_id"
+              | "subcategory"
+              | "description"
+              | "evidence_urls"
+              | "reporter_ip"
+              | "reporter_user_agent"
+              | "status"
+              | "priority_score"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ModerationReport,
+            | "status"
+            | "priority_score"
+            | "assigned_moderator_id"
+            | "assigned_at"
+            | "resolved_at"
+            | "resolution_action_id"
+          >
+        >;
+        Relationships: [];
+      };
+      moderation_actions: {
+        Row: ModerationAction;
+        Insert: Pick<
+          ModerationAction,
+          | "target_type"
+          | "action"
+          | "category"
+          | "reason_user"
+          | "content_snapshot"
+        > &
+          Partial<
+            Pick<
+              ModerationAction,
+              | "id"
+              | "moderator_id"
+              | "is_automated"
+              | "target_post_id"
+              | "target_comment_id"
+              | "target_user_id"
+              | "target_message_id"
+              | "target_listing_id"
+              | "target_story_id"
+              | "target_job_id"
+              | "reason_internal"
+              | "legal_basis"
+              | "ml_scores"
+              | "reports_referenced"
+              | "appealable"
+              | "appeal_deadline"
+              | "created_at"
+            >
+          >;
+        /* Updates bloqués par trigger immutabilité — typage never. */
+        Update: never;
+        Relationships: [];
+      };
+      moderation_appeals: {
+        Row: ModerationAppeal;
+        Insert: Pick<
+          ModerationAppeal,
+          "action_id" | "appellant_id" | "user_explanation" | "sla_deadline"
+        > &
+          Partial<
+            Pick<
+              ModerationAppeal,
+              | "id"
+              | "additional_evidence_urls"
+              | "status"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ModerationAppeal,
+            | "status"
+            | "assigned_moderator_id"
+            | "resolution_note"
+            | "resolution_action_id"
+            | "resolved_at"
+          >
+        >;
+        Relationships: [];
+      };
+      user_sanctions: {
+        Row: UserSanction;
+        Insert: Pick<UserSanction, "user_id" | "level" | "type" | "reason"> &
+          Partial<
+            Pick<
+              UserSanction,
+              | "id"
+              | "source_action_id"
+              | "starts_at"
+              | "expires_at"
+              | "is_active"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<UserSanction, "is_active" | "lifted_at" | "lifted_reason">
+        >;
+        Relationships: [];
+      };
+      trusted_flaggers: {
+        Row: TrustedFlagger;
+        Insert: Pick<TrustedFlagger, "contact_email"> &
+          Partial<
+            Pick<
+              TrustedFlagger,
+              | "id"
+              | "user_id"
+              | "organization_name"
+              | "expertise_categories"
+              | "awarded_by"
+              | "awarded_at"
+              | "is_active"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            TrustedFlagger,
+            | "is_active"
+            | "expertise_categories"
+            | "reports_submitted"
+            | "reports_actioned"
+            | "precision_rate"
+          >
+        >;
+        Relationships: [];
+      };
+      moderation_queue: {
+        Row: ModerationQueueItem;
+        Insert: Pick<ModerationQueueItem, "job_type" | "payload"> &
+          Partial<
+            Pick<
+              ModerationQueueItem,
+              | "id"
+              | "priority"
+              | "status"
+              | "attempts"
+              | "max_attempts"
+              | "scheduled_for"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ModerationQueueItem,
+            | "status"
+            | "attempts"
+            | "picked_at"
+            | "completed_at"
+            | "error_message"
+          >
+        >;
+        Relationships: [];
+      };
+      moderation_known_hashes: {
+        Row: ModerationKnownHash;
+        Insert: Pick<ModerationKnownHash, "hash" | "hash_type" | "category"> &
+          Partial<
+            Pick<
+              ModerationKnownHash,
+              "id" | "source_action_id" | "added_by" | "is_active" | "created_at"
+            >
+          >;
+        Update: Partial<Pick<ModerationKnownHash, "is_active" | "category">>;
+        Relationships: [];
+      };
+      moderation_text_cache: {
+        Row: ModerationTextCacheRow;
+        Insert: Pick<
+          ModerationTextCacheRow,
+          "text_hash" | "scan_result" | "highest_score"
+        > &
+          Partial<
+            Pick<
+              ModerationTextCacheRow,
+              "detected_categories" | "scanned_at"
+            >
+          >;
+        Update: never;
+        Relationships: [];
+      };
+      moderation_image_cache: {
+        Row: ModerationImageCacheRow;
+        Insert: Pick<
+          ModerationImageCacheRow,
+          "image_hash" | "scan_result"
+        > &
+          Partial<
+            Pick<
+              ModerationImageCacheRow,
+              | "phash"
+              | "nsfw_score"
+              | "violence_score"
+              | "csam_match"
+              | "scanned_at"
+            >
+          >;
+        Update: never;
+        Relationships: [];
+      };
+      moderation_critical_incidents: {
+        Row: ModerationCriticalIncident;
+        Insert: Pick<
+          ModerationCriticalIncident,
+          | "incident_type"
+          | "evidence_storage_path"
+          | "evidence_metadata"
+          | "detected_by"
+        > &
+          Partial<
+            Pick<
+              ModerationCriticalIncident,
+              | "id"
+              | "perpetrator_user_id"
+              | "perpetrator_email"
+              | "perpetrator_ip"
+              | "status"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ModerationCriticalIncident,
+            | "ncmec_submitted_at"
+            | "ncmec_report_id"
+            | "pharos_submitted_at"
+            | "pharos_reference"
+            | "status"
+            | "closed_at"
+          >
+        >;
+        Relationships: [];
+      };
+      legal_data_requests: {
+        Row: LegalDataRequest;
+        Insert: Pick<
+          LegalDataRequest,
+          | "request_type"
+          | "authority_name"
+          | "contact_email"
+          | "target_scope"
+          | "sla_deadline"
+          | "legal_basis"
+        > &
+          Partial<
+            Pick<
+              LegalDataRequest,
+              | "id"
+              | "authority_reference"
+              | "target_user_id"
+              | "scope_details"
+              | "received_at"
+              | "status"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            LegalDataRequest,
+            | "acknowledged_at"
+            | "responded_at"
+            | "response_payload_path"
+            | "handled_by"
+            | "status"
+            | "rejection_reason"
+          >
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       /* Vue matérialisée — migration 0043_post_engagement_stats.sql.
@@ -2057,6 +2613,36 @@ export type Database = {
       refresh_post_engagement_stats: {
         Args: Record<string, never>;
         Returns: void;
+      };
+      compute_report_priority_score: {
+        Args: {
+          p_category: string;
+          p_reporter_id: string;
+          p_target_user_id: string | null;
+          p_target_post_id: string | null;
+        };
+        Returns: number;
+      };
+      recalculate_trust_score: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      apply_sanction: {
+        Args: {
+          p_user_id: string;
+          p_level: number;
+          p_reason: string;
+          p_source_action_id?: string | null;
+        };
+        Returns: string;
+      };
+      is_user_under_active_sanction: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
+      current_user_is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
       get_or_create_direct_conversation: {
         Args: { other_user_id: string };

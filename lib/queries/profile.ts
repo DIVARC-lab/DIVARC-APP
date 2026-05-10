@@ -20,6 +20,17 @@ const PROFILE_DEFAULTS: Omit<
   | "intro_video_thumbnail_url"
   | "intro_video_duration_ms"
   | "intro_video_uploaded_at"
+  /* Trust & Safety (migration 0047) — defaults gérés côté DB. */
+  | "email_verified_at"
+  | "phone_verified_at"
+  | "phone_number"
+  | "identity_verified_at"
+  | "identity_verification_provider"
+  | "warnings_count"
+  | "content_removed_count"
+  | "timeouts_received"
+  | "trust_score"
+  | "trust_score_updated_at"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -127,6 +138,30 @@ export async function getCurrentProfile(): Promise<Profile | null> {
         .intro_video_uploaded_at ?? null,
     interests:
       (data as { interests?: string[] | null }).interests ?? [],
+    /* Trust & Safety (migration 0047) — defaults tolérants si la
+       migration n'est pas encore appliquée en prod. */
+    email_verified_at:
+      (data as { email_verified_at?: string | null }).email_verified_at ?? null,
+    phone_verified_at:
+      (data as { phone_verified_at?: string | null }).phone_verified_at ?? null,
+    phone_number:
+      (data as { phone_number?: string | null }).phone_number ?? null,
+    identity_verified_at:
+      (data as { identity_verified_at?: string | null }).identity_verified_at ??
+      null,
+    identity_verification_provider:
+      (data as { identity_verification_provider?: string | null })
+        .identity_verification_provider ?? null,
+    warnings_count:
+      (data as { warnings_count?: number }).warnings_count ?? 0,
+    content_removed_count:
+      (data as { content_removed_count?: number }).content_removed_count ?? 0,
+    timeouts_received:
+      (data as { timeouts_received?: number }).timeouts_received ?? 0,
+    trust_score: (data as { trust_score?: number }).trust_score ?? 50,
+    trust_score_updated_at:
+      (data as { trust_score_updated_at?: string | null })
+        .trust_score_updated_at ?? null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:
