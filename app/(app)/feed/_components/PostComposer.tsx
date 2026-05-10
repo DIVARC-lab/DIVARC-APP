@@ -37,6 +37,7 @@ import {
   FriendTagger,
   type TaggedUser,
 } from "@/components/creator/plugins/FriendTagger";
+import { CarouselEditor } from "@/components/creator/plugins/CarouselEditor";
 import { LinkPreviewCard } from "@/components/creator/plugins/LinkPreviewCard";
 import {
   MentionAutocomplete,
@@ -53,7 +54,7 @@ import {
 } from "@/components/creator/plugins/PollCreator";
 import { SchedulePicker } from "@/components/creator/plugins/SchedulePicker";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
-import type { PostLinkPreview } from "@/lib/database.types";
+import type { PostCarouselSlide, PostLinkPreview } from "@/lib/database.types";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -156,6 +157,13 @@ export function PostComposer({
   /* Plugin "Programmer" — datetime ISO ou null. */
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
+  /* Plugin "Carrousel" — slides avec caption + CTA. Mutuellement exclusif
+     avec mode photos[] standard (si user appuie "Activer carrousel" sur
+     2+ photos, on prend les URLs des photos et on attache slides). */
+  const [carouselSlides, setCarouselSlides] = useState<
+    PostCarouselSlide[] | null
+  >(null);
+  const [carouselEditorOpen, setCarouselEditorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +192,8 @@ export function PostComposer({
         setLinkPreview(null);
         setDismissedLinkUrl(null);
         setScheduledFor(null);
+        setCarouselSlides(null);
+        setCarouselEditorOpen(false);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -375,7 +385,12 @@ export function PostComposer({
       });
     }
 
-    if (uploaded.length > 0) setPhotos([...photos, ...uploaded]);
+    if (uploaded.length > 0) {
+      setPhotos([...photos, ...uploaded]);
+      /* Carousel slides deviennent stales si le nombre de photos change ;
+         on les réinitialise pour forcer l'user à re-ouvrir l'éditeur. */
+      setCarouselSlides(null);
+    }
     setUploading(false);
   }
 
@@ -387,6 +402,7 @@ export function PostComposer({
         .filter((p) => p.storagePath !== photo.storagePath)
         .map((p, idx) => ({ ...p, position: idx })),
     );
+    setCarouselSlides(null);
   }
 
   async function probeVideo(file: File): Promise<{
@@ -592,6 +608,15 @@ export function PostComposer({
               value={JSON.stringify(
                 photos.map((p) => ({ url: p.url, position: p.position })),
               )}
+            />
+            <input
+              type="hidden"
+              name="carousel_slides"
+              value={
+                carouselSlides && carouselSlides.length >= 2
+                  ? JSON.stringify(carouselSlides)
+                  : ""
+              }
             />
             <input
               type="hidden"
@@ -1019,6 +1044,24 @@ export function PostComposer({
                     : "Programmer"
                 }
               />
+              {/* Carrousel : nécessite ≥2 photos uploadées + pas de vidéo. */}
+              <ToolbarPill
+                onClick={() => setCarouselEditorOpen(true)}
+                disabled={photos.length < 2 || video !== null}
+                active={
+                  carouselSlides !== null && carouselSlides.length >= 2
+                }
+                icon={
+                  <span aria-hidden className="font-bold text-[12px]">
+                    🎠
+                  </span>
+                }
+                label={
+                  carouselSlides !== null && carouselSlides.length >= 2
+                    ? `Carrousel · ${carouselSlides.length} slides`
+                    : "Carrousel"
+                }
+              />
               <span className="ml-auto self-center text-[11px] text-muted tabular-nums">
                 {body.length}/4000
               </span>
@@ -1142,6 +1185,31 @@ export function PostComposer({
                     initialDraft={poll}
                     onApply={setPoll}
                     onClose={() => setPollCreatorOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {carouselEditorOpen && photos.length >= 2 ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setCarouselEditorOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[90vh] sm:max-h-[85vh] flex flex-col">
+                  <CarouselEditor
+                    sources={photos.map((p) => ({
+                      url: p.url,
+                      media_type: "image" as const,
+                    }))}
+                    initial={carouselSlides}
+                    onApply={setCarouselSlides}
+                    onClose={() => setCarouselEditorOpen(false)}
                   />
                 </div>
               </div>

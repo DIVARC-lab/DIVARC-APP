@@ -34,6 +34,7 @@ import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
 import { useTrackDwell } from "@/lib/hooks/useTrackDwell";
 import { mergeRefs } from "@/lib/utils/mergeRefs";
 import type { EventSurface } from "@/lib/database.types";
+import { PostCarousel } from "./PostCarousel";
 import { PostPhotos } from "./PostPhotos";
 import { PostVideoPlayer } from "./PostVideoPlayer";
 
@@ -95,6 +96,14 @@ export function PostCard({
           height={post.video_height}
           postId={post.id}
         />
+      ) : heroMedia && post.is_carousel && post.carousel_slides ? (
+        <Link href={`/feed/${post.id}`} className="block">
+          <PostCarousel
+            slides={post.carousel_slides}
+            alt={displayName}
+            rounded={false}
+          />
+        </Link>
       ) : heroMedia && post.photos.length > 0 ? (
         <Link href={`/feed/${post.id}`} className="block">
           <PostPhotos photos={post.photos} alt={displayName} rounded={false} />
@@ -309,6 +318,16 @@ export function PostCard({
             />
           </div>
         </div>
+      ) : !heroMedia && post.is_carousel && post.carousel_slides ? (
+        <Link href={`/feed/${post.id}`} className="block px-[18px] pb-3.5">
+          <div className="overflow-hidden rounded-[18px]">
+            <PostCarousel
+              slides={post.carousel_slides}
+              alt={displayName}
+              rounded={false}
+            />
+          </div>
+        </Link>
       ) : !heroMedia && post.photos.length > 0 ? (
         <Link href={`/feed/${post.id}`} className="block px-[18px] pb-3.5">
           <div className="overflow-hidden rounded-[18px]">

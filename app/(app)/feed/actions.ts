@@ -27,6 +27,18 @@ const photoSchema = z.array(
   }),
 );
 
+/* V3 Carrousel : chaque slide a sa propre caption + CTA. */
+const carouselSchema = z.array(
+  z.object({
+    position: z.number().int().min(0),
+    media_url: z.string().url(),
+    media_type: z.enum(["image", "video"]),
+    caption: z.string().max(280).optional(),
+    cta_label: z.string().max(40).optional(),
+    cta_url: z.string().url().optional(),
+  }),
+).min(2).max(10);
+
 const videoSchema = z.object({
   url: z.string().url(),
   thumbnail_url: z.string().url(),
@@ -67,6 +79,33 @@ export async function createPost(
       photos = [];
     }
   }
+
+  /* V3 Carousel — payload "carousel_slides" : array de slides avec caption
+     + CTA. Mutuellement exclusif avec photos[] : si carousel_slides est
+     présent, on ignore photos. */
+  const carouselRaw = formData.get("carousel_slides");
+  let carouselSlides: z.infer<typeof carouselSchema> | null = null;
+  if (typeof carouselRaw === "string" && carouselRaw.length > 0) {
+    try {
+      carouselSlides = carouselSchema.parse(JSON.parse(carouselRaw));
+      /* Normalize : trim caption + CTA, drop empty cta. */
+      carouselSlides = carouselSlides.map((s) => {
+        const caption = s.caption?.trim();
+        const ctaLabel = s.cta_label?.trim();
+        const ctaUrl = s.cta_url?.trim();
+        const hasCta = ctaLabel && ctaUrl;
+        return {
+          ...s,
+          caption: caption && caption.length > 0 ? caption : undefined,
+          cta_label: hasCta ? ctaLabel : undefined,
+          cta_url: hasCta ? ctaUrl : undefined,
+        };
+      });
+    } catch {
+      carouselSlides = null;
+    }
+  }
+  const isCarousel = carouselSlides !== null && carouselSlides.length >= 2;
 
   /* Plugin Tag amis : CSV d'UUIDs validés. */
   const tagsRaw = formData.get("tagged_user_ids");
@@ -170,7 +209,7 @@ export async function createPost(
     typeof bgRaw === "string" &&
     (allowedBackgrounds as readonly string[]).includes(bgRaw);
   const bodyShort = (parsed.data.body ?? "").length <= 130;
-  const noMedia = photos.length === 0 && !video;
+  const noMedia = photos.length === 0 && !video && !isCarousel;
   const backgroundColor: AllowedBg | null =
     bgIsValid && bodyShort && noMedia ? (bgRaw as AllowedBg) : null;
 
@@ -258,7 +297,7 @@ export async function createPost(
     }
   }
 
-  if (!parsed.data.body && photos.length === 0 && !video) {
+  if (!parsed.data.body && photos.length === 0 && !video && !isCarousel) {
     return {
       status: "error",
       message: "Écris quelque chose, ajoute une photo ou une vidéo.",
@@ -302,6 +341,8 @@ export async function createPost(
          jour status quand l'heure est passée). Si publication immédiate,
          published_at = now() via default. */
       published_at: postStatus === "scheduled" ? scheduledFor : undefined,
+      is_carousel: isCarousel,
+      carousel_slides: isCarousel ? carouselSlides : null,
     })
     .select("id")
     .single();
@@ -310,7 +351,9 @@ export async function createPost(
     return { status: "error", message: "Publication impossible. Réessaie." };
   }
 
-  if (photos.length > 0) {
+  /* En mode carrousel, les médias sont dans posts.carousel_slides (jsonb)
+     et on n'insère rien dans post_photos. */
+  if (!isCarousel && photos.length > 0) {
     const { error: photoError } = await supabase
       .from("post_photos")
       .insert(
