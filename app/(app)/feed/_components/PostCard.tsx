@@ -91,6 +91,7 @@ export function PostCard({
           durationMs={post.video_duration_ms}
           width={post.video_width}
           height={post.video_height}
+          postId={post.id}
         />
       ) : heroMedia && post.photos.length > 0 ? (
         <Link href={`/feed/${post.id}`} className="block">
@@ -251,6 +252,7 @@ export function PostCard({
               durationMs={post.video_duration_ms}
               width={post.video_width}
               height={post.video_height}
+              postId={post.id}
             />
           </div>
         </div>

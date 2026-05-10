@@ -2,6 +2,8 @@
 
 import { Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useHlsVideo } from "@/components/video/useHlsVideo";
+import { useVideoPlayer } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -10,6 +12,10 @@ type Props = {
   durationMs: number | null;
   width: number | null;
   height: number | null;
+  /** ID du post parent — sert à expand() en mode overlay au tap. */
+  postId: string;
+  /** URL HLS .m3u8 si disponible (V2 quand pipeline transcoding actif). */
+  hlsUrl?: string | null;
 };
 
 export function PostVideoPlayer({
@@ -18,10 +24,20 @@ export function PostVideoPlayer({
   durationMs,
   width,
   height,
+  postId,
+  hlsUrl,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
+  const { source: activeSource, expand } = useVideoPlayer();
+
+  /* Si cette vidéo est déjà active dans l'overlay/mini, on rend juste
+     un placeholder (le `<video>` global continue de jouer ailleurs). */
+  const isActive = activeSource?.id === postId;
+
+  /* Hook HLS — fallback gracieux MP4 si pas de m3u8. */
+  useHlsVideo(videoRef, hlsUrl ?? null, url);
 
   // Aspect ratio from intrinsic dimensions, default 9:16 (vertical reel)
   const aspect =
@@ -57,18 +73,27 @@ export function PostVideoPlayer({
     return () => observer.disconnect();
   }, []);
 
-  function togglePlay(event: React.MouseEvent) {
+  /* Tap sur la vidéo : passe en mode "expanded" via le store global.
+     Le timestamp courant est préservé (sync entre les <video> via
+     setTime() dans le store). Comportement Facebook : pas de
+     redirection, l'URL reste sur /feed. */
+  function expandToOverlay(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      void video.play().catch(() => undefined);
-      setPlaying(true);
-    } else {
-      video.pause();
-      setPlaying(false);
-    }
+    expand(
+      {
+        id: postId,
+        hlsUrl: hlsUrl ?? null,
+        mp4Url: url,
+        posterUrl: thumbnailUrl,
+        durationMs,
+        aspectRatio: aspect,
+        postId,
+        loop: durationMs !== null && durationMs < 30_000,
+      },
+      video?.currentTime ?? 0,
+    );
   }
 
   function toggleMute(event: React.MouseEvent) {
@@ -78,6 +103,30 @@ export function PostVideoPlayer({
     if (!video) return;
     video.muted = !video.muted;
     setMuted(video.muted);
+  }
+
+  /* Si la vidéo est active dans le player global, on rend un placeholder
+     statique (poster) — le `<video>` réel est dans l'ExpandedVideoPlayer
+     ou MiniVideoPlayer pour éviter le double playback. */
+  if (isActive) {
+    return (
+      <div
+        className="relative bg-night overflow-hidden mx-auto flex items-center justify-center"
+        style={{ aspectRatio: aspect, maxHeight: "640px", maxWidth: "100%" }}
+      >
+        {thumbnailUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="w-full h-full object-cover opacity-50"
+          />
+        ) : null}
+        <span className="absolute text-cream/80 text-[11px] uppercase tracking-wider font-bold bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
+          ▶ Lecture en cours
+        </span>
+      </div>
+    );
   }
 
   return (
@@ -91,13 +140,12 @@ export function PostVideoPlayer({
     >
       <video
         ref={videoRef}
-        src={url}
         poster={thumbnailUrl ?? undefined}
         playsInline
         loop
         muted
         preload="metadata"
-        onClick={togglePlay}
+        onClick={expandToOverlay}
         className="w-full h-full object-cover cursor-pointer"
       />
 
@@ -106,8 +154,8 @@ export function PostVideoPlayer({
       {!playing ? (
         <button
           type="button"
-          onClick={togglePlay}
-          aria-label="Lire"
+          onClick={expandToOverlay}
+          aria-label="Lire en plein écran"
           className="absolute inset-0 flex items-center justify-center"
         >
           <span className="w-16 h-16 rounded-full bg-white/90 text-night flex items-center justify-center shadow-lg">
