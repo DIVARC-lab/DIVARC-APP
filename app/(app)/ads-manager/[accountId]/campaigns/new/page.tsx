@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
-import { CampaignWizard } from "./CampaignWizard";
+import { CampaignBuilderPro } from "@/components/ads/builder/CampaignBuilderPro";
 
 export const metadata = { title: "Nouvelle campagne" };
 
@@ -87,7 +87,7 @@ export default async function NewCampaignPage({
         </p>
       </header>
 
-      <CampaignWizard
+      <CampaignBuilderPro
         accountId={accountId}
         currency={account?.currency ?? "EUR"}
         entities={entities ?? []}
