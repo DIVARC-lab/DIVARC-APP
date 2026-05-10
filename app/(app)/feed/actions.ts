@@ -68,6 +68,46 @@ export async function createPost(
     }
   }
 
+  /* Plugin Tag amis : CSV d'UUIDs validés. */
+  const tagsRaw = formData.get("tagged_user_ids");
+  let taggedUserIds: string[] = [];
+  if (typeof tagsRaw === "string" && tagsRaw.length > 0) {
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    taggedUserIds = tagsRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => uuidRe.test(s))
+      .slice(0, 30);
+  }
+
+  /* Plugin Sondage : payload JSON validé via Zod. */
+  const pollSchema = z.object({
+    question: z.string().min(1).max(200),
+    options: z.array(z.string().min(1).max(80)).min(2).max(6),
+    duration: z.enum(["1h", "6h", "24h", "3d", "7d", "unlimited"]),
+    multiChoice: z.boolean(),
+    isAnonymous: z.boolean(),
+  });
+  const pollRaw = formData.get("poll");
+  let poll: z.infer<typeof pollSchema> | null = null;
+  if (typeof pollRaw === "string" && pollRaw.length > 0) {
+    try {
+      poll = pollSchema.parse(JSON.parse(pollRaw));
+      /* Dédup options (déjà vérifié côté client mais belt-and-suspenders). */
+      const seen = new Set<string>();
+      poll.options = poll.options.filter((o) => {
+        const norm = o.trim();
+        if (seen.has(norm)) return false;
+        seen.add(norm);
+        return true;
+      });
+      if (poll.options.length < 2) poll = null;
+    } catch {
+      poll = null;
+    }
+  }
+
   const videoRaw = formData.get("video");
   let video: z.infer<typeof videoSchema> | null = null;
   if (typeof videoRaw === "string" && videoRaw.length > 0) {
@@ -235,6 +275,71 @@ export async function createPost(
     if (photoError) {
       await supabase.from("posts").delete().eq("id", post.id);
       return { status: "error", message: "Impossible d'attacher les photos." };
+    }
+  }
+
+  /* Plugin Tag amis : insert dans post_tagged_users.
+     Non-bloquant : si l'insertion échoue, le post reste créé.
+     Tagged_user_ids déjà validés UUID. */
+  if (taggedUserIds.length > 0) {
+    const { error: tagsError } = await supabase
+      .from("post_tagged_users")
+      .insert(taggedUserIds.map((uid) => ({ post_id: post.id, user_id: uid })));
+    if (tagsError) {
+      console.warn("[posts:createPost:tags]", tagsError);
+    }
+  }
+
+  /* Plugin Sondage : insert post_polls + post_poll_options.
+     Bloquant si ça échoue (l'user attend explicitement le sondage),
+     on rollback le post. */
+  if (poll) {
+    const endsAtMs: Record<typeof poll.duration, number | null> = {
+      "1h": 60 * 60 * 1000,
+      "6h": 6 * 60 * 60 * 1000,
+      "24h": 24 * 60 * 60 * 1000,
+      "3d": 3 * 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000,
+      unlimited: null,
+    };
+    const duration = endsAtMs[poll.duration];
+    const endsAt =
+      duration === null ? null : new Date(Date.now() + duration).toISOString();
+
+    const { data: pollRow, error: pollError } = await supabase
+      .from("post_polls")
+      .insert({
+        post_id: post.id,
+        question: poll.question,
+        multi_choice: poll.multiChoice,
+        is_anonymous: poll.isAnonymous,
+        ends_at: endsAt,
+      })
+      .select("id")
+      .single();
+
+    if (pollError || !pollRow) {
+      await supabase.from("posts").delete().eq("id", post.id);
+      console.warn("[posts:createPost:poll]", pollError);
+      return { status: "error", message: "Création du sondage impossible." };
+    }
+
+    const { error: optionsError } = await supabase
+      .from("post_poll_options")
+      .insert(
+        poll.options.map((label, idx) => ({
+          poll_id: pollRow.id,
+          position: idx,
+          label,
+        })),
+      );
+    if (optionsError) {
+      await supabase.from("posts").delete().eq("id", post.id);
+      console.warn("[posts:createPost:poll-options]", optionsError);
+      return {
+        status: "error",
+        message: "Création des options de sondage impossible.",
+      };
     }
   }
 

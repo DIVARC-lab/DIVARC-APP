@@ -34,9 +34,17 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import {
+  FriendTagger,
+  type TaggedUser,
+} from "@/components/creator/plugins/FriendTagger";
+import {
   LocationPicker,
   type LocationSelection,
 } from "@/components/creator/plugins/LocationPicker";
+import {
+  PollCreator,
+  type PollDraft,
+} from "@/components/creator/plugins/PollCreator";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
@@ -121,6 +129,12 @@ export function PostComposer({
   /* Plugin "Lieu" — Mapbox places. */
   const [location, setLocation] = useState<LocationSelection | null>(null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  /* Plugin "Tag amis". */
+  const [tags, setTags] = useState<TaggedUser[]>([]);
+  const [friendTaggerOpen, setFriendTaggerOpen] = useState(false);
+  /* Plugin "Sondage". */
+  const [poll, setPoll] = useState<PollDraft | null>(null);
+  const [pollCreatorOpen, setPollCreatorOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -144,6 +158,8 @@ export function PostComposer({
         setSentiment(null);
         setActivity(null);
         setLocation(null);
+        setTags([]);
+        setPoll(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -507,6 +523,16 @@ export function PostComposer({
               name="location_lng"
               value={location?.lng ?? ""}
             />
+            <input
+              type="hidden"
+              name="tagged_user_ids"
+              value={tags.map((t) => t.id).join(",")}
+            />
+            <input
+              type="hidden"
+              name="poll"
+              value={poll ? JSON.stringify(poll) : ""}
+            />
 
             {/* Top bar : Back + Nouveau post + Publier */}
             <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
@@ -796,6 +822,27 @@ export function PostComposer({
                 icon={<MapPin className="w-3.5 h-3.5" aria-hidden />}
                 label={location ? location.name : "Lieu"}
               />
+              <ToolbarPill
+                onClick={() => setFriendTaggerOpen(true)}
+                active={tags.length > 0}
+                icon={<Users className="w-3.5 h-3.5" aria-hidden />}
+                label={
+                  tags.length > 0 ? `${tags.length} amis tagués` : "Amis"
+                }
+              />
+              {/* Sondage incompatible avec médias (Facebook-like) :
+                  on désactive si au moins une photo ou vidéo. */}
+              <ToolbarPill
+                onClick={() => setPollCreatorOpen(true)}
+                disabled={photos.length > 0 || video !== null}
+                active={poll !== null}
+                icon={
+                  <span aria-hidden className="font-bold text-[12px]">
+                    📊
+                  </span>
+                }
+                label={poll ? "Sondage prêt" : "Sondage"}
+              />
               <span className="ml-auto self-center text-[11px] text-muted tabular-nums">
                 {body.length}/4000
               </span>
@@ -877,6 +924,48 @@ export function PostComposer({
                     initialLocation={location}
                     onApply={setLocation}
                     onClose={() => setLocationPickerOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {friendTaggerOpen ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setFriendTaggerOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+                  <FriendTagger
+                    initialTags={tags}
+                    onApply={setTags}
+                    onClose={() => setFriendTaggerOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {pollCreatorOpen ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setPollCreatorOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+                  <PollCreator
+                    initialDraft={poll}
+                    onApply={setPoll}
+                    onClose={() => setPollCreatorOpen(false)}
                   />
                 </div>
               </div>
