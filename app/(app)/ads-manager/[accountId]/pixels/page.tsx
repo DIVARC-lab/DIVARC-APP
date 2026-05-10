@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PixelHelperButton } from "@/components/ads/PixelHelperButton";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -273,13 +274,19 @@ function PixelCard({
               : "Aucun"}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-[10.5px] uppercase tracking-wider text-night-muted font-bold">
-            Events 30j
-          </p>
-          <p className="text-[24px] font-bold text-night leading-none">
-            {eventCount30d.toLocaleString("fr-FR")}
-          </p>
+        <div className="flex items-start gap-3 shrink-0">
+          <div className="text-right">
+            <p className="text-[10.5px] uppercase tracking-wider text-night-muted font-bold">
+              Events 30j
+            </p>
+            <p className="text-[24px] font-bold text-night leading-none">
+              {eventCount30d.toLocaleString("fr-FR")}
+            </p>
+          </div>
+          <PixelHelperButton
+            pixelId={pixel.id}
+            defaultDomain={pixel.authorized_domains[0]}
+          />
         </div>
       </div>
 

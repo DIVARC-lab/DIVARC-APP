@@ -1,6 +1,7 @@
-import { BarChart3, Code2, Filter, Plus, Sparkles, TrendingUp, Wand2, Zap } from "lucide-react";
+import { BarChart3, Code2, Filter, KeyRound, Plus, Sparkles, TrendingUp, Wand2, Zap } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { RecommendationsPanel } from "@/components/ads/RecommendationsPanel";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import {
@@ -89,6 +90,13 @@ export default async function AdAccountDashboard({
             Pixels
           </Link>
           <Link
+            href={`/ads-manager/${accountId}/keyword-planner`}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-line text-[13px] font-semibold text-night hover:bg-bg-soft"
+          >
+            <KeyRound className="w-4 h-4" aria-hidden />
+            Keywords
+          </Link>
+          <Link
             href={`/ads-manager/${accountId}/analyzer`}
             className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gold/15 border-2 border-gold-deep text-[13px] font-semibold text-gold-deep hover:bg-gold/25"
           >
@@ -105,6 +113,11 @@ export default async function AdAccountDashboard({
           </Link>
         </div>
       </header>
+
+      {/* Recommandations IA — proactives. */}
+      <section className="mb-8">
+        <RecommendationsPanel accountId={accountId} />
+      </section>
 
       {/* Stats 30 jours. */}
       <section className="mb-8">

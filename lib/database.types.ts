@@ -1696,6 +1696,9 @@ export type AdsPixel = {
   authorized_domains: string[];
   total_events: number;
   last_event_at: string | null;
+  /* V4 — Pixel Helper. */
+  last_helper_test_at: string | null;
+  total_events_30d: number | null;
   created_at: string;
 };
 
