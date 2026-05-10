@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/reels/CameraCapture";
+import { MultiClipRecorder } from "@/components/reels/MultiClipRecorder";
 import {
   SoundLibrary,
   type SoundLibraryItem,
@@ -73,7 +74,7 @@ type Props = {
   duetSource?: DuetSourceInit | null;
 };
 
-type Step = "upload" | "camera" | "compose";
+type Step = "upload" | "camera" | "multiclip" | "compose";
 
 type UploadedVideo = {
   url: string;
@@ -346,6 +347,7 @@ export function ReelCreator({
           progress={uploadProgress}
           onPick={() => fileInputRef.current?.click()}
           onOpenCamera={() => setStep("camera")}
+          onOpenMultiClip={() => setStep("multiclip")}
         />
       ) : null}
 
@@ -354,6 +356,13 @@ export function ReelCreator({
           onCapture={handleCameraCapture}
           onCancel={() => setStep("upload")}
           duetSource={duetSource}
+        />
+      ) : null}
+
+      {step === "multiclip" ? (
+        <MultiClipRecorder
+          onCapture={handleCameraCapture}
+          onCancel={() => setStep("upload")}
         />
       ) : null}
 
@@ -440,11 +449,13 @@ function UploadStep({
   progress,
   onPick,
   onOpenCamera,
+  onOpenMultiClip,
 }: {
   uploading: boolean;
   progress: number;
   onPick: () => void;
   onOpenCamera: () => void;
+  onOpenMultiClip: () => void;
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 min-h-[calc(100vh-60px)] text-center">
@@ -475,6 +486,15 @@ function UploadStep({
           >
             <Camera className="w-4 h-4" aria-hidden />
             Filmer maintenant
+          </button>
+          {/* V3.10 — multi-clip + ffmpeg.wasm concat */}
+          <button
+            type="button"
+            onClick={onOpenMultiClip}
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-cream/10 hover:bg-cream/20 text-cream text-[13px] font-bold border border-cream/20"
+          >
+            <Video className="w-4 h-4" aria-hidden />
+            Multi-clips (concat)
           </button>
           {/* Secondaire : import. */}
           <button
