@@ -230,3 +230,94 @@ export async function getAdAccountStats(
     return empty;
   }
 }
+
+/* Aggregate stats across multiple ad accounts owned by the user.
+   Cumul 30j (campagnes actives, dépense, impressions, CTR) + total
+   solde prepaid + nombre de comptes actifs. Tolérant aux migrations
+   manquantes (42P01) — tout fallback à 0. */
+export async function getAggregateAdsStats(adAccountIds: string[]): Promise<{
+  total_accounts: number;
+  active_campaigns: number;
+  total_spend_30d: number;
+  total_impressions_30d: number;
+  total_clicks_30d: number;
+  ctr_30d: number;
+  pending_review: number;
+}> {
+  const empty = {
+    total_accounts: adAccountIds.length,
+    active_campaigns: 0,
+    total_spend_30d: 0,
+    total_impressions_30d: 0,
+    total_clicks_30d: 0,
+    ctr_30d: 0,
+    pending_review: 0,
+  };
+  if (adAccountIds.length === 0) return empty;
+  try {
+    const supabase = await createClient();
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+
+    const [
+      { count: activeCampaigns, error: ec },
+      { count: pendingReview, error: epr },
+      { data: spend, error: es },
+      { count: impressions, error: ei },
+      { count: clicks, error: ec2 },
+    ] = await Promise.all([
+      supabase
+        .from("ads_campaigns")
+        .select("id", { count: "exact", head: true })
+        .in("ad_account_id", adAccountIds)
+        .eq("status", "active"),
+      supabase
+        .from("ads_campaigns")
+        .select("id", { count: "exact", head: true })
+        .in("ad_account_id", adAccountIds)
+        .eq("compliance_review_status", "pending"),
+      supabase
+        .from("ads_charges")
+        .select("amount")
+        .in("ad_account_id", adAccountIds)
+        .eq("type", "spend")
+        .gte("created_at", since),
+      supabase
+        .from("ad_impressions")
+        .select("id", { count: "exact", head: true })
+        .in("ad_account_id", adAccountIds)
+        .gte("created_at", since),
+      supabase
+        .from("ad_clicks")
+        .select("id", { count: "exact", head: true })
+        .in("ad_account_id", adAccountIds)
+        .gte("created_at", since)
+        .eq("is_invalid", false),
+    ]);
+
+    if (
+      [ec, epr, es, ei, ec2].some(
+        (e) => e && e.code === MIGRATION_MISSING_CODE,
+      )
+    ) {
+      return empty;
+    }
+
+    const totalSpend =
+      spend?.reduce((acc, s) => acc + Number(s.amount), 0) ?? 0;
+    const imp = impressions ?? 0;
+    const ctr = imp > 0 ? (clicks ?? 0) / imp : 0;
+
+    return {
+      total_accounts: adAccountIds.length,
+      active_campaigns: activeCampaigns ?? 0,
+      total_spend_30d: totalSpend,
+      total_impressions_30d: imp,
+      total_clicks_30d: clicks ?? 0,
+      ctr_30d: ctr,
+      pending_review: pendingReview ?? 0,
+    };
+  } catch (err) {
+    console.error("[ads:getAggregateAdsStats]", err);
+    return empty;
+  }
+}
