@@ -1,4 +1,4 @@
-import { BarChart3, Plus, TrendingUp } from "lucide-react";
+import { BarChart3, Code2, Plus, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
@@ -66,13 +66,22 @@ export default async function AdAccountDashboard({
             ) : null}
           </p>
         </div>
-        <Link
-          href={`/ads-manager/${accountId}/campaigns/new`}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-night text-cream text-[13px] font-semibold hover:bg-night/90"
-        >
-          <Plus className="w-4 h-4" aria-hidden />
-          Nouvelle campagne
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/ads-manager/${accountId}/pixels`}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white border border-line text-[13px] font-semibold text-night hover:bg-bg-soft"
+          >
+            <Code2 className="w-4 h-4" aria-hidden />
+            Pixels &amp; conversions
+          </Link>
+          <Link
+            href={`/ads-manager/${accountId}/campaigns/new`}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-night text-cream text-[13px] font-semibold hover:bg-night/90"
+          >
+            <Plus className="w-4 h-4" aria-hidden />
+            Nouvelle campagne
+          </Link>
+        </div>
       </header>
 
       {/* Stats 30 jours. */}
@@ -125,31 +134,33 @@ export default async function AdAccountDashboard({
         ) : (
           <ul className="rounded-2xl bg-white border border-line overflow-hidden divide-y divide-line">
             {campaigns.map((c) => (
-              <li
-                key={c.id}
-                className="px-4 py-3 flex items-center gap-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <p className="text-[14px] font-semibold text-night truncate">
-                      {c.name}
+              <li key={c.id}>
+                <Link
+                  href={`/ads-manager/${accountId}/campaigns/${c.id}`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-bg-soft transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <p className="text-[14px] font-semibold text-night truncate">
+                        {c.name}
+                      </p>
+                      <CampaignStatusBadge status={c.status} />
+                    </div>
+                    <p className="text-[11.5px] text-night-muted">
+                      Objectif {labelObjective(c.objective)} ·{" "}
+                      {c.daily_budget
+                        ? `${Number(c.daily_budget).toFixed(0)} ${account.currency}/jour`
+                        : c.lifetime_budget
+                          ? `${Number(c.lifetime_budget).toFixed(0)} ${account.currency} total`
+                          : "Budget non défini"}{" "}
+                      ·{" "}
+                      {labelComplianceStatus(c.compliance_review_status)}
                     </p>
-                    <CampaignStatusBadge status={c.status} />
                   </div>
-                  <p className="text-[11.5px] text-night-muted">
-                    Objectif {labelObjective(c.objective)} ·{" "}
-                    {c.daily_budget
-                      ? `${Number(c.daily_budget).toFixed(0)} ${account.currency}/jour`
-                      : c.lifetime_budget
-                        ? `${Number(c.lifetime_budget).toFixed(0)} ${account.currency} total`
-                        : "Budget non défini"}{" "}
-                    ·{" "}
-                    {labelComplianceStatus(c.compliance_review_status)}
-                  </p>
-                </div>
-                <span className="text-[11px] text-night-muted">
-                  {new Date(c.created_at).toLocaleDateString("fr-FR")}
-                </span>
+                  <span className="text-[11px] text-night-muted">
+                    {new Date(c.created_at).toLocaleDateString("fr-FR")}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
