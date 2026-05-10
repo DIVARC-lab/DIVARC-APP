@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { runAuction } from "@/lib/ads/auction";
-import { createClient } from "@/lib/supabase/server";
+import { runAuctionEdge } from "@/lib/ads/auctionEdge";
 
-/* POST /api/ads/serve — auction temps réel.
+/* POST /api/ads/serve — auction temps réel sur Vercel Edge Runtime.
  *
  * Body : { surface, slot_index, country?, locale?, device_type? }
  *
@@ -13,9 +12,21 @@ import { createClient } from "@/lib/supabase/server";
  *                    why_reasons, charged_amount }
  *   - 204 si aucune ad éligible (le caller affiche du contenu organique)
  *
- * Note : pour V2, migrer en Vercel Edge Function pour latence < 100ms.
- * Pour V1 on reste en Node Route Handler avec service_role client.
+ * Migration B6 : Edge Runtime pour latence p95 < 150 ms (vs ~300 ms en
+ * Node serverless). L'auction utilise fetch direct vers PostgREST
+ * Supabase, sans SDK lourd, pour démarrage à froid minimal. La logique
+ * d'auction est isolée dans lib/ads/auctionEdge.ts (pure fetch + crypto.subtle).
+ *
+ * Trade-offs Edge :
+ *   - Pas d'accès à node:crypto / fs / cookies() complet
+ *   - Pas d'admin client Supabase SDK classique → on hit PostgREST direct
+ *   - logImpression reste async best-effort (fire-and-forget)
+ *
+ * Pour des volumes massifs (>100k imp/sec), migrer vers service Rust
+ * dédié sur Fly.io/Railway derrière un load balancer.
  */
+export const runtime = "edge";
+export const preferredRegion = "fra1"; // Frankfurt, proche de l'audience FR/EU
 
 const bodySchema = z
   .object({
@@ -34,13 +45,6 @@ const bodySchema = z
   .strict();
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  /* Anonymes acceptés pour V1 (mais auction retournera null sans
-     personalized_ads_consent — on retourne 204). */
-
   const body = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
@@ -50,8 +54,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runAuction({
-    user_id: user?.id ?? null,
+  /* Récupère l'auth user_id depuis le cookie supabase. En Edge, on
+     décode juste le JWT pour obtenir le sub (user.id) sans appeler
+     getUser() qui ferait un round-trip Supabase. */
+  const userId = extractUserIdFromAuthCookie(request);
+
+  const result = await runAuctionEdge({
+    user_id: userId,
     surface: parsed.data.surface,
     slot_index: parsed.data.slot_index,
     country: parsed.data.country,
@@ -63,36 +72,45 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 204 });
   }
 
-  /* Récupère le nom de l'annonceur (business legal_name). */
-  const { data: account } = await supabase
-    .from("ad_accounts")
-    .select("business_account_id")
-    .eq("id", result.ad.ad_account_id)
-    .maybeSingle();
-  let advertiserName = "Annonceur";
-  if (account) {
-    const { data: business } = await supabase
-      .from("ads_business_accounts")
-      .select("legal_name")
-      .eq("id", account.business_account_id)
-      .maybeSingle();
-    advertiserName = business?.legal_name ?? advertiserName;
-  }
-
   return NextResponse.json({
-    ad_id: result.ad.id,
-    advertiser_name: advertiserName,
-    primary_text: result.ad.creative.primary_text,
-    headline: result.ad.creative.headline,
-    description: result.ad.creative.description,
-    media_url: result.ad.creative.media_url,
-    destination_url: result.ad.creative.destination_url,
-    call_to_action: result.ad.creative.call_to_action,
-    auto_disclaimer: result.ad.creative.auto_disclaimer,
-    manual_disclaimer: result.ad.creative.manual_disclaimer,
-    paid_for_by: result.ad.creative.paid_for_by,
+    ad_id: result.ad_id,
+    advertiser_name: result.advertiser_name,
+    primary_text: result.primary_text,
+    headline: result.headline,
+    description: result.description,
+    media_url: result.media_url,
+    destination_url: result.destination_url,
+    call_to_action: result.call_to_action,
+    auto_disclaimer: result.auto_disclaimer,
+    manual_disclaimer: result.manual_disclaimer,
+    paid_for_by: result.paid_for_by,
     why_reasons: result.why_reasons,
     surface: parsed.data.surface,
     charged_amount: result.charged_amount,
   });
+}
+
+/* Helper Edge : extrait le user_id depuis le cookie sb-*-auth-token
+ * sans toucher au SDK Supabase. Le cookie contient un JSON encodé
+ * avec access_token JWT — on décode juste le payload base64. */
+function extractUserIdFromAuthCookie(request: Request): string | null {
+  const cookie = request.headers.get("cookie") ?? "";
+  /* Match sb-{project}-auth-token=base64encoded[...] */
+  const match = cookie.match(/sb-[^=]+-auth-token=([^;]+)/);
+  if (!match) return null;
+  try {
+    const decoded = decodeURIComponent(match[1]!);
+    /* Le cookie peut être un array JSON [access_token, refresh_token, ...]. */
+    const parsed = JSON.parse(decoded);
+    const accessToken = Array.isArray(parsed) ? parsed[0] : parsed.access_token;
+    if (!accessToken || typeof accessToken !== "string") return null;
+    /* Décodage JWT payload (segment 2). */
+    const segments = accessToken.split(".");
+    if (segments.length !== 3) return null;
+    const payloadB64 = segments[1]!.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(payloadB64));
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
 }
