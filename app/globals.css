@@ -273,6 +273,30 @@ body {
   animation: draw-arc 2.4s var(--ease-out-expo) forwards;
 }
 
+/* Reels — disque musique animé qui tourne lentement (style TikTok). */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Reels — animation cœur double-tap (zoom + fade). */
+@keyframes ping-once {
+  0% { transform: scale(0.4); opacity: 0; }
+  35% { transform: scale(1.2); opacity: 1; }
+  60% { transform: scale(1); opacity: 0.95; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.animate-ping-once {
+  animation: ping-once 0.7s ease-out forwards;
+}
+
+/* Hide scrollbar (utilisé sur le feed Reels en snap-scroll). */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

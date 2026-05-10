@@ -20,6 +20,7 @@ import {
   Store,
   Tag,
   Users,
+  Video,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -58,6 +59,7 @@ type NavItemDef = {
 
 const PRIMARY_ITEMS: NavItemDef[] = [
   { href: "/feed", label: "Accueil", icon: Compass },
+  { href: "/reels", label: "Reels", icon: Video },
   { href: "/friends", label: "Amis", icon: Users },
   { href: "/messages", label: "Discussions", icon: MessageCircle },
   { href: "/marketplace", label: "Marketplace", icon: Store },
