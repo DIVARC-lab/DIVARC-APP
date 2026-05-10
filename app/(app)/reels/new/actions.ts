@@ -62,6 +62,7 @@ const reelInputSchema = z.object({
     )
     .max(10)
     .default([]),
+  effects_used: z.array(z.string().min(1).max(40)).max(5).default([]),
 });
 
 export type CreateReelResult =
@@ -144,6 +145,7 @@ export async function createReel(
       duet_source_reel_id: data.duet_source_reel_id ?? null,
       duet_layout: data.duet_layout ?? null,
       stickers: data.stickers,
+      effects_used: data.effects_used,
     })
     .select("id")
     .single();

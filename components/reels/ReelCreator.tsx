@@ -22,6 +22,7 @@ import {
   SoundLibrary,
   type SoundLibraryItem,
 } from "@/components/reels/SoundLibrary";
+import { EffectsPicker } from "@/components/reels/EffectsPicker";
 import { StickersEditor } from "@/components/reels/StickersEditor";
 import { TextOverlaysEditor } from "@/components/reels/TextOverlaysEditor";
 import { TimelineEditor } from "@/components/reels/TimelineEditor";
@@ -115,6 +116,8 @@ export function ReelCreator({
   const [stickers, setStickers] = useState<Sticker[]>([]);
   const [stickersOpen, setStickersOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [effectsUsed, setEffectsUsed] = useState<string[]>([]);
+  const [effectsOpen, setEffectsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
@@ -306,6 +309,7 @@ export function ReelCreator({
         duet_source_reel_id: duetSource?.reelId ?? null,
         duet_layout: duetSource?.layout ?? null,
         stickers,
+        effects_used: effectsUsed,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -425,6 +429,8 @@ export function ReelCreator({
           stickersCount={stickers.length}
           onOpenStickers={() => setStickersOpen(true)}
           onOpenTimeline={() => setTimelineOpen(true)}
+          effectsUsed={effectsUsed}
+          onOpenEffects={() => setEffectsOpen(true)}
         />
       ) : null}
 
@@ -484,6 +490,15 @@ export function ReelCreator({
             await replaceVideoWithTrim(blob, newDuration);
           }}
           onClose={() => setTimelineOpen(false)}
+        />
+      ) : null}
+
+      {effectsOpen && video ? (
+        <EffectsPicker
+          videoUrl={video.url}
+          initial={effectsUsed}
+          onApply={setEffectsUsed}
+          onClose={() => setEffectsOpen(false)}
         />
       ) : null}
     </div>
@@ -667,6 +682,8 @@ function ComposeStep({
   stickersCount,
   onOpenStickers,
   onOpenTimeline,
+  effectsUsed,
+  onOpenEffects,
 }: {
   video: UploadedVideo;
   description: string;
@@ -691,6 +708,8 @@ function ComposeStep({
   stickersCount: number;
   onOpenStickers: () => void;
   onOpenTimeline: () => void;
+  effectsUsed: string[];
+  onOpenEffects: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
@@ -807,6 +826,35 @@ function ComposeStep({
           </div>
           <span className="text-[11px] font-bold text-gold shrink-0">
             {textOverlaysCount > 0 ? "Éditer" : "Ouvrir"}
+          </span>
+        </button>
+
+        {/* V3.12 — Effets vidéo (CSS filters + AR skeleton) */}
+        <button
+          type="button"
+          onClick={onOpenEffects}
+          className={cn(
+            "w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left",
+            effectsUsed.length > 0
+              ? "bg-cream/5 border-cream/10 hover:border-cream/30"
+              : "bg-cream/5 border-dashed border-cream/30 hover:border-cream/60",
+          )}
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <span aria-hidden className="text-[16px]">✨</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-cream">
+              {effectsUsed.length > 0
+                ? `Effet : ${effectsUsed[0]}`
+                : "Ajouter un effet"}
+            </p>
+            <p className="text-[11px] text-cream/60">
+              Vintage · Noir · Doré · Cyberpunk
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            {effectsUsed.length > 0 ? "Changer" : "Ouvrir"}
           </span>
         </button>
 

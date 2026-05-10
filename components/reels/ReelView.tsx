@@ -31,6 +31,7 @@ import {
   STICKER_BASE_SIZE_PX,
   type Sticker,
 } from "@/lib/reels/stickers";
+import { combineFilters } from "@/lib/reels/effects";
 import type { ReelWithDetails } from "@/lib/database.types";
 
 /* ReelView — un reel individuel dans le feed Reels.
@@ -89,6 +90,11 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const activeStickers = useMemo(
     () => getActiveStickers(stickers, currentTime),
     [stickers, currentTime],
+  );
+  /* V3.12 — effets CSS appliqués à la vidéo au playback. */
+  const videoFilter = useMemo(
+    () => combineFilters(reel.effects_used ?? []),
+    [reel.effects_used],
   );
   const reachedEndRef = useRef(false);
   const replayCountRef = useRef(0);
@@ -354,7 +360,7 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
             }
           }
         }}
-        style={mainSlot}
+        style={{ ...mainSlot, filter: videoFilter }}
         className="object-cover cursor-pointer"
       />
 
