@@ -156,6 +156,50 @@ export type NotificationType =
 
 export type PostVisibility = "public" | "friends" | "private";
 
+export type PostBackgroundColor =
+  | "navy"
+  | "gold"
+  | "cream"
+  | "gradient_dawn"
+  | "gradient_dusk"
+  | "gradient_ocean"
+  | "gradient_forest"
+  | "gradient_rose";
+
+export type PostActivityType =
+  | "watching"
+  | "listening"
+  | "playing"
+  | "reading"
+  | "eating"
+  | "traveling"
+  | "celebrating"
+  | "feeling";
+
+export type PostStatus = "draft" | "scheduled" | "published" | "archived";
+
+/* Open Graph metadata détectée à la publication, persistée dans
+   posts.link_preview jsonb. */
+export type PostLinkPreview = {
+  url: string;
+  title?: string;
+  description?: string;
+  image_url?: string;
+  site_name?: string;
+  fetched_at: string;
+};
+
+/* Une slide individuelle d'un carrousel. Stockée dans
+   posts.carousel_slides jsonb (array). */
+export type PostCarouselSlide = {
+  position: number;
+  media_url: string;
+  media_type: "image" | "video";
+  caption?: string;
+  cta_label?: string;
+  cta_url?: string;
+};
+
 export type Post = {
   id: string;
   author_id: string;
@@ -169,10 +213,66 @@ export type Post = {
   circle_id: string | null;
   pinned_at: string | null;
   pinned_by: string | null;
+  /* V4 — Posts enrichis (migration 0052). */
+  background_color: PostBackgroundColor | null;
+  sentiment_emoji: string | null;
+  sentiment_label: string | null;
+  activity_type: PostActivityType | null;
+  activity_detail: string | null;
+  location_name: string | null;
+  location_city: string | null;
+  location_country: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  link_preview: PostLinkPreview | null;
+  audience_excluded_user_ids: string[];
+  is_carousel: boolean;
+  carousel_slides: PostCarouselSlide[] | null;
+  scheduled_for: string | null;
+  published_at: string | null;
+  status: PostStatus;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+};
+
+/* Tag d'utilisateurs dans un post (avec position optionnelle si tag
+   sur photo Facebook-style). */
+export type PostTaggedUser = {
+  post_id: string;
+  user_id: string;
+  photo_id: string | null;
+  position_x: number | null;
+  position_y: number | null;
+  created_at: string;
+};
+
+export type PostPoll = {
+  id: string;
+  post_id: string;
+  question: string;
+  multi_choice: boolean;
+  is_anonymous: boolean;
+  ends_at: string | null;
+  total_votes: number;
+  created_at: string;
+};
+
+export type PostPollOption = {
+  id: string;
+  poll_id: string;
+  position: number;
+  label: string;
+  votes_count: number;
+  created_at: string;
+};
+
+export type PostPollVote = {
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at: string;
 };
 
 export type PostPhoto = {
@@ -2472,6 +2572,53 @@ export type Database = {
       post_likes: {
         Row: PostLike;
         Insert: Pick<PostLike, "post_id" | "user_id">;
+        Update: never;
+        Relationships: [];
+      };
+      post_tagged_users: {
+        Row: PostTaggedUser;
+        Insert: Pick<PostTaggedUser, "post_id" | "user_id"> &
+          Partial<
+            Pick<
+              PostTaggedUser,
+              "photo_id" | "position_x" | "position_y" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<PostTaggedUser, "position_x" | "position_y">
+        >;
+        Relationships: [];
+      };
+      post_polls: {
+        Row: PostPoll;
+        Insert: Pick<PostPoll, "post_id" | "question"> &
+          Partial<
+            Pick<
+              PostPoll,
+              | "id"
+              | "multi_choice"
+              | "is_anonymous"
+              | "ends_at"
+              | "total_votes"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<PostPoll, "question" | "ends_at" | "is_anonymous">
+        >;
+        Relationships: [];
+      };
+      post_poll_options: {
+        Row: PostPollOption;
+        Insert: Pick<PostPollOption, "poll_id" | "position" | "label"> &
+          Partial<Pick<PostPollOption, "id" | "votes_count" | "created_at">>;
+        Update: Partial<Pick<PostPollOption, "label" | "position">>;
+        Relationships: [];
+      };
+      post_poll_votes: {
+        Row: PostPollVote;
+        Insert: Pick<PostPollVote, "poll_id" | "option_id" | "user_id"> &
+          Partial<Pick<PostPollVote, "created_at">>;
         Update: never;
         Relationships: [];
       };

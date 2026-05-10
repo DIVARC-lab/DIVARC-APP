@@ -139,6 +139,27 @@ async function attachPhotos(
       circle_id: null,
       pinned_at: null,
       pinned_by: null,
+      /* V4 — Posts enrichis : valeurs par défaut quand le row vient
+         du RPC rank_feed_posts qui ne sélectionne pas ces colonnes.
+         Pour la lecture détaillée, listFriendsOnlyFeed/listPostsByUser
+         utilisent select("*") et auront les vraies valeurs. */
+      background_color: null,
+      sentiment_emoji: null,
+      sentiment_label: null,
+      activity_type: null,
+      activity_detail: null,
+      location_name: null,
+      location_city: null,
+      location_country: null,
+      location_lat: null,
+      location_lng: null,
+      link_preview: null,
+      audience_excluded_user_ids: [],
+      is_carousel: false,
+      carousel_slides: null,
+      scheduled_for: null,
+      published_at: row.created_at,
+      status: "published",
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],
