@@ -4,6 +4,7 @@ import { Bookmark, BookmarkCheck } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
+import { trackEvent } from "@/lib/tracking/eventTracker";
 import { toggleBookmark } from "../actions";
 
 type Props = {
@@ -22,6 +23,13 @@ export function BookmarkButton({ postId, initialBookmarked }: Props) {
   function handle() {
     const next = !bookmarked;
     setBookmarked(next);
+
+    /* Track côté recsys — bookmark = signal d'intérêt long terme
+       (poids 5 dans EVENT_WEIGHTS). */
+    if (next) {
+      trackEvent("post.save", { target_post_id: postId });
+    }
+
     startTransition(async () => {
       const result = await toggleBookmark(postId);
       if (!result.ok) {

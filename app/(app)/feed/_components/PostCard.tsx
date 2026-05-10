@@ -22,6 +22,12 @@ import { formatRelative } from "@/lib/utils/relativeTime";
 import { BookmarkButton } from "./BookmarkButton";
 import { LikeButton } from "./LikeButton";
 import { PostMenu } from "./PostMenu";
+import { WhyThisPost } from "@/components/feed/WhyThisPost";
+import type { RankingSignalDisplay } from "@/components/feed/WhyThisPost";
+import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
+import { useTrackDwell } from "@/lib/hooks/useTrackDwell";
+import { mergeRefs } from "@/lib/utils/mergeRefs";
+import type { EventSurface } from "@/lib/database.types";
 import { PostPhotos } from "./PostPhotos";
 import { PostVideoPlayer } from "./PostVideoPlayer";
 
@@ -32,6 +38,13 @@ type PostCardProps = {
   /** "hero" = première card du feed avec photo en pleine largeur top
    *  (au-dessus du header). Sinon photo intégrée dans le corps. */
   hero?: boolean;
+  /** Surface d'affichage pour le tracking (default feed_home). */
+  surface?: EventSurface;
+  /** Position dans le feed pour le tracking. */
+  position?: number;
+  /** Signaux de ranking (depuis /api/feed/personalized) pour
+      <WhyThisPost />. Si absent, popover affiche message générique. */
+  rankingSignals?: RankingSignalDisplay[];
 };
 
 export function PostCard({
@@ -39,7 +52,12 @@ export function PostCard({
   currentUserId,
   showActions = true,
   hero = false,
+  surface = "feed_home",
+  position,
+  rankingSignals,
 }: PostCardProps) {
+  const impressionRef = useTrackImpression(post.id, { surface, position });
+  const dwellRef = useTrackDwell(post.id, { surface });
   const author = post.author;
   const displayName = author?.full_name ?? author?.username ?? "Utilisateur";
   const isOwn = post.author_id === currentUserId;
@@ -56,7 +74,10 @@ export function PostCard({
   const heroMedia = hero && hasMedia;
 
   return (
-    <article className="overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]">
+    <article
+      ref={mergeRefs<HTMLElement>(impressionRef, dwellRef)}
+      className="overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]"
+    >
       {/* Hero media — au-dessus du header pour la 1ère card du feed */}
       {heroMedia && post.video_url ? (
         <PostVideoPlayer
@@ -116,11 +137,18 @@ export function PostCard({
             ) : null}
           </p>
         </div>
-        <PostMenu
-          postId={post.id}
-          isOwn={isOwn}
-          authorName={author?.full_name ?? author?.username ?? null}
-        />
+        <div className="flex items-center gap-1 shrink-0">
+          <WhyThisPost
+            postId={post.id}
+            authorId={post.author_id}
+            signals={rankingSignals}
+          />
+          <PostMenu
+            postId={post.id}
+            isOwn={isOwn}
+            authorName={author?.full_name ?? author?.username ?? null}
+          />
+        </div>
       </header>
 
       {fullBody ? (

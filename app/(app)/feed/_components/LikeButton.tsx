@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
+import { trackEvent } from "@/lib/tracking/eventTracker";
 import { toggleLike } from "../actions";
 
 type LikeButtonProps = {
@@ -29,6 +30,12 @@ export function LikeButton({
     const next = !liked;
     setLiked(next);
     setCount((c) => c + (next ? 1 : -1));
+
+    /* Track côté recsys avant le server action — l'event est inséré dans
+       recsys_events même si toggleLike échoue (signal d'intention). */
+    trackEvent(next ? "post.like" : "post.unlike", {
+      target_post_id: postId,
+    });
 
     startTransition(async () => {
       const result = await toggleLike(postId);
