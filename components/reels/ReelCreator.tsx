@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Camera,
   Check,
   Globe,
   Loader2,
@@ -15,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { CameraCapture } from "@/components/reels/CameraCapture";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -52,7 +54,7 @@ type Props = {
   preselectedSound: SoundPick;
 };
 
-type Step = "upload" | "compose";
+type Step = "upload" | "camera" | "compose";
 
 type UploadedVideo = {
   url: string;
@@ -88,16 +90,17 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
     ).slice(0, 20);
   }
 
-  async function handleFileSelect(
-    event: React.ChangeEvent<HTMLInputElement>,
+  async function processVideoFile(
+    file: File,
+    knownDurationSeconds?: number,
   ) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
     if (!ALLOWED_MIME.includes(file.type)) {
-      toast.error("Format non supporté. MP4, WebM ou MOV uniquement.");
-      return;
+      /* Camera capture fournit parfois video/webm;codecs=... — accepte
+         tout ce qui commence par video/. */
+      if (!file.type.startsWith("video/")) {
+        toast.error("Format non supporté.");
+        return;
+      }
     }
     if (file.size > MAX_BYTES) {
       toast.error(
@@ -109,21 +112,21 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
     setUploading(true);
     setUploadProgress(0);
     try {
-      /* Lit la durée + extrait une poster frame côté client. */
       const probe = await probeVideo(file);
-      if (probe.durationSeconds > MAX_DURATION_S + 0.5) {
+      const durationSeconds =
+        knownDurationSeconds ?? probe.durationSeconds;
+      if (durationSeconds > MAX_DURATION_S + 0.5) {
         toast.error(
-          `Vidéo trop longue (${Math.round(probe.durationSeconds)}s). Max ${MAX_DURATION_S}s.`,
+          `Vidéo trop longue (${Math.round(durationSeconds)}s). Max ${MAX_DURATION_S}s.`,
         );
         return;
       }
 
-      /* Upload vidéo. */
       const supabase = createClient();
       const ext = file.name.split(".").pop() ?? "mp4";
       const videoPath = `reels/${userId}/${crypto.randomUUID()}.${ext}`;
       const { error: vErr } = await supabase.storage
-        .from("post-photos") /* réutilise le bucket existant pour V1 */
+        .from("post-photos")
         .upload(videoPath, file, {
           contentType: file.type,
           upsert: false,
@@ -135,7 +138,6 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
 
       setUploadProgress(70);
 
-      /* Upload poster frame (PNG blob). */
       let posterUrl: string | null = null;
       let posterPath: string | null = null;
       if (probe.posterBlob) {
@@ -158,7 +160,7 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
       setVideo({
         url: videoUrl,
         storagePath: videoPath,
-        duration_seconds: probe.durationSeconds,
+        duration_seconds: durationSeconds,
         poster_url: posterUrl,
         posterStoragePath: posterPath,
       });
@@ -169,6 +171,20 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function handleFileSelect(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await processVideoFile(file);
+  }
+
+  async function handleCameraCapture(file: File, durationSeconds: number) {
+    setStep("upload");
+    await processVideoFile(file, durationSeconds);
   }
 
   async function removeVideo() {
@@ -271,6 +287,14 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           uploading={uploading}
           progress={uploadProgress}
           onPick={() => fileInputRef.current?.click()}
+          onOpenCamera={() => setStep("camera")}
+        />
+      ) : null}
+
+      {step === "camera" ? (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onCancel={() => setStep("upload")}
         />
       ) : null}
 
@@ -297,15 +321,17 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
   );
 }
 
-/* === Step 1 : Upload vidéo === */
+/* === Step 1 : Upload vidéo + camera switch === */
 function UploadStep({
   uploading,
   progress,
   onPick,
+  onOpenCamera,
 }: {
   uploading: boolean;
   progress: number;
   onPick: () => void;
+  onOpenCamera: () => void;
 }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 min-h-[calc(100vh-60px)] text-center">
@@ -318,23 +344,35 @@ function UploadStep({
       </div>
 
       <p className="font-display italic text-[28px] text-cream mb-2">
-        {uploading ? "Téléchargement…" : "Choisis ta vidéo"}
+        {uploading ? "Téléchargement…" : "Crée ton reel"}
       </p>
       <p className="text-[12.5px] text-cream/60 max-w-md mb-6 leading-relaxed">
         {uploading
           ? `Préparation en cours (${progress}%)`
-          : "MP4 / WebM / MOV · max 100 MB · max 90 secondes · format vertical 9:16 recommandé."}
+          : "Capture en direct ou importe une vidéo · max 90 secondes · format vertical 9:16 recommandé."}
       </p>
 
       {!uploading ? (
-        <button
-          type="button"
-          onClick={onPick}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night text-[14px] font-bold hover:scale-105 transition-transform shadow-[0_8px_24px_-8px_rgba(244,185,66,0.7)]"
-        >
-          <Upload className="w-4 h-4" aria-hidden />
-          Importer une vidéo
-        </button>
+        <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+          {/* CTA principal : caméra live (V1.5). */}
+          <button
+            type="button"
+            onClick={onOpenCamera}
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night text-[14px] font-bold hover:scale-105 transition-transform shadow-[0_8px_24px_-8px_rgba(244,185,66,0.7)]"
+          >
+            <Camera className="w-4 h-4" aria-hidden />
+            Filmer maintenant
+          </button>
+          {/* Secondaire : import. */}
+          <button
+            type="button"
+            onClick={onPick}
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-cream/10 hover:bg-cream/20 text-cream text-[13px] font-bold border border-cream/20"
+          >
+            <Upload className="w-4 h-4" aria-hidden />
+            Importer une vidéo
+          </button>
+        </div>
       ) : (
         <div className="w-full max-w-xs">
           <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
@@ -347,8 +385,8 @@ function UploadStep({
       )}
 
       <p className="mt-8 text-[10.5px] text-cream/40 leading-snug max-w-md">
-        💡 V1 : upload uniquement. La capture caméra live + effets AR + édition
-        timeline arrivent bientôt.
+        💡 Effets AR temps réel (filtres, masques visage), édition timeline et
+        bibliothèque musicale arrivent en V2.
       </p>
     </div>
   );
