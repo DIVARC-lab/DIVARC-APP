@@ -2,6 +2,7 @@
 
 import {
   CornerDownRight,
+  Heart,
   Loader2,
   MessageCircle,
   Send,
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { linkifyMentions } from "@/lib/utils/linkifyMentions";
 import {
   addReelComment,
   deleteReelComment,
@@ -67,6 +69,7 @@ export function ReelCommentsSheet({
 }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [authorById, setAuthorById] = useState<Map<string, Author>>(new Map());
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -117,11 +120,13 @@ export function ReelCommentsSheet({
         const json = (await res.json()) as {
           comments: Comment[];
           authors: Author[];
+          liked_ids?: string[];
         };
         setComments(json.comments);
         const map = new Map<string, Author>();
         for (const a of json.authors) map.set(a.id, a);
         setAuthorById(map);
+        setLikedIds(new Set(json.liked_ids ?? []));
       } finally {
         setLoading(false);
       }
@@ -203,6 +208,52 @@ export function ReelCommentsSheet({
     }
   }, [body, submitting, allowComments, reelId, currentUserId, replyTo, comments]);
 
+  const toggleCommentLike = useCallback(async (commentId: string) => {
+    const wasLiked = likedIds.has(commentId);
+    /* Optimistic. */
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (wasLiked) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+    setComments((prev) =>
+      prev.map((c) =>
+        c.id === commentId
+          ? {
+              ...c,
+              likes_count: Math.max(0, c.likes_count + (wasLiked ? -1 : 1)),
+            }
+          : c,
+      ),
+    );
+
+    try {
+      const res = await fetch(`/api/reels/comments/${commentId}/like`, {
+        method: wasLiked ? "DELETE" : "POST",
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+    } catch {
+      /* Rollback. */
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (wasLiked) next.add(commentId);
+        else next.delete(commentId);
+        return next;
+      });
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? {
+                ...c,
+                likes_count: Math.max(0, c.likes_count + (wasLiked ? 1 : -1)),
+              }
+            : c,
+        ),
+      );
+    }
+  }, [likedIds]);
+
   const remove = useCallback(async (commentId: string) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
     setCount((c) => Math.max(0, c - 1));
@@ -281,6 +332,8 @@ export function ReelCommentsSheet({
                       comment={comment}
                       author={authorById.get(comment.author_id) ?? null}
                       currentUserId={currentUserId}
+                      isLiked={likedIds.has(comment.id)}
+                      onLike={() => toggleCommentLike(comment.id)}
                       onReply={() =>
                         setReplyTo({
                           commentId: comment.id,
@@ -323,6 +376,8 @@ export function ReelCommentsSheet({
                                     authorById.get(reply.author_id) ?? null
                                   }
                                   currentUserId={currentUserId}
+                                  isLiked={likedIds.has(reply.id)}
+                                  onLike={() => toggleCommentLike(reply.id)}
                                   onReply={() =>
                                     setReplyTo({
                                       commentId: reply.id,
@@ -437,6 +492,8 @@ function CommentRow({
   comment,
   author,
   currentUserId,
+  isLiked,
+  onLike,
   onReply,
   onDelete,
   small,
@@ -444,6 +501,8 @@ function CommentRow({
   comment: Comment;
   author: Author | null;
   currentUserId: string;
+  isLiked: boolean;
+  onLike: () => void;
   onReply: () => void;
   onDelete: () => void;
   small?: boolean;
@@ -477,27 +536,52 @@ function CommentRow({
             small ? "text-[12.5px]" : "text-[13px]",
           )}
         >
-          {comment.body}
+          {linkifyMentions(comment.body)}
         </p>
-        <button
-          type="button"
-          onClick={onReply}
-          className="mt-1 inline-flex items-center gap-1 text-[10.5px] font-bold text-night-muted hover:text-night"
-        >
-          <MessageCircle className="w-2.5 h-2.5" aria-hidden />
-          Répondre
-        </button>
+        <div className="mt-1 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onReply}
+            className="inline-flex items-center gap-1 text-[10.5px] font-bold text-night-muted hover:text-night"
+          >
+            <MessageCircle className="w-2.5 h-2.5" aria-hidden />
+            Répondre
+          </button>
+          {comment.likes_count > 0 ? (
+            <span className="text-[10.5px] text-night-muted tabular-nums">
+              {comment.likes_count}{" "}
+              {comment.likes_count > 1 ? "j'aime" : "j'aime"}
+            </span>
+          ) : null}
+        </div>
       </div>
-      {isOwn ? (
+      <div className="flex flex-col items-center gap-1.5 shrink-0">
         <button
           type="button"
-          onClick={onDelete}
-          className="text-night-muted hover:text-red-600 shrink-0"
-          aria-label="Supprimer ce commentaire"
+          onClick={onLike}
+          aria-label={isLiked ? "Retirer le j'aime" : "J'aime"}
+          aria-pressed={isLiked}
+          className="text-night-muted hover:text-rose-500 transition-colors"
         >
-          <Trash2 className="w-3.5 h-3.5" aria-hidden />
+          <Heart
+            className={cn(
+              "w-3.5 h-3.5",
+              isLiked ? "fill-rose-500 text-rose-500" : "",
+            )}
+            strokeWidth={2}
+          />
         </button>
-      ) : null}
+        {isOwn ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-night-muted hover:text-red-600"
+            aria-label="Supprimer ce commentaire"
+          >
+            <Trash2 className="w-3 h-3" aria-hidden />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

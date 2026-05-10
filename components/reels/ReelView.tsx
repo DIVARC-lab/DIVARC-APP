@@ -18,6 +18,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
 import { cn } from "@/lib/utils/cn";
+import { linkifyMentions } from "@/lib/utils/linkifyMentions";
 import type { ReelWithDetails } from "@/lib/database.types";
 
 /* ReelView — un reel individuel dans le feed Reels.
@@ -400,7 +401,7 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
               !descExpanded && "line-clamp-2",
             )}
           >
-            {reel.description}
+            {linkifyMentions(reel.description)}
             {!descExpanded && reel.description.length > 80 ? (
               <button
                 type="button"

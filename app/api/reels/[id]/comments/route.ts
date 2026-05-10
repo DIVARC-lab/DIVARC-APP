@@ -32,7 +32,7 @@ export async function GET(
 
   if (error) {
     console.error("[reels:comments:list]", error);
-    return NextResponse.json({ comments: [], authors: [] });
+    return NextResponse.json({ comments: [], authors: [], liked_ids: [] });
   }
 
   /* Hydrate authors. */
@@ -47,8 +47,25 @@ export async function GET(
           .in("id", authorIds)
       : { data: [] };
 
+  /* User likes sur ces commentaires (pour préremplir l'état UI). */
+  const commentIds = ((comments ?? []) as Array<{ id: string }>).map(
+    (c) => c.id,
+  );
+  const { data: likedRows } =
+    commentIds.length > 0
+      ? await supabase
+          .from("reel_comment_likes")
+          .select("comment_id")
+          .eq("user_id", user.id)
+          .in("comment_id", commentIds)
+      : { data: [] };
+  const likedIds = ((likedRows ?? []) as Array<{ comment_id: string }>).map(
+    (r) => r.comment_id,
+  );
+
   return NextResponse.json({
     comments: comments ?? [],
     authors: authors ?? [],
+    liked_ids: likedIds,
   });
 }

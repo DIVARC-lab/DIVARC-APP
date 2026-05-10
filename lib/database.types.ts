@@ -633,6 +633,12 @@ export type ReelStitch = {
   created_at: string;
 };
 
+export type ReelCommentLike = {
+  comment_id: string;
+  user_id: string;
+  created_at: string;
+};
+
 export type ReelWithDetails = Reel & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
   sound: Pick<Sound, "id" | "title" | "artist" | "audio_url"> | null;
@@ -2927,6 +2933,13 @@ export type Database = {
           "source_reel_id" | "stitch_reel_id" | "segment_start_ms" | "segment_end_ms"
         > &
           Partial<Pick<ReelStitch, "id" | "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      reel_comment_likes: {
+        Row: ReelCommentLike;
+        Insert: Pick<ReelCommentLike, "comment_id" | "user_id"> &
+          Partial<Pick<ReelCommentLike, "created_at">>;
         Update: never;
         Relationships: [];
       };
