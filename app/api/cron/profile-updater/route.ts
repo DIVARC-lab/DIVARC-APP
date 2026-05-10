@@ -78,12 +78,13 @@ async function updateProfileForUser(
   userId: string,
   cutoff: string,
 ): Promise<void> {
-  /* On lit tous les events du user dans la fenêtre. Limite haute pour
-     éviter qu'un user power user ne fasse exploser le worker. */
+  /* On lit tous les events du user dans la fenêtre. Inclut target_post_id
+     pour pouvoir agréger les embeddings des posts likés/sauvés/dwellés
+     longuement → interest_vector. */
   const { data: events } = await supabase
     .from("recsys_events")
     .select(
-      "event_type, target_user_id, target_circle_id, properties, created_at",
+      "event_type, target_user_id, target_post_id, target_circle_id, properties, created_at",
     )
     .eq("user_id", userId)
     .gte("created_at", cutoff)
@@ -95,6 +96,11 @@ async function updateProfileForUser(
   const userAffinity: Record<string, number> = {};
   const circleAffinity: Record<string, number> = {};
   const hoursHist: number[] = new Array(24).fill(0);
+  /* postWeights : { post_id: weight_total } pour agréger plus tard les
+     embeddings → interest_vector. On ne capture que les events POSITIFS
+     (filterWeight > 0) car un event négatif (hide, see_less) ne doit pas
+     contribuer à l'affinité sémantique. */
+  const postWeights: Record<string, number> = {};
   const now = Date.now();
 
   for (const event of events) {
@@ -128,6 +134,13 @@ async function updateProfileForUser(
       const hour = new Date(event.created_at).getHours();
       hoursHist[hour] += 1;
     }
+
+    /* Post weights pour agrégation embeddings. On garde uniquement les
+       events positifs (signal sémantique d'intérêt). */
+    if (finalWeight > 0 && event.target_post_id) {
+      postWeights[event.target_post_id] =
+        (postWeights[event.target_post_id] ?? 0) + finalWeight;
+    }
   }
 
   /* Normalisation hist : ratio 0..1. */
@@ -149,7 +162,55 @@ async function updateProfileForUser(
       .slice(0, 50),
   );
 
-  /* Upsert profile. */
+  /* Calcul interest_vector : moyenne pondérée des embeddings des posts
+     avec lesquels l'user a interagi positivement. On limite aux 100
+     posts les plus weighted pour ne pas dépasser les limites de payload
+     ni la mémoire. */
+  const topPostWeights = Object.entries(postWeights)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 100);
+
+  let interestVector: number[] | null = null;
+  if (topPostWeights.length >= 3) {
+    const postIds = topPostWeights.map(([id]) => id);
+    const { data: embeddings } = await supabase
+      .from("content_embeddings")
+      .select("post_id, embedding")
+      .in("post_id", postIds);
+
+    if (embeddings && embeddings.length >= 3) {
+      /* Moyenne pondérée des vecteurs : Σ (weight × embedding) / Σ weights.
+         pgvector retourne le vecteur soit en string ("[0.1,0.2,...]") soit
+         en number[] selon la version du client — on gère les deux cas. */
+      const dim = 1536;
+      const sum = new Array(dim).fill(0);
+      let totalWeight = 0;
+      const weightById = Object.fromEntries(topPostWeights);
+
+      for (const row of embeddings) {
+        const weight = weightById[row.post_id] ?? 0;
+        if (weight <= 0) continue;
+        const vec = parseEmbedding(row.embedding as unknown);
+        if (!vec || vec.length !== dim) continue;
+        for (let i = 0; i < dim; i++) {
+          sum[i] += vec[i]! * weight;
+        }
+        totalWeight += weight;
+      }
+      if (totalWeight > 0) {
+        const mean = sum.map((v) => v / totalWeight);
+        /* Normalisation L2 pour cosine similarity standardisée. */
+        const norm = Math.sqrt(mean.reduce((s, v) => s + v * v, 0));
+        if (norm > 0) {
+          interestVector = mean.map((v) => v / norm);
+        }
+      }
+    }
+  }
+
+  /* Upsert profile. interest_vector est NULL tant qu'on n'a pas assez
+     d'interactions ou pas d'embeddings disponibles (cohérent avec V1
+     lite : le ranker fallback sur les heuristiques). */
   await supabase.from("user_interest_profiles").upsert(
     {
       user_id: userId,
@@ -158,7 +219,25 @@ async function updateProfileForUser(
       active_hours_distribution: hoursDist,
       events_processed_count: events.length,
       last_updated: new Date().toISOString(),
+      ...(interestVector
+        ? { interest_vector: interestVector as unknown as string }
+        : {}),
     },
     { onConflict: "user_id" },
   );
+}
+
+/* Parse un embedding pgvector — peut arriver soit en string format
+ * "[0.1,0.2,...]", soit en number[] selon la version du client. */
+function parseEmbedding(raw: unknown): number[] | null {
+  if (Array.isArray(raw)) return raw as number[];
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as number[]) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }

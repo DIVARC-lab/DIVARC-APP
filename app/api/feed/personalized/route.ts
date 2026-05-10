@@ -172,10 +172,27 @@ async function algorithmicFeed(
   /* Lecture profil pour booster les posts d'auteurs affinitaires. */
   const { data: profile } = await supabase
     .from("user_interest_profiles")
-    .select("user_affinity")
+    .select("user_affinity, interest_vector")
     .eq("user_id", userId)
     .maybeSingle();
   const userAffinity = (profile?.user_affinity ?? {}) as Record<string, number>;
+  const hasInterestVector = profile?.interest_vector !== null && profile?.interest_vector !== undefined;
+
+  /* Si l'user a un interest_vector, on récupère les top posts sémantiquement
+     proches via la RPC pgvector. Map post_id → similarity_score pour
+     enrichir le scoring. */
+  const semanticMap = new Map<string, number>();
+  if (hasInterestVector) {
+    const { data: similar } = await supabase.rpc(
+      "find_similar_posts_to_user",
+      { target_user_id: userId, result_limit: 100 },
+    );
+    if (similar) {
+      for (const row of similar) {
+        semanticMap.set(row.post_id, row.similarity_score);
+      }
+    }
+  }
 
   /* Friend ids pour le boost network. */
   const { data: friendships } = await supabase
@@ -251,6 +268,22 @@ async function algorithmicFeed(
       }
 
       /* Feature 4 : creator affinity — boost selon user_affinity. */
+
+      /* Feature 5 : semantic match — cosine similarity entre interest_vector
+         user et embedding du post (via RPC find_similar_posts_to_user).
+         Boost majeur (poids 2.5) si score > 0.6 = vrai match sémantique. */
+      const semanticScore = semanticMap.get(c.id);
+      if (semanticScore && semanticScore > 0.4) {
+        score += semanticScore * 2.5;
+        if (semanticScore > 0.6) {
+          signals.push({
+            type: "creator_affinity",
+            label: "Sujet proche de tes intérêts récents",
+            weight: semanticScore,
+          });
+        }
+      }
+
       const affinity = userAffinity[c.author_id] ?? 0;
       if (affinity > 0) {
         const normalizedAffinity = Math.min(1, affinity / 50);

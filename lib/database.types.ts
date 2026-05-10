@@ -931,6 +931,17 @@ export type ListingOfferWithCounterparty = ListingOffer & {
   listing: Pick<Listing, "id" | "title" | "price_amount" | "price_currency" | "status"> | null;
 };
 
+export type ContentEmbedding = {
+  post_id: string;
+  /* pgvector serializes vector(1536) as a string in the wire format
+     (e.g. "[0.12,0.34,...]"). On garde un type number[] pour usage code
+     applicatif et le client Supabase fait la conversion automatique. */
+  embedding: number[];
+  model: string;
+  source_text: string | null;
+  generated_at: string;
+};
+
 export type EventSurface =
   | "feed_home"
   | "feed_circle"
@@ -1259,6 +1270,17 @@ export type Database = {
         Row: Favorite;
         Insert: Pick<Favorite, "user_id" | "listing_id">;
         Update: never;
+        Relationships: [];
+      };
+      content_embeddings: {
+        Row: ContentEmbedding;
+        Insert: Pick<ContentEmbedding, "post_id" | "embedding"> &
+          Partial<
+            Pick<ContentEmbedding, "model" | "source_text" | "generated_at">
+          >;
+        Update: Partial<
+          Pick<ContentEmbedding, "embedding" | "model" | "source_text" | "generated_at">
+        >;
         Relationships: [];
       };
       recsys_events: {
@@ -1992,6 +2014,14 @@ export type Database = {
       };
       cancel_payout_request: {
         Args: { request_id: string };
+        Returns: void;
+      };
+      find_similar_posts_to_user: {
+        Args: { target_user_id: string; result_limit?: number };
+        Returns: Array<{ post_id: string; similarity_score: number }>;
+      };
+      refresh_post_engagement_stats: {
+        Args: Record<string, never>;
         Returns: void;
       };
       get_or_create_direct_conversation: {

@@ -120,8 +120,41 @@ export async function createPost(
     }
   }
 
+  /* Indexation embedding OpenAI — async, ne bloque pas le retour user.
+     Si OPENAI_API_KEY absent ou erreur API, on no-op silencieusement
+     (le post est publié, le ranker fallback sur les heuristiques sans
+     cosine similarity). Le cron de backfill rattrapera les posts non
+     embeddés. */
+  void indexPostEmbedding(supabase, post.id, parsed.data.body ?? "");
+
   revalidatePath("/feed");
   return { status: "success", postId: post.id };
+}
+
+async function indexPostEmbedding(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  postId: string,
+  body: string,
+) {
+  if (!body || body.length < 10) return;
+  try {
+    const { generateEmbedding } = await import("@/lib/openai/embeddings");
+    const result = await generateEmbedding(body);
+    if (!result) return;
+    await supabase.from("content_embeddings").upsert(
+      {
+        post_id: postId,
+        embedding: result.embedding as unknown as string,
+        model: result.model,
+        source_text: result.source_text,
+        generated_at: new Date().toISOString(),
+      },
+      { onConflict: "post_id" },
+    );
+  } catch {
+    /* Silent fail — le post est publié, l'indexation peut être rattrapée
+       par le cron backfill. */
+  }
 }
 
 export async function toggleBookmark(postId: string) {
