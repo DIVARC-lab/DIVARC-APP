@@ -72,7 +72,7 @@ import {
 import { createPost, type PostFormState } from "../actions";
 
 const INITIAL: PostFormState = { status: "idle" };
-const MAX_PHOTOS = 4;
+const MAX_PHOTOS = 10;
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_VIDEO_DURATION_S = 60;
@@ -310,7 +310,40 @@ export function PostComposer({
     const supabase = createClient();
     const uploaded: Photo[] = [];
 
-    for (const file of files) {
+    for (const rawFile of files) {
+      let file: File = rawFile;
+
+      /* Conversion HEIC → JPEG côté client (iOS Camera default).
+         heic2any est lazy-importé pour ne pas alourdir le bundle
+         des autres pages. */
+      const isHeic =
+        /\.(heic|heif)$/i.test(file.name) ||
+        file.type === "image/heic" ||
+        file.type === "image/heif";
+      if (isHeic) {
+        try {
+          const heic2any = (await import("heic2any")).default;
+          const converted = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.9,
+          });
+          const blob = Array.isArray(converted) ? converted[0] : converted;
+          if (!blob) {
+            toast.error(`Conversion HEIC échouée pour ${file.name}`);
+            continue;
+          }
+          file = new File(
+            [blob as Blob],
+            file.name.replace(/\.(heic|heif)$/i, ".jpg"),
+            { type: "image/jpeg" },
+          );
+        } catch {
+          toast.error(`HEIC non supporté pour ${file.name}`);
+          continue;
+        }
+      }
+
       if (!ALLOWED_MIME.includes(file.type)) {
         toast.error(`Format invalide pour ${file.name}.`);
         continue;
@@ -863,7 +896,7 @@ export function PostComposer({
               <input
                 ref={inputRef}
                 type="file"
-                accept={ALLOWED_MIME.join(",")}
+                accept={`${ALLOWED_MIME.join(",")},image/heic,image/heif,.heic,.heif`}
                 multiple
                 onChange={handleFiles}
                 className="sr-only"
