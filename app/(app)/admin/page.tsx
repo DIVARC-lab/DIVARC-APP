@@ -3,7 +3,9 @@ import {
   Briefcase,
   ChevronRight,
   MessageSquareText,
+  Scale,
   Send,
+  Shield,
   ShoppingBag,
   Sparkle,
   Users,
@@ -63,6 +65,76 @@ export default async function AdminPage() {
           </p>
         </div>
       </header>
+
+      {/* Raccourcis Trust & Safety — accès rapide aux consoles de
+          modération depuis le dashboard admin. */}
+      <section>
+        <h2 className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep mb-3">
+          · Trust & Safety
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Link
+            href="/admin/moderation"
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-white border border-line hover:bg-bg-soft transition-colors"
+          >
+            <span
+              aria-hidden
+              className="w-10 h-10 rounded-xl bg-night/5 text-night flex items-center justify-center shrink-0"
+            >
+              <Scale className="w-[18px] h-[18px]" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-night">
+                File de modération
+              </p>
+              <p className="text-[11.5px] text-night-muted">
+                Reports + decisions + appeals
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-night-dim" aria-hidden />
+          </Link>
+          <Link
+            href="/admin/legal/pharos-queue"
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-red-50/40 border border-red-200 hover:bg-red-50 transition-colors"
+          >
+            <span
+              aria-hidden
+              className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0"
+            >
+              <Shield className="w-[18px] h-[18px]" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-red-900">
+                Pharos / NCMEC
+              </p>
+              <p className="text-[11.5px] text-red-700">
+                Incidents critiques aux autorités
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-red-700" aria-hidden />
+          </Link>
+          <Link
+            href="/legal/transparency-report"
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-white border border-line hover:bg-bg-soft transition-colors"
+          >
+            <span
+              aria-hidden
+              className="w-10 h-10 rounded-xl bg-gold/15 text-gold-deep flex items-center justify-center shrink-0"
+            >
+              <Award className="w-[18px] h-[18px]" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-night">
+                Rapport DSA art. 24
+              </p>
+              <p className="text-[11.5px] text-night-muted">
+                Transparence publique (auto-généré)
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-night-dim" aria-hidden />
+          </Link>
+        </div>
+      </section>
 
       {stats ? (
         <section>

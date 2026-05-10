@@ -8,6 +8,8 @@ pour fonctionner pleinement :
 | `/api/cron/event-reminders` | toutes les heures | Push notifications J-1 / H-1 avant événements de cercle |
 | `/api/cron/profile-updater` | toutes les 15 min | Mise à jour des profils d'intérêts (recsys) |
 | `/api/cron/refresh-engagement-stats` | toutes les 5 min | Refresh vue matérialisée engagement |
+| `/api/cron/sanctions-decay` | toutes les heures | Décay sanctions modération + recalcul trust_score |
+| `/api/cron/csam-pharos-ncmec` | toutes les 5 min | Soumission NCMEC + flag Pharos manuel pour incidents CSAM |
 
 Tous les endpoints vérifient le header `Authorization: Bearer ${CRON_SECRET}`
 (env var Vercel — voir [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) pour
