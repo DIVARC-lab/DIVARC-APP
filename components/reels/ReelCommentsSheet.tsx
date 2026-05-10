@@ -1,8 +1,15 @@
 "use client";
 
-import { Loader2, Send, Trash2, X } from "lucide-react";
+import {
+  CornerDownRight,
+  Loader2,
+  MessageCircle,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
@@ -12,20 +19,19 @@ import {
   deleteReelComment,
 } from "@/app/(app)/reels/comments-actions";
 
-/* ReelCommentsSheet — bottom-sheet TikTok-style pour les commentaires
- * d'un reel. Rendu en overlay sur le ReelView quand le user tap le
- * bouton "comments" droit.
+/* ReelCommentsSheet — bottom-sheet TikTok-style avec THREADS V2.
  *
  * Layout :
- *   - Mobile : bottom-sheet 70vh
+ *   - Mobile : bottom-sheet 75vh
  *   - Desktop : panel right side 420px
  *
- * Features V1.5 :
- *   - Liste flat triée par date desc
- *   - Composer en bas (input + bouton send)
- *   - Optimistic update à l'ajout
- *   - Self-delete (bouton trash sur tes propres commentaires)
- *   - V2 : threads (replies), like comments, mentions auto-link
+ * Features V2 :
+ *   - Threads (replies) : root comments + replies indentées
+ *     "Voir N réponses" expandable, bouton "Répondre" par comment
+ *   - Composer adapte le placeholder ("Réponse à @user…") quand replyTo set
+ *   - Optimistic update à l'ajout (root + reply)
+ *   - Self-delete sur tes propres comments
+ *   - V3 : like comments + mentions auto-link
  */
 
 type Comment = {
@@ -66,6 +72,39 @@ export function ReelCommentsSheet({
   const [submitting, setSubmitting] = useState(false);
   const [count, setCount] = useState(initialCount);
   const inputRef = useRef<HTMLInputElement>(null);
+  /* V2 threads : si replyTo set, le prochain comment publié sera une
+     réponse à ce comment (parent_id = replyTo.id). */
+  const [replyTo, setReplyTo] = useState<{
+    commentId: string;
+    username: string | null;
+  } | null>(null);
+  /* Threads expandables : Set<rootCommentId> qui ont leurs replies visibles. */
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(
+    new Set(),
+  );
+
+  /* Group comments par parent_id : root list + map repliesByParent. */
+  const { rootComments, repliesByParent } = useMemo(() => {
+    const roots: Comment[] = [];
+    const repliesMap = new Map<string, Comment[]>();
+    for (const c of comments) {
+      if (c.parent_id) {
+        const arr = repliesMap.get(c.parent_id) ?? [];
+        arr.push(c);
+        repliesMap.set(c.parent_id, arr);
+      } else {
+        roots.push(c);
+      }
+    }
+    /* Replies triées par date asc (chronologique dans le thread). */
+    for (const arr of repliesMap.values()) {
+      arr.sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    }
+    return { rootComments: roots, repliesByParent: repliesMap };
+  }, [comments]);
 
   /* Fetch initial. */
   useEffect(() => {
@@ -100,33 +139,55 @@ export function ReelCommentsSheet({
     if (!text || submitting || !allowComments) return;
     setSubmitting(true);
 
+    /* Si on répond à un comment, parent_id = celui du root du thread
+       (Twitter-style flat replies). On résout le root si replyTo
+       pointe sur une reply (parent_id non null), pour éviter les
+       arbres profonds. */
+    let parentRoot: string | null = null;
+    if (replyTo) {
+      const target = comments.find((c) => c.id === replyTo.commentId);
+      parentRoot = target?.parent_id ?? target?.id ?? null;
+    }
+
     /* Optimistic add. */
     const tempId = `temp-${Date.now()}`;
     const optimistic: Comment = {
       id: tempId,
       author_id: currentUserId,
       body: text,
-      parent_id: null,
+      parent_id: parentRoot,
       likes_count: 0,
       created_at: new Date().toISOString(),
     };
     setComments((prev) => [optimistic, ...prev]);
     setCount((c) => c + 1);
     setBody("");
+    /* Auto-expand le thread parent pour que la nouvelle reply soit visible. */
+    if (parentRoot) {
+      setExpandedThreads((prev) => {
+        const next = new Set(prev);
+        next.add(parentRoot);
+        return next;
+      });
+    }
+    /* Reset replyTo après envoi. */
+    const sentReplyTo = replyTo;
+    setReplyTo(null);
 
     try {
       const result = await addReelComment({
         reel_id: reelId,
         body: text,
+        parent_id: parentRoot ?? undefined,
       });
       if (!result.ok) {
-        /* Rollback. */
+        /* Rollback + restore replyTo. */
         setComments((prev) => prev.filter((c) => c.id !== tempId));
         setCount((c) => Math.max(0, c - 1));
+        setReplyTo(sentReplyTo);
         toast.error(result.error);
         return;
       }
-      /* Remplace l'optimistic par l'id serveur. */
       setComments((prev) =>
         prev.map((c) =>
           c.id === tempId ? { ...c, id: result.comment_id } : c,
@@ -135,11 +196,12 @@ export function ReelCommentsSheet({
     } catch {
       setComments((prev) => prev.filter((c) => c.id !== tempId));
       setCount((c) => Math.max(0, c - 1));
+      setReplyTo(sentReplyTo);
       toast.error("Erreur réseau.");
     } finally {
       setSubmitting(false);
     }
-  }, [body, submitting, allowComments, reelId, currentUserId]);
+  }, [body, submitting, allowComments, reelId, currentUserId, replyTo, comments]);
 
   const remove = useCallback(async (commentId: string) => {
     setComments((prev) => prev.filter((c) => c.id !== commentId));
@@ -210,47 +272,89 @@ export function ReelCommentsSheet({
             </div>
           ) : (
             <ul className="divide-y divide-line">
-              {comments.map((comment) => {
-                const author = authorById.get(comment.author_id);
-                const isOwn = comment.author_id === currentUserId;
-                const displayName =
-                  author?.full_name ??
-                  (author?.username ? `@${author.username}` : "Utilisateur");
+              {rootComments.map((comment) => {
+                const replies = repliesByParent.get(comment.id) ?? [];
+                const isExpanded = expandedThreads.has(comment.id);
                 return (
                   <li key={comment.id} className="px-4 py-3">
-                    <div className="flex items-start gap-2.5">
-                      <Avatar
-                        src={author?.avatar_url ?? null}
-                        fullName={author?.full_name ?? null}
-                        size="sm"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px]">
-                          <Link
-                            href={`/u/${author?.username ?? comment.author_id}`}
-                            className="font-bold text-night hover:underline"
+                    <CommentRow
+                      comment={comment}
+                      author={authorById.get(comment.author_id) ?? null}
+                      currentUserId={currentUserId}
+                      onReply={() =>
+                        setReplyTo({
+                          commentId: comment.id,
+                          username:
+                            authorById.get(comment.author_id)?.username ??
+                            null,
+                        })
+                      }
+                      onDelete={() => remove(comment.id)}
+                    />
+
+                    {replies.length > 0 ? (
+                      <div className="ml-10 mt-2">
+                        {!isExpanded ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedThreads((prev) => {
+                                const next = new Set(prev);
+                                next.add(comment.id);
+                                return next;
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-[11.5px] font-bold text-night-muted hover:text-night"
                           >
-                            {displayName}
-                          </Link>
-                          <span className="ml-2 text-[10.5px] text-night-muted">
-                            {formatRelative(comment.created_at)}
-                          </span>
-                        </p>
-                        <p className="text-[13px] text-night mt-0.5 leading-snug whitespace-pre-wrap break-words">
-                          {comment.body}
-                        </p>
+                            <CornerDownRight
+                              className="w-3 h-3"
+                              aria-hidden
+                            />
+                            Voir {replies.length}{" "}
+                            {replies.length > 1 ? "réponses" : "réponse"}
+                          </button>
+                        ) : (
+                          <ul className="space-y-2.5 border-l-2 border-line pl-3">
+                            {replies.map((reply) => (
+                              <li key={reply.id}>
+                                <CommentRow
+                                  comment={reply}
+                                  author={
+                                    authorById.get(reply.author_id) ?? null
+                                  }
+                                  currentUserId={currentUserId}
+                                  onReply={() =>
+                                    setReplyTo({
+                                      commentId: reply.id,
+                                      username:
+                                        authorById.get(reply.author_id)
+                                          ?.username ?? null,
+                                    })
+                                  }
+                                  onDelete={() => remove(reply.id)}
+                                  small
+                                />
+                              </li>
+                            ))}
+                            <li>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedThreads((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(comment.id);
+                                    return next;
+                                  })
+                                }
+                                className="text-[11px] text-night-muted hover:text-night"
+                              >
+                                Masquer les réponses
+                              </button>
+                            </li>
+                          </ul>
+                        )}
                       </div>
-                      {isOwn ? (
-                        <button
-                          type="button"
-                          onClick={() => remove(comment.id)}
-                          className="text-night-muted hover:text-red-600 shrink-0"
-                          aria-label="Supprimer ce commentaire"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" aria-hidden />
-                        </button>
-                      ) : null}
-                    </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -260,7 +364,27 @@ export function ReelCommentsSheet({
 
         {/* Composer. */}
         {allowComments ? (
-          <footer className="border-t border-line bg-bg-soft px-3 py-2.5 flex items-center gap-2">
+          <footer className="border-t border-line bg-bg-soft">
+            {/* Banner "Réponse à @user" si replyTo set. */}
+            {replyTo ? (
+              <div className="px-3 py-1.5 border-b border-line bg-night/[0.02] flex items-center justify-between gap-2 text-[11.5px]">
+                <span className="text-night-muted truncate">
+                  Réponse à{" "}
+                  <span className="font-bold text-night">
+                    @{replyTo.username ?? "user"}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReplyTo(null)}
+                  className="text-night-muted hover:text-red-600 shrink-0"
+                  aria-label="Annuler la réponse"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden />
+                </button>
+              </div>
+            ) : null}
+            <div className="px-3 py-2.5 flex items-center gap-2">
             <input
               ref={inputRef}
               type="text"
@@ -272,7 +396,11 @@ export function ReelCommentsSheet({
                   void submit();
                 }
               }}
-              placeholder="Ajoute un commentaire…"
+              placeholder={
+                replyTo
+                  ? `Réponse à @${replyTo.username ?? "user"}…`
+                  : "Ajoute un commentaire…"
+              }
               maxLength={1000}
               className="flex-1 px-3 py-2 rounded-full bg-white border border-line text-[13px]"
             />
@@ -289,6 +417,7 @@ export function ReelCommentsSheet({
                 <Send className="w-4 h-4" aria-hidden />
               )}
             </button>
+            </div>
           </footer>
         ) : (
           <footer className="border-t border-line bg-bg-soft px-3 py-3 text-center">
@@ -298,6 +427,77 @@ export function ReelCommentsSheet({
           </footer>
         )}
       </div>
+    </div>
+  );
+}
+
+/* CommentRow — un commentaire individuel (root ou reply).
+   small=true rend une version compacte pour les replies indentées. */
+function CommentRow({
+  comment,
+  author,
+  currentUserId,
+  onReply,
+  onDelete,
+  small,
+}: {
+  comment: Comment;
+  author: Author | null;
+  currentUserId: string;
+  onReply: () => void;
+  onDelete: () => void;
+  small?: boolean;
+}) {
+  const isOwn = comment.author_id === currentUserId;
+  const displayName =
+    author?.full_name ??
+    (author?.username ? `@${author.username}` : "Utilisateur");
+  return (
+    <div className="flex items-start gap-2.5">
+      <Avatar
+        src={author?.avatar_url ?? null}
+        fullName={author?.full_name ?? null}
+        size="sm"
+      />
+      <div className="min-w-0 flex-1">
+        <p className={cn("text-[12.5px]", small && "text-[12px]")}>
+          <Link
+            href={`/u/${author?.username ?? comment.author_id}`}
+            className="font-bold text-night hover:underline"
+          >
+            {displayName}
+          </Link>
+          <span className="ml-2 text-[10.5px] text-night-muted">
+            {formatRelative(comment.created_at)}
+          </span>
+        </p>
+        <p
+          className={cn(
+            "text-night mt-0.5 leading-snug whitespace-pre-wrap break-words",
+            small ? "text-[12.5px]" : "text-[13px]",
+          )}
+        >
+          {comment.body}
+        </p>
+        <button
+          type="button"
+          onClick={onReply}
+          className="mt-1 inline-flex items-center gap-1 text-[10.5px] font-bold text-night-muted hover:text-night"
+        >
+          <MessageCircle className="w-2.5 h-2.5" aria-hidden />
+          Répondre
+        </button>
+      </div>
+      {isOwn ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-night-muted hover:text-red-600 shrink-0"
+          aria-label="Supprimer ce commentaire"
+        >
+          <Trash2 className="w-3.5 h-3.5" aria-hidden />
+        </button>
+      ) : null}
     </div>
   );
 }
