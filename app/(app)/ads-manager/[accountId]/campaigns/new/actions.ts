@@ -1,0 +1,353 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import {
+  ALWAYS_FORBIDDEN_AD_CATEGORIES,
+  CATEGORY_DISCLAIMERS,
+  validateTargetingSpec,
+  type TargetingSpec,
+} from "@/lib/ads/types";
+import type { Database } from "@/lib/database.types";
+
+/* Création atomique d'une campagne complète :
+ *   campaigns + ad_sets + creatives + ads + ads_library_entry
+ *
+ * Toutes les vérifications conformité (targeting DSA art. 28 + RGPD art. 9 +
+ * catégorie interdite + special_ad_category) sont faites côté server pour
+ * empêcher tout bypass client.
+ */
+
+const campaignFormSchema = z
+  .object({
+    ad_account_id: z.string().uuid(),
+    /* Étape 1 — objectif. */
+    objective: z.enum([
+      "brand_awareness",
+      "reach",
+      "traffic",
+      "engagement",
+      "video_views",
+      "lead_generation",
+      "messages",
+      "conversions",
+      "marketplace_listing_boost",
+      "job_applications",
+      "circle_growth",
+    ]),
+    /* Étape 2 — config campagne. */
+    name: z.string().min(2).max(100),
+    daily_budget: z.number().positive().optional(),
+    lifetime_budget: z.number().positive().optional(),
+    spend_cap: z.number().positive().optional(),
+    start_time: z.string().datetime().optional(),
+    end_time: z.string().datetime().optional(),
+    special_ad_category: z
+      .enum(["housing", "employment", "credit", "social"])
+      .optional(),
+    /* Étape 3 — adset audience + placements + budget + opti. */
+    targeting: z
+      .object({
+        geo: z.object({
+          countries: z.array(z.string().length(2)).default(["FR"]),
+          regions: z.array(z.string()).optional(),
+          cities: z.array(z.unknown()).optional(),
+          postal_codes: z.array(z.string()).optional(),
+        }),
+        age_min: z.number().int().min(18).max(99),
+        age_max: z.number().int().min(18).max(99),
+        genders: z.array(z.enum(["all", "male", "female", "non_binary"])),
+        languages: z.array(z.string()).optional(),
+        interests: z
+          .array(
+            z.object({
+              topic_id: z.string(),
+              affinity_threshold: z.number().min(0).max(1).optional(),
+            }),
+          )
+          .optional(),
+      })
+      .passthrough(),
+    placements: z
+      .array(
+        z.enum([
+          "feed_home",
+          "marketplace_feed",
+          "marketplace_listing_boost",
+          "jobs_feed",
+          "stories",
+        ]),
+      )
+      .min(1),
+    bid_strategy: z
+      .enum(["lowest_cost", "cost_cap", "bid_cap", "target_cost"])
+      .default("lowest_cost"),
+    bid_amount: z.number().positive().optional(),
+    optimization_goal: z.enum([
+      "impressions",
+      "reach",
+      "link_clicks",
+      "landing_page_views",
+      "post_engagement",
+      "video_views_3s",
+      "thruplay",
+      "lead_generation",
+      "conversions",
+    ]),
+    billing_event: z.enum([
+      "impressions",
+      "clicks",
+      "video_views",
+      "conversions",
+    ]),
+    frequency_max: z.number().int().min(1).max(50).optional(),
+    frequency_period_days: z.number().int().min(1).max(30).optional(),
+    /* Étape 4 — creative. */
+    creative_type: z.enum([
+      "single_image",
+      "single_video",
+      "carousel",
+    ]),
+    primary_text: z.string().min(1).max(125),
+    headline: z.string().min(1).max(40),
+    description: z.string().max(30).optional(),
+    media_url: z.string().url().optional(),
+    destination_url: z.string().url().optional(),
+    call_to_action: z.string(),
+    advertiser_entity_id: z.string().uuid(),
+    /* Catégorie d'ad pour disclaimers automatiques. */
+    ad_category_hint: z.string().optional(),
+  })
+  .strict();
+
+export type CreateCampaignResult =
+  | { ok: true; campaign_id: string; ad_id: string }
+  | { ok: false; error: string; validation_errors?: string[] };
+
+export async function createFullCampaign(
+  input: z.infer<typeof campaignFormSchema>,
+): Promise<CreateCampaignResult> {
+  const parsed = campaignFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Données invalides.",
+      validation_errors: parsed.error.issues.map((e) => e.message),
+    };
+  }
+  const data = parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Vérification droit éditeur. */
+  const { data: hasRole } = await supabase.rpc("user_has_ad_account_role", {
+    p_ad_account_id: data.ad_account_id,
+    p_min_role: "editor",
+  });
+  if (!hasRole) {
+    return {
+      ok: false,
+      error:
+        "Tu n'as pas les droits pour créer une campagne sur ce compte (rôle editor minimum requis).",
+    };
+  }
+
+  /* Validation conformité — categorie interdite. */
+  if (
+    data.ad_category_hint &&
+    (ALWAYS_FORBIDDEN_AD_CATEGORIES as readonly string[]).includes(
+      data.ad_category_hint,
+    )
+  ) {
+    return {
+      ok: false,
+      error: `La catégorie "${data.ad_category_hint}" est interdite à la publicité sur DIVARC.`,
+    };
+  }
+
+  /* Validation targeting DSA + RGPD. */
+  const targetingValidation = validateTargetingSpec(
+    data.targeting as TargetingSpec,
+    data.special_ad_category,
+  );
+  if (!targetingValidation.valid) {
+    return {
+      ok: false,
+      error: "Ciblage non conforme.",
+      validation_errors: targetingValidation.errors,
+    };
+  }
+
+  /* Disclaimers automatiques par catégorie. */
+  const autoDisclaimer = data.ad_category_hint
+    ? CATEGORY_DISCLAIMERS[data.ad_category_hint] ?? null
+    : null;
+
+  /* Insert atomique : campaign → ad_set → creative → ad. Si une étape
+     échoue, on ne nettoie pas pour V1 — l'admin pourra les supprimer.
+     Pour V2 : transaction RPC Postgres. */
+
+  /* 1. Campaign. */
+  const { data: campaign, error: cErr } = await supabase
+    .from("ads_campaigns")
+    .insert({
+      ad_account_id: data.ad_account_id,
+      name: data.name,
+      objective: data.objective,
+      status: "draft",
+      buying_type: "auction",
+      daily_budget: data.daily_budget ?? null,
+      lifetime_budget: data.lifetime_budget ?? null,
+      spend_cap: data.spend_cap ?? null,
+      start_time: data.start_time ?? null,
+      end_time: data.end_time ?? null,
+      special_ad_category: data.special_ad_category ?? null,
+      compliance_review_status: "pending",
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (cErr || !campaign) {
+    console.error("[ads:createCampaign]", cErr);
+    return { ok: false, error: "Création campagne échouée." };
+  }
+
+  /* 2. Ad set. */
+  const frequencyCap =
+    data.frequency_max && data.frequency_period_days
+      ? {
+          max_impressions: data.frequency_max,
+          period_days: data.frequency_period_days,
+        }
+      : null;
+
+  const { data: adSet, error: asErr } = await supabase
+    .from("ads_ad_sets")
+    .insert({
+      campaign_id: campaign.id,
+      ad_account_id: data.ad_account_id,
+      name: `${data.name} — Set 1`,
+      daily_budget: data.daily_budget ?? null,
+      lifetime_budget: data.lifetime_budget ?? null,
+      bid_strategy: data.bid_strategy,
+      bid_amount: data.bid_amount ?? null,
+      targeting:
+        data.targeting as Database["public"]["Tables"]["ads_ad_sets"]["Insert"]["targeting"],
+      placements: data.placements,
+      optimization_goal: data.optimization_goal,
+      billing_event: data.billing_event,
+      pacing_type: "standard",
+      frequency_cap: frequencyCap as
+        | Record<string, unknown>
+        | null,
+      start_time: data.start_time ?? null,
+      end_time: data.end_time ?? null,
+      status: "paused",
+    })
+    .select("id")
+    .single();
+  if (asErr || !adSet) {
+    console.error("[ads:createAdSet]", asErr);
+    return { ok: false, error: "Création ad set échouée." };
+  }
+
+  /* 3. Creative. */
+  const { data: creative, error: crErr } = await supabase
+    .from("ads_creatives")
+    .insert({
+      ad_account_id: data.ad_account_id,
+      type: data.creative_type,
+      media_url: data.media_url ?? null,
+      primary_text: data.primary_text,
+      headline: data.headline,
+      description: data.description ?? null,
+      call_to_action: data.call_to_action,
+      destination_url: data.destination_url ?? null,
+      advertiser_entity_id: data.advertiser_entity_id,
+      auto_disclaimer: autoDisclaimer,
+    })
+    .select("id")
+    .single();
+  if (crErr || !creative) {
+    console.error("[ads:createCreative]", crErr);
+    return { ok: false, error: "Création creative échouée." };
+  }
+
+  /* 4. Ad. */
+  const { data: ad, error: aErr } = await supabase
+    .from("ads_ads")
+    .insert({
+      ad_set_id: adSet.id,
+      ad_account_id: data.ad_account_id,
+      campaign_id: campaign.id,
+      creative_id: creative.id,
+      name: `${data.name} — Ad 1`,
+      status: "paused",
+      review_status: "pending",
+    })
+    .select("id")
+    .single();
+  if (aErr || !ad) {
+    console.error("[ads:createAd]", aErr);
+    return { ok: false, error: "Création ad échouée." };
+  }
+
+  /* 5. Ads library entry (DSA art. 39 — snapshot dès création, même en
+     draft, pour transparence totale). is_active passera à true au lancement. */
+  const targetingSummary = {
+    age_range: `${data.targeting.age_min}-${data.targeting.age_max}`,
+    genders: data.targeting.genders,
+    countries: data.targeting.geo.countries,
+    interests_categories: (data.targeting.interests ?? [])
+      .slice(0, 5)
+      .map((i: { topic_id: string }) => i.topic_id.split(".")[0]),
+  };
+
+  /* On a besoin du business_name pour la library. */
+  const { data: account } = await supabase
+    .from("ad_accounts")
+    .select("business_account_id")
+    .eq("id", data.ad_account_id)
+    .maybeSingle();
+  let businessName = "Annonceur";
+  if (account) {
+    const { data: business } = await supabase
+      .from("ads_business_accounts")
+      .select("legal_name")
+      .eq("id", account.business_account_id)
+      .maybeSingle();
+    businessName = business?.legal_name ?? "Annonceur";
+  }
+
+  await supabase.from("ads_library_entries").insert({
+    ad_id: ad.id,
+    ad_account_id: data.ad_account_id,
+    business_name: businessName,
+    business_id: account?.business_account_id ?? null,
+    campaign_objective: data.objective,
+    creative_snapshot: {
+      type: data.creative_type,
+      primary_text: data.primary_text,
+      headline: data.headline,
+      description: data.description,
+      media_url: data.media_url,
+      destination_url: data.destination_url,
+    },
+    targeting_summary: targetingSummary,
+    placements: data.placements,
+    is_active: false, // passe à true au lancement effectif
+    first_served_at: new Date().toISOString(),
+    /* Conservation 1 an post-fin de diffusion (DSA art. 39). */
+    retention_until: new Date(
+      Date.now() + 365 * 24 * 3600 * 1000,
+    ).toISOString(),
+  });
+
+  revalidatePath(`/ads-manager/${data.ad_account_id}`);
+  return { ok: true, campaign_id: campaign.id, ad_id: ad.id };
+}
