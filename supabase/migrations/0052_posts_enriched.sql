@@ -92,7 +92,11 @@ create index if not exists posts_author_drafts_idx
 -- =====================================================
 -- 2. post_tagged_users — tags personnes dans un post
 -- =====================================================
+-- Postgres n'autorise pas d'expression dans PRIMARY KEY → on utilise
+-- un id surrogate + 2 unique indexes partiels (un avec photo_id NOT NULL,
+-- un avec photo_id NULL) pour empêcher les doublons.
 create table if not exists public.post_tagged_users (
+  id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   /* Pour les tags sur photos : index de la photo + position % (0-1). */
@@ -101,9 +105,19 @@ create table if not exists public.post_tagged_users (
     check (position_x is null or (position_x >= 0 and position_x <= 1)),
   position_y numeric(5, 4)
     check (position_y is null or (position_y >= 0 and position_y <= 1)),
-  created_at timestamptz not null default now(),
-  primary key (post_id, user_id, coalesce(photo_id, '00000000-0000-0000-0000-000000000000'::uuid))
+  created_at timestamptz not null default now()
 );
+
+/* Unicité : un user ne peut être tagué 2× sur la même photo (ou 2× sur
+   le post sans photo). 2 indexes partiels car NULL est non-unique en
+   Postgres standard. */
+create unique index if not exists post_tagged_users_post_user_photo_uidx
+  on public.post_tagged_users (post_id, user_id, photo_id)
+  where photo_id is not null;
+
+create unique index if not exists post_tagged_users_post_user_no_photo_uidx
+  on public.post_tagged_users (post_id, user_id)
+  where photo_id is null;
 
 create index if not exists post_tagged_users_user_id_idx
   on public.post_tagged_users (user_id, created_at desc);

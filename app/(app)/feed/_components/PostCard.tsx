@@ -19,6 +19,8 @@ import { Globe, Lock, MessageCircle, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
+import { getPalette } from "@/lib/posts/backgroundColors";
+import { cn } from "@/lib/utils/cn";
 import { renderPostBody } from "@/lib/utils/postBody";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { BookmarkButton } from "./BookmarkButton";
@@ -154,16 +156,47 @@ export function PostCard({
       </header>
 
       {fullBody ? (
-        <div className="px-[18px] pb-3.5">
-          <p className="font-display italic text-[19px] font-normal leading-[1.3] text-night whitespace-pre-wrap break-words">
-            {renderPostBody(firstSentence)}
-          </p>
-          {restBody ? (
-            <p className="mt-1.5 text-[13.5px] leading-[1.5] text-night-soft whitespace-pre-wrap break-words">
-              {renderPostBody(restBody)}
-            </p>
-          ) : null}
-        </div>
+        (() => {
+          /* Mode "pensée rapide" : si le post a un background_color
+             stocké et qu'aucun média n'est attaché, on rend une carte
+             gradient pleine largeur avec le texte centré en Cormorant
+             grand format (style Facebook "thoughts"). */
+          const palette = getPalette(post.background_color);
+          if (palette && !post.video_url && post.photos.length === 0) {
+            return (
+              <div className="px-[18px] pb-3.5">
+                <div
+                  className={cn(
+                    "rounded-[18px] overflow-hidden flex items-center justify-center min-h-[260px] px-6 py-10",
+                    palette.bg,
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "text-center font-display italic text-[26px] sm:text-[30px] leading-[1.2] whitespace-pre-wrap break-words",
+                      palette.text === "cream" ? "text-cream" : "text-night",
+                    )}
+                  >
+                    {renderPostBody(fullBody)}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          /* Rendu standard : 1ère phrase Cormorant + reste Inter. */
+          return (
+            <div className="px-[18px] pb-3.5">
+              <p className="font-display italic text-[19px] font-normal leading-[1.3] text-night whitespace-pre-wrap break-words">
+                {renderPostBody(firstSentence)}
+              </p>
+              {restBody ? (
+                <p className="mt-1.5 text-[13.5px] leading-[1.5] text-night-soft whitespace-pre-wrap break-words">
+                  {renderPostBody(restBody)}
+                </p>
+              ) : null}
+            </div>
+          );
+        })()
       ) : null}
 
       {/* Media inline (non-hero) — radius 18 + padding x */}

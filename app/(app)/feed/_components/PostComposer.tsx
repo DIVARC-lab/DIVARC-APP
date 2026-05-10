@@ -36,7 +36,12 @@ import { Avatar } from "@/components/ui/Avatar";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
-import type { PostVisibility } from "@/lib/database.types";
+import type { PostBackgroundColor, PostVisibility } from "@/lib/database.types";
+import {
+  THOUGHT_MODE_MAX_CHARS,
+  getPalette,
+  nextBackgroundColor,
+} from "@/lib/posts/backgroundColors";
 import { createPost, type PostFormState } from "../actions";
 
 const INITIAL: PostFormState = { status: "idle" };
@@ -93,6 +98,11 @@ export function PostComposer({
   const [video, setVideo] = useState<VideoUpload | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  /* Mode "pensée rapide" — gradient de fond pour textes courts. La
+     valeur n'a d'effet visuel/serveur que si body est court ET aucun
+     média n'est attaché. Sinon le mode est désactivé automatiquement. */
+  const [backgroundColor, setBackgroundColor] =
+    useState<PostBackgroundColor | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -112,6 +122,7 @@ export function PostComposer({
         setPhotos([]);
         setVideo(null);
         setVisibility("friends");
+        setBackgroundColor(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -377,6 +388,20 @@ export function PostComposer({
     !uploading &&
     !uploadingVideo;
 
+  /* Le mode "pensée rapide" est actif quand :
+     - une background color est sélectionnée
+     - le texte est court (≤ 130 chars)
+     - aucun média n'est attaché
+     Sinon le gradient est masqué et l'UI revient en textarea standard
+     (le state backgroundColor est conservé, l'user peut le réactiver
+     en raccourcissant son texte ou retirant les médias). */
+  const palette = getPalette(backgroundColor);
+  const isThoughtModeActive =
+    palette !== null &&
+    body.length <= THOUGHT_MODE_MAX_CHARS &&
+    photos.length === 0 &&
+    !video;
+
   const firstName = authorName?.split(" ")[0] ?? null;
 
   /* Hauteur du clavier mobile pour caler un sticky CTA au-dessus.
@@ -410,6 +435,11 @@ export function PostComposer({
                     })
                   : ""
               }
+            />
+            <input
+              type="hidden"
+              name="background_color"
+              value={isThoughtModeActive ? (backgroundColor ?? "") : ""}
             />
 
             {/* Top bar : Back + Nouveau post + Publier */}
@@ -469,24 +499,70 @@ export function PostComposer({
                 </div>
               </div>
 
-              <textarea
-                ref={textareaRef}
-                name="body"
-                value={body}
-                onChange={(event) => {
-                  setBody(event.currentTarget.value);
-                  autosize();
-                }}
-                placeholder={
-                  firstName
-                    ? `Quoi de neuf, ${firstName} ?`
-                    : "Quoi de neuf ?"
-                }
-                rows={3}
-                maxLength={4000}
-                autoFocus
-                className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-[1.55] text-night placeholder:text-night-dim focus:outline-none min-h-[60px]"
-              />
+              {isThoughtModeActive && palette ? (
+                /* Mode "pensée rapide" : carte gradient + Cormorant grand
+                   format centré. textarea reste invisible mais focused
+                   pour ne pas perdre la saisie clavier. */
+                <div
+                  className={cn(
+                    "relative rounded-2xl overflow-hidden",
+                    palette.bg,
+                  )}
+                >
+                  <textarea
+                    ref={textareaRef}
+                    name="body"
+                    value={body}
+                    onChange={(event) => {
+                      setBody(event.currentTarget.value);
+                      autosize();
+                    }}
+                    placeholder={
+                      firstName
+                        ? `Une pensée, ${firstName} ?`
+                        : "Quelle est ta pensée ?"
+                    }
+                    rows={4}
+                    maxLength={THOUGHT_MODE_MAX_CHARS}
+                    autoFocus
+                    className={cn(
+                      "w-full resize-none border-0 bg-transparent text-center font-display italic text-[28px] sm:text-[32px] leading-[1.2] focus:outline-none px-6 py-12 min-h-[220px]",
+                      palette.text === "cream"
+                        ? "text-cream placeholder:text-cream/50"
+                        : "text-night placeholder:text-night/40",
+                    )}
+                  />
+                  <p
+                    className={cn(
+                      "absolute bottom-2 right-3 text-[10.5px] font-mono tabular-nums",
+                      palette.text === "cream"
+                        ? "text-cream/60"
+                        : "text-night/50",
+                    )}
+                  >
+                    {body.length}/{THOUGHT_MODE_MAX_CHARS}
+                  </p>
+                </div>
+              ) : (
+                <textarea
+                  ref={textareaRef}
+                  name="body"
+                  value={body}
+                  onChange={(event) => {
+                    setBody(event.currentTarget.value);
+                    autosize();
+                  }}
+                  placeholder={
+                    firstName
+                      ? `Quoi de neuf, ${firstName} ?`
+                      : "Quoi de neuf ?"
+                  }
+                  rows={3}
+                  maxLength={4000}
+                  autoFocus
+                  className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-[1.55] text-night placeholder:text-night-dim focus:outline-none min-h-[60px]"
+                />
+              )}
 
               {photos.length > 0 ? (
                 <div
@@ -596,6 +672,29 @@ export function PostComposer({
                   )
                 }
                 label="Vidéo · 60 s"
+              />
+              {/* Mode "pensée rapide" — disabled tant qu'il y a un média
+                  ou que le texte dépasse 130 chars (incompatibilité
+                  visuelle assumée, on évite de cycler dans le vide). */}
+              <ToolbarPill
+                onClick={() =>
+                  setBackgroundColor(nextBackgroundColor(backgroundColor))
+                }
+                disabled={
+                  photos.length > 0 ||
+                  video !== null ||
+                  body.length > THOUGHT_MODE_MAX_CHARS
+                }
+                active={isThoughtModeActive}
+                icon={
+                  <span
+                    className="inline-flex h-3.5 w-3.5 items-center justify-center font-display italic text-[12px] leading-none"
+                    aria-hidden
+                  >
+                    Aa
+                  </span>
+                }
+                label={palette ? palette.label : "Fond"}
               />
               <ToolbarPill
                 disabled

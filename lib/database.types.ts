@@ -240,6 +240,7 @@ export type Post = {
 /* Tag d'utilisateurs dans un post (avec position optionnelle si tag
    sur photo Facebook-style). */
 export type PostTaggedUser = {
+  id: string;
   post_id: string;
   user_id: string;
   photo_id: string | null;
@@ -2535,6 +2536,24 @@ export type Database = {
               | "circle_id"
               | "edited_at"
               | "deleted_at"
+              /* V4 — posts enrichis. */
+              | "background_color"
+              | "sentiment_emoji"
+              | "sentiment_label"
+              | "activity_type"
+              | "activity_detail"
+              | "location_name"
+              | "location_city"
+              | "location_country"
+              | "location_lat"
+              | "location_lng"
+              | "link_preview"
+              | "audience_excluded_user_ids"
+              | "is_carousel"
+              | "carousel_slides"
+              | "scheduled_for"
+              | "published_at"
+              | "status"
             >
           >;
         Update: Partial<
@@ -2547,6 +2566,23 @@ export type Database = {
             | "pinned_by"
             | "edited_at"
             | "deleted_at"
+            | "background_color"
+            | "sentiment_emoji"
+            | "sentiment_label"
+            | "activity_type"
+            | "activity_detail"
+            | "location_name"
+            | "location_city"
+            | "location_country"
+            | "location_lat"
+            | "location_lng"
+            | "link_preview"
+            | "audience_excluded_user_ids"
+            | "is_carousel"
+            | "carousel_slides"
+            | "scheduled_for"
+            | "published_at"
+            | "status"
           >
         >;
         Relationships: [];
@@ -2581,7 +2617,7 @@ export type Database = {
           Partial<
             Pick<
               PostTaggedUser,
-              "photo_id" | "position_x" | "position_y" | "created_at"
+              "id" | "photo_id" | "position_x" | "position_y" | "created_at"
             >
           >;
         Update: Partial<

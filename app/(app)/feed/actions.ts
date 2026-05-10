@@ -78,6 +78,30 @@ export async function createPost(
     }
   }
 
+  /* Mode "pensée rapide" — background_color valide uniquement si :
+     - texte ≤ 130 chars
+     - aucun média attaché
+     Sinon ignoré silencieusement (le client devrait aussi désactiver). */
+  const bgRaw = formData.get("background_color");
+  const allowedBackgrounds = [
+    "navy",
+    "gold",
+    "cream",
+    "gradient_dawn",
+    "gradient_dusk",
+    "gradient_ocean",
+    "gradient_forest",
+    "gradient_rose",
+  ] as const;
+  type AllowedBg = (typeof allowedBackgrounds)[number];
+  const bgIsValid =
+    typeof bgRaw === "string" &&
+    (allowedBackgrounds as readonly string[]).includes(bgRaw);
+  const bodyShort = (parsed.data.body ?? "").length <= 130;
+  const noMedia = photos.length === 0 && !video;
+  const backgroundColor: AllowedBg | null =
+    bgIsValid && bodyShort && noMedia ? (bgRaw as AllowedBg) : null;
+
   if (!parsed.data.body && photos.length === 0 && !video) {
     return {
       status: "error",
@@ -96,6 +120,7 @@ export async function createPost(
       video_duration_ms: video?.duration_ms ?? null,
       video_width: video?.width ?? null,
       video_height: video?.height ?? null,
+      background_color: backgroundColor,
     })
     .select("id")
     .single();
