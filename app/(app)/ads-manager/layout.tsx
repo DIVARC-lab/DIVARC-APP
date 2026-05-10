@@ -4,9 +4,7 @@ import {
   CreditCard,
   Layers,
   Megaphone,
-  Settings,
   Target,
-  Users2,
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -79,16 +77,8 @@ export default async function AdsManagerLayout({
               icon={Building2}
               label="Compte entreprise"
             />
-            <NavItem
-              href="/ads-manager/team"
-              icon={Users2}
-              label="Équipe"
-            />
-            <NavItem
-              href="/ads-manager/settings"
-              icon={Settings}
-              label="Paramètres"
-            />
+            {/* Équipe + Paramètres : V2. Création d'invitations + gestion
+                permissions par ad_account → besoin d'UI dédiée. */}
           </div>
         </nav>
         <div className="px-5 py-4 border-t border-line">
