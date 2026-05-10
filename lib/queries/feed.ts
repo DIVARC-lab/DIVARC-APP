@@ -100,6 +100,11 @@ async function attachPhotos(
       | "video_duration_ms"
       | "video_width"
       | "video_height"
+      | "video_hls_url"
+      | "video_provider_asset_id"
+      | "video_status"
+      | "video_error"
+      | "video_blurhash"
     >
   >();
   for (const row of videoRows ?? []) {
@@ -109,6 +114,11 @@ async function attachPhotos(
       video_duration_ms: row.video_duration_ms,
       video_width: row.video_width,
       video_height: row.video_height,
+      video_hls_url: null,
+      video_provider_asset_id: null,
+      video_status: null,
+      video_error: null,
+      video_blurhash: null,
     });
   }
 
@@ -130,6 +140,11 @@ async function attachPhotos(
       video_duration_ms: null,
       video_width: null,
       video_height: null,
+      video_hls_url: null,
+      video_provider_asset_id: null,
+      video_status: null,
+      video_error: null,
+      video_blurhash: null,
     };
     return {
       ...row,

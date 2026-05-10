@@ -210,6 +210,12 @@ export type Post = {
   video_duration_ms: number | null;
   video_width: number | null;
   video_height: number | null;
+  /* V4 — Transcoding HLS (migration 0053). */
+  video_hls_url: string | null;
+  video_provider_asset_id: string | null;
+  video_status: "pending" | "transcoding" | "ready" | "failed" | null;
+  video_error: string | null;
+  video_blurhash: string | null;
   circle_id: string | null;
   pinned_at: string | null;
   pinned_by: string | null;
@@ -2533,6 +2539,11 @@ export type Database = {
               | "video_duration_ms"
               | "video_width"
               | "video_height"
+              | "video_hls_url"
+              | "video_provider_asset_id"
+              | "video_status"
+              | "video_error"
+              | "video_blurhash"
               | "circle_id"
               | "edited_at"
               | "deleted_at"
@@ -2566,6 +2577,16 @@ export type Database = {
             | "pinned_by"
             | "edited_at"
             | "deleted_at"
+            | "video_url"
+            | "video_thumbnail_url"
+            | "video_duration_ms"
+            | "video_width"
+            | "video_height"
+            | "video_hls_url"
+            | "video_provider_asset_id"
+            | "video_status"
+            | "video_error"
+            | "video_blurhash"
             | "background_color"
             | "sentiment_emoji"
             | "sentiment_label"

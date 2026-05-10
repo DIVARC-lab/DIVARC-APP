@@ -87,6 +87,7 @@ export function PostCard({
       {heroMedia && post.video_url ? (
         <PostVideoPlayer
           url={post.video_url}
+          hlsUrl={post.video_hls_url}
           thumbnailUrl={post.video_thumbnail_url}
           durationMs={post.video_duration_ms}
           width={post.video_width}
@@ -248,6 +249,7 @@ export function PostCard({
           <div className="overflow-hidden rounded-[18px]">
             <PostVideoPlayer
               url={post.video_url}
+              hlsUrl={post.video_hls_url}
               thumbnailUrl={post.video_thumbnail_url}
               durationMs={post.video_duration_ms}
               width={post.video_width}
