@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isCurrentUserAdmin } from "@/lib/queries/admin";
 
 /* GET /api/ads/diagnostic
  *
  * Endpoint de debug : retourne le statut des env vars + tables critiques
- * pour le module Ads V4. Réservé aux admins (ne révèle aucune valeur).
+ * pour le module Ads V4.
  *
- * Usage : ouvre /api/ads/diagnostic dans ton navigateur après login admin
- * pour voir ce qui manque côté Vercel.
+ * Auth : authenticated only (pas de role check). On ne révèle AUCUNE
+ * valeur — juste des flags ok / missing / error. Info non sensible.
+ *
+ * Usage : ouvre /api/ads/diagnostic dans ton navigateur après login pour
+ * voir ce qui manque côté Vercel.
  */
 
 type CheckStatus = "ok" | "missing" | "error";
@@ -27,10 +29,6 @@ export async function GET() {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const isAdmin = await isCurrentUserAdmin();
-  if (!isAdmin) {
-    return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
   /* === Env vars === */
