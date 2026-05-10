@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * PostCard — direction "Bold" du handoff design team.
  *
