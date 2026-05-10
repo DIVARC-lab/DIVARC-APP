@@ -17,6 +17,7 @@ import {
   DEFAULT_ADVANCED_CONFIG,
   type AdvancedConfig,
 } from "@/components/ads/builder/AdvancedConfigSection";
+import { PlacementsBuilder } from "@/components/ads/builder/PlacementsBuilder";
 import { createFullCampaign } from "@/app/(app)/ads-manager/[accountId]/campaigns/new/actions";
 import {
   ALWAYS_FORBIDDEN_AD_CATEGORIES,
@@ -308,6 +309,14 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
         placements: form.placements as Parameters<
           typeof createFullCampaign
         >[0]["placements"],
+        audience_network_enabled: form.audience_network_enabled,
+        brand_safety_filter: form.brand_safety_filter,
+        excluded_topics:
+          form.excluded_topics.length > 0 ? form.excluded_topics : undefined,
+        excluded_keywords:
+          form.excluded_keywords.length > 0
+            ? form.excluded_keywords
+            : undefined,
         bid_strategy: advBidStrategy as Parameters<
           typeof createFullCampaign
         >[0]["bid_strategy"],
@@ -750,14 +759,6 @@ function BudgetStep({
   advancedConfig: AdvancedConfig;
   onAdvancedChange: (next: AdvancedConfig) => void;
 }) {
-  const PLACEMENTS = [
-    { id: "feed_home", label: "Feed Home", note: "1 ad / 5-7 posts", recommended: true },
-    { id: "marketplace_feed", label: "Marketplace", note: "1 / 12 listings", recommended: true },
-    { id: "marketplace_listing_boost", label: "Boost annonce", note: "Mise en avant ciblée" },
-    { id: "jobs_feed", label: "Jobs", note: "1 / 15 jobs" },
-    { id: "stories", label: "Stories", note: "Plein écran 9:16" },
-  ];
-
   return (
     <div className="space-y-6">
       <div>
@@ -882,54 +883,26 @@ function BudgetStep({
         </div>
       </Section>
 
-      <Section
-        title="Placements"
-        helper="Où ton ad apparaîtra. Le Feed Home + Marketplace sont recommandés pour la plupart des objectifs."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {PLACEMENTS.map((p) => {
-            const active = form.placements.includes(p.id);
-            return (
-              <label
-                key={p.id}
-                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                  active
-                    ? "border-night bg-night/[0.03]"
-                    : "border-line bg-white hover:border-night/30"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setFormVal("placements", [...form.placements, p.id]);
-                    } else {
-                      setFormVal(
-                        "placements",
-                        form.placements.filter((x) => x !== p.id),
-                      );
-                    }
-                  }}
-                  className="mt-0.5 accent-night"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-[13px] font-semibold text-night">
-                      {p.label}
-                    </span>
-                    {p.recommended ? (
-                      <span className="text-[9px] uppercase tracking-wider font-bold text-gold-deep">
-                        · Recommandé
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-[11.5px] text-night-muted">{p.note}</p>
-                </div>
-              </label>
-            );
-          })}
-        </div>
+      <Section title="Placements & Brand Safety">
+        <PlacementsBuilder
+          objective={form.objective}
+          placements={form.placements}
+          onPlacementsChange={(next) => setFormVal("placements", next)}
+          audienceNetworkEnabled={form.audience_network_enabled}
+          onAudienceNetworkChange={(next) =>
+            setFormVal("audience_network_enabled", next)
+          }
+          brandSafetyFilter={form.brand_safety_filter}
+          onBrandSafetyChange={(next) =>
+            setFormVal("brand_safety_filter", next)
+          }
+          excludedTopics={form.excluded_topics}
+          onExcludedTopicsChange={(next) => setFormVal("excluded_topics", next)}
+          excludedKeywords={form.excluded_keywords}
+          onExcludedKeywordsChange={(next) =>
+            setFormVal("excluded_keywords", next)
+          }
+        />
       </Section>
 
       <Section title="Optimisation">

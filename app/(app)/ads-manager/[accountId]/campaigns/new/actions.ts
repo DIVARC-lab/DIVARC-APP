@@ -128,6 +128,13 @@ const campaignFormSchema = z
         ]),
       )
       .min(1),
+    /* V4 — DIVARC Audience Network + Brand Safety. */
+    audience_network_enabled: z.boolean().optional(),
+    brand_safety_filter: z
+      .enum(["standard", "limited", "expanded"])
+      .optional(),
+    excluded_topics: z.array(z.string().max(40)).max(15).optional(),
+    excluded_keywords: z.array(z.string().max(40)).max(50).optional(),
     bid_strategy: z
       .enum([
         "lowest_cost",
@@ -328,10 +335,24 @@ export async function createFullCampaign(
   const audienceBehaviors = Array.isArray(targetingObj.behaviors)
     ? { items: targetingObj.behaviors }
     : {};
-  const audienceConnections =
-    targetingObj.connections && typeof targetingObj.connections === "object"
+  const audienceConnections: Record<string, unknown> = {
+    ...((targetingObj.connections &&
+    typeof targetingObj.connections === "object"
       ? (targetingObj.connections as Record<string, unknown>)
-      : {};
+      : {}) as Record<string, unknown>),
+  };
+  /* Brand Safety + Audience Network — pas de colonnes dédiées V1, on les
+     plante dans audience_connections jsonb pour usage downstream (cron
+     match, ad_serve). */
+  if (data.audience_network_enabled)
+    audienceConnections.audience_network_enabled = true;
+  if (data.brand_safety_filter)
+    audienceConnections.brand_safety_filter = data.brand_safety_filter;
+  if (data.excluded_topics && data.excluded_topics.length > 0)
+    audienceConnections.excluded_topics = data.excluded_topics;
+  if (data.excluded_keywords && data.excluded_keywords.length > 0)
+    audienceConnections.excluded_keywords = data.excluded_keywords;
+
   const audienceLocationsAdvanced: Record<string, unknown> = {};
   if (targetingObj.geo.cities && targetingObj.geo.cities.length > 0)
     audienceLocationsAdvanced.cities = targetingObj.geo.cities;
@@ -395,6 +416,15 @@ export async function createFullCampaign(
       destination_url: data.destination_url ?? null,
       advertiser_entity_id: data.advertiser_entity_id,
       auto_disclaimer: autoDisclaimer,
+      brand_safety_filter: data.brand_safety_filter ?? "standard",
+      utm_params:
+        data.utm_source || data.utm_medium || data.utm_campaign
+          ? {
+              utm_source: data.utm_source,
+              utm_medium: data.utm_medium,
+              utm_campaign: data.utm_campaign,
+            }
+          : {},
     })
     .select("id")
     .single();

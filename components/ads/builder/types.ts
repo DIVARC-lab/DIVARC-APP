@@ -81,6 +81,11 @@ export type CampaignFormState = {
   budget_type: "daily" | "lifetime";
   lifetime_budget: string;
   placements: string[];
+  /* V4 — DIVARC Audience Network (réseau partenaire) + Brand Safety. */
+  audience_network_enabled: boolean;
+  brand_safety_filter: "standard" | "limited" | "expanded";
+  excluded_topics: string[];
+  excluded_keywords: string[];
   bid_strategy: string;
   optimization_goal: string;
   billing_event: string;
@@ -128,6 +133,10 @@ export const DEFAULT_FORM: CampaignFormState = {
   budget_type: "daily",
   lifetime_budget: "500",
   placements: ["feed_home", "marketplace_feed"],
+  audience_network_enabled: false,
+  brand_safety_filter: "standard",
+  excluded_topics: [],
+  excluded_keywords: [],
   bid_strategy: "lowest_cost",
   optimization_goal: "link_clicks",
   billing_event: "clicks",

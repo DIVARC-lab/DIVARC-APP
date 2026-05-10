@@ -1649,6 +1649,13 @@ export type AdsCreative = {
   auto_disclaimer: string | null;
   manual_disclaimer: string | null;
   paid_for_by: string | null;
+  /* V4 — dynamic + lead form + brand safety + UTM. */
+  dynamic_creative_enabled: boolean;
+  text_overlay_pct: number | null;
+  brand_safety_filter: "standard" | "limited" | "expanded" | null;
+  deep_link_mobile: string | null;
+  utm_params: Record<string, unknown>;
+  display_url: string | null;
   created_at: string;
 };
 
