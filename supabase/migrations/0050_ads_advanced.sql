@@ -62,9 +62,14 @@ create table if not exists public.ads_website_analyses (
   requested_by uuid references public.profiles(id) on delete set null
 );
 
-create unique index if not exists ads_website_analyses_url_uniq
-  on public.ads_website_analyses (url_normalized)
-  where status = 'completed' and expires_at > now();
+/* Index lookup rapide pour cache : non-unique car il peut y avoir
+   plusieurs analyses completed (anciennes expirées + récente fresh).
+   La dédup côté code dans lib/ads/websiteAnalyzer/index.ts vérifie
+   expires_at > now() avant réutilisation. Note : `now()` non autorisé
+   dans index predicate → on filtre seulement sur status. */
+create index if not exists ads_website_analyses_url_lookup_idx
+  on public.ads_website_analyses (url_normalized, status, expires_at desc)
+  where status = 'completed';
 
 create index if not exists ads_website_analyses_account_idx
   on public.ads_website_analyses (ad_account_id, created_at desc)
@@ -104,9 +109,10 @@ create table if not exists public.ads_keyword_research (
   data_source text not null default 'dataforseo'
 );
 
-create unique index if not exists ads_keyword_research_uniq
-  on public.ads_keyword_research (keyword, country, language)
-  where expires_at > now();
+/* Index lookup rapide pour cache keyword research. Non-unique pour
+   les mêmes raisons que ci-dessus (multiple rows fresh + expired). */
+create index if not exists ads_keyword_research_lookup_idx
+  on public.ads_keyword_research (keyword, country, language, expires_at desc);
 create index if not exists ads_keyword_research_volume_idx
   on public.ads_keyword_research (country, language, search_volume desc nulls last);
 
