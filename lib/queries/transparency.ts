@@ -70,6 +70,9 @@ export async function buildTransparencyReport(args: {
   const startIso = periodStart.toISOString();
   const endIso = periodEnd.toISOString();
 
+  /* Si SUPABASE_SERVICE_ROLE_KEY est absente, createAdminClient throw —
+     on laisse l'erreur remonter pour que le caller (page) affiche le
+     placeholder approprié. */
   const admin = createAdminClient();
 
   /* Reports. */

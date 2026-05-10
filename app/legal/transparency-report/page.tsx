@@ -28,7 +28,32 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TransparencyReportPage() {
-  const report = await buildTransparencyReport({});
+  /* Defensive : si SUPABASE_SERVICE_ROLE_KEY n'est pas configurée en
+     prod, on retourne un placeholder au lieu de crasher la page (qui
+     est publique, donc importante pour la conformité DSA art. 24
+     même en mode dégradé). */
+  let report: Awaited<ReturnType<typeof buildTransparencyReport>> | null;
+  try {
+    report = await buildTransparencyReport({});
+  } catch (err) {
+    console.error("[transparency-report] buildReport failed:", err);
+    return (
+      <>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-gold-deep font-extrabold mb-2">
+          · Transparence
+        </p>
+        <h1 className="text-[40px] sm:text-[52px] leading-[1.05]">
+          Rapport de{" "}
+          <em className="italic text-gold-deep">transparence</em>
+        </h1>
+        <p className="mt-4 text-night-muted">
+          Le rapport est temporairement indisponible. Notre équipe technique
+          travaille à le rétablir. Pour toute question, contacte{" "}
+          <a href="mailto:transparency@divarc.app">transparency@divarc.app</a>.
+        </p>
+      </>
+    );
+  }
 
   return (
     <>
