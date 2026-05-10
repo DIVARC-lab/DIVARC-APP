@@ -22,7 +22,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AudienceMeter } from "./AudienceMeter";
 import type {
   AudienceConnections,
   BehaviorEntry,
@@ -43,7 +42,8 @@ import type {
  *   F. Custom audiences — saved / pixel / list / engagement (+ exclusions)
  *   G. Lookalikes       — seed + countries + size_pct (1-10)
  *
- * Sticky right panel : EstimationPanel — reach live + jauge + warnings.
+ * NB : l'estimation reach est gérée par le parent CampaignBuilderPro dans
+ * sa sidebar sticky de droite (AudienceMeter). On reste full-width ici.
  */
 
 type SavedAudience = {
@@ -57,8 +57,6 @@ type Props = {
   accountId: string;
   form: CampaignFormState;
   setForm: (next: CampaignFormState) => void;
-  audienceEstimate: number | null;
-  estimating: boolean;
   validationErrors: string[];
   validationWarnings: string[];
 };
@@ -67,8 +65,6 @@ export function AudienceBuilder({
   accountId,
   form,
   setForm,
-  audienceEstimate,
-  estimating,
   validationErrors,
   validationWarnings,
 }: Props) {
@@ -111,142 +107,149 @@ export function AudienceBuilder({
   }, [accountId]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-      {/* === Colonne main : 7 panels === */}
-      <div className="space-y-3 min-w-0">
-        <Panel
-          id="location"
-          icon={MapPin}
-          title="Localisations"
-          subtitle={summarizeLocations(form)}
-          open={openPanels.location}
-          onToggle={() => togglePanel("location")}
-        >
-          <LocationPanel form={form} update={update} />
-        </Panel>
+    <div className="space-y-3 min-w-0">
+      {/* === 7 panels — pleine largeur (l'estimation est gérée par la
+           sidebar sticky du parent CampaignBuilderPro) === */}
+      <Panel
+        id="location"
+        icon={MapPin}
+        title="Localisations"
+        subtitle={summarizeLocations(form)}
+        open={openPanels.location}
+        onToggle={() => togglePanel("location")}
+      >
+        <LocationPanel form={form} update={update} />
+      </Panel>
 
-        <Panel
-          id="demographics"
-          icon={Users}
-          title="Démographie"
-          subtitle={`${form.age_min}–${form.age_max} ans · ${labelGender(form.genders)}${form.languages.length > 0 ? ` · ${form.languages.length} langue(s)` : ""}`}
-          open={openPanels.demographics}
-          onToggle={() => togglePanel("demographics")}
-        >
-          <DemographicsPanel form={form} update={update} />
-        </Panel>
+      <Panel
+        id="demographics"
+        icon={Users}
+        title="Démographie"
+        subtitle={`${form.age_min}–${form.age_max} ans · ${labelGender(form.genders)}${form.languages.length > 0 ? ` · ${form.languages.length} langue(s)` : ""}`}
+        open={openPanels.demographics}
+        onToggle={() => togglePanel("demographics")}
+      >
+        <DemographicsPanel form={form} update={update} />
+      </Panel>
 
-        <Panel
-          id="interests"
-          icon={Heart}
-          title="Centres d'intérêt"
-          subtitle={
-            form.interests.trim().length > 0
-              ? `${form.interests.split(",").filter((s) => s.trim()).length} intérêt(s) · ${form.interests_logic === "and" ? "ET" : "OU"}`
-              : "Aucun intérêt sélectionné"
-          }
-          open={openPanels.interests}
-          onToggle={() => togglePanel("interests")}
-        >
-          <InterestsPanel form={form} update={update} />
-        </Panel>
+      <Panel
+        id="interests"
+        icon={Heart}
+        title="Centres d'intérêt"
+        subtitle={
+          form.interests.trim().length > 0
+            ? `${form.interests.split(",").filter((s) => s.trim()).length} intérêt(s) · ${form.interests_logic === "and" ? "ET" : "OU"}`
+            : "Aucun intérêt sélectionné"
+        }
+        open={openPanels.interests}
+        onToggle={() => togglePanel("interests")}
+      >
+        <InterestsPanel form={form} update={update} />
+      </Panel>
 
-        <Panel
-          id="behaviors"
-          icon={Activity}
-          title="Comportements"
-          subtitle={
-            form.behaviors.length > 0
-              ? `${form.behaviors.length} comportement(s)`
-              : "Aucun"
-          }
-          open={openPanels.behaviors}
-          onToggle={() => togglePanel("behaviors")}
-        >
-          <BehaviorsPanel form={form} update={update} />
-        </Panel>
+      <Panel
+        id="behaviors"
+        icon={Activity}
+        title="Comportements"
+        subtitle={
+          form.behaviors.length > 0
+            ? `${form.behaviors.length} comportement(s)`
+            : "Aucun"
+        }
+        open={openPanels.behaviors}
+        onToggle={() => togglePanel("behaviors")}
+      >
+        <BehaviorsPanel form={form} update={update} />
+      </Panel>
 
-        <Panel
-          id="connections"
-          icon={UserPlus2}
-          title="Connections"
-          subtitle={summarizeConnections(form.connections)}
-          open={openPanels.connections}
-          onToggle={() => togglePanel("connections")}
-        >
-          <ConnectionsPanel form={form} update={update} />
-        </Panel>
+      <Panel
+        id="connections"
+        icon={UserPlus2}
+        title="Connections"
+        subtitle={summarizeConnections(form.connections)}
+        open={openPanels.connections}
+        onToggle={() => togglePanel("connections")}
+      >
+        <ConnectionsPanel form={form} update={update} />
+      </Panel>
 
-        <Panel
-          id="custom"
-          icon={Users2}
-          title="Audiences personnalisées"
-          subtitle={`${form.custom_audience_ids.length} incluse(s) · ${form.excluded_custom_audience_ids.length} exclue(s)`}
-          open={openPanels.custom}
-          onToggle={() => togglePanel("custom")}
-        >
-          <CustomAudiencePanel
-            form={form}
-            update={update}
-            saved={savedAudiences.filter((a) => a.type !== "lookalike")}
-          />
-        </Panel>
+      <Panel
+        id="custom"
+        icon={Users2}
+        title="Audiences personnalisées"
+        subtitle={`${form.custom_audience_ids.length} incluse(s) · ${form.excluded_custom_audience_ids.length} exclue(s)`}
+        open={openPanels.custom}
+        onToggle={() => togglePanel("custom")}
+      >
+        <CustomAudiencePanel
+          form={form}
+          update={update}
+          saved={savedAudiences.filter((a) => a.type !== "lookalike")}
+        />
+      </Panel>
 
-        <Panel
-          id="lookalike"
-          icon={Sparkles}
-          title="Lookalikes"
-          subtitle={
-            form.lookalike_audience_ids.length > 0
-              ? `${form.lookalike_audience_ids.length} similaire(s) sélectionné(es)`
-              : form.lookalike_draft
-                ? "Brouillon en cours"
-                : "Aucun lookalike"
-          }
-          open={openPanels.lookalike}
-          onToggle={() => togglePanel("lookalike")}
-        >
-          <LookalikePanel
-            form={form}
-            update={update}
-            saved={savedAudiences}
-          />
-        </Panel>
+      <Panel
+        id="lookalike"
+        icon={Sparkles}
+        title="Lookalikes"
+        subtitle={
+          form.lookalike_audience_ids.length > 0
+            ? `${form.lookalike_audience_ids.length} similaire(s) sélectionné(es)`
+            : form.lookalike_draft
+              ? "Brouillon en cours"
+              : "Aucun lookalike"
+        }
+        open={openPanels.lookalike}
+        onToggle={() => togglePanel("lookalike")}
+      >
+        <LookalikePanel form={form} update={update} saved={savedAudiences} />
+      </Panel>
 
-        {/* Special category disclaimer côté builder. */}
-        <div className="rounded-2xl bg-bg-soft border border-line p-4">
-          <p className="text-[11.5px] font-bold uppercase tracking-wider text-night-muted mb-2">
-            Catégorie spéciale (anti-discrimination)
-          </p>
-          <p className="text-[11.5px] text-night-soft mb-2 leading-snug">
-            Logement, emploi, crédit ou sujet social/politique → restrictions
-            DSA + droit anti-discrimination FR/EU. Genre forcé = all, ciblage
-            géo restreint.
-          </p>
-          <select
-            value={form.special_ad_category}
-            onChange={(e) => update({ special_ad_category: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-night/20"
-          >
-            <option value="">Aucune (par défaut)</option>
-            <option value="housing">Logement</option>
-            <option value="employment">Emploi</option>
-            <option value="credit">Crédit / Finance</option>
-            <option value="social">Sujet social / politique</option>
-          </select>
-        </div>
+      {/* Special category disclaimer côté builder. */}
+      <div className="rounded-2xl bg-bg-soft border border-line p-4">
+        <p className="text-[11.5px] font-bold uppercase tracking-wider text-night-muted mb-2">
+          Catégorie spéciale (anti-discrimination)
+        </p>
+        <p className="text-[11.5px] text-night-soft mb-2 leading-snug">
+          Logement, emploi, crédit ou sujet social/politique → restrictions
+          DSA + droit anti-discrimination FR/EU. Genre forcé = all, ciblage
+          géo restreint.
+        </p>
+        <select
+          value={form.special_ad_category}
+          onChange={(e) => update({ special_ad_category: e.target.value })}
+          className="w-full px-3 py-2 rounded-lg border border-line bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-night/20"
+        >
+          <option value="">Aucune (par défaut)</option>
+          <option value="housing">Logement</option>
+          <option value="employment">Emploi</option>
+          <option value="credit">Crédit / Finance</option>
+          <option value="social">Sujet social / politique</option>
+        </select>
       </div>
 
-      {/* === Sticky right panel : estimation === */}
-      <aside className="lg:sticky lg:top-24 self-start space-y-3">
-        <EstimationPanel
-          estimate={audienceEstimate}
-          estimating={estimating}
-          form={form}
-          errors={validationErrors}
-          warnings={validationWarnings}
-        />
-      </aside>
+      {/* Erreurs/warnings de conformité — affichés sous les panels (la
+          sidebar parent porte l'estimation reach + jauge). */}
+      {validationErrors.length > 0 ? (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-[11.5px] text-red-800">
+          <p className="font-bold mb-1">Conformité ciblage :</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {validationErrors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {validationWarnings.length > 0 ? (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11.5px] text-amber-900">
+          <p className="font-bold mb-1">Attention :</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            {validationWarnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -547,7 +550,7 @@ function LocationPanel({
           <Radio className="inline w-[12px] h-[12px] mr-1" aria-hidden />
           Zones radius (lat/lng)
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-2">
           <input
             type="number"
             step="0.0001"
@@ -1469,119 +1472,6 @@ function LookalikePanel({
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-/* ============================================================
- * Estimation panel (sticky right)
- * ============================================================ */
-
-function EstimationPanel({
-  estimate,
-  estimating,
-  form,
-  errors,
-  warnings,
-}: {
-  estimate: number | null;
-  estimating: boolean;
-  form: CampaignFormState;
-  errors: string[];
-  warnings: string[];
-}) {
-  return (
-    <>
-      <AudienceMeter estimatedSize={estimate} />
-
-      {estimating ? (
-        <div className="rounded-xl bg-bg-soft border border-line p-2.5 text-[11px] text-night-muted">
-          Estimation en cours…
-        </div>
-      ) : null}
-
-      {/* Récap rapide. */}
-      <div className="rounded-2xl bg-white border border-line p-4 space-y-2">
-        <p className="text-[10.5px] font-bold uppercase tracking-wider text-night-muted">
-          Récap ciblage
-        </p>
-        <RecapRow label="Pays" value={form.countries.join(", ") || "—"} />
-        <RecapRow
-          label="Âge"
-          value={`${form.age_min}–${form.age_max} ans`}
-        />
-        <RecapRow label="Genre" value={labelGender(form.genders)} />
-        {form.languages.length > 0 ? (
-          <RecapRow
-            label="Langues"
-            value={form.languages.join(", ").toUpperCase()}
-          />
-        ) : null}
-        {form.interests.trim() ? (
-          <RecapRow
-            label="Intérêts"
-            value={`${form.interests.split(",").filter((s) => s.trim()).length} (${form.interests_logic === "and" ? "ET" : "OU"})`}
-          />
-        ) : null}
-        {form.behaviors.length > 0 ? (
-          <RecapRow
-            label="Comportements"
-            value={String(form.behaviors.length)}
-          />
-        ) : null}
-        {form.cities.length > 0 ? (
-          <RecapRow label="Villes" value={String(form.cities.length)} />
-        ) : null}
-        {form.custom_audience_ids.length > 0 ? (
-          <RecapRow
-            label="Audiences"
-            value={`${form.custom_audience_ids.length} incluse(s)`}
-          />
-        ) : null}
-        {form.lookalike_audience_ids.length > 0 ||
-        form.lookalike_draft?.source_audience_id ? (
-          <RecapRow
-            label="Lookalikes"
-            value={String(
-              form.lookalike_audience_ids.length +
-                (form.lookalike_draft?.source_audience_id ? 1 : 0),
-            )}
-          />
-        ) : null}
-      </div>
-
-      {errors.length > 0 ? (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-[11.5px] text-red-800">
-          <p className="font-bold mb-1">Conformité ciblage :</p>
-          <ul className="list-disc pl-4 space-y-0.5">
-            {errors.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {warnings.length > 0 ? (
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[11.5px] text-amber-900">
-          <p className="font-bold mb-1">Attention :</p>
-          <ul className="list-disc pl-4 space-y-0.5">
-            {warnings.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </>
-  );
-}
-
-function RecapRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[11.5px] text-night-muted">{label}</span>
-      <span className="text-[11.5px] font-semibold text-night text-right truncate min-w-0">
-        {value}
-      </span>
     </div>
   );
 }

@@ -455,8 +455,6 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
               setForm={setForm}
               targetingValidation={targetingValidation}
               accountId={accountId}
-              audienceEstimate={audienceEstimate}
-              estimating={estimating}
             />
           ) : null}
 
@@ -719,8 +717,6 @@ function AudienceStep({
   setForm,
   targetingValidation,
   accountId,
-  audienceEstimate,
-  estimating,
 }: {
   form: CampaignFormState;
   setFormVal: <K extends keyof CampaignFormState>(
@@ -730,8 +726,6 @@ function AudienceStep({
   setForm: (f: CampaignFormState) => void;
   targetingValidation: ReturnType<typeof validateTargetingSpec>;
   accountId: string;
-  audienceEstimate: number | null;
-  estimating: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -765,8 +759,6 @@ function AudienceStep({
         accountId={accountId}
         form={form}
         setForm={setForm}
-        audienceEstimate={audienceEstimate}
-        estimating={estimating}
         validationErrors={targetingValidation.errors}
         validationWarnings={targetingValidation.warnings}
       />
