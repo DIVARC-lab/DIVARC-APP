@@ -158,6 +158,22 @@ export async function createAdAccount(
     granted_by: user.id,
   });
 
+  /* Auto-création d'une advertiser_entity par défaut (page représentée).
+     Sans elle, le wizard de création de campagne est bloqué (le champ
+     "Page représentée" est obligatoire). On crée une entité minimale
+     que l'utilisateur pourra enrichir plus tard. */
+  const { data: bizForEntity } = await supabase
+    .from("ads_business_accounts")
+    .select("legal_name")
+    .eq("id", parsed.data.business_account_id)
+    .maybeSingle();
+  await supabase.from("advertiser_entities").insert({
+    ad_account_id: data.id,
+    type: "external_site",
+    name: bizForEntity?.legal_name ?? parsed.data.name,
+    verified_owner: false,
+  });
+
   revalidatePath("/ads-manager");
   return { ok: true, data: { id: data.id } };
 }

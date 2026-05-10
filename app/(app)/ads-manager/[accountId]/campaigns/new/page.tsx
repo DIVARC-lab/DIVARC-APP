@@ -28,8 +28,11 @@ export default async function NewCampaignPage({
   });
   if (!hasRole) notFound();
 
-  /* Récupère les advertiser_entities du compte (pages représentées). */
-  const { data: entities } = await supabase
+  /* Récupère les advertiser_entities du compte (pages représentées).
+     Si aucune n'existe (cas des ad_accounts créés avant l'auto-create
+     de mai 2026), on en crée une à la volée pour ne pas bloquer le
+     wizard. */
+  let { data: entities } = await supabase
     .from("advertiser_entities")
     .select("id, name, type, url")
     .eq("ad_account_id", accountId)
@@ -37,9 +40,28 @@ export default async function NewCampaignPage({
 
   const { data: account } = await supabase
     .from("ad_accounts")
-    .select("name, currency")
+    .select("name, currency, business_account_id")
     .eq("id", accountId)
     .maybeSingle();
+
+  if ((!entities || entities.length === 0) && account) {
+    const { data: business } = await supabase
+      .from("ads_business_accounts")
+      .select("legal_name")
+      .eq("id", account.business_account_id)
+      .maybeSingle();
+    const { data: created } = await supabase
+      .from("advertiser_entities")
+      .insert({
+        ad_account_id: accountId,
+        type: "external_site",
+        name: business?.legal_name ?? account.name,
+        verified_owner: false,
+      })
+      .select("id, name, type, url")
+      .single();
+    if (created) entities = [created];
+  }
 
   return (
     <div className="px-5 sm:px-8 py-8 max-w-4xl mx-auto">
