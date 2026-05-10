@@ -17,6 +17,10 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CameraCapture } from "@/components/reels/CameraCapture";
+import {
+  SoundLibrary,
+  type SoundLibraryItem,
+} from "@/components/reels/SoundLibrary";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -81,6 +85,25 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
   const [allowStitches, setAllowStitches] = useState(true);
   const [allowDownloads, setAllowDownloads] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
+     depuis SoundLibrary. */
+  const [selectedSound, setSelectedSound] = useState<SoundLibraryItem | null>(
+    preselectedSound
+      ? {
+          id: preselectedSound.id,
+          title: preselectedSound.title,
+          artist: preselectedSound.artist,
+          duration_seconds: 30, // approximation V1
+          audio_url: preselectedSound.audio_url,
+          artwork_url: null,
+          source: "user_original",
+          usage_count: 0,
+          is_explicit: false,
+        }
+      : null,
+  );
+  const [soundLibraryOpen, setSoundLibraryOpen] = useState(false);
 
   /* Hashtags : extraits du body au moment du submit. */
   function extractHashtags(text: string): string[] {
@@ -206,7 +229,7 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
         poster_url: video.poster_url,
         description: description.trim() || undefined,
         hashtags: extractHashtags(description),
-        sound_id: preselectedSound?.id ?? null,
+        sound_id: selectedSound?.id ?? null,
         has_voiceover: false,
         audience,
         allow_comments: allowComments,
@@ -313,8 +336,17 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           onAllowStitchesChange={setAllowStitches}
           allowDownloads={allowDownloads}
           onAllowDownloadsChange={setAllowDownloads}
-          sound={preselectedSound}
+          sound={selectedSound}
+          onOpenSoundLibrary={() => setSoundLibraryOpen(true)}
           onRemoveVideo={removeVideo}
+        />
+      ) : null}
+
+      {soundLibraryOpen ? (
+        <SoundLibrary
+          initialSelectedId={selectedSound?.id ?? null}
+          onPick={(sound) => setSelectedSound(sound)}
+          onClose={() => setSoundLibraryOpen(false)}
         />
       ) : null}
     </div>
@@ -408,6 +440,7 @@ function ComposeStep({
   allowDownloads,
   onAllowDownloadsChange,
   sound,
+  onOpenSoundLibrary,
   onRemoveVideo,
 }: {
   video: UploadedVideo;
@@ -423,7 +456,8 @@ function ComposeStep({
   onAllowStitchesChange: (v: boolean) => void;
   allowDownloads: boolean;
   onAllowDownloadsChange: (v: boolean) => void;
-  sound: SoundPick;
+  sound: SoundLibraryItem | null;
+  onOpenSoundLibrary: () => void;
   onRemoveVideo: () => void;
 }) {
   return (
@@ -474,22 +508,46 @@ function ComposeStep({
           </p>
         </div>
 
-        {/* Son sélectionné (pré-rempli si query ?sound=). */}
-        {sound ? (
-          <div className="rounded-xl bg-cream/5 border border-cream/10 p-3 flex items-center gap-3">
-            <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
-              <Music className="w-4 h-4" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-bold text-cream truncate">
-                {sound.title}
-              </p>
-              <p className="text-[11px] text-cream/60 truncate">
-                {sound.artist}
-              </p>
-            </div>
+        {/* Son — toujours affiché, clickable pour ouvrir la library. */}
+        <button
+          type="button"
+          onClick={onOpenSoundLibrary}
+          className={cn(
+            "w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left",
+            sound
+              ? "bg-cream/5 border-cream/10 hover:border-cream/30"
+              : "bg-cream/5 border-dashed border-cream/30 hover:border-cream/60",
+          )}
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <Music className="w-4 h-4" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            {sound ? (
+              <>
+                <p className="text-[13px] font-bold text-cream truncate">
+                  {sound.title}
+                </p>
+                <p className="text-[11px] text-cream/60 truncate">
+                  {sound.artist} ·{" "}
+                  {Math.round(sound.duration_seconds)}s
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-bold text-cream">
+                  Ajouter un son
+                </p>
+                <p className="text-[11px] text-cream/60">
+                  Tendances · Pixabay · sons originaux
+                </p>
+              </>
+            )}
           </div>
-        ) : null}
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            {sound ? "Changer" : "Choisir"}
+          </span>
+        </button>
 
         {/* Audience. */}
         <div>
