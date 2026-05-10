@@ -547,6 +547,73 @@ export async function addComment(
   return { status: "success" };
 }
 
+/* Plugin Sondage : voter (toggle). Multi-choice = empile. Single =
+   remplace le vote précédent. */
+export async function togglePollVote(args: {
+  pollId: string;
+  optionId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Récupère le poll pour savoir s'il est multi-choice + s'il est encore
+     ouvert. */
+  const { data: poll } = await supabase
+    .from("post_polls")
+    .select("id, post_id, multi_choice, ends_at")
+    .eq("id", args.pollId)
+    .maybeSingle();
+  if (!poll) return { ok: false, error: "Sondage introuvable." };
+  if (poll.ends_at && new Date(poll.ends_at).getTime() <= Date.now()) {
+    return { ok: false, error: "Sondage clôturé." };
+  }
+
+  /* Check si l'user a déjà voté pour cette option. */
+  const { data: existing } = await supabase
+    .from("post_poll_votes")
+    .select("option_id")
+    .eq("poll_id", args.pollId)
+    .eq("user_id", user.id);
+
+  const existingIds = new Set(
+    ((existing ?? []) as Array<{ option_id: string }>).map((r) => r.option_id),
+  );
+
+  if (existingIds.has(args.optionId)) {
+    /* Toggle off : retire le vote. */
+    const { error } = await supabase
+      .from("post_poll_votes")
+      .delete()
+      .eq("poll_id", args.pollId)
+      .eq("option_id", args.optionId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Vote impossible." };
+  } else {
+    if (!poll.multi_choice && existingIds.size > 0) {
+      /* Single-choice : retire les votes précédents. */
+      const { error: delErr } = await supabase
+        .from("post_poll_votes")
+        .delete()
+        .eq("poll_id", args.pollId)
+        .eq("user_id", user.id);
+      if (delErr) return { ok: false, error: "Vote impossible." };
+    }
+    const { error } = await supabase.from("post_poll_votes").insert({
+      poll_id: args.pollId,
+      option_id: args.optionId,
+      user_id: user.id,
+    });
+    if (error) return { ok: false, error: "Vote impossible." };
+  }
+
+  revalidatePath(`/feed/${poll.post_id}`);
+  revalidatePath("/feed");
+  return { ok: true };
+}
+
 export async function deleteComment(commentId: string, postId: string) {
   const supabase = await createClient();
   const {

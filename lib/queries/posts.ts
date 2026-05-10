@@ -89,6 +89,10 @@ async function attachDetails(
     likedByMe,
     commentRows,
     bookmarkedByMe,
+    pollRows,
+    pollOptionRows,
+    userVoteRows,
+    taggedUserRows,
   ] = await Promise.all([
     supabase
       .from("post_photos")
@@ -118,7 +122,52 @@ async function attachDetails(
       .select("post_id")
       .eq("user_id", currentUserId)
       .in("post_id", postIds),
+    /* V4 Phase 1.6 — sondages. */
+    supabase.from("post_polls").select("*").in("post_id", postIds),
+    supabase
+      .from("post_poll_options")
+      .select("*")
+      .order("position", { ascending: true }),
+    supabase
+      .from("post_poll_votes")
+      .select("poll_id, option_id")
+      .eq("user_id", currentUserId),
+    /* V4 Phase 1.6 — tagged users (sans embedded join, on fait un
+       2nd query plus loin pour les profils des taggés). */
+    supabase
+      .from("post_tagged_users")
+      .select("post_id, user_id")
+      .in("post_id", postIds),
   ]);
+
+  /* Tagged users : 2e query pour récupérer les profils. */
+  const taggedUserIds = Array.from(
+    new Set(
+      ((taggedUserRows.data ?? []) as Array<{
+        post_id: string;
+        user_id: string;
+      }>).map((r) => r.user_id),
+    ),
+  );
+  const taggedProfilesRes =
+    taggedUserIds.length > 0
+      ? await supabase
+          .from("profiles")
+          .select("id, full_name, username, avatar_url")
+          .in("id", taggedUserIds)
+      : { data: [] };
+  const taggedProfileById = new Map<
+    string,
+    { id: string; full_name: string | null; username: string | null; avatar_url: string | null }
+  >();
+  for (const p of (taggedProfilesRes.data ?? []) as Array<{
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }>) {
+    taggedProfileById.set(p.id, p);
+  }
 
   const photosByPost = new Map<string, PostPhoto[]>();
   for (const photo of photos ?? []) {
@@ -155,15 +204,88 @@ async function attachDetails(
     (bookmarkedByMe.data ?? []).map((row) => row.post_id),
   );
 
-  return rows.map((row) => ({
-    ...row,
-    photos: photosByPost.get(row.id) ?? [],
-    author: authorById.get(row.author_id) ?? null,
-    likes_count: likeCountByPost.get(row.id) ?? 0,
-    comments_count: commentCountByPost.get(row.id) ?? 0,
-    is_liked: likedByMeIds.has(row.id),
-    is_bookmarked: bookmarkedByMeIds.has(row.id),
-  }));
+  /* Polls : indexer par post_id. Options indexées par poll_id. */
+  type PollRow = {
+    id: string;
+    post_id: string;
+    question: string;
+    multi_choice: boolean;
+    is_anonymous: boolean;
+    ends_at: string | null;
+    total_votes: number;
+    created_at: string;
+  };
+  type PollOptionRow = {
+    id: string;
+    poll_id: string;
+    position: number;
+    label: string;
+    votes_count: number;
+    created_at: string;
+  };
+
+  const pollByPost = new Map<string, PollRow>();
+  for (const p of (pollRows.data ?? []) as PollRow[]) {
+    pollByPost.set(p.post_id, p);
+  }
+  const optionsByPoll = new Map<string, PollOptionRow[]>();
+  for (const o of (pollOptionRows.data ?? []) as PollOptionRow[]) {
+    const arr = optionsByPoll.get(o.poll_id) ?? [];
+    arr.push(o);
+    optionsByPoll.set(o.poll_id, arr);
+  }
+  const userVotesByPoll = new Map<string, string[]>();
+  for (const v of (userVoteRows.data ?? []) as Array<{
+    poll_id: string;
+    option_id: string;
+  }>) {
+    const arr = userVotesByPoll.get(v.poll_id) ?? [];
+    arr.push(v.option_id);
+    userVotesByPoll.set(v.poll_id, arr);
+  }
+
+  /* Tagged users : indexer par post_id. */
+  const taggedByPost = new Map<
+    string,
+    Array<{
+      id: string;
+      full_name: string | null;
+      username: string | null;
+      avatar_url: string | null;
+    }>
+  >();
+  for (const tag of (taggedUserRows.data ?? []) as Array<{
+    post_id: string;
+    user_id: string;
+  }>) {
+    const profile = taggedProfileById.get(tag.user_id);
+    if (!profile) continue;
+    const arr = taggedByPost.get(tag.post_id) ?? [];
+    arr.push(profile);
+    taggedByPost.set(tag.post_id, arr);
+  }
+
+  return rows.map((row) => {
+    const poll = pollByPost.get(row.id);
+    const tagged = taggedByPost.get(row.id) ?? [];
+    return {
+      ...row,
+      photos: photosByPost.get(row.id) ?? [],
+      author: authorById.get(row.author_id) ?? null,
+      likes_count: likeCountByPost.get(row.id) ?? 0,
+      comments_count: commentCountByPost.get(row.id) ?? 0,
+      is_liked: likedByMeIds.has(row.id),
+      is_bookmarked: bookmarkedByMeIds.has(row.id),
+      poll: poll
+        ? {
+            ...poll,
+            options: optionsByPoll.get(poll.id) ?? [],
+            user_voted_option_ids: userVotesByPoll.get(poll.id) ?? [],
+          }
+        : null,
+      tagged_users: tagged,
+    };
+  });
 }
 
 export async function listFeedPosts(

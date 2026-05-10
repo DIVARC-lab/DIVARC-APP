@@ -640,6 +640,18 @@ export type ReelWithDetails = Reel & {
   is_saved: boolean;
 };
 
+export type PostPollWithDetails = PostPoll & {
+  options: PostPollOption[];
+  user_voted_option_ids: string[];
+};
+
+export type PostTaggedUserDetail = {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+};
+
 export type PostWithDetails = Post & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
   photos: PostPhoto[];
@@ -647,6 +659,10 @@ export type PostWithDetails = Post & {
   comments_count: number;
   is_liked: boolean;
   is_bookmarked: boolean;
+  /* V4 — plugins enrichis (Phase 1.6/1.7). Optionnels : null/undefined
+     si non hydratés par la query. */
+  poll?: PostPollWithDetails | null;
+  tagged_users?: PostTaggedUserDetail[];
 };
 
 export type CommentWithAuthor = PostComment & {

@@ -23,6 +23,7 @@ import { getPalette } from "@/lib/posts/backgroundColors";
 import { ACTIVITIES } from "@/lib/posts/sentiments";
 import { cn } from "@/lib/utils/cn";
 import { renderPostBody } from "@/lib/utils/postBody";
+import { PostPoll } from "./PostPoll";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { BookmarkButton } from "./BookmarkButton";
 import { LikeButton } from "./LikeButton";
@@ -241,6 +242,56 @@ export function PostCard({
             </div>
           );
         })()
+      ) : null}
+
+      {/* Plugin Sondage (Phase 1.6). */}
+      {post.poll ? (
+        <PostPoll
+          poll={{
+            id: post.poll.id,
+            question: post.poll.question,
+            multi_choice: post.poll.multi_choice,
+            is_anonymous: post.poll.is_anonymous,
+            ends_at: post.poll.ends_at,
+            total_votes: post.poll.total_votes,
+            options: post.poll.options.map((o) => ({
+              id: o.id,
+              position: o.position,
+              label: o.label,
+              votes_count: o.votes_count,
+            })),
+            user_voted_option_ids: post.poll.user_voted_option_ids,
+          }}
+          currentUserId={currentUserId}
+        />
+      ) : null}
+
+      {/* Plugin Tag amis : "avec @user1, @user2 et N autres". */}
+      {post.tagged_users && post.tagged_users.length > 0 ? (
+        <div className="px-[18px] pb-3 -mt-1">
+          <p className="text-[12px] text-night-soft">
+            <span className="text-night-muted">avec </span>
+            {post.tagged_users.slice(0, 3).map((u, idx) => (
+              <span key={u.id}>
+                {idx > 0 ? ", " : ""}
+                <Link
+                  href={`/u/${u.username ?? u.id}`}
+                  className="font-bold text-night hover:underline"
+                >
+                  {u.full_name ??
+                    (u.username ? `@${u.username}` : "Utilisateur")}
+                </Link>
+              </span>
+            ))}
+            {post.tagged_users.length > 3 ? (
+              <span className="text-night-muted">
+                {" "}
+                et {post.tagged_users.length - 3} autre
+                {post.tagged_users.length - 3 > 1 ? "s" : ""}
+              </span>
+            ) : null}
+          </p>
+        </div>
       ) : null}
 
       {/* Media inline (non-hero) — radius 18 + padding x */}
