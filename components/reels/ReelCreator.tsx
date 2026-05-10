@@ -1,0 +1,641 @@
+"use client";
+
+import {
+  ArrowLeft,
+  Check,
+  Globe,
+  Loader2,
+  Lock,
+  Music,
+  Upload,
+  Users,
+  Video,
+  X,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
+import {
+  createReel,
+  redirectToReel,
+} from "@/app/(app)/reels/new/actions";
+
+/* ReelCreator V1 — modal fullscreen pour créer un reel.
+ *
+ * Flow simplifié V1 :
+ *   1. Upload vidéo MP4 (max 100MB, max 90s, ratio 9:16 conseillé)
+ *   2. Génération automatique de la poster frame (canvas screenshot)
+ *   3. Form : description + hashtags + audience + permissions + son
+ *   4. Submit → server action createReel
+ *
+ * V1.5 : capture caméra live, multi-clips, effets AR, édition timeline,
+ * voix off, stickers, transitions.
+ *
+ * Stack : Supabase Storage pour l'upload, server action pour l'insert.
+ */
+
+const MAX_BYTES = 100 * 1024 * 1024;
+const MAX_DURATION_S = 90;
+const ALLOWED_MIME = ["video/mp4", "video/webm", "video/quicktime"];
+
+type SoundPick = {
+  id: string;
+  title: string;
+  artist: string;
+  audio_url: string;
+} | null;
+
+type Props = {
+  userId: string;
+  preselectedSound: SoundPick;
+};
+
+type Step = "upload" | "compose";
+
+type UploadedVideo = {
+  url: string;
+  storagePath: string;
+  duration_seconds: number;
+  poster_url: string | null;
+  posterStoragePath: string | null;
+};
+
+export function ReelCreator({ userId, preselectedSound }: Props) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [step, setStep] = useState<Step>("upload");
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [video, setVideo] = useState<UploadedVideo | null>(null);
+  const [description, setDescription] = useState("");
+  const [audience, setAudience] = useState<"public" | "friends" | "private">(
+    "public",
+  );
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowDuets, setAllowDuets] = useState(true);
+  const [allowStitches, setAllowStitches] = useState(true);
+  const [allowDownloads, setAllowDownloads] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  /* Hashtags : extraits du body au moment du submit. */
+  function extractHashtags(text: string): string[] {
+    const matches = text.match(/#([a-z0-9_]{2,40})/gi) ?? [];
+    return Array.from(
+      new Set(matches.map((m) => m.slice(1).toLowerCase())),
+    ).slice(0, 20);
+  }
+
+  async function handleFileSelect(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!ALLOWED_MIME.includes(file.type)) {
+      toast.error("Format non supporté. MP4, WebM ou MOV uniquement.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      toast.error(
+        `Vidéo trop lourde (${Math.round(file.size / 1024 / 1024)}MB). Max ${MAX_BYTES / 1024 / 1024}MB.`,
+      );
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      /* Lit la durée + extrait une poster frame côté client. */
+      const probe = await probeVideo(file);
+      if (probe.durationSeconds > MAX_DURATION_S + 0.5) {
+        toast.error(
+          `Vidéo trop longue (${Math.round(probe.durationSeconds)}s). Max ${MAX_DURATION_S}s.`,
+        );
+        return;
+      }
+
+      /* Upload vidéo. */
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() ?? "mp4";
+      const videoPath = `reels/${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error: vErr } = await supabase.storage
+        .from("post-photos") /* réutilise le bucket existant pour V1 */
+        .upload(videoPath, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+      if (vErr) throw vErr;
+      const {
+        data: { publicUrl: videoUrl },
+      } = supabase.storage.from("post-photos").getPublicUrl(videoPath);
+
+      setUploadProgress(70);
+
+      /* Upload poster frame (PNG blob). */
+      let posterUrl: string | null = null;
+      let posterPath: string | null = null;
+      if (probe.posterBlob) {
+        const posterStoragePath = `reels/${userId}/${crypto.randomUUID()}-poster.jpg`;
+        const { error: pErr } = await supabase.storage
+          .from("post-photos")
+          .upload(posterStoragePath, probe.posterBlob, {
+            contentType: "image/jpeg",
+            upsert: false,
+          });
+        if (!pErr) {
+          posterPath = posterStoragePath;
+          posterUrl = supabase.storage
+            .from("post-photos")
+            .getPublicUrl(posterStoragePath).data.publicUrl;
+        }
+      }
+
+      setUploadProgress(100);
+      setVideo({
+        url: videoUrl,
+        storagePath: videoPath,
+        duration_seconds: probe.durationSeconds,
+        poster_url: posterUrl,
+        posterStoragePath: posterPath,
+      });
+      setStep("compose");
+    } catch (err) {
+      console.error("[reels:upload]", err);
+      toast.error("Upload échoué. Réessaie.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeVideo() {
+    if (!video) return;
+    const supabase = createClient();
+    const paths = [video.storagePath];
+    if (video.posterStoragePath) paths.push(video.posterStoragePath);
+    await supabase.storage.from("post-photos").remove(paths).catch(() => undefined);
+    setVideo(null);
+    setStep("upload");
+  }
+
+  function submit() {
+    if (!video) return;
+    startTransition(async () => {
+      const result = await createReel({
+        video_url: video.url,
+        duration_seconds: video.duration_seconds,
+        poster_url: video.poster_url,
+        description: description.trim() || undefined,
+        hashtags: extractHashtags(description),
+        sound_id: preselectedSound?.id ?? null,
+        has_voiceover: false,
+        audience,
+        allow_comments: allowComments,
+        allow_duets: allowDuets,
+        allow_stitches: allowStitches,
+        allow_downloads: allowDownloads,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Reel publié ✨");
+      await redirectToReel(result.reel_id);
+    });
+  }
+
+  return (
+    <div className="relative w-full h-full bg-night text-cream">
+      {/* Header. */}
+      <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-cream/10 bg-night/95 backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => {
+            if (step === "compose") {
+              if (
+                window.confirm(
+                  "Quitter sans publier ? Ta vidéo sera supprimée.",
+                )
+              ) {
+                void removeVideo();
+                router.push("/reels");
+              }
+            } else {
+              router.push("/reels");
+            }
+          }}
+          className="w-10 h-10 rounded-full bg-cream/10 hover:bg-cream/20 flex items-center justify-center"
+          aria-label="Fermer"
+        >
+          {step === "compose" ? (
+            <ArrowLeft className="w-4 h-4" aria-hidden />
+          ) : (
+            <X className="w-4 h-4" aria-hidden />
+          )}
+        </button>
+        <p className="font-display italic text-[18px]">
+          {step === "upload" ? "Nouveau reel" : "Détails"}
+        </p>
+        {step === "compose" ? (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending || !video}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night text-[12.5px] font-bold disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Check className="w-3.5 h-3.5" aria-hidden />
+            )}
+            Publier
+          </button>
+        ) : (
+          <span className="w-10" aria-hidden />
+        )}
+      </header>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={ALLOWED_MIME.join(",")}
+        onChange={handleFileSelect}
+        className="sr-only"
+      />
+
+      {step === "upload" ? (
+        <UploadStep
+          uploading={uploading}
+          progress={uploadProgress}
+          onPick={() => fileInputRef.current?.click()}
+        />
+      ) : null}
+
+      {step === "compose" && video ? (
+        <ComposeStep
+          video={video}
+          description={description}
+          onDescriptionChange={setDescription}
+          audience={audience}
+          onAudienceChange={setAudience}
+          allowComments={allowComments}
+          onAllowCommentsChange={setAllowComments}
+          allowDuets={allowDuets}
+          onAllowDuetsChange={setAllowDuets}
+          allowStitches={allowStitches}
+          onAllowStitchesChange={setAllowStitches}
+          allowDownloads={allowDownloads}
+          onAllowDownloadsChange={setAllowDownloads}
+          sound={preselectedSound}
+          onRemoveVideo={removeVideo}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* === Step 1 : Upload vidéo === */
+function UploadStep({
+  uploading,
+  progress,
+  onPick,
+}: {
+  uploading: boolean;
+  progress: number;
+  onPick: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-12 min-h-[calc(100vh-60px)] text-center">
+      <div className="w-24 h-24 rounded-full bg-cream/5 border-2 border-dashed border-cream/30 flex items-center justify-center mb-5">
+        {uploading ? (
+          <Loader2 className="w-9 h-9 text-cream/60 animate-spin" aria-hidden />
+        ) : (
+          <Video className="w-9 h-9 text-cream/60" aria-hidden />
+        )}
+      </div>
+
+      <p className="font-display italic text-[28px] text-cream mb-2">
+        {uploading ? "Téléchargement…" : "Choisis ta vidéo"}
+      </p>
+      <p className="text-[12.5px] text-cream/60 max-w-md mb-6 leading-relaxed">
+        {uploading
+          ? `Préparation en cours (${progress}%)`
+          : "MP4 / WebM / MOV · max 100 MB · max 90 secondes · format vertical 9:16 recommandé."}
+      </p>
+
+      {!uploading ? (
+        <button
+          type="button"
+          onClick={onPick}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night text-[14px] font-bold hover:scale-105 transition-transform shadow-[0_8px_24px_-8px_rgba(244,185,66,0.7)]"
+        >
+          <Upload className="w-4 h-4" aria-hidden />
+          Importer une vidéo
+        </button>
+      ) : (
+        <div className="w-full max-w-xs">
+          <div className="h-1.5 rounded-full bg-cream/10 overflow-hidden">
+            <div
+              className="h-full bg-gold transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="mt-8 text-[10.5px] text-cream/40 leading-snug max-w-md">
+        💡 V1 : upload uniquement. La capture caméra live + effets AR + édition
+        timeline arrivent bientôt.
+      </p>
+    </div>
+  );
+}
+
+/* === Step 2 : Composition (description, audience, permissions) === */
+function ComposeStep({
+  video,
+  description,
+  onDescriptionChange,
+  audience,
+  onAudienceChange,
+  allowComments,
+  onAllowCommentsChange,
+  allowDuets,
+  onAllowDuetsChange,
+  allowStitches,
+  onAllowStitchesChange,
+  allowDownloads,
+  onAllowDownloadsChange,
+  sound,
+  onRemoveVideo,
+}: {
+  video: UploadedVideo;
+  description: string;
+  onDescriptionChange: (s: string) => void;
+  audience: "public" | "friends" | "private";
+  onAudienceChange: (a: "public" | "friends" | "private") => void;
+  allowComments: boolean;
+  onAllowCommentsChange: (v: boolean) => void;
+  allowDuets: boolean;
+  onAllowDuetsChange: (v: boolean) => void;
+  allowStitches: boolean;
+  onAllowStitchesChange: (v: boolean) => void;
+  allowDownloads: boolean;
+  onAllowDownloadsChange: (v: boolean) => void;
+  sound: SoundPick;
+  onRemoveVideo: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
+      {/* Preview vidéo. */}
+      <div className="relative mx-auto w-full max-w-[280px]">
+        <div className="aspect-[9/16] rounded-2xl overflow-hidden bg-night-soft relative">
+          <video
+            src={video.url}
+            poster={video.poster_url ?? undefined}
+            controls
+            playsInline
+            loop
+            muted
+            className="w-full h-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={onRemoveVideo}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 hover:bg-black text-cream flex items-center justify-center"
+            aria-label="Supprimer cette vidéo"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </div>
+        <p className="mt-2 text-[10.5px] text-cream/60 text-center font-mono">
+          {Math.round(video.duration_seconds)}s
+        </p>
+      </div>
+
+      {/* Form composition. */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-[10.5px] font-bold uppercase tracking-wider text-cream/60 mb-1.5">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            maxLength={2200}
+            rows={4}
+            placeholder="Décris ton reel, ajoute des #hashtags et @mentions…"
+            autoFocus
+            className="w-full px-3 py-2 rounded-xl bg-cream/5 border border-cream/10 text-cream placeholder:text-cream/40 text-[13.5px] focus:outline-none focus:border-cream/30"
+          />
+          <p className="mt-1 text-[10.5px] text-cream/40 text-right tabular-nums">
+            {description.length}/2200
+          </p>
+        </div>
+
+        {/* Son sélectionné (pré-rempli si query ?sound=). */}
+        {sound ? (
+          <div className="rounded-xl bg-cream/5 border border-cream/10 p-3 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+              <Music className="w-4 h-4" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-bold text-cream truncate">
+                {sound.title}
+              </p>
+              <p className="text-[11px] text-cream/60 truncate">
+                {sound.artist}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Audience. */}
+        <div>
+          <label className="block text-[10.5px] font-bold uppercase tracking-wider text-cream/60 mb-1.5">
+            Audience
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            <AudienceBtn
+              active={audience === "public"}
+              onClick={() => onAudienceChange("public")}
+              icon={<Globe className="w-4 h-4" aria-hidden />}
+              label="Public"
+            />
+            <AudienceBtn
+              active={audience === "friends"}
+              onClick={() => onAudienceChange("friends")}
+              icon={<Users className="w-4 h-4" aria-hidden />}
+              label="Amis"
+            />
+            <AudienceBtn
+              active={audience === "private"}
+              onClick={() => onAudienceChange("private")}
+              icon={<Lock className="w-4 h-4" aria-hidden />}
+              label="Privé"
+            />
+          </div>
+        </div>
+
+        {/* Permissions. */}
+        <div>
+          <label className="block text-[10.5px] font-bold uppercase tracking-wider text-cream/60 mb-1.5">
+            Permissions
+          </label>
+          <ul className="space-y-1.5">
+            <PermRow
+              label="Autoriser les commentaires"
+              checked={allowComments}
+              onChange={onAllowCommentsChange}
+            />
+            <PermRow
+              label="Autoriser les duets"
+              checked={allowDuets}
+              onChange={onAllowDuetsChange}
+            />
+            <PermRow
+              label="Autoriser les stitches"
+              checked={allowStitches}
+              onChange={onAllowStitchesChange}
+            />
+            <PermRow
+              label="Autoriser le téléchargement"
+              checked={allowDownloads}
+              onChange={onAllowDownloadsChange}
+            />
+          </ul>
+        </div>
+
+        <p className="text-[10.5px] text-cream/40 leading-snug">
+          💡 La modération automatique vérifie ton reel avant diffusion publique
+          (≤ 60s en moyenne).
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AudienceBtn({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border transition-colors",
+        active
+          ? "bg-gold/15 border-gold text-gold"
+          : "bg-cream/5 border-cream/10 text-cream/70 hover:border-cream/30",
+      )}
+    >
+      {icon}
+      <span className="text-[11px] font-bold">{label}</span>
+    </button>
+  );
+}
+
+function PermRow({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <li className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-cream/5 border border-cream/10">
+      <span className="text-[12.5px] text-cream">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        onClick={() => onChange(!checked)}
+        className={cn(
+          "relative w-10 h-6 rounded-full transition-colors shrink-0",
+          checked ? "bg-gold" : "bg-cream/15",
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-cream transition-transform",
+            checked && "translate-x-4",
+          )}
+          aria-hidden
+        />
+      </button>
+    </li>
+  );
+}
+
+/* Helper : lit une vidéo pour récupérer durée + poster frame.
+ * Utilise un <video> off-DOM + canvas screenshot à 0.5s. */
+async function probeVideo(file: File): Promise<{
+  durationSeconds: number;
+  posterBlob: Blob | null;
+}> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.src = url;
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+
+    let done = false;
+    function finish(durationSeconds: number, posterBlob: Blob | null) {
+      if (done) return;
+      done = true;
+      URL.revokeObjectURL(url);
+      resolve({ durationSeconds, posterBlob });
+    }
+
+    const timeout = setTimeout(() => finish(0, null), 8000);
+
+    video.addEventListener("loadedmetadata", () => {
+      const dur = video.duration;
+      /* Seek à 0.5s pour avoir une frame représentative. */
+      video.currentTime = Math.min(0.5, Math.max(0.1, dur / 2));
+    });
+
+    video.addEventListener("seeked", async () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          finish(video.duration, null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => finish(video.duration, blob),
+          "image/jpeg",
+          0.85,
+        );
+      } catch {
+        finish(video.duration, null);
+      }
+    });
+
+    video.addEventListener("error", () => {
+      clearTimeout(timeout);
+      finish(0, null);
+    });
+  });
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -150,7 +150,13 @@ export function ReelsFeed({
             Suivis
           </TabBtn>
         </div>
-        <span className="w-10" aria-hidden />
+        <Link
+          href="/reels/new"
+          aria-label="Créer un reel"
+          className="w-10 h-10 rounded-full bg-gold text-night flex items-center justify-center hover:scale-105 transition-transform shadow-lg"
+        >
+          <Plus className="w-5 h-5" aria-hidden />
+        </Link>
       </header>
 
       {/* Container scroll-snap fullscreen.
