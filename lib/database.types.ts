@@ -583,6 +583,10 @@ export type Reel = {
   /* V3.6 — text overlays jsonb (migration 0058). Array stocké tel quel,
      parsé via parseOverlays() côté client pour validation. */
   text_overlays: unknown;
+  /* V3.7 — voix off + mix volumes (migration 0059). */
+  voiceover_url: string | null;
+  video_volume: number;
+  voiceover_volume: number;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

@@ -49,6 +49,7 @@ type Props = {
 
 export function ReelView({ reel, isActive, currentUserId }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const voiceoverRef = useRef<HTMLAudioElement>(null);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
   const [liked, setLiked] = useState(reel.is_liked);
@@ -91,20 +92,32 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
     if (!video) return;
     if (isActive) {
       video.muted = muted;
+      video.volume = reel.video_volume ?? 1;
       void video.play().catch(() => undefined);
       setPaused(false);
       watchStartRef.current = performance.now();
+      /* Start voiceover en sync si présent. */
+      const voiceover = voiceoverRef.current;
+      if (voiceover && reel.voiceover_url) {
+        voiceover.muted = muted;
+        voiceover.volume = reel.voiceover_volume ?? 1;
+        voiceover.currentTime = video.currentTime;
+        void voiceover.play().catch(() => undefined);
+      }
     } else {
       video.pause();
+      voiceoverRef.current?.pause();
       flushWatchTime();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
-  /* Sync mute. */
+  /* Sync mute (vidéo + voix off). */
   useEffect(() => {
     const video = videoRef.current;
     if (video) video.muted = muted;
+    const voiceover = voiceoverRef.current;
+    if (voiceover) voiceover.muted = muted;
   }, [muted]);
 
   /* Watch time tracking. */
@@ -261,11 +274,30 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
         autoPlay={isActive}
         muted={muted}
         onClick={handleTap}
-        onTimeUpdate={(e) =>
-          setCurrentTime((e.target as HTMLVideoElement).currentTime)
-        }
+        onTimeUpdate={(e) => {
+          const v = e.target as HTMLVideoElement;
+          setCurrentTime(v.currentTime);
+          /* Resync voix off si drift > 0.25s (frame drops, seek, etc.) */
+          const voiceover = voiceoverRef.current;
+          if (voiceover && reel.voiceover_url) {
+            if (Math.abs(voiceover.currentTime - v.currentTime) > 0.25) {
+              voiceover.currentTime = v.currentTime;
+            }
+          }
+        }}
         className="w-full h-full object-cover cursor-pointer"
       />
+
+      {/* Voix off — synchronisée avec la vidéo. */}
+      {reel.voiceover_url ? (
+        <audio
+          ref={voiceoverRef}
+          src={reel.voiceover_url}
+          preload="auto"
+          loop
+          className="sr-only"
+        />
+      ) : null}
 
       {/* Text overlays V3.6 — synchronisés avec currentTime. Pointer-events
           none pour ne pas bloquer le tap/double-tap sur la vidéo. */}

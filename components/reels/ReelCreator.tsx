@@ -22,6 +22,7 @@ import {
   type SoundLibraryItem,
 } from "@/components/reels/SoundLibrary";
 import { TextOverlaysEditor } from "@/components/reels/TextOverlaysEditor";
+import { VoiceoverRecorder } from "@/components/reels/VoiceoverRecorder";
 import type { TextOverlay } from "@/lib/reels/textOverlays";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -88,6 +89,10 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
   const [allowDownloads, setAllowDownloads] = useState(false);
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
   const [textEditorOpen, setTextEditorOpen] = useState(false);
+  const [voiceoverUrl, setVoiceoverUrl] = useState<string | null>(null);
+  const [videoVolume, setVideoVolume] = useState(1.0);
+  const [voiceoverVolume, setVoiceoverVolume] = useState(1.0);
+  const [voiceoverOpen, setVoiceoverOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   /* Son sélectionné — peut être pré-rempli via ?sound= ou choisi
@@ -234,13 +239,16 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
         description: description.trim() || undefined,
         hashtags: extractHashtags(description),
         sound_id: selectedSound?.id ?? null,
-        has_voiceover: false,
+        has_voiceover: voiceoverUrl !== null,
         audience,
         allow_comments: allowComments,
         allow_duets: allowDuets,
         allow_stitches: allowStitches,
         allow_downloads: allowDownloads,
         text_overlays: textOverlays,
+        voiceover_url: voiceoverUrl,
+        video_volume: videoVolume,
+        voiceover_volume: voiceoverVolume,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -346,6 +354,8 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           onRemoveVideo={removeVideo}
           textOverlaysCount={textOverlays.length}
           onOpenTextEditor={() => setTextEditorOpen(true)}
+          hasVoiceover={voiceoverUrl !== null}
+          onOpenVoiceover={() => setVoiceoverOpen(true)}
         />
       ) : null}
 
@@ -364,6 +374,25 @@ export function ReelCreator({ userId, preselectedSound }: Props) {
           initial={textOverlays}
           onApply={setTextOverlays}
           onClose={() => setTextEditorOpen(false)}
+        />
+      ) : null}
+
+      {voiceoverOpen && video ? (
+        <VoiceoverRecorder
+          userId={userId}
+          videoUrl={video.url}
+          durationSeconds={video.duration_seconds}
+          initial={{
+            voiceover_url: voiceoverUrl,
+            video_volume: videoVolume,
+            voiceover_volume: voiceoverVolume,
+          }}
+          onApply={(state) => {
+            setVoiceoverUrl(state.voiceover_url);
+            setVideoVolume(state.video_volume);
+            setVoiceoverVolume(state.voiceover_volume);
+          }}
+          onClose={() => setVoiceoverOpen(false)}
         />
       ) : null}
     </div>
@@ -461,6 +490,8 @@ function ComposeStep({
   onRemoveVideo,
   textOverlaysCount,
   onOpenTextEditor,
+  hasVoiceover,
+  onOpenVoiceover,
 }: {
   video: UploadedVideo;
   description: string;
@@ -480,6 +511,8 @@ function ComposeStep({
   onRemoveVideo: () => void;
   textOverlaysCount: number;
   onOpenTextEditor: () => void;
+  hasVoiceover: boolean;
+  onOpenVoiceover: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 p-4 sm:p-6 max-w-4xl mx-auto">
@@ -596,6 +629,33 @@ function ComposeStep({
           </div>
           <span className="text-[11px] font-bold text-gold shrink-0">
             {textOverlaysCount > 0 ? "Éditer" : "Ouvrir"}
+          </span>
+        </button>
+
+        {/* Voix off + mix audio */}
+        <button
+          type="button"
+          onClick={onOpenVoiceover}
+          className={cn(
+            "w-full rounded-xl border p-3 flex items-center gap-3 transition-colors text-left",
+            hasVoiceover
+              ? "bg-cream/5 border-cream/10 hover:border-cream/30"
+              : "bg-cream/5 border-dashed border-cream/30 hover:border-cream/60",
+          )}
+        >
+          <span className="w-9 h-9 rounded-full bg-gold/15 text-gold flex items-center justify-center shrink-0">
+            <span aria-hidden className="text-[14px] font-extrabold">🎙</span>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-bold text-cream">
+              {hasVoiceover ? "Voix off enregistrée" : "Voix off & mix audio"}
+            </p>
+            <p className="text-[11px] text-cream/60">
+              MediaRecorder + volumes vidéo/voix
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-gold shrink-0">
+            {hasVoiceover ? "Réécouter" : "Enregistrer"}
           </span>
         </button>
 

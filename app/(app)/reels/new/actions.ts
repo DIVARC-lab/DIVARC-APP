@@ -41,6 +41,9 @@ const reelInputSchema = z.object({
   allow_downloads: z.boolean().default(false),
   scheduled_for: z.string().datetime().optional().nullable(),
   text_overlays: z.array(textOverlaySchema).max(10).default([]),
+  voiceover_url: z.string().url().optional().nullable(),
+  video_volume: z.number().min(0).max(1).default(1),
+  voiceover_volume: z.number().min(0).max(1).default(1),
 });
 
 export type CreateReelResult =
@@ -117,6 +120,9 @@ export async function createReel(
       scheduled_for: scheduledFor,
       moderation_status: "approved", // V1 : auto-approve. V1.5 : pipeline modération NSFW.
       text_overlays: data.text_overlays,
+      voiceover_url: data.voiceover_url ?? null,
+      video_volume: data.video_volume,
+      voiceover_volume: data.voiceover_volume,
     })
     .select("id")
     .single();
