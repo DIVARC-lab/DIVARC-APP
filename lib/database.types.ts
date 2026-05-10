@@ -1790,6 +1790,314 @@ export type AdReport = {
   created_at: string;
 };
 
+/* ========================================================================
+ * Ads Manager avancé — migration 0050 (Smart + Expert)
+ * ======================================================================== */
+
+export type AttributionSetting =
+  | "last_click_7d"
+  | "last_click_1d"
+  | "linear_7d"
+  | "linear_28d"
+  | "position_based_7d"
+  | "time_decay_7d"
+  | "data_driven"
+  | "view_through_1d";
+
+export type RecommendationType =
+  | "budget_increase"
+  | "budget_decrease"
+  | "audience_expand"
+  | "audience_create_lookalike"
+  | "creative_refresh"
+  | "creative_pause_fatigue"
+  | "placement_optimize"
+  | "bid_adjustment"
+  | "keyword_add"
+  | "keyword_remove"
+  | "campaign_pause"
+  | "schedule_optimize"
+  | "seasonal_opportunity";
+
+export type RecommendationSeverity = "low" | "medium" | "high" | "critical";
+export type RecommendationStatus =
+  | "pending"
+  | "applied"
+  | "dismissed"
+  | "expired";
+
+export type LeadFormType = "more_volume" | "higher_intent";
+export type DynamicVariantType =
+  | "media"
+  | "primary_text"
+  | "headline"
+  | "description"
+  | "cta";
+
+export type CustomConversionCategory =
+  | "add_to_cart"
+  | "add_to_wishlist"
+  | "complete_registration"
+  | "contact"
+  | "customize_product"
+  | "donate"
+  | "find_location"
+  | "initiate_checkout"
+  | "lead"
+  | "purchase"
+  | "schedule"
+  | "search"
+  | "start_trial"
+  | "submit_application"
+  | "subscribe"
+  | "view_content"
+  | "other";
+
+export type OfflineMatchStatus =
+  | "pending"
+  | "matched"
+  | "unmatched"
+  | "duplicate";
+
+export type WebsiteAnalysisStatus =
+  | "pending"
+  | "crawling"
+  | "analyzing"
+  | "completed"
+  | "failed";
+
+/* Résultat structuré du Website Analyzer (cache jsonb dans la table). */
+export type WebsiteAnalysisResult = {
+  business_name: string;
+  business_description: string;
+  business_category: string[];
+  target_audience_inferred: string[];
+  keywords_primary: Array<{
+    keyword: string;
+    search_volume?: number;
+    competition_level?: "low" | "medium" | "high";
+    estimated_cpc?: number;
+    relevance_score: number;
+    intent?: "informational" | "commercial" | "transactional" | "navigational";
+  }>;
+  keywords_secondary: Array<{ keyword: string; relevance_score: number }>;
+  keywords_negative_suggested: string[];
+  pages_detected: Array<{ url: string; title: string; type: string }>;
+  products_detected?: Array<{
+    name: string;
+    price?: number;
+    image_url?: string;
+    description?: string;
+  }>;
+  services_detected?: Array<{ name: string; description?: string }>;
+  audiences_recommended: Array<{
+    persona_name: string;
+    description: string;
+    targeting_spec: Record<string, unknown>;
+    estimated_size?: number;
+  }>;
+  interests_topics: string[];
+  demographics_suggested: {
+    age_min: number;
+    age_max: number;
+    genders: string[];
+    languages: string[];
+  };
+  images_extracted: Array<{
+    url: string;
+    alt_text?: string;
+    width?: number;
+    height?: number;
+    is_logo?: boolean;
+  }>;
+  brand_colors: string[];
+  brand_fonts: string[];
+  headlines_suggested: string[];
+  descriptions_suggested: string[];
+  cta_suggested: string[];
+  objective_recommended: string;
+  objective_alternatives: string[];
+  budget_recommended_min: number;
+  budget_recommended_optimal: number;
+  estimated_reach_per_euro?: Record<string, number>;
+  estimated_cpc_range?: [number, number];
+  estimated_cpm_range?: [number, number];
+  compliance_warnings: string[];
+  forbidden_categories_detected: string[];
+};
+
+export type AdsWebsiteAnalysis = {
+  id: string;
+  ad_account_id: string | null;
+  url_normalized: string;
+  url_original: string;
+  status: WebsiteAnalysisStatus;
+  error_message: string | null;
+  analysis_result: WebsiteAnalysisResult | null;
+  business_name: string | null;
+  business_category: string[] | null;
+  primary_objective: string | null;
+  pages_crawled: number;
+  llm_tokens_used: number;
+  cost_cents: number;
+  duration_ms: number | null;
+  expires_at: string;
+  created_at: string;
+  requested_by: string | null;
+};
+
+export type AdsKeywordResearch = {
+  id: string;
+  keyword: string;
+  country: string;
+  language: string;
+  search_volume: number | null;
+  competition_index: number | null;
+  competition_level: "low" | "medium" | "high" | null;
+  cpc_estimate: number | null;
+  trend_12m: number[] | null;
+  intent:
+    | "informational"
+    | "commercial"
+    | "transactional"
+    | "navigational"
+    | "mixed"
+    | null;
+  related_topics: string[] | null;
+  related_keywords: string[] | null;
+  expires_at: string;
+  fetched_at: string;
+  data_source: string;
+};
+
+export type AdsLeadForm = {
+  id: string;
+  ad_account_id: string;
+  name: string;
+  form_type: LeadFormType;
+  intro_image_url: string | null;
+  intro_title: string;
+  intro_description: string | null;
+  questions: Array<Record<string, unknown>>;
+  privacy_policy_url: string;
+  consent_text: string;
+  thankyou_title: string;
+  thankyou_description: string | null;
+  thankyou_cta_label: string | null;
+  thankyou_cta_url: string | null;
+  webhook_url: string | null;
+  webhook_secret: string | null;
+  crm_integration: string | null;
+  crm_config: Record<string, unknown> | null;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdsLeadFormResponse = {
+  id: string;
+  lead_form_id: string;
+  ad_account_id: string;
+  ad_id: string | null;
+  campaign_id: string | null;
+  user_id: string | null;
+  answers: Record<string, unknown>;
+  client_ip_anon: string | null;
+  user_agent: string | null;
+  webhook_delivered_at: string | null;
+  webhook_response_code: number | null;
+  webhook_attempts: number;
+  submitted_at: string;
+};
+
+export type AdsDynamicCreativeVariant = {
+  id: string;
+  parent_creative_id: string;
+  variant_type: DynamicVariantType;
+  media_url: string | null;
+  media_thumbnail_url: string | null;
+  text_value: string | null;
+  cta_value: string | null;
+  position: number;
+  total_impressions: number;
+  total_clicks: number;
+  total_conversions: number;
+  performance_score: number | null;
+  is_winner: boolean;
+  created_at: string;
+};
+
+export type AdsCustomConversion = {
+  id: string;
+  ad_account_id: string;
+  name: string;
+  description: string | null;
+  filter_spec: Record<string, unknown>;
+  category: CustomConversionCategory;
+  default_value: number | null;
+  default_currency: string | null;
+  total_count: number;
+  total_value: number;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type AdsOfflineConversion = {
+  id: string;
+  ad_account_id: string;
+  batch_id: string;
+  event_name: string;
+  event_time: string;
+  hashed_email: string | null;
+  hashed_phone: string | null;
+  external_id: string | null;
+  match_status: OfflineMatchStatus;
+  matched_user_id: string | null;
+  attributed_ad_id: string | null;
+  attributed_click_id: string | null;
+  attribution_model: string | null;
+  custom_data: Record<string, unknown> | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  matched_at: string | null;
+};
+
+export type AdsRecommendation = {
+  id: string;
+  ad_account_id: string;
+  type: RecommendationType;
+  severity: RecommendationSeverity;
+  title: string;
+  description: string;
+  action_payload: Record<string, unknown> | null;
+  estimated_impact: Record<string, unknown> | null;
+  status: RecommendationStatus;
+  applied_at: string | null;
+  applied_by: string | null;
+  dismissed_at: string | null;
+  dismissed_by: string | null;
+  expires_at: string;
+  generated_at: string;
+  model_version: string;
+};
+
+export type AdsSmartAudienceSegment = {
+  id: string;
+  website_analysis_id: string | null;
+  ad_account_id: string | null;
+  persona_name: string;
+  persona_description: string | null;
+  targeting_spec: Record<string, unknown>;
+  estimated_size: number | null;
+  estimated_cpa_min: number | null;
+  estimated_cpa_max: number | null;
+  ai_ranking: number;
+  confidence_score: number | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -3160,6 +3468,158 @@ export type Database = {
         Update: Partial<Pick<AdReport, "status">>;
         Relationships: [];
       };
+      /* ===== Ads Manager avancé (migration 0050) ===== */
+      ads_website_analyses: {
+        Row: AdsWebsiteAnalysis;
+        Insert: Pick<AdsWebsiteAnalysis, "url_normalized" | "url_original"> &
+          Partial<Omit<AdsWebsiteAnalysis, "url_normalized" | "url_original">>;
+        Update: Partial<Omit<AdsWebsiteAnalysis, "id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_keyword_research: {
+        Row: AdsKeywordResearch;
+        Insert: Pick<AdsKeywordResearch, "keyword" | "country" | "language"> &
+          Partial<Omit<AdsKeywordResearch, "keyword" | "country" | "language">>;
+        Update: Partial<Omit<AdsKeywordResearch, "id" | "fetched_at">>;
+        Relationships: [];
+      };
+      ads_lead_forms: {
+        Row: AdsLeadForm;
+        Insert: Pick<
+          AdsLeadForm,
+          "ad_account_id" | "name" | "intro_title" | "privacy_policy_url"
+        > &
+          Partial<
+            Omit<
+              AdsLeadForm,
+              "ad_account_id" | "name" | "intro_title" | "privacy_policy_url"
+            >
+          >;
+        Update: Partial<Omit<AdsLeadForm, "id" | "ad_account_id" | "created_at">>;
+        Relationships: [];
+      };
+      ads_lead_form_responses: {
+        Row: AdsLeadFormResponse;
+        Insert: Pick<
+          AdsLeadFormResponse,
+          "lead_form_id" | "ad_account_id" | "answers"
+        > &
+          Partial<
+            Omit<
+              AdsLeadFormResponse,
+              "lead_form_id" | "ad_account_id" | "answers"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            AdsLeadFormResponse,
+            "webhook_delivered_at" | "webhook_response_code" | "webhook_attempts"
+          >
+        >;
+        Relationships: [];
+      };
+      ads_dynamic_creative_variants: {
+        Row: AdsDynamicCreativeVariant;
+        Insert: Pick<
+          AdsDynamicCreativeVariant,
+          "parent_creative_id" | "variant_type"
+        > &
+          Partial<
+            Omit<AdsDynamicCreativeVariant, "parent_creative_id" | "variant_type">
+          >;
+        Update: Partial<
+          Pick<
+            AdsDynamicCreativeVariant,
+            | "total_impressions"
+            | "total_clicks"
+            | "total_conversions"
+            | "performance_score"
+            | "is_winner"
+          >
+        >;
+        Relationships: [];
+      };
+      ads_custom_conversions: {
+        Row: AdsCustomConversion;
+        Insert: Pick<
+          AdsCustomConversion,
+          "ad_account_id" | "name" | "filter_spec" | "category"
+        > &
+          Partial<
+            Omit<
+              AdsCustomConversion,
+              "ad_account_id" | "name" | "filter_spec" | "category"
+            >
+          >;
+        Update: Partial<
+          Omit<AdsCustomConversion, "id" | "ad_account_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      ads_offline_conversions: {
+        Row: AdsOfflineConversion;
+        Insert: Pick<
+          AdsOfflineConversion,
+          "ad_account_id" | "batch_id" | "event_name" | "event_time"
+        > &
+          Partial<
+            Omit<
+              AdsOfflineConversion,
+              "ad_account_id" | "batch_id" | "event_name" | "event_time"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            AdsOfflineConversion,
+            | "match_status"
+            | "matched_user_id"
+            | "attributed_ad_id"
+            | "attributed_click_id"
+            | "attribution_model"
+            | "matched_at"
+          >
+        >;
+        Relationships: [];
+      };
+      ads_recommendations: {
+        Row: AdsRecommendation;
+        Insert: Pick<
+          AdsRecommendation,
+          "ad_account_id" | "type" | "title" | "description"
+        > &
+          Partial<
+            Omit<
+              AdsRecommendation,
+              "ad_account_id" | "type" | "title" | "description"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            AdsRecommendation,
+            | "status"
+            | "applied_at"
+            | "applied_by"
+            | "dismissed_at"
+            | "dismissed_by"
+          >
+        >;
+        Relationships: [];
+      };
+      ads_smart_audience_segments: {
+        Row: AdsSmartAudienceSegment;
+        Insert: Pick<
+          AdsSmartAudienceSegment,
+          "persona_name" | "targeting_spec"
+        > &
+          Partial<Omit<AdsSmartAudienceSegment, "persona_name" | "targeting_spec">>;
+        Update: Partial<
+          Pick<
+            AdsSmartAudienceSegment,
+            "ai_ranking" | "confidence_score" | "estimated_size"
+          >
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       /* Vue matérialisée — migration 0043_post_engagement_stats.sql.
@@ -3255,6 +3715,18 @@ export type Database = {
       };
       user_has_ad_account_role: {
         Args: { p_ad_account_id: string; p_min_role?: string };
+        Returns: boolean;
+      };
+      normalize_url: {
+        Args: { p_url: string };
+        Returns: string;
+      };
+      apply_recommendation: {
+        Args: { p_recommendation_id: string };
+        Returns: boolean;
+      };
+      dismiss_recommendation: {
+        Args: { p_recommendation_id: string };
         Returns: boolean;
       };
       get_or_create_direct_conversation: {
