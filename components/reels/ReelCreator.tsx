@@ -316,7 +316,28 @@ export function ReelCreator({
         return;
       }
       toast.success("Reel publié ✨");
+
+      /* V3.13 — enqueue fingerprint async (non-bloquant, best effort).
+         Si copyrighted match → 409, on n'interrompt pas le flow user mais
+         le row reel sera marqué copyrighted côté API. */
+      if (video) {
+        void enqueueFingerprint(video.url, result.reel_id).catch((err) => {
+          console.warn("[reel:fingerprint:enqueue]", err);
+        });
+      }
+
       await redirectToReel(result.reel_id);
+    });
+  }
+
+  /* V3.13 — calcule SHA-256 du blob + POST /api/reels/fingerprint. */
+  async function enqueueFingerprint(videoUrl: string, reelId: string) {
+    const { hashUrlSHA256 } = await import("@/lib/reels/fingerprint");
+    const hash = await hashUrlSHA256(videoUrl);
+    await fetch("/api/reels/fingerprint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reel_id: reelId, hash }),
     });
   }
 

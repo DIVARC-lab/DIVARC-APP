@@ -592,6 +592,18 @@ export type Reel = {
   duet_layout: ReelDuetLayout | null;
   /* V3.9 — stickers jsonb (migration 0061), parsé via parseStickers(). */
   stickers: unknown;
+  /* V3.13 — audio fingerprinting (migration 0062). */
+  fingerprint_status:
+    | "pending"
+    | "processing"
+    | "ok"
+    | "copyrighted"
+    | "error"
+    | null;
+  fingerprint_hash: string | null;
+  copyright_match_id: string | null;
+  copyright_match_details: unknown;
+  fingerprinted_at: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -4257,6 +4269,10 @@ export type Database = {
       should_notify_user: {
         Args: { target_user_id: string; notif_type: string };
         Returns: boolean;
+      };
+      enqueue_reel_fingerprint: {
+        Args: { p_reel_id: string; p_hash: string };
+        Returns: void;
       };
       create_payout_request: {
         Args: {
