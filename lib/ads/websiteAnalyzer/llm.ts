@@ -72,7 +72,29 @@ async function callLLM<T>(args: {
 
     if (!res.ok) {
       const err = await res.text().catch(() => "");
-      throw new Error(`OpenAI HTTP ${res.status}: ${err.slice(0, 500)}`);
+      /* Erreurs OpenAI fréquentes : on traduit en messages clairs côté
+         UI plutôt que de dumper le JSON brut. */
+      if (res.status === 429 && /insufficient_quota/i.test(err)) {
+        throw new Error(
+          "Le compte OpenAI DIVARC n'a plus de crédit disponible. Recharge le compte sur https://platform.openai.com/settings/organization/billing/overview pour relancer les analyses.",
+        );
+      }
+      if (res.status === 429) {
+        throw new Error(
+          "Trop de requêtes vers OpenAI en simultané. Réessaie dans 30 secondes.",
+        );
+      }
+      if (res.status === 401) {
+        throw new Error(
+          "La clé OPENAI_API_KEY est invalide ou révoquée. Contacte l'admin DIVARC.",
+        );
+      }
+      if (res.status >= 500) {
+        throw new Error(
+          "OpenAI est temporairement indisponible. Réessaie dans quelques minutes.",
+        );
+      }
+      throw new Error(`OpenAI HTTP ${res.status}: ${err.slice(0, 300)}`);
     }
 
     const json = (await res.json()) as {
