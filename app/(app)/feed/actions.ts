@@ -81,6 +81,25 @@ export async function createPost(
       .slice(0, 30);
   }
 
+  /* Plugin Link preview : payload JSON validé. */
+  const linkPreviewSchema = z.object({
+    url: z.string().url(),
+    title: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
+    image_url: z.string().url().nullable().optional(),
+    site_name: z.string().nullable().optional(),
+    fetched_at: z.string(),
+  });
+  const linkPreviewRaw = formData.get("link_preview");
+  let linkPreview: z.infer<typeof linkPreviewSchema> | null = null;
+  if (typeof linkPreviewRaw === "string" && linkPreviewRaw.length > 0) {
+    try {
+      linkPreview = linkPreviewSchema.parse(JSON.parse(linkPreviewRaw));
+    } catch {
+      linkPreview = null;
+    }
+  }
+
   /* Plugin Sondage : payload JSON validé via Zod. */
   const pollSchema = z.object({
     question: z.string().min(1).max(200),
@@ -254,6 +273,16 @@ export async function createPost(
       location_country: normalizedLocationCountry,
       location_lat: normalizedLocationLat,
       location_lng: normalizedLocationLng,
+      link_preview: linkPreview
+        ? {
+            url: linkPreview.url,
+            title: linkPreview.title ?? undefined,
+            description: linkPreview.description ?? undefined,
+            image_url: linkPreview.image_url ?? undefined,
+            site_name: linkPreview.site_name ?? undefined,
+            fetched_at: linkPreview.fetched_at,
+          }
+        : null,
     })
     .select("id")
     .single();

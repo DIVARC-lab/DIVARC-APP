@@ -37,6 +37,7 @@ import {
   FriendTagger,
   type TaggedUser,
 } from "@/components/creator/plugins/FriendTagger";
+import { LinkPreviewCard } from "@/components/creator/plugins/LinkPreviewCard";
 import {
   LocationPicker,
   type LocationSelection,
@@ -46,6 +47,7 @@ import {
   type PollDraft,
 } from "@/components/creator/plugins/PollCreator";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
+import type { PostLinkPreview } from "@/lib/database.types";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
@@ -135,6 +137,12 @@ export function PostComposer({
   /* Plugin "Sondage". */
   const [poll, setPoll] = useState<PollDraft | null>(null);
   const [pollCreatorOpen, setPollCreatorOpen] = useState(false);
+  /* Plugin "Link preview" — détection URL + fetch OG.
+     dismissedUrl mémorise l'URL que l'user a fermée pour ne pas
+     re-fetcher en boucle. */
+  const [linkPreview, setLinkPreview] = useState<PostLinkPreview | null>(null);
+  const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
+  const [dismissedLinkUrl, setDismissedLinkUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +168,8 @@ export function PostComposer({
         setLocation(null);
         setTags([]);
         setPoll(null);
+        setLinkPreview(null);
+        setDismissedLinkUrl(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -186,6 +196,54 @@ export function PostComposer({
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  /* Détection d'URL dans le body + fetch OG (Link preview).
+     Debounce 600ms après la dernière frappe. La preview est cleared
+     dès que l'URL change pour éviter un état incohérent. */
+  useEffect(() => {
+    /* Match première URL http(s):// dans le body. */
+    const urlRe = /https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+/i;
+    const m = body.match(urlRe);
+    const detected = m?.[0] ?? null;
+
+    /* Pas d'URL → reset preview si présente. */
+    if (!detected) {
+      if (linkPreview) setLinkPreview(null);
+      return;
+    }
+    /* URL déjà fermée par l'user — ne pas re-fetcher. */
+    if (detected === dismissedLinkUrl) return;
+    /* URL identique à la preview courante — ne rien faire. */
+    if (linkPreview && linkPreview.url.startsWith(detected)) return;
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      setLinkPreviewLoading(true);
+      try {
+        const res = await fetch(
+          `/api/posts/link-preview?url=${encodeURIComponent(detected)}`,
+          { cache: "no-store", signal: ctrl.signal },
+        );
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => ({}))) as
+          | (PostLinkPreview & { error?: string })
+          | { error: string };
+        if ("error" in json && json.error) {
+          /* Erreur silencieuse — on ne bloque pas la publication. */
+          return;
+        }
+        setLinkPreview(json as PostLinkPreview);
+      } finally {
+        setLinkPreviewLoading(false);
+      }
+    }, 600);
+
+    return () => {
+      ctrl.abort();
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, dismissedLinkUrl]);
 
   function autosize() {
     const ta = textareaRef.current;
@@ -533,6 +591,11 @@ export function PostComposer({
               name="poll"
               value={poll ? JSON.stringify(poll) : ""}
             />
+            <input
+              type="hidden"
+              name="link_preview"
+              value={linkPreview ? JSON.stringify(linkPreview) : ""}
+            />
 
             {/* Top bar : Back + Nouveau post + Publier */}
             <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
@@ -670,6 +733,22 @@ export function PostComposer({
                   className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-[1.55] text-night placeholder:text-night-dim focus:outline-none min-h-[60px]"
                 />
               )}
+
+              {/* Link preview card — apparaît dès qu'une URL est détectée
+                  dans le body ET pas encore fermée par l'user. Cachée si
+                  un média est déjà attaché (incompatible visuellement). */}
+              {photos.length === 0 && !video ? (
+                <LinkPreviewCard
+                  preview={linkPreview}
+                  loading={linkPreviewLoading}
+                  onRemove={() => {
+                    if (linkPreview) {
+                      setDismissedLinkUrl(linkPreview.url);
+                      setLinkPreview(null);
+                    }
+                  }}
+                />
+              ) : null}
 
               {photos.length > 0 ? (
                 <div

@@ -266,6 +266,47 @@ export function PostCard({
         </Link>
       ) : null}
 
+      {/* Link preview — affichée uniquement s'il n'y a pas de média
+          (cohérence avec le composer qui les rend mutuellement exclusifs). */}
+      {post.link_preview && !post.video_url && post.photos.length === 0 ? (
+        <a
+          href={post.link_preview.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mx-[18px] mb-3.5 rounded-xl overflow-hidden border border-line bg-bg-soft hover:bg-bg-soft/70 transition-colors"
+        >
+          {post.link_preview.image_url ? (
+            <div
+              className="relative w-full bg-night/5"
+              style={{ aspectRatio: "16 / 9" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.link_preview.image_url}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
+          ) : null}
+          <div className="px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wider font-bold text-night-muted truncate">
+              {post.link_preview.site_name ?? hostnameOf(post.link_preview.url)}
+            </p>
+            {post.link_preview.title ? (
+              <p className="mt-0.5 text-[13.5px] font-bold text-night line-clamp-2 leading-snug">
+                {post.link_preview.title}
+              </p>
+            ) : null}
+            {post.link_preview.description ? (
+              <p className="mt-1 text-[11.5px] text-night-muted line-clamp-2 leading-snug">
+                {post.link_preview.description}
+              </p>
+            ) : null}
+          </div>
+        </a>
+      ) : null}
+
       {showActions ? (
         <footer className="flex items-center gap-1.5 px-3 pb-3.5">
           <LikeButton
@@ -298,6 +339,14 @@ export function PostCard({
       ) : null}
     </article>
   );
+}
+
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function VisibilityBadge({
