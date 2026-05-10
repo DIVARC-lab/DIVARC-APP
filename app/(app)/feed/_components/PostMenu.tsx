@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { ReportModal } from "@/components/moderation/ReportModal";
 import { runAction } from "@/lib/utils/clientAction";
 import { deletePost } from "../actions";
 
@@ -28,6 +29,7 @@ export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
   const router = useRouter();
   const confirm = useConfirm();
   const [open, setOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +134,10 @@ export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
               </button>
               <button
                 type="button"
-                onClick={() => handleStub("Signaler")}
+                onClick={() => {
+                  setOpen(false);
+                  setReportOpen(true);
+                }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50"
               >
                 <Flag className="w-4 h-4" aria-hidden />
@@ -142,6 +147,13 @@ export function PostMenu({ postId, isOwn, authorName }: PostMenuProps) {
           )}
         </div>
       ) : null}
+      <ReportModal
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        targetType="post"
+        targetId={postId}
+        contextLabel={authorName ? `ce post de ${authorName}` : "ce post"}
+      />
     </div>
   );
 }
