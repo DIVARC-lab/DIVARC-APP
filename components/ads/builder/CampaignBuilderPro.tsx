@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AdPreview } from "@/components/ads/AdPreview";
+import { AudienceBuilder } from "@/components/ads/builder/AudienceBuilder";
 import {
   AdvancedConfigSection,
   DEFAULT_ADVANCED_CONFIG,
@@ -105,6 +106,12 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
     }
   }, [form, storageKey]);
 
+  /* === Build TargetingSpec depuis form (helper partagé estim + submit). === */
+  const targetingSpec: TargetingSpec = useMemo(
+    () => buildTargetingSpec(form),
+    [form],
+  );
+
   /* === Estimation audience live (debounce 500ms) === */
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -112,7 +119,22 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.age_min, form.age_max, form.genders, form.countries, form.interests, accountId]);
+  }, [
+    form.age_min,
+    form.age_max,
+    form.genders,
+    form.countries,
+    form.cities,
+    form.postal_codes,
+    form.custom_locations,
+    form.interests,
+    form.interests_logic,
+    form.behaviors,
+    form.languages,
+    form.custom_audience_ids,
+    form.lookalike_audience_ids,
+    accountId,
+  ]);
 
   async function estimateAudience() {
     setEstimating(true);
@@ -122,17 +144,7 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ad_account_id: accountId,
-          targeting: {
-            geo: { countries: form.countries },
-            age_min: form.age_min,
-            age_max: form.age_max,
-            genders: form.genders,
-            interests: form.interests
-              .split(",")
-              .map((i) => i.trim())
-              .filter(Boolean)
-              .map((topic_id) => ({ topic_id })),
-          },
+          targeting: targetingSpec,
         }),
       });
       if (res.ok) {
@@ -166,35 +178,19 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
     REQUIRES_CERTIFICATION_CATEGORIES as readonly string[]
   ).includes(form.ad_category_hint);
 
-  const targetingValidation = useMemo(() => {
-    const spec: TargetingSpec = {
-      geo: { countries: form.countries },
-      age_min: form.age_min,
-      age_max: form.age_max,
-      genders: form.genders as TargetingSpec["genders"],
-      interests: form.interests
-        .split(",")
-        .map((i) => i.trim())
-        .filter(Boolean)
-        .map((topic_id) => ({ topic_id })),
-    };
-    return validateTargetingSpec(
-      spec,
-      (form.special_ad_category || null) as
-        | "housing"
-        | "employment"
-        | "credit"
-        | "social"
-        | null,
-    );
-  }, [
-    form.age_min,
-    form.age_max,
-    form.genders,
-    form.countries,
-    form.interests,
-    form.special_ad_category,
-  ]);
+  const targetingValidation = useMemo(
+    () =>
+      validateTargetingSpec(
+        targetingSpec,
+        (form.special_ad_category || null) as
+          | "housing"
+          | "employment"
+          | "credit"
+          | "social"
+          | null,
+      ),
+    [targetingSpec, form.special_ad_category],
+  );
 
   function isStepValid(s: WizardStepId): boolean {
     switch (s) {
@@ -308,17 +304,7 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
           : undefined,
         start_time: startISO,
         end_time: endISO,
-        targeting: {
-          geo: { countries: form.countries },
-          age_min: form.age_min,
-          age_max: form.age_max,
-          genders: form.genders as TargetingSpec["genders"],
-          interests: form.interests
-            .split(",")
-            .map((i) => i.trim())
-            .filter(Boolean)
-            .map((topic_id) => ({ topic_id })),
-        },
+        targeting: targetingSpec,
         placements: form.placements as Parameters<
           typeof createFullCampaign
         >[0]["placements"],
@@ -433,7 +419,11 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
             <AudienceStep
               form={form}
               setFormVal={setFormVal}
+              setForm={setForm}
               targetingValidation={targetingValidation}
+              accountId={accountId}
+              audienceEstimate={audienceEstimate}
+              estimating={estimating}
             />
           ) : null}
 
@@ -684,14 +674,22 @@ function ObjectiveStep({
 function AudienceStep({
   form,
   setFormVal,
+  setForm,
   targetingValidation,
+  accountId,
+  audienceEstimate,
+  estimating,
 }: {
   form: CampaignFormState;
   setFormVal: <K extends keyof CampaignFormState>(
     key: K,
     val: CampaignFormState[K],
   ) => void;
+  setForm: (f: CampaignFormState) => void;
   targetingValidation: ReturnType<typeof validateTargetingSpec>;
+  accountId: string;
+  audienceEstimate: number | null;
+  estimating: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -701,9 +699,10 @@ function AudienceStep({
           <em className="italic text-gold-deep">audience</em>
         </h2>
         <p className="mt-2 text-[14px] text-night-soft leading-relaxed max-w-2xl">
-          Plus ton ciblage est précis, plus ta campagne sera performante. La
-          jauge à droite t&apos;indique si ton audience est trop large, trop
-          spécifique ou bien dimensionnée.
+          7 panneaux pour cibler comme un pro : géo radius, démographie,
+          intérêts, comportements, connections, custom audiences, lookalikes.
+          La jauge à droite t&apos;indique si ton audience est bien
+          dimensionnée — k-anonymity ≥ 100 garantie.
         </p>
       </div>
 
@@ -720,95 +719,15 @@ function AudienceStep({
         </Field>
       </Section>
 
-      <Section title="Démographie">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Field label="Âge minimum">
-            <input
-              type="number"
-              value={form.age_min}
-              onChange={(e) => setFormVal("age_min", Number(e.target.value))}
-              min={18}
-              max={99}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Âge maximum">
-            <input
-              type="number"
-              value={form.age_max}
-              onChange={(e) => setFormVal("age_max", Number(e.target.value))}
-              min={18}
-              max={99}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Genre">
-            <select
-              value={form.genders[0]}
-              onChange={(e) => setFormVal("genders", [e.target.value])}
-              className={inputCls}
-            >
-              <option value="all">Tous</option>
-              <option value="male">Hommes</option>
-              <option value="female">Femmes</option>
-              <option value="non_binary">Non-binaires</option>
-            </select>
-          </Field>
-          <Field label="Pays">
-            <select
-              value={form.countries[0]}
-              onChange={(e) => setFormVal("countries", [e.target.value])}
-              className={inputCls}
-            >
-              <option value="FR">🇫🇷 France</option>
-              <option value="BE">🇧🇪 Belgique</option>
-              <option value="CH">🇨🇭 Suisse</option>
-              <option value="LU">🇱🇺 Luxembourg</option>
-              <option value="CA">🇨🇦 Canada</option>
-            </select>
-          </Field>
-        </div>
-      </Section>
-
-      <Section
-        title="Centres d'intérêt"
-        helper="Sépare par des virgules. Les catégories sensibles (santé, religion, politique, sexualité, ethnicité, syndicats) sont interdites par RGPD art. 9."
-      >
-        <input
-          type="text"
-          value={form.interests}
-          onChange={(e) => setFormVal("interests", e.target.value)}
-          className={inputCls}
-          placeholder="ex: tech.web_dev, lifestyle.cooking, sport.running"
-        />
-      </Section>
-
-      <Section title="Catégorie spéciale (anti-discrimination)">
-        <Field label="" helper="Pour le logement, l'emploi, le crédit ou les sujets sociaux/politiques, des restrictions strictes de ciblage s'appliquent (DSA + droit anti-discrimination FR/EU).">
-          <select
-            value={form.special_ad_category}
-            onChange={(e) => setFormVal("special_ad_category", e.target.value)}
-            className={inputCls}
-          >
-            <option value="">Aucune (par défaut)</option>
-            <option value="housing">Logement</option>
-            <option value="employment">Emploi</option>
-            <option value="credit">Crédit / Finance</option>
-            <option value="social">Sujet social / politique</option>
-          </select>
-        </Field>
-      </Section>
-
-      {targetingValidation.errors.length > 0 ? (
-        <Banner tone="error">
-          <p className="font-semibold mb-1">Conformité ciblage :</p>
-          <ul className="list-disc pl-4 space-y-0.5">
-            {targetingValidation.errors.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
-        </Banner>
-      ) : null}
+      <AudienceBuilder
+        accountId={accountId}
+        form={form}
+        setForm={setForm}
+        audienceEstimate={audienceEstimate}
+        estimating={estimating}
+        validationErrors={targetingValidation.errors}
+        validationWarnings={targetingValidation.warnings}
+      />
     </div>
   );
 }
@@ -1482,4 +1401,52 @@ function formatN(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1000).toFixed(1)}k`;
   return n.toString();
+}
+
+/* Construit la TargetingSpec complète depuis le form. */
+function buildTargetingSpec(form: CampaignFormState): TargetingSpec {
+  const spec: TargetingSpec = {
+    geo: {
+      countries: form.countries,
+      ...(form.cities.length > 0 ? { cities: form.cities } : {}),
+      ...(form.postal_codes.length > 0
+        ? { postal_codes: form.postal_codes }
+        : {}),
+      ...(form.custom_locations.length > 0
+        ? { custom_locations: form.custom_locations }
+        : {}),
+      ...(form.location_types.length > 0
+        ? { location_types: form.location_types }
+        : {}),
+      ...(form.excluded_locations.length > 0
+        ? { excluded_locations: form.excluded_locations }
+        : {}),
+    },
+    age_min: form.age_min,
+    age_max: form.age_max,
+    genders: form.genders as TargetingSpec["genders"],
+    ...(form.languages.length > 0 ? { languages: form.languages } : {}),
+    interests: form.interests
+      .split(",")
+      .map((i) => i.trim())
+      .filter(Boolean)
+      .map((topic_id) => ({ topic_id })),
+    ...(form.interests_logic
+      ? { interests_logic: form.interests_logic }
+      : {}),
+    ...(form.behaviors.length > 0 ? { behaviors: form.behaviors } : {}),
+    ...(form.connections.friends_of_engagers || form.connections.exclude_fans
+      ? { connections: form.connections }
+      : {}),
+    ...(form.custom_audience_ids.length > 0
+      ? { custom_audience_ids: form.custom_audience_ids }
+      : {}),
+    ...(form.excluded_custom_audience_ids.length > 0
+      ? { excluded_custom_audience_ids: form.excluded_custom_audience_ids }
+      : {}),
+    ...(form.lookalike_audience_ids.length > 0
+      ? { lookalike_audience_ids: form.lookalike_audience_ids }
+      : {}),
+  };
+  return spec;
 }

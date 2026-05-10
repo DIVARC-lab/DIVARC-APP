@@ -16,24 +16,39 @@ import { validateTargetingSpec, type TargetingSpec } from "@/lib/ads/types";
 const bodySchema = z
   .object({
     ad_account_id: z.string().uuid(),
-    targeting: z.object({
-      geo: z.object({
-        countries: z.array(z.string().length(2)).default(["FR"]),
-        regions: z.array(z.string()).optional(),
-        postal_codes: z.array(z.string()).optional(),
-      }),
-      age_min: z.number().int().min(18).max(99),
-      age_max: z.number().int().min(18).max(99),
-      genders: z.array(z.enum(["all", "male", "female", "non_binary"])),
-      interests: z
-        .array(
-          z.object({
-            topic_id: z.string(),
-            affinity_threshold: z.number().min(0).max(1).optional(),
-          }),
-        )
-        .optional(),
-    }),
+    targeting: z
+      .object({
+        geo: z.object({
+          countries: z.array(z.string().length(2)).default(["FR"]),
+          regions: z.array(z.string()).optional(),
+          cities: z.array(z.unknown()).optional(),
+          postal_codes: z.array(z.string()).optional(),
+          custom_locations: z.array(z.unknown()).optional(),
+          location_types: z
+            .array(z.enum(["home", "recent", "travel_in"]))
+            .optional(),
+          excluded_locations: z.array(z.string()).optional(),
+        }),
+        age_min: z.number().int().min(18).max(99),
+        age_max: z.number().int().min(18).max(99),
+        genders: z.array(z.enum(["all", "male", "female", "non_binary"])),
+        languages: z.array(z.string()).optional(),
+        interests: z
+          .array(
+            z.object({
+              topic_id: z.string(),
+              affinity_threshold: z.number().min(0).max(1).optional(),
+            }),
+          )
+          .optional(),
+        interests_logic: z.enum(["or", "and"]).optional(),
+        behaviors: z.array(z.unknown()).optional(),
+        connections: z.record(z.string(), z.unknown()).optional(),
+        custom_audience_ids: z.array(z.string().uuid()).optional(),
+        excluded_custom_audience_ids: z.array(z.string().uuid()).optional(),
+        lookalike_audience_ids: z.array(z.string().uuid()).optional(),
+      })
+      .passthrough(),
     special_ad_category: z
       .enum(["housing", "employment", "credit", "social"])
       .optional(),

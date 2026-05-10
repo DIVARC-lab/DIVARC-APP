@@ -46,14 +46,38 @@ const campaignFormSchema = z
     special_ad_category: z
       .enum(["housing", "employment", "credit", "social"])
       .optional(),
-    /* Étape 3 — adset audience + placements + budget + opti. */
+    /* Étape 3 — adset audience + placements + budget + opti.
+       Riche : geo radius, démographie, intérêts logique, comportements,
+       connections, custom audiences + exclusions + lookalikes. */
     targeting: z
       .object({
         geo: z.object({
           countries: z.array(z.string().length(2)).default(["FR"]),
           regions: z.array(z.string()).optional(),
-          cities: z.array(z.unknown()).optional(),
+          cities: z
+            .array(
+              z.object({
+                name: z.string(),
+                country: z.string().length(2),
+                radius_km: z.number().positive().optional(),
+              }),
+            )
+            .optional(),
           postal_codes: z.array(z.string()).optional(),
+          custom_locations: z
+            .array(
+              z.object({
+                lat: z.number().min(-90).max(90),
+                lng: z.number().min(-180).max(180),
+                radius_km: z.number().positive().max(80),
+                name: z.string().optional(),
+              }),
+            )
+            .optional(),
+          location_types: z
+            .array(z.enum(["home", "recent", "travel_in"]))
+            .optional(),
+          excluded_locations: z.array(z.string()).optional(),
         }),
         age_min: z.number().int().min(18).max(99),
         age_max: z.number().int().min(18).max(99),
@@ -67,6 +91,30 @@ const campaignFormSchema = z
             }),
           )
           .optional(),
+        interests_logic: z.enum(["or", "and"]).optional(),
+        behaviors: z
+          .array(
+            z.object({
+              type: z.enum([
+                "marketplace_buyer",
+                "job_seeker",
+                "circle_member",
+                "mentor",
+                "early_adopter",
+              ]),
+              detail: z.string().optional(),
+            }),
+          )
+          .optional(),
+        connections: z
+          .object({
+            friends_of_engagers: z.string().uuid().optional(),
+            exclude_fans: z.string().uuid().optional(),
+          })
+          .optional(),
+        custom_audience_ids: z.array(z.string().uuid()).optional(),
+        excluded_custom_audience_ids: z.array(z.string().uuid()).optional(),
+        lookalike_audience_ids: z.array(z.string().uuid()).optional(),
       })
       .passthrough(),
     placements: z
@@ -270,6 +318,31 @@ export async function createFullCampaign(
       )
     : null;
 
+  /* Audience riche : behaviors / connections / locations_advanced
+     dénormalisés dans des colonnes jsonb dédiées (audience_*). */
+  const targetingObj = data.targeting as TargetingSpec & {
+    behaviors?: unknown;
+    connections?: unknown;
+    custom_locations?: unknown;
+  };
+  const audienceBehaviors = Array.isArray(targetingObj.behaviors)
+    ? { items: targetingObj.behaviors }
+    : {};
+  const audienceConnections =
+    targetingObj.connections && typeof targetingObj.connections === "object"
+      ? (targetingObj.connections as Record<string, unknown>)
+      : {};
+  const audienceLocationsAdvanced: Record<string, unknown> = {};
+  if (targetingObj.geo.cities && targetingObj.geo.cities.length > 0)
+    audienceLocationsAdvanced.cities = targetingObj.geo.cities;
+  if (targetingObj.geo.custom_locations)
+    audienceLocationsAdvanced.custom_locations =
+      targetingObj.geo.custom_locations;
+  if (targetingObj.geo.postal_codes && targetingObj.geo.postal_codes.length > 0)
+    audienceLocationsAdvanced.postal_codes = targetingObj.geo.postal_codes;
+  if (targetingObj.geo.location_types)
+    audienceLocationsAdvanced.location_types = targetingObj.geo.location_types;
+
   const { data: adSet, error: asErr } = await supabase
     .from("ads_ad_sets")
     .insert({
@@ -287,6 +360,9 @@ export async function createFullCampaign(
       dayparting: daypartingFinal,
       targeting:
         data.targeting as Database["public"]["Tables"]["ads_ad_sets"]["Insert"]["targeting"],
+      audience_behaviors: audienceBehaviors,
+      audience_connections: audienceConnections,
+      audience_locations_advanced: audienceLocationsAdvanced,
       placements: data.placements,
       optimization_goal: data.optimization_goal,
       billing_event: data.billing_event,
