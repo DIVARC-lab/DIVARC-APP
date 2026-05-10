@@ -4,9 +4,11 @@ import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AdPreview } from "@/components/ads/AdPreview";
 import {
   ALWAYS_FORBIDDEN_AD_CATEGORIES,
   AGE_GATED_18PLUS_CATEGORIES,
+  CATEGORY_DISCLAIMERS,
   REQUIRES_CERTIFICATION_CATEGORIES,
   validateTargetingSpec,
   type TargetingSpec,
@@ -639,6 +641,27 @@ export function CampaignWizard({
               ))}
             </select>
           </Field>
+        </div>
+
+        {/* Preview live multi-placement. */}
+        <div className="pt-2 mt-4 border-t border-line">
+          <AdPreview
+            primaryText={primaryText}
+            headline={headline}
+            description={description}
+            mediaUrl={mediaUrl}
+            callToAction={callToAction}
+            advertiserName={
+              entities.find((e) => e.id === advertiserEntityId)?.name ??
+              "Annonceur"
+            }
+            autoDisclaimer={
+              adCategoryHint
+                ? CATEGORY_DISCLAIMERS[adCategoryHint] ?? null
+                : null
+            }
+            selectedPlacements={placements}
+          />
         </div>
       </Section>
 
