@@ -1,6 +1,14 @@
 import "server-only";
-import { JSDOM } from "jsdom";
 import type { CrawledPage } from "./crawler";
+import {
+  extractAllOpenGraph,
+  extractAnchors,
+  extractHeadings,
+  extractImages,
+  extractJsonLd,
+  extractMetaContent,
+  extractTitle,
+} from "./htmlParse";
 
 /* Extracteur de données structurées depuis les pages crawlées.
  *
@@ -110,40 +118,21 @@ export function extractStructuredData(pages: CrawledPage[]): ExtractedData {
 
   for (const page of pages) {
     try {
-      const dom = new JSDOM(page.html);
-      const doc = dom.window.document;
+      const html = page.html;
 
-      /* Title + meta description. */
-      const title = doc.querySelector("title")?.textContent?.trim() ?? null;
-      const metaDesc =
-        doc.querySelector('meta[name="description"]')?.getAttribute("content")?.trim() ?? null;
+      /* Title + meta description (regex, pas de JSDOM). */
+      const title = extractTitle(html);
+      const metaDesc = extractMetaContent(html, "name", "description");
 
       /* Open Graph. */
-      const og: Record<string, string> = {};
-      doc.querySelectorAll('meta[property^="og:"]').forEach((el) => {
-        const prop = el.getAttribute("property");
-        const content = el.getAttribute("content");
-        if (prop && content) og[prop] = content;
-      });
+      const og = extractAllOpenGraph(html);
       if (og["og:site_name"] && !siteName) siteName = og["og:site_name"];
       if (og["og:description"] && !siteDescription) {
         siteDescription = og["og:description"];
       }
 
       /* Schema.org JSON-LD. */
-      const schemas: Array<Record<string, unknown>> = [];
-      doc.querySelectorAll('script[type="application/ld+json"]').forEach((el) => {
-        try {
-          const json = JSON.parse(el.textContent ?? "{}");
-          if (Array.isArray(json)) {
-            for (const item of json) schemas.push(item);
-          } else if (json && typeof json === "object") {
-            schemas.push(json);
-          }
-        } catch {
-          /* JSON malformé — ignore. */
-        }
-      });
+      const schemas = extractJsonLd(html);
 
       /* Détection Organization, Product, Service depuis schemas. */
       for (const schema of schemas) {
@@ -179,39 +168,30 @@ export function extractStructuredData(pages: CrawledPage[]): ExtractedData {
       }
 
       /* H1/H2/H3. */
-      const pageH1s = Array.from(doc.querySelectorAll("h1"))
-        .map((h) => h.textContent?.trim())
-        .filter((t): t is string => Boolean(t && t.length > 0 && t.length < 200));
-      const pageH2s = Array.from(doc.querySelectorAll("h2"))
-        .map((h) => h.textContent?.trim())
-        .filter((t): t is string => Boolean(t && t.length > 0 && t.length < 200));
-      const pageH3s = Array.from(doc.querySelectorAll("h3"))
-        .map((h) => h.textContent?.trim())
-        .filter((t): t is string => Boolean(t && t.length > 0 && t.length < 200));
+      const pageH1s = extractHeadings(html, 1);
+      const pageH2s = extractHeadings(html, 2);
+      const pageH3s = extractHeadings(html, 3);
       allH1s.push(...pageH1s);
       allH2s.push(...pageH2s);
       allH3s.push(...pageH3s);
 
-      /* Images > 600x600 (V1 : on prend toutes celles avec width/height
-         renseignés ; V2 : HEAD HTTP pour vérifier dimensions). */
-      doc.querySelectorAll("img").forEach((img) => {
-        const src = img.getAttribute("src");
-        if (!src) return;
+      /* Images > 200x200 (filtrage si dimensions connues). */
+      for (const img of extractImages(html)) {
         try {
-          const absUrl = new URL(src, page.url).toString();
-          const alt = img.getAttribute("alt") ?? undefined;
-          const width = parseIntOrUndefined(img.getAttribute("width"));
-          const height = parseIntOrUndefined(img.getAttribute("height"));
-          /* Filtrage : si width/height connues, exiger ≥ 200. Sinon
-             on prend (sera vérifié au moment de l'utilisation). */
-          if (width && height && (width < 200 || height < 200)) return;
+          const absUrl = new URL(img.src, page.url).toString();
+          const width = img.width;
+          const height = img.height;
+          if (width && height && (width < 200 || height < 200)) continue;
           const isLogo =
-            (alt && /\blogo\b/i.test(alt)) ||
+            (img.alt && /\blogo\b/i.test(img.alt)) ||
             /\blogo\b/i.test(absUrl) ||
-            (width !== undefined && width < 300 && height !== undefined && height < 300);
+            (width !== undefined &&
+              width < 300 &&
+              height !== undefined &&
+              height < 300);
           allImages.push({
             url: absUrl,
-            alt,
+            alt: img.alt,
             width,
             height,
             is_logo: !!isLogo,
@@ -219,20 +199,18 @@ export function extractStructuredData(pages: CrawledPage[]): ExtractedData {
         } catch {
           /* Invalid URL, skip. */
         }
-      });
+      }
 
       /* Liens sociaux. */
-      doc.querySelectorAll("a[href]").forEach((a) => {
-        const href = a.getAttribute("href");
-        if (!href) return;
+      for (const href of extractAnchors(html)) {
         for (const { platform, pattern } of SOCIAL_PATTERNS) {
           if (pattern.test(href) && !socialMap.has(platform)) {
             socialMap.set(platform, href);
           }
         }
-      });
+      }
 
-      /* Texte de la page. */
+      /* Texte de la page (déjà nettoyé par le crawler). */
       if (page.text_content) allText.push(page.text_content);
 
       extractedPages.push({
@@ -246,7 +224,7 @@ export function extractStructuredData(pages: CrawledPage[]): ExtractedData {
         h3: pageH3s,
       });
     } catch {
-      /* JSDOM error sur cette page, continue. */
+      /* Parser error sur cette page, continue. */
     }
   }
 

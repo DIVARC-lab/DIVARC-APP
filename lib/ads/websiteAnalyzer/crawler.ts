@@ -1,5 +1,9 @@
 import "server-only";
-import { JSDOM } from "jsdom";
+import {
+  extractAnchors,
+  extractTitle,
+  htmlToText,
+} from "./htmlParse";
 
 /* Crawler polite pour le Website Analyzer.
  *
@@ -177,24 +181,18 @@ async function fetchPage(url: string): Promise<CrawledPage | null> {
     }
     const html = new TextDecoder("utf-8").decode(buffer);
 
-    /* Extract title + text content (strip scripts/styles). */
+    /* Extract title + text content (regex parser, pas de JSDOM). */
     let title: string | null = null;
     let textContent = "";
     try {
-      const dom = new JSDOM(html);
-      const doc = dom.window.document;
-      title = doc.querySelector("title")?.textContent?.trim() ?? null;
-      /* Strip script/style/noscript pour text content propre. */
-      doc
-        .querySelectorAll("script, style, noscript, iframe")
-        .forEach((el) => el.remove());
-      textContent = doc.body?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+      title = extractTitle(html);
+      textContent = htmlToText(html);
       /* Limite text content à 50KB pour ne pas exploser le LLM. */
       if (textContent.length > 50_000) {
         textContent = textContent.slice(0, 50_000);
       }
     } catch {
-      /* JSDOM peut échouer sur du HTML très malformé — on garde le brut. */
+      /* Fallback : on garde le brut si le parsing échoue. */
     }
 
     return {
@@ -213,12 +211,7 @@ async function fetchPage(url: string): Promise<CrawledPage | null> {
 function extractInternalLinks(html: string, root: URL): string[] {
   const links: string[] = [];
   try {
-    const dom = new JSDOM(html);
-    const doc = dom.window.document;
-    const anchors = doc.querySelectorAll("a[href]");
-    for (const a of anchors) {
-      const href = a.getAttribute("href");
-      if (!href) continue;
+    for (const href of extractAnchors(html)) {
       try {
         const absUrl = new URL(href, root.toString());
         /* Same origin only. */
@@ -244,13 +237,11 @@ function extractInternalLinks(html: string, root: URL): string[] {
       }
     }
   } catch {
-    /* JSDOM error, return empty. */
+    /* Parser error, return empty. */
   }
-  /* Dédupliqué + priorise les pages "importantes" (about, products,
-     services, contact, blog en bas de pile). */
   const unique = Array.from(new Set(links));
   unique.sort((a, b) => priorityScore(b) - priorityScore(a));
-  return unique.slice(0, 20); // au plus 20 candidats avant filtrage MAX_PAGES
+  return unique.slice(0, 20);
 }
 
 function priorityScore(url: string): number {
