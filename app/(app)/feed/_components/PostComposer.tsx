@@ -39,6 +39,11 @@ import {
 } from "@/components/creator/plugins/FriendTagger";
 import { LinkPreviewCard } from "@/components/creator/plugins/LinkPreviewCard";
 import {
+  MentionAutocomplete,
+  detectMentionTrigger,
+  type MentionTrigger,
+} from "@/components/creator/plugins/MentionAutocomplete";
+import {
   LocationPicker,
   type LocationSelection,
 } from "@/components/creator/plugins/LocationPicker";
@@ -143,6 +148,10 @@ export function PostComposer({
   const [linkPreview, setLinkPreview] = useState<PostLinkPreview | null>(null);
   const [linkPreviewLoading, setLinkPreviewLoading] = useState(false);
   const [dismissedLinkUrl, setDismissedLinkUrl] = useState<string | null>(null);
+  /* Plugin Mentions @ + Hashtags # — autocomplete sous le textarea. */
+  const [mentionTrigger, setMentionTrigger] = useState<MentionTrigger | null>(
+    null,
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -244,6 +253,36 @@ export function PostComposer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [body, dismissedLinkUrl]);
+
+  /* Handler unifié change textarea : maj body + detection autocomplete. */
+  function handleBodyChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = event.currentTarget.value;
+    setBody(value);
+    autosize();
+    /* Détecte un trigger @ ou # à la position du caret. */
+    const caret = event.currentTarget.selectionStart ?? value.length;
+    setMentionTrigger(detectMentionTrigger(value, caret));
+  }
+
+  /* Insertion de la replacement à la position du trigger. */
+  function applyMentionReplacement(replacement: string) {
+    if (!mentionTrigger || !textareaRef.current) return;
+    const before = body.slice(0, mentionTrigger.start);
+    const after = body.slice(mentionTrigger.end);
+    /* Ajoute un espace de suffixe pour fluidité de saisie. */
+    const next = `${before}${replacement} ${after}`;
+    setBody(next);
+    setMentionTrigger(null);
+    /* Replace le caret après le replacement + l'espace. */
+    const nextCaret = before.length + replacement.length + 1;
+    queueMicrotask(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(nextCaret, nextCaret);
+      autosize();
+    });
+  }
 
   function autosize() {
     const ta = textareaRef.current;
@@ -683,10 +722,7 @@ export function PostComposer({
                     ref={textareaRef}
                     name="body"
                     value={body}
-                    onChange={(event) => {
-                      setBody(event.currentTarget.value);
-                      autosize();
-                    }}
+                    onChange={handleBodyChange}
                     placeholder={
                       firstName
                         ? `Une pensée, ${firstName} ?`
@@ -718,10 +754,7 @@ export function PostComposer({
                   ref={textareaRef}
                   name="body"
                   value={body}
-                  onChange={(event) => {
-                    setBody(event.currentTarget.value);
-                    autosize();
-                  }}
+                  onChange={handleBodyChange}
                   placeholder={
                     firstName
                       ? `Quoi de neuf, ${firstName} ?`
@@ -733,6 +766,13 @@ export function PostComposer({
                   className="w-full resize-none border-0 bg-transparent font-display italic text-[19px] leading-[1.55] text-night placeholder:text-night-dim focus:outline-none min-h-[60px]"
                 />
               )}
+
+              {/* Autocomplete @ utilisateurs / # hashtags — affiché en
+                  dessous du textarea quand un trigger est actif. */}
+              <MentionAutocomplete
+                trigger={mentionTrigger}
+                onSelect={applyMentionReplacement}
+              />
 
               {/* Link preview card — apparaît dès qu'une URL est détectée
                   dans le body ET pas encore fermée par l'user. Cachée si
