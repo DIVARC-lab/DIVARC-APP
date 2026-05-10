@@ -3111,6 +3111,7 @@ export type Database = {
             | "attribution_window_days"
             | "fraud_score"
             | "is_invalid"
+            | "event_source"
           >
         >;
         Relationships: [];
