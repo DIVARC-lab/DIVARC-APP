@@ -3,10 +3,11 @@
 import { ChevronLeft, ChevronRight, Eye, Heart, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { StoryAdSlot } from "@/components/ads/StoryAdSlot";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import type { StoryGroup } from "@/lib/database.types";
@@ -42,6 +43,10 @@ export function StoryViewer({
   const [storyIndex, setStoryIndex] = useState(initialPos.storyIndex);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  /* Compteur de stories vues — ad servie tous les 8 (densité brief 6-10/ad). */
+  const storiesViewedRef = useRef(0);
+  const [showAd, setShowAd] = useState(false);
+  const [adSlotIndex, setAdSlotIndex] = useState(0);
   /* `elapsedBeforePauseRef` accumule le temps écoulé avant chaque pause.
      Au resume, on restart l'intervalle depuis Date.now() sans toucher cet
      accumulateur — l'elapsed visuel = (now - startTime) + accumulé. Évite
@@ -102,6 +107,18 @@ export function StoryViewer({
 
   function next() {
     if (!currentGroup) return;
+    /* Incrément du compteur global. Tous les 8 stories vues, on insère
+       une ad à la place du next() effectif. */
+    storiesViewedRef.current += 1;
+    if (
+      storiesViewedRef.current > 0 &&
+      storiesViewedRef.current % 8 === 0 &&
+      !showAd
+    ) {
+      setAdSlotIndex((i) => i + 1);
+      setShowAd(true);
+      return;
+    }
     if (storyIndex < currentGroup.stories.length - 1) {
       setStoryIndex(storyIndex + 1);
     } else if (groupIndex < groups.length - 1) {
@@ -111,6 +128,20 @@ export function StoryViewer({
       close();
     }
   }
+
+  const handleAdComplete = useCallback(() => {
+    setShowAd(false);
+    if (!currentGroup) return;
+    if (storyIndex < currentGroup.stories.length - 1) {
+      setStoryIndex(storyIndex + 1);
+    } else if (groupIndex < groups.length - 1) {
+      setGroupIndex(groupIndex + 1);
+      setStoryIndex(0);
+    } else {
+      close();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentGroup, storyIndex, groupIndex, groups]);
 
   function prev() {
     if (storyIndex > 0) {
@@ -160,6 +191,20 @@ export function StoryViewer({
   const author = currentStory.author;
   const displayName =
     author?.full_name ?? author?.username ?? "Utilisateur";
+
+  /* Si on doit afficher une ad → rendre StoryAdSlot fullscreen au lieu
+     de la story actuelle. L'ad expire automatiquement après 6s ou
+     l'utilisateur tape pour passer. */
+  if (showAd) {
+    return (
+      <StoryAdSlot
+        surface="stories"
+        slotIndex={adSlotIndex}
+        onComplete={handleAdComplete}
+        onClose={close}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-night flex items-center justify-center">

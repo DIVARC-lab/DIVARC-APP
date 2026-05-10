@@ -5,10 +5,12 @@ import {
   Search,
   Send,
 } from "lucide-react";
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { JobCard } from "@/components/jobs/JobCard";
+import { AdSlot } from "@/components/ads/AdSlot";
 import {
   listJobs,
   listMyApplications,
@@ -213,10 +215,22 @@ export default async function JobsPage({
           </div>
         ) : (
           <ul className="px-4 sm:px-7 flex flex-col gap-2.5">
-            {jobs.map((job) => (
-              <li key={job.id}>
-                <JobCard job={job} />
-              </li>
+            {jobs.map((job, index) => (
+              <Fragment key={job.id}>
+                <li>
+                  <JobCard job={job} />
+                </li>
+                {/* Densité ads jobs : 1 sponsorisé / 15 jobs (CPM emploi
+                    élevé, peu intrusif). */}
+                {index > 0 && (index + 1) % 15 === 0 ? (
+                  <li aria-label="Offre sponsorisée">
+                    <AdSlot
+                      surface="jobs_feed"
+                      slotIndex={Math.floor((index + 1) / 15)}
+                    />
+                  </li>
+                ) : null}
+              </Fragment>
             ))}
           </ul>
         )}

@@ -1,10 +1,12 @@
 import { Bookmark, Handshake, Plus, Search, Store } from "lucide-react";
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
+import { AdSlot } from "@/components/ads/AdSlot";
 import { listListings } from "@/lib/queries/listings";
 import { countPendingReceivedOffers } from "@/lib/queries/listingOffers";
 import { CATEGORY_META } from "@/lib/utils/categories";
@@ -224,8 +226,24 @@ export default async function MarketplacePage({
               {q ? ` · « ${q} »` : ""}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 px-4 sm:px-7">
-              {listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+              {listings.map((listing, index) => (
+                <Fragment key={listing.id}>
+                  <ListingCard listing={listing} />
+                  {/* Densité ads marketplace : 1 sponsored / 12 listings.
+                      AdSlot prend toute la largeur de la grid (col-span-full)
+                      pour ne pas casser le layout 2-3-4 colonnes. */}
+                  {index > 0 && (index + 1) % 12 === 0 ? (
+                    <div
+                      className="col-span-full"
+                      aria-label="Publicité sponsorisée"
+                    >
+                      <AdSlot
+                        surface="marketplace_feed"
+                        slotIndex={Math.floor((index + 1) / 12)}
+                      />
+                    </div>
+                  ) : null}
+                </Fragment>
               ))}
             </div>
           </>
