@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import type { ListingCategory } from "@/lib/database.types";
 
 /* Recommandations marketplace personnalisées.
  *
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
   const topCategories = Object.entries(categoryWeights)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3)
-    .map(([cat]) => cat);
+    .map(([cat]) => cat as ListingCategory);
 
   /* Si pas d'historique, fallback : tous les listings actifs récents. */
   const { data: candidates } =

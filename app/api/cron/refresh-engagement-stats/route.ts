@@ -3,15 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /* Cron qui rafraîchit la vue matérialisée post_engagement_stats.
  *
- * Sur Vercel Pro : schedule "*/5 * * * *" (toutes les 5 min).
- * Sur Hobby : utiliser Supabase pg_cron à la place :
- *
- *   select cron.schedule(
- *     'refresh-engagement-stats',
- *     '*\/5 * * * *',
- *     'refresh materialized view concurrently public.post_engagement_stats'
- *   );
- */
+ * Sur Vercel Pro : schedule toutes les 5 minutes (cf. CRON_SETUP.md).
+ * Sur Hobby : utiliser Supabase pg_cron à la place qui appelle
+ * directement la RPC refresh_post_engagement_stats() — voir
+ * CRON_SETUP.md pour les snippets SQL exacts. */
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

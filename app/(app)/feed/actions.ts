@@ -144,7 +144,7 @@ async function indexPostEmbedding(
     await supabase.from("content_embeddings").upsert(
       {
         post_id: postId,
-        embedding: result.embedding as unknown as string,
+        embedding: result.embedding,
         model: result.model,
         source_text: result.source_text,
         generated_at: new Date().toISOString(),

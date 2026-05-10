@@ -219,9 +219,7 @@ async function updateProfileForUser(
       active_hours_distribution: hoursDist,
       events_processed_count: events.length,
       last_updated: new Date().toISOString(),
-      ...(interestVector
-        ? { interest_vector: interestVector as unknown as string }
-        : {}),
+      ...(interestVector ? { interest_vector: interestVector } : {}),
     },
     { onConflict: "user_id" },
   );
