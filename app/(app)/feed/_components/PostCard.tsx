@@ -15,7 +15,7 @@
  * (utilities arbitraires `text-[19px]`, gradients via `bg-gradient-to-br`,
  * shadows via `shadow-[...]`). Aucun `style={{}}` inline.
  */
-import { Globe, Lock, MessageCircle, Send, Users } from "lucide-react";
+import { Globe, Lock, MapPin, MessageCircle, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
@@ -166,6 +166,19 @@ export function PostCard({
               <>
                 <span aria-hidden>·</span>
                 <span className="italic">modifié</span>
+              </>
+            ) : null}
+            {post.location_name ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-0.5 text-gold-deep font-semibold">
+                  <MapPin className="w-2.5 h-2.5" aria-hidden />
+                  {post.location_name}
+                  {post.location_city &&
+                  post.location_city !== post.location_name
+                    ? `, ${post.location_city}`
+                    : ""}
+                </span>
               </>
             ) : null}
           </p>

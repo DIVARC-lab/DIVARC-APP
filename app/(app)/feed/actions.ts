@@ -143,6 +143,49 @@ export async function createPost(
     normalizedSentimentLabel = sentimentLabel.trim().slice(0, 50);
   }
 
+  /* Plugin "Lieu" — Mapbox places. Validation : nom requis + lat/lng
+     dans la bonne plage. Si invalide, location ignorée silencieusement. */
+  const locationName = formData.get("location_name");
+  const locationCity = formData.get("location_city");
+  const locationCountry = formData.get("location_country");
+  const locationLat = formData.get("location_lat");
+  const locationLng = formData.get("location_lng");
+  let normalizedLocationName: string | null = null;
+  let normalizedLocationCity: string | null = null;
+  let normalizedLocationCountry: string | null = null;
+  let normalizedLocationLat: number | null = null;
+  let normalizedLocationLng: number | null = null;
+  if (
+    typeof locationName === "string" &&
+    locationName.trim().length > 0 &&
+    typeof locationLat === "string" &&
+    typeof locationLng === "string"
+  ) {
+    const lat = Number(locationLat);
+    const lng = Number(locationLng);
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      normalizedLocationName = locationName.trim().slice(0, 200);
+      normalizedLocationLat = lat;
+      normalizedLocationLng = lng;
+      if (typeof locationCity === "string" && locationCity.trim().length > 0) {
+        normalizedLocationCity = locationCity.trim().slice(0, 120);
+      }
+      if (
+        typeof locationCountry === "string" &&
+        /^[A-Za-z]{2}$/.test(locationCountry)
+      ) {
+        normalizedLocationCountry = locationCountry.toUpperCase();
+      }
+    }
+  }
+
   if (!parsed.data.body && photos.length === 0 && !video) {
     return {
       status: "error",
@@ -166,6 +209,11 @@ export async function createPost(
       sentiment_label: normalizedSentimentLabel,
       activity_type: normalizedActivityType,
       activity_detail: normalizedActivityDetail,
+      location_name: normalizedLocationName,
+      location_city: normalizedLocationCity,
+      location_country: normalizedLocationCountry,
+      location_lat: normalizedLocationLat,
+      location_lng: normalizedLocationLng,
     })
     .select("id")
     .single();

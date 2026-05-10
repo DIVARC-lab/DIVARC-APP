@@ -33,6 +33,10 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import {
+  LocationPicker,
+  type LocationSelection,
+} from "@/components/creator/plugins/LocationPicker";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
 import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
@@ -114,6 +118,9 @@ export function PostComposer({
   const [sentiment, setSentiment] = useState<SentimentSelection | null>(null);
   const [activity, setActivity] = useState<ActivitySelection | null>(null);
   const [sentimentPickerOpen, setSentimentPickerOpen] = useState(false);
+  /* Plugin "Lieu" — Mapbox places. */
+  const [location, setLocation] = useState<LocationSelection | null>(null);
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -136,6 +143,7 @@ export function PostComposer({
         setBackgroundColor(null);
         setSentiment(null);
         setActivity(null);
+        setLocation(null);
         setOpen(false);
         toast.success("Post publié ✨");
         router.refresh();
@@ -474,6 +482,31 @@ export function PostComposer({
               name="activity_detail"
               value={activity?.detail ?? ""}
             />
+            <input
+              type="hidden"
+              name="location_name"
+              value={location?.name ?? ""}
+            />
+            <input
+              type="hidden"
+              name="location_city"
+              value={location?.city ?? ""}
+            />
+            <input
+              type="hidden"
+              name="location_country"
+              value={location?.country ?? ""}
+            />
+            <input
+              type="hidden"
+              name="location_lat"
+              value={location?.lat ?? ""}
+            />
+            <input
+              type="hidden"
+              name="location_lng"
+              value={location?.lng ?? ""}
+            />
 
             {/* Top bar : Back + Nouveau post + Publier */}
             <header className="relative flex items-center justify-between gap-3 px-[18px] pt-12 sm:pt-14 pb-2">
@@ -758,9 +791,10 @@ export function PostComposer({
                 }
               />
               <ToolbarPill
-                disabled
+                onClick={() => setLocationPickerOpen(true)}
+                active={location !== null}
                 icon={<MapPin className="w-3.5 h-3.5" aria-hidden />}
-                label="Lieu"
+                label={location ? location.name : "Lieu"}
               />
               <span className="ml-auto self-center text-[11px] text-muted tabular-nums">
                 {body.length}/4000
@@ -822,6 +856,27 @@ export function PostComposer({
                       setActivity(a);
                     }}
                     onClose={() => setSentimentPickerOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {locationPickerOpen ? (
+              <div
+                className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                role="dialog"
+                aria-modal="true"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setLocationPickerOpen(false);
+                  }
+                }}
+              >
+                <div className="w-full max-w-md max-h-[85vh] sm:max-h-[80vh] flex flex-col">
+                  <LocationPicker
+                    initialLocation={location}
+                    onApply={setLocation}
+                    onClose={() => setLocationPickerOpen(false)}
                   />
                 </div>
               </div>
