@@ -2,10 +2,10 @@
   "ci": {
     "collect": {
       "url": [
-        "https://divarc.app",
-        "https://divarc.app/login",
-        "https://divarc.app/signup",
-        "https://divarc.app/offline"
+        "https://divarc-app.vercel.app",
+        "https://divarc-app.vercel.app/login",
+        "https://divarc-app.vercel.app/signup",
+        "https://divarc-app.vercel.app/offline"
       ],
       "numberOfRuns": 3,
       "settings": {

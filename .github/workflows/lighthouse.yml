@@ -40,6 +40,11 @@ jobs:
           sleep "${WAIT_FOR_DEPLOY_S}"
 
       - name: Run Lighthouse CI
+        # Non-bloquant — l'audit sert à l'observabilité (rapport public),
+        # pas au gating. Régressions de score = warn (cf lighthouserc.json),
+        # erreurs de collecte (DNS, 5xx, timeout) = step en jaune au lieu de
+        # faire échouer tous les pushes sur main.
+        continue-on-error: true
         run: npx --yes @lhci/cli@0.14.x autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
