@@ -1,4 +1,4 @@
-import { BarChart3, Code2, Filter, Plus, TrendingUp, Zap } from "lucide-react";
+import { BarChart3, Code2, Filter, Plus, Sparkles, TrendingUp, Wand2, Zap } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
@@ -87,6 +87,14 @@ export default async function AdAccountDashboard({
           >
             <Code2 className="w-4 h-4" aria-hidden />
             Pixels
+          </Link>
+          <Link
+            href={`/ads-manager/${accountId}/analyzer`}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gold/15 border-2 border-gold-deep text-[13px] font-semibold text-gold-deep hover:bg-gold/25"
+          >
+            <Wand2 className="w-4 h-4" aria-hidden />
+            Analyse IA
+            <Sparkles className="w-3 h-3" aria-hidden />
           </Link>
           <Link
             href={`/ads-manager/${accountId}/campaigns/new`}
