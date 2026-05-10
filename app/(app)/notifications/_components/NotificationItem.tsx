@@ -4,6 +4,8 @@ import {
   Bell,
   Check,
   MessageSquareText,
+  Scale,
+  Shield,
   Trash2,
   UserPlus,
   X,
@@ -41,6 +43,9 @@ const TYPE_ICONS: Record<
   friend_request_accepted: { icon: Check, color: "#16A34A" },
   friend_request_rejected: { icon: X, color: "#DC2626" },
   new_message: { icon: MessageSquareText, color: "#0A1F44" },
+  moderation_decision: { icon: Shield, color: "#DC2626" },
+  moderation_report_resolved: { icon: Scale, color: "#0A1F44" },
+  moderation_appeal_resolved: { icon: Scale, color: "#16A34A" },
   system: { icon: Bell, color: "#142A55" },
 };
 

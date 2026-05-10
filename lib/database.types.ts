@@ -115,7 +115,25 @@ export type ProfilePreferencesUpdate = Partial<
   >
 >;
 
-export type ProfileUpdate = ProfileIdentityUpdate & ProfilePreferencesUpdate;
+export type ProfileTrustUpdate = Partial<
+  Pick<
+    Profile,
+    | "email_verified_at"
+    | "phone_verified_at"
+    | "phone_number"
+    | "identity_verified_at"
+    | "identity_verification_provider"
+    | "warnings_count"
+    | "content_removed_count"
+    | "timeouts_received"
+    | "trust_score"
+    | "trust_score_updated_at"
+  >
+>;
+
+export type ProfileUpdate = ProfileIdentityUpdate &
+  ProfilePreferencesUpdate &
+  ProfileTrustUpdate;
 
 export type ConversationType = "direct" | "group";
 export type MemberRole = "owner" | "member";
@@ -131,6 +149,9 @@ export type NotificationType =
   | "friend_request_accepted"
   | "friend_request_rejected"
   | "new_message"
+  | "moderation_decision"
+  | "moderation_report_resolved"
+  | "moderation_appeal_resolved"
   | "system";
 
 export type PostVisibility = "public" | "friends" | "private";
