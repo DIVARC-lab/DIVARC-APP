@@ -216,10 +216,67 @@ const campaignFormSchema = z
     primary_text: z.string().min(1).max(125),
     headline: z.string().min(1).max(40),
     description: z.string().max(30).optional(),
-    media_url: z.string().url().optional(),
+    /* media_url accepte URL distante ou data: (post-cropping client). */
+    media_url: z
+      .string()
+      .refine(
+        (s) => s.length === 0 || /^(https?:\/\/|data:image\/)/.test(s),
+        { message: "URL ou data:image attendue" },
+      )
+      .optional(),
+    display_url: z.string().max(120).optional(),
+    deep_link_mobile: z.string().max(200).optional(),
     destination_url: z.string().url().optional(),
     call_to_action: z.string(),
     advertiser_entity_id: z.string().uuid(),
+    /* V4 — Dynamic Creative variants. */
+    dynamic_creative_enabled: z.boolean().optional(),
+    dynamic_variants: z
+      .array(
+        z.object({
+          primary_text: z.string().max(125).optional(),
+          headline: z.string().max(40).optional(),
+          description: z.string().max(30).optional(),
+          media_url: z.string().optional(),
+        }),
+      )
+      .max(4)
+      .optional(),
+    /* V4 — Lead form natif. */
+    lead_form: z
+      .object({
+        name: z.string().min(2).max(100),
+        intro_headline: z.string().min(2).max(120),
+        intro_description: z.string().max(500).optional(),
+        fields: z
+          .array(
+            z.object({
+              type: z.enum([
+                "email",
+                "first_name",
+                "last_name",
+                "phone",
+                "company",
+                "city",
+                "postal_code",
+                "custom_text",
+                "custom_select",
+              ]),
+              label: z.string().min(1).max(80),
+              required: z.boolean(),
+              options: z.array(z.string().max(80)).max(20).optional(),
+            }),
+          )
+          .min(1)
+          .max(15),
+        privacy_policy_url: z.string().url(),
+        thank_you_headline: z.string().min(2).max(120),
+        thank_you_description: z.string().max(500).optional(),
+        thank_you_cta_label: z.string().max(40).optional(),
+        thank_you_cta_url: z.string().url().optional().or(z.literal("")),
+      })
+      .nullable()
+      .optional(),
     /* Catégorie d'ad pour disclaimers automatiques. */
     ad_category_hint: z.string().optional(),
   })
@@ -426,7 +483,38 @@ export async function createFullCampaign(
     return { ok: false, error: "Création ad set échouée." };
   }
 
-  /* 3. Creative. */
+  /* 3a. Lead form (optionnel, créé avant le creative pour avoir l'ID). */
+  let leadFormId: string | null = null;
+  if (data.lead_form) {
+    const { data: lf, error: lfErr } = await supabase
+      .from("ads_lead_forms")
+      .insert({
+        ad_account_id: data.ad_account_id,
+        name: data.lead_form.name,
+        form_type: "more_volume",
+        intro_title: data.lead_form.intro_headline,
+        intro_description: data.lead_form.intro_description ?? null,
+        questions: data.lead_form.fields,
+        privacy_policy_url: data.lead_form.privacy_policy_url,
+        consent_text:
+          "En soumettant ce formulaire, j'accepte la politique de confidentialité.",
+        thankyou_title: data.lead_form.thank_you_headline,
+        thankyou_description: data.lead_form.thank_you_description ?? null,
+        thankyou_cta_label: data.lead_form.thank_you_cta_label || null,
+        thankyou_cta_url: data.lead_form.thank_you_cta_url || null,
+        is_active: true,
+        created_by: user.id,
+      })
+      .select("id")
+      .single();
+    if (lfErr || !lf) {
+      console.error("[ads:createLeadForm]", lfErr);
+      return { ok: false, error: "Création lead form échouée." };
+    }
+    leadFormId = lf.id;
+  }
+
+  /* 3b. Creative. */
   const { data: creative, error: crErr } = await supabase
     .from("ads_creatives")
     .insert({
@@ -438,9 +526,13 @@ export async function createFullCampaign(
       description: data.description ?? null,
       call_to_action: data.call_to_action,
       destination_url: data.destination_url ?? null,
+      display_url: data.display_url || null,
+      deep_link_mobile: data.deep_link_mobile || null,
       advertiser_entity_id: data.advertiser_entity_id,
       auto_disclaimer: autoDisclaimer,
       brand_safety_filter: data.brand_safety_filter ?? "standard",
+      dynamic_creative_enabled: data.dynamic_creative_enabled ?? false,
+      lead_form_id: leadFormId,
       utm_params:
         data.utm_source || data.utm_medium || data.utm_campaign
           ? {
@@ -455,6 +547,68 @@ export async function createFullCampaign(
   if (crErr || !creative) {
     console.error("[ads:createCreative]", crErr);
     return { ok: false, error: "Création creative échouée." };
+  }
+
+  /* 3c. Dynamic creative variants — une row par axe (media / headline /
+     primary_text / description). Chaque user verra une combinaison
+     optimisée par l'algo de delivery. */
+  if (
+    data.dynamic_creative_enabled &&
+    data.dynamic_variants &&
+    data.dynamic_variants.length > 0
+  ) {
+    type VRow = {
+      parent_creative_id: string;
+      variant_type: "media" | "primary_text" | "headline" | "description";
+      media_url?: string | null;
+      text_value?: string | null;
+      position: number;
+    };
+    const rows: VRow[] = [];
+    let pos = 0;
+    for (const v of data.dynamic_variants) {
+      if (v.headline) {
+        rows.push({
+          parent_creative_id: creative.id,
+          variant_type: "headline",
+          text_value: v.headline,
+          position: pos++,
+        });
+      }
+      if (v.primary_text) {
+        rows.push({
+          parent_creative_id: creative.id,
+          variant_type: "primary_text",
+          text_value: v.primary_text,
+          position: pos++,
+        });
+      }
+      if (v.description) {
+        rows.push({
+          parent_creative_id: creative.id,
+          variant_type: "description",
+          text_value: v.description,
+          position: pos++,
+        });
+      }
+      if (v.media_url) {
+        rows.push({
+          parent_creative_id: creative.id,
+          variant_type: "media",
+          media_url: v.media_url,
+          position: pos++,
+        });
+      }
+    }
+    if (rows.length > 0) {
+      const { error: dvErr } = await supabase
+        .from("ads_dynamic_creative_variants")
+        .insert(rows);
+      if (dvErr && dvErr.code !== "42P01") {
+        /* Non bloquant : on log, le creative principal a déjà été créé. */
+        console.warn("[ads:createDynamicVariants]", dvErr);
+      }
+    }
   }
 
   /* 4. Ad. */

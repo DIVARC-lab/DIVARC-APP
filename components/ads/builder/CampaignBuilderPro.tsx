@@ -17,6 +17,12 @@ import {
   DEFAULT_ADVANCED_CONFIG,
   type AdvancedConfig,
 } from "@/components/ads/builder/AdvancedConfigSection";
+import { DynamicCreativeBuilder } from "@/components/ads/builder/DynamicCreativeBuilder";
+import {
+  DEFAULT_LEAD_FORM,
+  LeadFormBuilder,
+} from "@/components/ads/builder/LeadFormBuilder";
+import { MediaSourcePanel } from "@/components/ads/builder/MediaSourcePanel";
 import { OptimizationBuilder } from "@/components/ads/builder/OptimizationBuilder";
 import { PlacementsBuilder } from "@/components/ads/builder/PlacementsBuilder";
 import { createFullCampaign } from "@/app/(app)/ads-manager/[accountId]/campaigns/new/actions";
@@ -379,9 +385,17 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
         headline: form.headline,
         description: form.description || undefined,
         media_url: form.media_url || undefined,
+        display_url: form.display_url || undefined,
+        deep_link_mobile: form.deep_link_mobile || undefined,
         destination_url: form.destination_url || undefined,
         call_to_action: form.call_to_action,
         advertiser_entity_id: form.advertiser_entity_id,
+        dynamic_creative_enabled: form.dynamic_creative_enabled,
+        dynamic_variants:
+          form.dynamic_creative_enabled && form.dynamic_variants.length > 0
+            ? form.dynamic_variants
+            : undefined,
+        lead_form: form.lead_form ?? undefined,
         ad_category_hint: form.ad_category_hint || undefined,
       });
       if (!result.ok) {
@@ -454,7 +468,9 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
 
           {step === "creative" ? (
             <CreativeStep
+              accountId={accountId}
               form={form}
+              setForm={setForm}
               setFormVal={setFormVal}
               entities={entities}
             />
@@ -1017,17 +1033,22 @@ function BudgetStep({
 }
 
 function CreativeStep({
+  accountId,
   form,
+  setForm,
   setFormVal,
   entities,
 }: {
+  accountId: string;
   form: CampaignFormState;
+  setForm: (next: CampaignFormState) => void;
   setFormVal: <K extends keyof CampaignFormState>(
     key: K,
     val: CampaignFormState[K],
   ) => void;
   entities: Entity[];
 }) {
+  const isLeadGen = form.objective === "lead_generation";
   return (
     <div className="space-y-6">
       <div>
@@ -1130,16 +1151,16 @@ function CreativeStep({
         </Field>
       </Section>
 
-      <Section title="Visuel + lien">
-        <Field label="URL du média (image ou vidéo)" helper="Pour V1, fournis une URL hébergée. V2 : upload direct via Supabase Storage.">
-          <input
-            type="url"
-            value={form.media_url}
-            onChange={(e) => setFormVal("media_url", e.target.value)}
-            className={inputCls}
-            placeholder="https://…"
-          />
-        </Field>
+      <Section title="Visuel">
+        <MediaSourcePanel
+          accountId={accountId}
+          mediaUrl={form.media_url}
+          onMediaUrlChange={(next) => setFormVal("media_url", next)}
+          initialPromptHint={form.headline || form.primary_text}
+        />
+      </Section>
+
+      <Section title="Lien & CTA">
         <Field label="URL de destination (où l'ad envoie en cas de clic)">
           <input
             type="url"
@@ -1147,6 +1168,30 @@ function CreativeStep({
             onChange={(e) => setFormVal("destination_url", e.target.value)}
             className={inputCls}
             placeholder="https://monsite.com/produit"
+          />
+        </Field>
+        <Field
+          label="URL d'affichage (optionnelle)"
+          helper="Affichée à l'utilisateur. Permet de masquer les paramètres UTM (ex: monsite.com/printemps)."
+        >
+          <input
+            type="text"
+            value={form.display_url}
+            onChange={(e) => setFormVal("display_url", e.target.value)}
+            className={inputCls}
+            placeholder="monsite.com/printemps"
+          />
+        </Field>
+        <Field
+          label="Deep link mobile (optionnel)"
+          helper="Schéma natif app (ex: monapp://product/123). Fallback sur destination_url si pas d'app installée."
+        >
+          <input
+            type="text"
+            value={form.deep_link_mobile}
+            onChange={(e) => setFormVal("deep_link_mobile", e.target.value)}
+            className={inputCls}
+            placeholder="monapp://…"
           />
         </Field>
         <Field label="Bouton d'action (CTA)">
@@ -1169,6 +1214,41 @@ function CreativeStep({
           </select>
         </Field>
       </Section>
+
+      <DynamicCreativeBuilder
+        enabled={form.dynamic_creative_enabled}
+        onEnabledChange={(next) =>
+          setForm({ ...form, dynamic_creative_enabled: next })
+        }
+        variants={form.dynamic_variants}
+        onVariantsChange={(next) =>
+          setForm({ ...form, dynamic_variants: next })
+        }
+        baseHeadline={form.headline}
+        basePrimaryText={form.primary_text}
+        baseDescription={form.description}
+        baseMediaUrl={form.media_url}
+      />
+
+      {isLeadGen ? (
+        <LeadFormBuilder
+          enabled={form.lead_form !== null}
+          onEnabledChange={(next) =>
+            setForm({
+              ...form,
+              lead_form: next ? form.lead_form ?? DEFAULT_LEAD_FORM : null,
+            })
+          }
+          draft={form.lead_form}
+          onDraftChange={(next) => setForm({ ...form, lead_form: next })}
+        />
+      ) : (
+        <div className="rounded-2xl bg-bg-soft border border-line p-3 text-[11.5px] text-night-muted leading-snug">
+          💡 Lead Form natif disponible si tu choisis l&apos;objectif{" "}
+          <strong className="text-night">Lead generation</strong> à
+          l&apos;étape 1.
+        </div>
+      )}
     </div>
   );
 }

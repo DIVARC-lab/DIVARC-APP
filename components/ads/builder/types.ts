@@ -122,6 +122,49 @@ export type CampaignFormState = {
   destination_url: string;
   call_to_action: string;
   advertiser_entity_id: string;
+  /* V4 — Dynamic Creative + Lead Form. */
+  dynamic_creative_enabled: boolean;
+  dynamic_variants: DynamicVariant[];
+  lead_form: LeadFormDraft | null;
+  display_url: string;
+  deep_link_mobile: string;
+};
+
+export type DynamicVariant = {
+  primary_text?: string;
+  headline?: string;
+  description?: string;
+  media_url?: string;
+};
+
+export type LeadFormFieldType =
+  | "email"
+  | "first_name"
+  | "last_name"
+  | "phone"
+  | "company"
+  | "city"
+  | "postal_code"
+  | "custom_text"
+  | "custom_select";
+
+export type LeadFormField = {
+  type: LeadFormFieldType;
+  label: string;
+  required: boolean;
+  options?: string[]; // pour custom_select
+};
+
+export type LeadFormDraft = {
+  name: string;
+  intro_headline: string;
+  intro_description: string;
+  fields: LeadFormField[];
+  privacy_policy_url: string;
+  thank_you_headline: string;
+  thank_you_description: string;
+  thank_you_cta_label: string;
+  thank_you_cta_url: string;
 };
 
 export const DEFAULT_FORM: CampaignFormState = {
@@ -176,6 +219,11 @@ export const DEFAULT_FORM: CampaignFormState = {
   destination_url: "",
   call_to_action: "learn_more",
   advertiser_entity_id: "",
+  dynamic_creative_enabled: false,
+  dynamic_variants: [],
+  lead_form: null,
+  display_url: "",
+  deep_link_mobile: "",
 };
 
 export type Entity = {
