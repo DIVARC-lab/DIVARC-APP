@@ -11,6 +11,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AdPreview } from "@/components/ads/AdPreview";
+import {
+  AdvancedConfigSection,
+  DEFAULT_ADVANCED_CONFIG,
+  type AdvancedConfig,
+} from "@/components/ads/builder/AdvancedConfigSection";
 import { createFullCampaign } from "@/app/(app)/ads-manager/[accountId]/campaigns/new/actions";
 import {
   ALWAYS_FORBIDDEN_AD_CATEGORIES,
@@ -63,6 +68,12 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
   /* Audience estimation cache pour éviter de spammer l'API. */
   const [audienceEstimate, setAudienceEstimate] = useState<number | null>(null);
   const [estimating, setEstimating] = useState(false);
+
+  /* Configuration avancée (Mode Expert pro). Default = OFF, l'user
+     déplie la section et ajuste si besoin. */
+  const [advancedConfig, setAdvancedConfig] = useState<AdvancedConfig>(
+    DEFAULT_ADVANCED_CONFIG,
+  );
 
   /* === Auto-save localStorage === */
   const storageKey = `divarc-campaign-draft-${accountId}`;
@@ -263,6 +274,21 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
     }
 
     startTransition(async () => {
+      /* Override schedule via advancedConfig.start_datetime/end_datetime
+         si renseigné — datetime-local format → ISO. */
+      const startISO = advancedConfig.start_datetime
+        ? new Date(advancedConfig.start_datetime).toISOString()
+        : form.start_date
+          ? new Date(form.start_date).toISOString()
+          : undefined;
+      const endISO = advancedConfig.end_datetime
+        ? new Date(advancedConfig.end_datetime).toISOString()
+        : form.end_date
+          ? new Date(form.end_date).toISOString()
+          : undefined;
+
+      const advBidStrategy = advancedConfig.bid_strategy || form.bid_strategy;
+
       const result = await createFullCampaign({
         ad_account_id: accountId,
         objective: form.objective as Parameters<typeof createFullCampaign>[0]["objective"],
@@ -280,12 +306,8 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
               | "credit"
               | "social")
           : undefined,
-        start_time: form.start_date
-          ? new Date(form.start_date).toISOString()
-          : undefined,
-        end_time: form.end_date
-          ? new Date(form.end_date).toISOString()
-          : undefined,
+        start_time: startISO,
+        end_time: endISO,
         targeting: {
           geo: { countries: form.countries },
           age_min: form.age_min,
@@ -300,9 +322,46 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
         placements: form.placements as Parameters<
           typeof createFullCampaign
         >[0]["placements"],
-        bid_strategy: form.bid_strategy as Parameters<
+        bid_strategy: advBidStrategy as Parameters<
           typeof createFullCampaign
         >[0]["bid_strategy"],
+        bid_amount: advancedConfig.bid_amount
+          ? Number(advancedConfig.bid_amount)
+          : undefined,
+        target_roas: advancedConfig.target_roas
+          ? Number(advancedConfig.target_roas)
+          : undefined,
+        minimum_roas: advancedConfig.minimum_roas
+          ? Number(advancedConfig.minimum_roas)
+          : undefined,
+        cost_cap: advancedConfig.cost_cap
+          ? Number(advancedConfig.cost_cap)
+          : undefined,
+        bid_cap: advancedConfig.bid_cap
+          ? Number(advancedConfig.bid_cap)
+          : undefined,
+        spend_cap_lifetime: advancedConfig.spend_cap_lifetime
+          ? Number(advancedConfig.spend_cap_lifetime)
+          : undefined,
+        delivery_type: advancedConfig.delivery_type,
+        dayparting: advancedConfig.dayparting ?? undefined,
+        ab_test_enabled: advancedConfig.ab_test_enabled,
+        ab_test_variable: advancedConfig.ab_test_enabled
+          ? advancedConfig.ab_test_variable
+          : undefined,
+        ab_test_variants_count: advancedConfig.ab_test_enabled
+          ? advancedConfig.ab_test_variants_count
+          : undefined,
+        ab_test_min_days: advancedConfig.ab_test_enabled
+          ? advancedConfig.ab_test_min_days
+          : undefined,
+        ab_test_metric: advancedConfig.ab_test_enabled
+          ? advancedConfig.ab_test_metric
+          : undefined,
+        pixel_id: advancedConfig.pixel_id || undefined,
+        utm_source: advancedConfig.utm_source || undefined,
+        utm_medium: advancedConfig.utm_medium || undefined,
+        utm_campaign: advancedConfig.utm_campaign || undefined,
         optimization_goal: form.optimization_goal as Parameters<
           typeof createFullCampaign
         >[0]["optimization_goal"],
@@ -384,6 +443,8 @@ export function CampaignBuilderPro({ accountId, currency, entities }: Props) {
               setFormVal={setFormVal}
               currency={currency}
               objectiveDef={objectiveDef}
+              advancedConfig={advancedConfig}
+              onAdvancedChange={setAdvancedConfig}
             />
           ) : null}
 
@@ -757,6 +818,8 @@ function BudgetStep({
   setFormVal,
   currency,
   objectiveDef,
+  advancedConfig,
+  onAdvancedChange,
 }: {
   form: CampaignFormState;
   setFormVal: <K extends keyof CampaignFormState>(
@@ -765,6 +828,8 @@ function BudgetStep({
   ) => void;
   currency: string;
   objectiveDef: ObjectiveDef | undefined;
+  advancedConfig: AdvancedConfig;
+  onAdvancedChange: (next: AdvancedConfig) => void;
 }) {
   const PLACEMENTS = [
     { id: "feed_home", label: "Feed Home", note: "1 ad / 5-7 posts", recommended: true },
@@ -1031,6 +1096,13 @@ function BudgetStep({
           <span className="text-[13px] text-night">jours</span>
         </div>
       </Section>
+
+      {/* Configuration avancée — collapsible, défaut fermé. */}
+      <AdvancedConfigSection
+        config={advancedConfig}
+        onChange={onAdvancedChange}
+        pixels={[]}
+      />
     </div>
   );
 }

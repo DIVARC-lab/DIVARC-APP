@@ -1563,6 +1563,20 @@ export type AdsCampaign = {
   special_ad_category: "housing" | "employment" | "credit" | "social" | null;
   compliance_review_status: "pending" | "approved" | "rejected" | "holding";
   compliance_notes: string | null;
+  /* V4 — Smart Campaign + attribution + target ROAS. */
+  attribution_setting:
+    | "last_click_7d"
+    | "last_click_1d"
+    | "linear_7d"
+    | "linear_28d"
+    | "position_based_7d"
+    | "time_decay_7d"
+    | "data_driven"
+    | "view_through_1d"
+    | null;
+  target_roas: number | null;
+  is_smart_campaign: boolean;
+  website_analysis_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -1575,7 +1589,13 @@ export type AdsAdSet = {
   name: string;
   daily_budget: number | null;
   lifetime_budget: number | null;
-  bid_strategy: "lowest_cost" | "cost_cap" | "bid_cap" | "target_cost";
+  bid_strategy:
+    | "lowest_cost"
+    | "cost_cap"
+    | "bid_cap"
+    | "target_cost"
+    | "target_roas"
+    | "minimum_roas";
   bid_amount: number | null;
   targeting: Record<string, unknown>;
   placements: string[];
@@ -1590,6 +1610,17 @@ export type AdsAdSet = {
   total_impressions: number;
   total_clicks: number;
   total_spend: number;
+  /* V4 — attribution windows + cost caps + audience riche. */
+  attribution_window_click_days: 1 | 7 | 28 | null;
+  attribution_window_view_days: 1 | 7 | null;
+  budget_optimization_mode: "cbo" | "abo" | null;
+  cost_cap: number | null;
+  bid_cap: number | null;
+  minimum_roas: number | null;
+  delivery_type: "standard" | "accelerated" | null;
+  audience_behaviors: Record<string, unknown>;
+  audience_connections: Record<string, unknown>;
+  audience_locations_advanced: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 };

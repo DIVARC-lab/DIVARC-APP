@@ -81,9 +81,38 @@ const campaignFormSchema = z
       )
       .min(1),
     bid_strategy: z
-      .enum(["lowest_cost", "cost_cap", "bid_cap", "target_cost"])
+      .enum([
+        "lowest_cost",
+        "cost_cap",
+        "bid_cap",
+        "target_cost",
+        "target_roas",
+        "minimum_roas",
+      ])
       .default("lowest_cost"),
     bid_amount: z.number().positive().optional(),
+    target_roas: z.number().positive().optional(),
+    minimum_roas: z.number().positive().optional(),
+    cost_cap: z.number().positive().optional(),
+    bid_cap: z.number().positive().optional(),
+    /* Spending. */
+    spend_cap_lifetime: z.number().positive().optional(),
+    /* Schedule + dayparting + delivery. */
+    delivery_type: z.enum(["standard", "accelerated"]).optional(),
+    dayparting: z.record(z.string(), z.array(z.boolean())).optional(),
+    /* A/B testing. */
+    ab_test_enabled: z.boolean().optional(),
+    ab_test_variable: z
+      .enum(["creative", "audience", "placement", "optimization"])
+      .optional(),
+    ab_test_variants_count: z.number().int().min(2).max(5).optional(),
+    ab_test_min_days: z.number().int().min(3).max(30).optional(),
+    ab_test_metric: z.enum(["ctr", "cpa", "roas", "engagement"]).optional(),
+    /* Tracking. */
+    pixel_id: z.string().uuid().optional(),
+    utm_source: z.string().max(50).optional(),
+    utm_medium: z.string().max(50).optional(),
+    utm_campaign: z.string().max(100).optional(),
     optimization_goal: z.enum([
       "impressions",
       "reach",
@@ -192,7 +221,8 @@ export async function createFullCampaign(
      échoue, on ne nettoie pas pour V1 — l'admin pourra les supprimer.
      Pour V2 : transaction RPC Postgres. */
 
-  /* 1. Campaign. */
+  /* 1. Campaign — incluant target_roas + spend_cap_lifetime depuis
+     la config avancée. */
   const { data: campaign, error: cErr } = await supabase
     .from("ads_campaigns")
     .insert({
@@ -203,11 +233,12 @@ export async function createFullCampaign(
       buying_type: "auction",
       daily_budget: data.daily_budget ?? null,
       lifetime_budget: data.lifetime_budget ?? null,
-      spend_cap: data.spend_cap ?? null,
+      spend_cap: data.spend_cap_lifetime ?? data.spend_cap ?? null,
       start_time: data.start_time ?? null,
       end_time: data.end_time ?? null,
       special_ad_category: data.special_ad_category ?? null,
       compliance_review_status: "pending",
+      target_roas: data.target_roas ?? null,
       created_by: user.id,
     })
     .select("id")
@@ -226,6 +257,19 @@ export async function createFullCampaign(
         }
       : null;
 
+  /* Convert dayparting checkbox grid to target jsonb. */
+  const daypartingFinal: Record<string, unknown> | null = data.dayparting
+    ? Object.fromEntries(
+        Object.entries(data.dayparting).map(([day, hours]) => [
+          day,
+          (hours as boolean[]).reduce<string[]>((slots, active, hour) => {
+            if (active) slots.push(`${hour}-${hour + 1}`);
+            return slots;
+          }, []),
+        ]),
+      )
+    : null;
+
   const { data: adSet, error: asErr } = await supabase
     .from("ads_ad_sets")
     .insert({
@@ -236,12 +280,17 @@ export async function createFullCampaign(
       lifetime_budget: data.lifetime_budget ?? null,
       bid_strategy: data.bid_strategy,
       bid_amount: data.bid_amount ?? null,
+      cost_cap: data.cost_cap ?? null,
+      bid_cap: data.bid_cap ?? null,
+      minimum_roas: data.minimum_roas ?? null,
+      delivery_type: data.delivery_type ?? "standard",
+      dayparting: daypartingFinal,
       targeting:
         data.targeting as Database["public"]["Tables"]["ads_ad_sets"]["Insert"]["targeting"],
       placements: data.placements,
       optimization_goal: data.optimization_goal,
       billing_event: data.billing_event,
-      pacing_type: "standard",
+      pacing_type: data.delivery_type === "accelerated" ? "no_pacing" : "standard",
       frequency_cap: frequencyCap as
         | Record<string, unknown>
         | null,
