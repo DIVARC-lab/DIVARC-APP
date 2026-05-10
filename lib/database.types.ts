@@ -498,6 +498,148 @@ export type PostMention = {
   created_at: string;
 };
 
+/* ============================================================
+ * Reels (migration 0054_reels) — TikTok-grade vidéos verticales 9:16.
+ * ============================================================ */
+
+export type SoundSource =
+  | "pixabay"
+  | "unsplash_audio"
+  | "epidemic_sound"
+  | "user_original"
+  | "sound_effect";
+
+export type Sound = {
+  id: string;
+  title: string;
+  artist: string;
+  duration_seconds: number;
+  audio_url: string;
+  artwork_url: string | null;
+  source: SoundSource;
+  license_info: Record<string, unknown>;
+  usage_count: number;
+  is_explicit: boolean;
+  created_by: string | null;
+  source_reel_id: string | null;
+  created_at: string;
+};
+
+export type ReelAudience = "public" | "friends" | "private";
+export type ReelModerationStatus =
+  | "pending"
+  | "approved"
+  | "flagged"
+  | "hidden";
+export type ReelStatus = "draft" | "scheduled" | "published" | "archived";
+export type ReelAspectRatio = "9:16" | "1:1" | "4:5" | "16:9";
+export type ReelDuetLayout = "right" | "left" | "top" | "bottom";
+
+export type Reel = {
+  id: string;
+  author_id: string;
+  video_url: string;
+  video_mp4_fallback: string | null;
+  duration_seconds: number;
+  aspect_ratio: ReelAspectRatio;
+  poster_url: string | null;
+  blurhash: string | null;
+  description: string | null;
+  hashtags: string[];
+  mentioned_users: string[];
+  location_name: string | null;
+  location_city: string | null;
+  location_country: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  sound_id: string | null;
+  has_voiceover: boolean;
+  effects_used: string[];
+  allow_comments: boolean;
+  allow_duets: boolean;
+  allow_stitches: boolean;
+  allow_downloads: boolean;
+  audience: ReelAudience;
+  views_count: number;
+  plays_count: number;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  saves_count: number;
+  duets_count: number;
+  stitches_count: number;
+  moderation_status: ReelModerationStatus;
+  moderation_reason: string | null;
+  status: ReelStatus;
+  scheduled_for: string | null;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReelLike = {
+  reel_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type ReelSave = {
+  reel_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type ReelView = {
+  id: string;
+  reel_id: string;
+  user_id: string;
+  watch_ms: number;
+  completed_pct: number;
+  replay_count: number;
+  skipped: boolean;
+  did_like: boolean;
+  did_save: boolean;
+  did_share: boolean;
+  did_comment: boolean;
+  viewed_at: string;
+};
+
+export type ReelComment = {
+  id: string;
+  reel_id: string;
+  author_id: string;
+  body: string;
+  parent_id: string | null;
+  likes_count: number;
+  created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+export type ReelDuet = {
+  id: string;
+  source_reel_id: string;
+  duet_reel_id: string;
+  layout: ReelDuetLayout;
+  created_at: string;
+};
+
+export type ReelStitch = {
+  id: string;
+  source_reel_id: string;
+  stitch_reel_id: string;
+  segment_start_ms: number;
+  segment_end_ms: number;
+  created_at: string;
+};
+
+export type ReelWithDetails = Reel & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  sound: Pick<Sound, "id" | "title" | "artist" | "audio_url"> | null;
+  is_liked: boolean;
+  is_saved: boolean;
+};
+
 export type PostWithDetails = Post & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
   photos: PostPhoto[];
@@ -2676,6 +2818,99 @@ export type Database = {
         Row: PostPollVote;
         Insert: Pick<PostPollVote, "poll_id" | "option_id" | "user_id"> &
           Partial<Pick<PostPollVote, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      sounds: {
+        Row: Sound;
+        Insert: Pick<Sound, "title" | "artist" | "duration_seconds" | "audio_url"> &
+          Partial<
+            Pick<
+              Sound,
+              | "id"
+              | "artwork_url"
+              | "source"
+              | "license_info"
+              | "usage_count"
+              | "is_explicit"
+              | "created_by"
+              | "source_reel_id"
+              | "created_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            Sound,
+            | "title"
+            | "artist"
+            | "artwork_url"
+            | "license_info"
+            | "is_explicit"
+          >
+        >;
+        Relationships: [];
+      };
+      reels: {
+        Row: Reel;
+        Insert: Pick<Reel, "author_id" | "video_url" | "duration_seconds"> &
+          Partial<Omit<Reel, "author_id" | "video_url" | "duration_seconds">>;
+        Update: Partial<Omit<Reel, "id" | "author_id" | "created_at">>;
+        Relationships: [];
+      };
+      reel_likes: {
+        Row: ReelLike;
+        Insert: Pick<ReelLike, "reel_id" | "user_id"> &
+          Partial<Pick<ReelLike, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      reel_saves: {
+        Row: ReelSave;
+        Insert: Pick<ReelSave, "reel_id" | "user_id"> &
+          Partial<Pick<ReelSave, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      reel_views: {
+        Row: ReelView;
+        Insert: Pick<ReelView, "reel_id" | "user_id"> &
+          Partial<Omit<ReelView, "reel_id" | "user_id">>;
+        Update: Partial<
+          Pick<
+            ReelView,
+            | "watch_ms"
+            | "completed_pct"
+            | "replay_count"
+            | "skipped"
+            | "did_like"
+            | "did_save"
+            | "did_share"
+            | "did_comment"
+          >
+        >;
+        Relationships: [];
+      };
+      reel_comments: {
+        Row: ReelComment;
+        Insert: Pick<ReelComment, "reel_id" | "author_id" | "body"> &
+          Partial<Omit<ReelComment, "reel_id" | "author_id" | "body">>;
+        Update: Partial<Pick<ReelComment, "body" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
+      reel_duets: {
+        Row: ReelDuet;
+        Insert: Pick<ReelDuet, "source_reel_id" | "duet_reel_id"> &
+          Partial<Pick<ReelDuet, "id" | "layout" | "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      reel_stitches: {
+        Row: ReelStitch;
+        Insert: Pick<
+          ReelStitch,
+          "source_reel_id" | "stitch_reel_id" | "segment_start_ms" | "segment_end_ms"
+        > &
+          Partial<Pick<ReelStitch, "id" | "created_at">>;
         Update: never;
         Relationships: [];
       };
