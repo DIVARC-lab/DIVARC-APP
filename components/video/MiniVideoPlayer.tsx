@@ -5,6 +5,7 @@ import { Pause, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useHlsVideo } from "./useHlsVideo";
 import { useVideoPlayer } from "./VideoPlayerProvider";
+import { useVideoTracking } from "./useVideoTracking";
 
 /* MiniVideoPlayer — PiP flottant Facebook-style.
  *
@@ -33,6 +34,13 @@ export function MiniVideoPlayer() {
   const [hovered, setHovered] = useState(false);
 
   useHlsVideo(videoRef, source?.hlsUrl, source?.mp4Url ?? "");
+
+  /* Tracking watch time même en mini-player. */
+  useVideoTracking(videoRef, {
+    postId: source?.postId ?? "",
+    surface: "feed_home",
+    disabled: !source,
+  });
 
   /* Default position : bottom-right, au-dessus de la BottomNav mobile. */
   const defaultX =

@@ -4,6 +4,7 @@ import { Maximize2, Minimize2, Volume2, VolumeX, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useHlsVideo } from "./useHlsVideo";
 import { useVideoPlayer } from "./VideoPlayerProvider";
+import { useVideoTracking } from "./useVideoTracking";
 
 /* ExpandedVideoPlayer — overlay vidéo agrandi style Facebook.
  *
@@ -36,6 +37,13 @@ export function ExpandedVideoPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useHlsVideo(videoRef, source?.hlsUrl, source?.mp4Url ?? "");
+
+  /* Tracking watch time / quartiles / replays. */
+  useVideoTracking(videoRef, {
+    postId: source?.postId ?? "",
+    surface: "feed_home",
+    disabled: !source,
+  });
 
   /* Restore timestamp + playing state au mount. */
   useEffect(() => {
@@ -106,6 +114,32 @@ export function ExpandedVideoPlayer() {
     document.addEventListener("fullscreenchange", handleFs);
     return () => document.removeEventListener("fullscreenchange", handleFs);
   }, [mode, exitFullscreen, currentTime]);
+
+  /* Auto-shrink-to-mini quand l'user scroll dans le feed pendant
+     l'expanded. Comportement Facebook : si scroll > 80px depuis
+     l'ouverture de l'overlay, on bascule en PiP. */
+  useEffect(() => {
+    if (mode !== "expanded") return;
+    const startScrollY = window.scrollY;
+    const SHRINK_THRESHOLD_PX = 80;
+    let raf: number | null = null;
+    function onScroll() {
+      if (raf !== null) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const delta = Math.abs(window.scrollY - startScrollY);
+        if (delta > SHRINK_THRESHOLD_PX) {
+          const v = videoRef.current;
+          shrinkToMini(v?.currentTime ?? currentTime);
+        }
+      });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf !== null) cancelAnimationFrame(raf);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   if (!source) return null;
 
