@@ -207,6 +207,27 @@ async function algorithmicRanking(
   const { data: candidates } = await query;
   if (!candidates) return { items: [], nextCursor: null };
 
+  /* Feature 5 : engagement velocity — vue matérialisée
+     post_engagement_stats (likes + 2×comments + 3×shares) / age_hours.
+     Refresh par cron 5 min (cf CRON_SETUP.md). Cap implicite à 50/h via
+     la normalisation min(1, velocity/50). Si la vue n'existe pas (cold
+     setup), on continue sans ce signal. */
+  const velocityMap = new Map<string, number>();
+  if (candidates.length > 0) {
+    const { data: stats } = await supabase
+      .from("post_engagement_stats")
+      .select("post_id, hourly_velocity")
+      .in(
+        "post_id",
+        candidates.map((c) => c.id),
+      );
+    if (stats) {
+      for (const row of stats) {
+        velocityMap.set(row.post_id, row.hourly_velocity);
+      }
+    }
+  }
+
   const now = Date.now();
   type Scored = {
     post_id: string;
@@ -260,6 +281,24 @@ async function algorithmicRanking(
             type: "creator_affinity",
             label: "Sujet proche de tes intérêts récents",
             weight: semanticScore,
+          });
+        }
+      }
+
+      /* Feature 5 : engagement velocity — boost les posts qui décollent
+         (engagement_score / age_hours, normalisé sur 50/h cap). On garde
+         un poids modéré (1.2) pour ne pas créer un effet "viral
+         winner-takes-all" qui contredirait l'esprit DIVARC (proches
+         d'abord, puis intérêts, et seulement après, popularité). */
+      const velocity = velocityMap.get(c.id) ?? 0;
+      if (velocity > 0) {
+        const normalizedVelocity = Math.min(1, velocity / 50);
+        score += normalizedVelocity * 1.2;
+        if (normalizedVelocity > 0.4) {
+          signals.push({
+            type: "trending",
+            label: "Post en forte traction dans la communauté",
+            weight: normalizedVelocity,
           });
         }
       }

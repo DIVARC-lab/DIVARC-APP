@@ -1996,7 +1996,41 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      /* Vue matérialisée — migration 0043_post_engagement_stats.sql.
+         Refresh CONCURRENTLY toutes les 5 min via cron (cf CRON_SETUP.md).
+         Utilisée par lib/recsys/ranker.ts pour le signal "trending". */
+      post_engagement_stats: {
+        Row: {
+          post_id: string;
+          author_id: string;
+          created_at: string;
+          likes_count: number;
+          comments_count: number;
+          shares_count: number;
+          engagement_score: number;
+          age_hours: number;
+          hourly_velocity: number;
+        };
+        Relationships: [];
+      };
+      /* Vue d'agrégation des badges quiz — migration 0026_pro_features.sql.
+         Best score + last attempt par (user, quiz). */
+      user_skill_badges: {
+        Row: {
+          user_id: string;
+          quiz_id: string;
+          skill_name: string;
+          slug: string;
+          title: string;
+          best_score: number;
+          total: number;
+          passed: boolean;
+          last_attempt_at: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       accept_listing_offer: {
         Args: { offer_id: string };
