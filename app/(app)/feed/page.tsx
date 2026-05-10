@@ -1,4 +1,5 @@
 import { Compass, Plus, Sparkles, UserPlus } from "lucide-react";
+import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
@@ -24,6 +25,7 @@ import { PostCard } from "./_components/PostCard";
 import { PostChipTrigger } from "@/components/creator/PostChipTrigger";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
+import { AdSlot } from "@/components/ads/AdSlot";
 import type { PostWithDetails } from "@/lib/database.types";
 
 export const metadata = {
@@ -220,17 +222,31 @@ export default async function FeedPage({
             ) : (
               <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10">
                 {posts.map((post, index) => (
-                  <li key={post.id}>
-                    <PostViewTracker postId={post.id} />
-                    <PostCard
-                      post={post}
-                      currentUserId={user.id}
-                      hero={index === 0}
-                      rankingSignals={
-                        rankingByPostId.get(post.id)?.primary_signals
-                      }
-                    />
-                  </li>
+                  <Fragment key={post.id}>
+                    <li>
+                      <PostViewTracker postId={post.id} />
+                      <PostCard
+                        post={post}
+                        currentUserId={user.id}
+                        hero={index === 0}
+                        rankingSignals={
+                          rankingByPostId.get(post.id)?.primary_signals
+                        }
+                      />
+                    </li>
+                    {/* Densité publicitaire DIVARC : 1 ad tous les 6
+                        posts (entre les positions 5/11/17/...).
+                        Conformité DSA art. 26 — chaque ad affiche
+                        "Sponsorisé" + lien Why this ad. */}
+                    {index > 0 && (index + 1) % 6 === 0 ? (
+                      <li aria-label="Publicité sponsorisée">
+                        <AdSlot
+                          surface="feed_home"
+                          slotIndex={Math.floor((index + 1) / 6)}
+                        />
+                      </li>
+                    ) : null}
+                  </Fragment>
                 ))}
               </ul>
             )}
