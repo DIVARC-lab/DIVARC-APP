@@ -18,14 +18,26 @@ export default async function AudiencesManagerPage() {
   const accounts = await listMyAdAccounts();
   const accountIds = accounts.map((a) => a.id);
 
-  /* Liste toutes les audiences sur les ad_accounts du user. */
-  const { data: audiences } = accountIds.length > 0
-    ? await supabase
-        .from("ads_audiences")
-        .select("*")
-        .in("ad_account_id", accountIds)
-        .order("created_at", { ascending: false })
-    : { data: [] };
+  /* Liste toutes les audiences sur les ad_accounts du user. Defensive
+     fallback si la migration 0048 n'est pas appliquée. */
+  let audiences: Array<{
+    id: string;
+    name: string;
+    type: string;
+    estimated_size: number | null;
+    custom_match_rate: number | null;
+  }> = [];
+  if (accountIds.length > 0) {
+    const { data, error } = await supabase
+      .from("ads_audiences")
+      .select("id, name, type, estimated_size, custom_match_rate")
+      .in("ad_account_id", accountIds)
+      .order("created_at", { ascending: false });
+    if (error && error.code !== "42P01") {
+      console.error("[ads:audiences:list]", error);
+    }
+    audiences = data ?? [];
+  }
 
   return (
     <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
@@ -55,7 +67,7 @@ export default async function AudiencesManagerPage() {
         ) : null}
       </header>
 
-      {!audiences || audiences.length === 0 ? (
+      {audiences.length === 0 ? (
         <EmptyState />
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

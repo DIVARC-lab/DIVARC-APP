@@ -28,8 +28,23 @@ export default async function AnalyticsPage() {
 
   /* Stats agrégées par campagne sur 30j. service_role pour pouvoir lire
      ad_impressions/ad_clicks/ad_conversions à grande échelle (les RLS
-     limitent à analyst+ mais on a vérifié via listMyAdAccounts). */
-  const admin = createAdminClient();
+     limitent à analyst+ mais on a vérifié via listMyAdAccounts).
+     Defensive : si admin client n'est pas disponible (env var manquante),
+     on retourne un dashboard vide. */
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    console.error("[ads:analytics] admin client unavailable:", err);
+    return (
+      <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+        <p className="text-[14px] text-night-muted">
+          Analytics temporairement indisponibles (configuration serveur
+          incomplète).
+        </p>
+      </div>
+    );
+  }
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
 
   const [

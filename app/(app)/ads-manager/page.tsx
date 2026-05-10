@@ -2,21 +2,30 @@ import { Building2, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { isCurrentUserAdmin } from "@/lib/queries/admin";
 import {
+  checkAdsAvailability,
   getMyBusinessAccounts,
   listMyAdAccounts,
 } from "@/lib/queries/ads";
+import { MigrationsMissingBanner } from "./_components/MigrationsMissingBanner";
 
 export const metadata = { title: "Ads Manager — Vue d'ensemble" };
 
 export default async function AdsManagerHome() {
-  const [accounts, businesses] = await Promise.all([
+  const [availability, accounts, businesses, isAdmin] = await Promise.all([
+    checkAdsAvailability(),
     listMyAdAccounts(),
     getMyBusinessAccounts(),
+    isCurrentUserAdmin(),
   ]);
 
   return (
     <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+      {availability.reason === "tables_missing" ? (
+        <MigrationsMissingBanner isAdmin={isAdmin} />
+      ) : null}
+
       <header className="mb-7">
         <KickerLabel>· Ads Manager</KickerLabel>
         <DisplayHeading

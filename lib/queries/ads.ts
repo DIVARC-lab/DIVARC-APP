@@ -6,9 +6,36 @@ import type {
   AdsCampaign,
 } from "@/lib/database.types";
 
-/* Queries server-only pour /ads-manager. Toutes les fonctions
- * supposent que le caller est authentifié, et reposent sur les RLS
- * (multi-tenant via ad_account_users) pour filtrer. */
+/* Queries server-only pour /ads-manager.
+ *
+ * Toutes les fonctions sont défensives : si les migrations 0048 +
+ * 0049 ne sont pas encore appliquées en prod (tables ads_* manquantes),
+ * elles retournent des valeurs par défaut au lieu de crasher la page.
+ *
+ * Détection : le code postgres 42P01 ("relation does not exist") est
+ * loggé en warning mais la page reste rendable. Les caller affichent
+ * alors un état "vide" + bannière documentée.
+ */
+
+const MIGRATION_MISSING_CODE = "42P01";
+
+/** True si la table ads_* n'existe pas encore (migration pas appliquée). */
+export type AdsAvailability = {
+  available: boolean;
+  reason?: "tables_missing" | "permission_denied";
+};
+
+export async function checkAdsAvailability(): Promise<AdsAvailability> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("ad_accounts")
+    .select("id", { count: "exact", head: true });
+  if (!error) return { available: true };
+  if (error.code === MIGRATION_MISSING_CODE) {
+    return { available: false, reason: "tables_missing" };
+  }
+  return { available: false, reason: "permission_denied" };
+}
 
 export async function listMyAdAccounts(): Promise<
   Array<
@@ -24,13 +51,17 @@ export async function listMyAdAccounts(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  /* Lecture des ad_account_users où user_id = me + jointure ad_account
-     + business pour avoir le nom de l'entreprise. */
-  const { data: links } = await supabase
+  const { data: links, error: linksErr } = await supabase
     .from("ad_account_users")
     .select("ad_account_id, role")
     .eq("user_id", user.id);
 
+  if (linksErr) {
+    if (linksErr.code !== MIGRATION_MISSING_CODE) {
+      console.error("[ads:listMyAdAccounts]", linksErr);
+    }
+    return [];
+  }
   if (!links || links.length === 0) return [];
 
   const accountIds = links.map((l) => l.ad_account_id);
@@ -38,7 +69,6 @@ export async function listMyAdAccounts(): Promise<
     .from("ad_accounts")
     .select("*")
     .in("id", accountIds);
-
   if (!accounts) return [];
 
   const businessIds = Array.from(
@@ -62,24 +92,30 @@ export async function getAdAccount(
   adAccountId: string,
 ): Promise<AdAccount | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("ad_accounts")
     .select("*")
     .eq("id", adAccountId)
     .maybeSingle();
-  return data;
+  if (error && error.code !== MIGRATION_MISSING_CODE) {
+    console.error("[ads:getAdAccount]", error);
+  }
+  return data ?? null;
 }
 
 export async function listCampaigns(
   adAccountId: string,
 ): Promise<AdsCampaign[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("ads_campaigns")
     .select("*")
     .eq("ad_account_id", adAccountId)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (error && error.code !== MIGRATION_MISSING_CODE) {
+    console.error("[ads:listCampaigns]", error);
+  }
   return data ?? [];
 }
 
@@ -87,12 +123,15 @@ export async function getCampaign(
   campaignId: string,
 ): Promise<AdsCampaign | null> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("ads_campaigns")
     .select("*")
     .eq("id", campaignId)
     .maybeSingle();
-  return data;
+  if (error && error.code !== MIGRATION_MISSING_CODE) {
+    console.error("[ads:getCampaign]", error);
+  }
+  return data ?? null;
 }
 
 export async function getMyBusinessAccounts(): Promise<AdsBusinessAccount[]> {
@@ -102,11 +141,14 @@ export async function getMyBusinessAccounts(): Promise<AdsBusinessAccount[]> {
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("ads_business_accounts")
     .select("*")
     .eq("primary_contact_user_id", user.id)
     .order("created_at", { ascending: false });
+  if (error && error.code !== MIGRATION_MISSING_CODE) {
+    console.error("[ads:getMyBusinessAccounts]", error);
+  }
   return data ?? [];
 }
 
@@ -120,11 +162,23 @@ export async function getAdAccountStats(
   total_clicks_30d: number;
   ctr_30d: number;
 }> {
-  const supabase = await createClient();
-  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const empty = {
+    active_campaigns: 0,
+    total_spend_30d: 0,
+    total_impressions_30d: 0,
+    total_clicks_30d: 0,
+    ctr_30d: 0,
+  };
+  try {
+    const supabase = await createClient();
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
 
-  const [{ count: activeCampaigns }, { data: spend }, { count: impressions }, { count: clicks }] =
-    await Promise.all([
+    const [
+      { count: activeCampaigns, error: ec },
+      { data: spend, error: es },
+      { count: impressions, error: ei },
+      { count: clicks, error: ec2 },
+    ] = await Promise.all([
       supabase
         .from("ads_campaigns")
         .select("id", { count: "exact", head: true })
@@ -149,16 +203,30 @@ export async function getAdAccountStats(
         .eq("is_invalid", false),
     ]);
 
-  const totalSpend =
-    spend?.reduce((acc, s) => acc + Number(s.amount), 0) ?? 0;
-  const ctr =
-    impressions && impressions > 0 ? (clicks ?? 0) / impressions : 0;
+    /* Si une seule des queries échoue avec 42P01 (table missing),
+       on retourne empty. */
+    if (
+      [ec, es, ei, ec2].some(
+        (e) => e && e.code === MIGRATION_MISSING_CODE,
+      )
+    ) {
+      return empty;
+    }
 
-  return {
-    active_campaigns: activeCampaigns ?? 0,
-    total_spend_30d: totalSpend,
-    total_impressions_30d: impressions ?? 0,
-    total_clicks_30d: clicks ?? 0,
-    ctr_30d: ctr,
-  };
+    const totalSpend =
+      spend?.reduce((acc, s) => acc + Number(s.amount), 0) ?? 0;
+    const ctr =
+      impressions && impressions > 0 ? (clicks ?? 0) / impressions : 0;
+
+    return {
+      active_campaigns: activeCampaigns ?? 0,
+      total_spend_30d: totalSpend,
+      total_impressions_30d: impressions ?? 0,
+      total_clicks_30d: clicks ?? 0,
+      ctr_30d: ctr,
+    };
+  } catch (err) {
+    console.error("[ads:getAdAccountStats]", err);
+    return empty;
+  }
 }
