@@ -8,7 +8,7 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v6";
+const CACHE_NAME = "divarc-v7";
 const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
@@ -51,6 +51,30 @@ function shouldBypass(request) {
   if (url.hostname.endsWith("supabase.co")) return true;
   if (url.hostname.endsWith("supabase.in")) return true;
   if (url.protocol !== "http:" && url.protocol !== "https:") return true;
+  /* Bypass des fetchs RSC (React Server Components) — Next.js Link
+     prefetch utilise des fetchs avec ?_rsc= qui retournent un stream
+     RSC, pas du HTML cacheable. Les cacher cause des hydration
+     mismatches (React error #418) car le client reçoit une réponse
+     en cache stale au lieu du flux RSC frais. */
+  if (url.searchParams.has("_rsc")) return true;
+  /* Bypass aussi les RSC headers explicites. */
+  if (request.headers.get("RSC") === "1") return true;
+  if (request.headers.get("Next-Router-Prefetch") === "1") return true;
+  return false;
+}
+
+/* Match strict des assets statiques cacheables (immutables, hashed
+ * filename → safe to cache-first long-term). */
+function isStaticAsset(url) {
+  if (url.origin !== self.location.origin) return false;
+  if (url.pathname.startsWith("/_next/static/")) return true;
+  if (url.pathname.startsWith("/icons/")) return true;
+  if (url.pathname.startsWith("/images/")) return true;
+  if (url.pathname === "/manifest.webmanifest") return true;
+  if (url.pathname === "/logo.svg") return true;
+  /* Fichiers par extension. */
+  if (/\.(woff2?|ttf|otf|eot)$/i.test(url.pathname)) return true;
+  if (/\.(png|jpg|jpeg|webp|avif|gif|svg|ico)$/i.test(url.pathname)) return true;
   return false;
 }
 
@@ -68,7 +92,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.origin === self.location.origin) {
+  /* Cache-first uniquement pour les vrais assets statiques. Le reste
+     (fetch dynamiques, RSC streams, etc.) passe en réseau direct sans
+     interception SW pour éviter les mismatches d'hydratation. */
+  if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request));
   }
 });
