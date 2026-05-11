@@ -256,22 +256,38 @@ export function CallProvider({
   useEffect(() => {
     if (!currentUserId) return;
     log("inbox: subscribe", currentUserId);
-    const { unsubscribe } = subscribeInbox(currentUserId, (payload) => {
-      log("inbox: incoming ring", payload);
-      setState((prev) => {
-        if (prev.kind !== "idle") {
-          log("inbox: already in call, ignoring");
-          return prev;
+    const { unsubscribe } = subscribeInbox(
+      currentUserId,
+      (payload) => {
+        log("inbox: incoming ring", payload);
+        toast.info(`📞 Appel entrant !`);
+        setState((prev) => {
+          if (prev.kind !== "idle") {
+            log("inbox: already in call, ignoring");
+            return prev;
+          }
+          return {
+            kind: "ringing-inbound",
+            callId: payload.callId,
+            conversationId: payload.conversationId,
+            peerId: payload.callerId,
+            startedAt: Date.now(),
+          };
+        });
+      },
+      (status) => {
+        log("inbox: status", status);
+        if (status === "SUBSCRIBED") {
+          toast.success("📲 Réception d'appels active", { duration: 2000 });
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          toast.error(`📲 Réception d'appels : ${status}`);
         }
-        return {
-          kind: "ringing-inbound",
-          callId: payload.callId,
-          conversationId: payload.conversationId,
-          peerId: payload.callerId,
-          startedAt: Date.now(),
-        };
-      });
-    });
+      },
+    );
     return unsubscribe;
   }, [currentUserId]);
 

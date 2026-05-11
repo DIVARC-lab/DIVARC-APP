@@ -29,6 +29,7 @@ export type InboundRingPayload = {
 export function subscribeInbox(
   userId: string,
   onRing: (payload: InboundRingPayload) => void,
+  onStatus?: (status: string) => void,
 ): { channel: RealtimeChannel; unsubscribe: () => void } {
   const supabase = createClient();
   const channel = supabase
@@ -42,8 +43,8 @@ export function subscribeInbox(
         filter: `callee_id=eq.${userId}`,
       },
       (payload) => {
+        console.log("[inbox] INSERT received", payload);
         const row = payload.new as CallRow;
-        /* Ignore les anciens / déjà-finis (au cas où). */
         if (row.status !== "ringing") return;
         onRing({
           callId: row.id,
@@ -53,7 +54,10 @@ export function subscribeInbox(
         });
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log("[inbox] subscribe status:", status);
+      onStatus?.(status);
+    });
 
   return {
     channel,
