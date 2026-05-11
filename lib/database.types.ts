@@ -1211,7 +1211,7 @@ export type ProfileRecommendation = {
   to_user_id: string;
   relationship: RecommendationRelationship;
   relationship_custom: string | null;
-  text: string;
+  body: string;
   is_visible: boolean;
   given_at: string;
   updated_at: string;
@@ -2797,7 +2797,7 @@ export type Database = {
         Row: ProfileRecommendation;
         Insert: Pick<
           ProfileRecommendation,
-          "from_user_id" | "to_user_id" | "relationship" | "text"
+          "from_user_id" | "to_user_id" | "relationship" | "body"
         > &
           Partial<
             Pick<
@@ -2808,7 +2808,7 @@ export type Database = {
         Update: Partial<
           Pick<
             ProfileRecommendation,
-            "relationship" | "relationship_custom" | "text" | "is_visible"
+            "relationship" | "relationship_custom" | "body" | "is_visible"
           >
         >;
         Relationships: [];

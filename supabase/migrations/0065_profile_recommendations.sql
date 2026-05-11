@@ -26,7 +26,7 @@ create table if not exists public.profile_recommendations (
     )),
   relationship_custom text
     check (relationship_custom is null or char_length(relationship_custom) <= 60),
-  text text not null check (char_length(text) between 30 and 3000),
+  body text not null check (char_length(body) between 30 and 3000),
   /* Destinataire (to_user) toggle visibility — peut cacher sans supprimer. */
   is_visible boolean not null default false,
   given_at timestamptz not null default now(),
