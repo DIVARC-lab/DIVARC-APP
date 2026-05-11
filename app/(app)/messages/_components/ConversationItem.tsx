@@ -177,9 +177,12 @@ export function ConversationItem({
               />
             ) : null}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex-1 min-w-0 max-w-full overflow-hidden">
+            {/* Row 1 : nom (avec icones inline) à gauche, timestamp à droite.
+                Grid [1fr auto] garantit que la timestamp est TOUJOURS
+                visible — le nom truncate avant. */}
+            <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+              <div className="min-w-0 flex items-center gap-1.5 overflow-hidden">
                 {conversation.is_pinned ? (
                   <Pin
                     className={`w-3 h-3 shrink-0 ${
@@ -188,13 +191,13 @@ export function ConversationItem({
                     aria-label="Épinglée"
                   />
                 ) : null}
-                <p
-                  className={`flex-1 min-w-0 text-sm font-semibold truncate ${
+                <span
+                  className={`min-w-0 text-sm font-semibold truncate ${
                     active ? "text-cream" : "text-night"
                   }`}
                 >
                   {displayName}
-                </p>
+                </span>
                 {conversation.wants_secret ? (
                   <Lock
                     className={`w-3 h-3 shrink-0 ${
@@ -213,16 +216,17 @@ export function ConversationItem({
                 ) : null}
               </div>
               <span
-                className={`text-[10px] shrink-0 ${
+                className={`text-[10px] shrink-0 whitespace-nowrap ${
                   active ? "text-cream/60" : "text-muted"
                 }`}
               >
                 {formatRelative(conversation.last_message_at)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
+            {/* Row 2 : aperçu du dernier message à gauche, badge unread à droite. */}
+            <div className="grid grid-cols-[1fr_auto] gap-2 items-center mt-0.5">
               <p
-                className={`flex-1 min-w-0 text-xs truncate ${
+                className={`min-w-0 text-xs truncate ${
                   active
                     ? "text-cream/80"
                     : conversation.unread_count > 0 && !conversation.is_muted
@@ -236,7 +240,7 @@ export function ConversationItem({
               {!active && conversation.unread_count > 0 ? (
                 <span
                   aria-label={`${conversation.unread_count} message non lu`}
-                  className={`relative shrink-0 ml-1 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                  className={`relative shrink-0 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
                     conversation.is_muted
                       ? "bg-night/10 text-night-muted"
                       : "bg-gold text-night"

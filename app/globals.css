@@ -195,6 +195,15 @@ body {
   border-radius: 4px;
 }
 
+/* Pas d'outline gold sur les textarea/input qui ont déjà une bordure de
+   focus visible via leur container (composer, search bars, etc.). Évite
+   le double-ring + l'effet "or qui apparaît" jugé désagréable. */
+textarea:focus-visible,
+input:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+}
+
 /* Custom utilities */
 @utility text-balance {
   text-wrap: balance;
