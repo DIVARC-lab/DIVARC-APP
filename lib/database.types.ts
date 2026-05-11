@@ -1174,7 +1174,7 @@ export type StoryHighlight = {
   user_id: string;
   title: string;
   cover_image_url: string;
-  position: number;
+  sort_position: number;
   items_count: number;
   created_at: string;
   updated_at: string;
@@ -1183,7 +1183,7 @@ export type StoryHighlight = {
 export type StoryHighlightItem = {
   highlight_id: string;
   story_id: string;
-  position: number;
+  sort_position: number;
   added_at: string;
 };
 
@@ -1333,6 +1333,33 @@ export type MutualFollower = {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+};
+
+/* User badges (migration 0068). */
+export type UserBadgeType =
+  | "founder"
+  | "beta_tester"
+  | "top_creator"
+  | "event"
+  | "achievement"
+  | "mentor_certified"
+  | "employee_verified"
+  | "identity_verified"
+  | "press"
+  | "super_seller";
+
+export type UserBadge = {
+  id: string;
+  user_id: string;
+  badge_type: UserBadgeType;
+  label: string;
+  description: string | null;
+  icon: string | null;
+  accent_color: string | null;
+  metadata: Record<string, unknown>;
+  awarded_at: string;
+  expires_at: string | null;
+  is_visible: boolean;
 };
 
 export type CircleColor =
@@ -2801,19 +2828,19 @@ export type Database = {
           Partial<
             Pick<
               StoryHighlight,
-              "id" | "position" | "items_count" | "created_at" | "updated_at"
+              "id" | "sort_position" | "items_count" | "created_at" | "updated_at"
             >
           >;
         Update: Partial<
-          Pick<StoryHighlight, "title" | "cover_image_url" | "position">
+          Pick<StoryHighlight, "title" | "cover_image_url" | "sort_position">
         >;
         Relationships: [];
       };
       story_highlight_items: {
         Row: StoryHighlightItem;
         Insert: Pick<StoryHighlightItem, "highlight_id" | "story_id"> &
-          Partial<Pick<StoryHighlightItem, "position" | "added_at">>;
-        Update: Partial<Pick<StoryHighlightItem, "position">>;
+          Partial<Pick<StoryHighlightItem, "sort_position" | "added_at">>;
+        Update: Partial<Pick<StoryHighlightItem, "sort_position">>;
         Relationships: [];
       };
       profile_recommendations: {
@@ -2897,6 +2924,15 @@ export type Database = {
         Insert: Pick<CloseFriend, "user_id" | "close_friend_id"> &
           Partial<Pick<CloseFriend, "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      user_badges: {
+        Row: UserBadge;
+        Insert: Pick<UserBadge, "user_id" | "badge_type" | "label"> &
+          Partial<
+            Omit<UserBadge, "user_id" | "badge_type" | "label" | "awarded_at">
+          >;
+        Update: Partial<Pick<UserBadge, "is_visible">>;
         Relationships: [];
       };
       listings: {
@@ -4661,6 +4697,10 @@ export type Database = {
       toggle_close_friend: {
         Args: { p_close_friend_id: string };
         Returns: boolean;
+      };
+      toggle_badge_visibility: {
+        Args: { p_badge_id: string; p_visible: boolean };
+        Returns: void;
       };
       create_payout_request: {
         Args: {
