@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/reels-fingerprint",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/account-purge",
+      "schedule": "0 3 * * *"
     }
   ]
 }

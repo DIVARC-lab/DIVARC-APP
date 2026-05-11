@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { ListingCard } from "@/components/marketplace/ListingCard";
 import { AboutSection } from "@/components/profile/AboutSection";
 import { CreatorSection } from "@/components/profile/CreatorSection";
 import { EducationTimeline } from "@/components/profile/EducationTimeline";
@@ -7,6 +8,8 @@ import { ExperienceTimeline } from "@/components/profile/ExperienceTimeline";
 import { HighlightsRow } from "@/components/profile/HighlightsRow";
 import { OpenToWorkBanner } from "@/components/profile/OpenToWorkBanner";
 import { PhotosGrid, type GridPhotoItem } from "@/components/profile/PhotosGrid";
+import { listJobs } from "@/lib/queries/jobs";
+import { listListings } from "@/lib/queries/listings";
 import {
   ProfileTabsV2,
   type TabCounters,
@@ -74,6 +77,11 @@ export default async function ProfileV2Page({
 
   /* Fetch derniers posts photos pour grid + count. */
   const recentPosts = await listPostsByAuthor(profile.id, user.id, 30);
+  /* Listings + jobs en parallèle. */
+  const [listings, userJobs] = await Promise.all([
+    listListings(user.id, { sellerId: profile.id, limit: 12 }),
+    listJobs(user.id, { posterId: profile.id, limit: 20 }),
+  ]);
   const gridPhotos: GridPhotoItem[] = [];
   for (const post of recentPosts) {
     if (post.photos.length > 0 && post.photos[0]?.url) {
@@ -97,6 +105,8 @@ export default async function ProfileV2Page({
     experiences: pkg.experiences.length,
     posts: recentPosts.length,
     photos: gridPhotos.length,
+    marketplace: listings.length,
+    jobs: userJobs.length,
   };
 
   /* Hydrate auteurs des recommandations pour affichage avatar. */
@@ -225,6 +235,82 @@ export default async function ProfileV2Page({
           />
         ) : null}
 
+        {activeTab === "posts" ? (
+          recentPosts.length === 0 ? (
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucun post publié.
+              </p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-3 gap-1 sm:gap-2">
+              {recentPosts.map((post) => (
+                <li
+                  key={post.id}
+                  className="aspect-square overflow-hidden rounded-md bg-bg-soft"
+                >
+                  {post.photos[0]?.url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={post.photos[0].url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full p-2 text-[11px] text-night-soft line-clamp-6">
+                      {post.body?.slice(0, 200) ?? ""}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
+
+        {activeTab === "marketplace" ? (
+          listings.length === 0 ? (
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucune annonce active.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          )
+        ) : null}
+
+        {activeTab === "jobs" ? (
+          userJobs.length === 0 ? (
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucune offre publiée.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {userJobs.map((job) => (
+                <li
+                  key={job.id}
+                  className="rounded-2xl bg-white border border-line p-4"
+                >
+                  <p className="text-[14px] font-bold text-night">
+                    {job.title}
+                  </p>
+                  {job.location ? (
+                    <p className="text-[12.5px] text-night-muted">
+                      {job.location}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
+
         {/* Fallback placeholder pour tabs pas encore implémentés */}
         {![
           "about",
@@ -235,6 +321,9 @@ export default async function ProfileV2Page({
           "photos",
           "creator",
           "entrepreneur",
+          "posts",
+          "marketplace",
+          "jobs",
         ].includes(activeTab) ? (
           <SectionPlaceholder tab={activeTab} />
         ) : null}
