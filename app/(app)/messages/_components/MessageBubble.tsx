@@ -1,6 +1,15 @@
 "use client";
 
-import { Download, FileText, Lock, Reply, Sparkles, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Lock,
+  Reply,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -16,6 +25,7 @@ import { useLongPress } from "@/lib/hooks/useLongPress";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
+import { markViewOnceViewed } from "../eclats-actions";
 import { AudioPlayer } from "./AudioPlayer";
 import { MessageActionsSheet } from "./MessageActionsSheet";
 import { MessageReactions } from "./MessageReactions";
@@ -171,6 +181,10 @@ export function MessageBubble({
 
   const hasTextBubble = displayBody !== null && displayBody !== "";
 
+  const isViewOnce = message.view_once === true;
+  const viewOnceConsumed = isViewOnce && message.view_once_viewed_at !== null;
+  const [eclatOverlayOpen, setEclatOverlayOpen] = useState(false);
+
   const hasImage =
     message.attachment_type === "image" && message.attachment_url;
   const hasAudio =
@@ -180,6 +194,19 @@ export function MessageBubble({
     message.attachment_type !== "image" &&
     message.attachment_type !== "audio" &&
     message.attachment_type !== null;
+
+  async function handleOpenEclat() {
+    if (!isViewOnce || viewOnceConsumed || isOwn) return;
+    setEclatOverlayOpen(true);
+    /* Marquer comme vu côté serveur — l'utilisateur a explicitement
+       cliqué pour ouvrir, donc on consume tout de suite (cohérence
+       Telegram/WhatsApp). L'overlay reste ouvert tant que l'user
+       n'a pas cliqué hors. */
+    const res = await markViewOnceViewed(message.id);
+    if (!res.ok) {
+      toast.error(res.error);
+    }
+  }
 
   async function handleQuickReact(emoji: string) {
     const supabase = createClient();
@@ -289,31 +316,42 @@ export function MessageBubble({
               />
             ) : null}
 
-            {hasImage ? (
-              <ImageAttachment
-                url={message.attachment_url!}
-                width={message.attachment_width}
-                height={message.attachment_height}
+            {isViewOnce ? (
+              <EclatCard
                 isOwn={isOwn}
+                consumed={viewOnceConsumed}
+                attachmentType={message.attachment_type}
+                onOpen={handleOpenEclat}
               />
-            ) : null}
+            ) : (
+              <>
+                {hasImage ? (
+                  <ImageAttachment
+                    url={message.attachment_url!}
+                    width={message.attachment_width}
+                    height={message.attachment_height}
+                    isOwn={isOwn}
+                  />
+                ) : null}
 
-            {hasAudio ? (
-              <AudioPlayer
-                url={message.attachment_url!}
-                durationMs={message.attachment_duration_ms}
-                isOwn={isOwn}
-              />
-            ) : null}
+                {hasAudio ? (
+                  <AudioPlayer
+                    url={message.attachment_url!}
+                    durationMs={message.attachment_duration_ms}
+                    isOwn={isOwn}
+                  />
+                ) : null}
 
-            {hasFile ? (
-              <FileAttachment
-                url={message.attachment_url!}
-                name={message.attachment_name ?? "fichier"}
-                size={message.attachment_size}
-                isOwn={isOwn}
-              />
-            ) : null}
+                {hasFile ? (
+                  <FileAttachment
+                    url={message.attachment_url!}
+                    name={message.attachment_name ?? "fichier"}
+                    size={message.attachment_size}
+                    isOwn={isOwn}
+                  />
+                ) : null}
+              </>
+            )}
 
             {hasTextBubble ? (
               <div
@@ -383,6 +421,178 @@ export function MessageBubble({
         onReply={onReply}
         onDelete={handleDelete}
       />
+
+      {eclatOverlayOpen && message.attachment_url ? (
+        <EclatOverlay
+          url={message.attachment_url}
+          attachmentType={message.attachment_type}
+          width={message.attachment_width}
+          height={message.attachment_height}
+          durationMs={message.attachment_duration_ms}
+          onClose={() => setEclatOverlayOpen(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* Card affichée dans la bulle pour un message view-once :
+ * - Côté sender : statut envoyé / ouvert
+ * - Côté receiver : bouton "Voir l'éclat" tant que non consommé, sinon
+ *   placeholder "Éclat consommé" */
+function EclatCard({
+  isOwn,
+  consumed,
+  attachmentType,
+  onOpen,
+}: {
+  isOwn: boolean;
+  consumed: boolean;
+  attachmentType: Message["attachment_type"];
+  onOpen: () => void;
+}) {
+  const mediaLabel =
+    attachmentType === "image"
+      ? "photo"
+      : attachmentType === "audio"
+        ? "message vocal"
+        : "fichier";
+
+  if (isOwn) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 px-4 py-3 rounded-3xl text-sm shadow-sm rounded-br-md italic",
+          consumed
+            ? "bg-night/40 text-cream/80 border border-night/30"
+            : "bg-night text-cream",
+        )}
+      >
+        <Eye className="w-4 h-4" aria-hidden />
+        <span>
+          {consumed
+            ? `Éclat ouvert · ${mediaLabel}`
+            : `Éclat envoyé · ${mediaLabel}`}
+        </span>
+      </div>
+    );
+  }
+
+  if (consumed) {
+    return (
+      <div className="flex items-center gap-2 px-4 py-3 rounded-3xl rounded-bl-md text-sm shadow-sm bg-white/60 border border-line text-night-muted italic">
+        <EyeOff className="w-4 h-4" aria-hidden />
+        <span>Éclat consommé — vu une fois</span>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group flex items-center gap-3 px-4 py-3 rounded-3xl rounded-bl-md text-sm shadow-sm bg-gradient-to-br from-gold/10 via-cream to-bg border border-gold/30 hover:border-gold/60 transition-colors text-night"
+    >
+      <span className="w-10 h-10 rounded-2xl bg-gold/20 text-gold-deep flex items-center justify-center group-hover:bg-gold/30 transition-colors">
+        <Eye className="w-5 h-5" aria-hidden />
+      </span>
+      <span className="flex flex-col items-start">
+        <span className="font-bold text-night">Éclat reçu</span>
+        <span className="text-[11px] text-night-muted">
+          Touche pour voir une fois ({mediaLabel})
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/* Overlay fullscreen pour visionner un éclat. Une fois fermé, l'user
+ * ne peut plus revenir dessus. */
+function EclatOverlay({
+  url,
+  attachmentType,
+  width,
+  height,
+  durationMs,
+  onClose,
+}: {
+  url: string;
+  attachmentType: Message["attachment_type"];
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Éclat"
+      onClick={onClose}
+      className="fixed inset-0 z-[60] bg-night/95 backdrop-blur-md flex items-center justify-center p-6"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Fermer l'éclat"
+        className="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/10 text-cream hover:bg-white/20 flex items-center justify-center"
+      >
+        <Trash2 className="w-4 h-4" aria-hidden />
+      </button>
+      <div
+        className="relative max-w-3xl w-full max-h-[80vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {attachmentType === "image" ? (
+          <Image
+            src={url}
+            alt="Éclat"
+            width={width ?? 1200}
+            height={height ?? 800}
+            className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+            unoptimized
+          />
+        ) : attachmentType === "audio" ? (
+          <div className="rounded-3xl bg-white p-6 shadow-2xl">
+            <AudioPlayer
+              url={url}
+              durationMs={durationMs}
+              isOwn={false}
+            />
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-white p-8 text-center shadow-2xl">
+            <FileText
+              className="w-10 h-10 text-night-muted mx-auto mb-3"
+              aria-hidden
+            />
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="inline-flex items-center gap-2 px-5 h-11 rounded-full bg-night text-cream text-sm font-bold"
+            >
+              <Download className="w-4 h-4" aria-hidden />
+              Télécharger maintenant
+            </a>
+            <p className="mt-2 text-[11px] text-muted">
+              Tu ne pourras plus accéder à ce fichier après cette fenêtre.
+            </p>
+          </div>
+        )}
+      </div>
+      <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-cream/70 italic">
+        Cet éclat ne sera plus visible une fois fermé.
+      </p>
     </div>
   );
 }

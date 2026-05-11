@@ -247,12 +247,18 @@ export async function getMessagesForConversation(
   limit: number = 100,
 ): Promise<Message[]> {
   const supabase = await createClient();
+  const nowIso = new Date().toISOString();
 
+  /* Filtre les messages expirés (expires_at < now) côté serveur. Le
+     soft-delete via purge_expired_messages tourne en cron, mais sur les
+     vues live on filtre quand même pour éviter le flash de message
+     expiré entre 2 ticks du cron. */
   const { data, error } = await supabase
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
     .is("deleted_at", null)
+    .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order("created_at", { ascending: false })
     .limit(limit);
 

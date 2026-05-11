@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Eye,
+  EyeOff,
   Image as ImageIcon,
   Loader2,
   Mic,
@@ -65,6 +67,9 @@ export function MessageComposer({
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  /* Éclats : si toggle ON, le prochain attachment envoyé sera view-once
+     (visible une seule fois). Reset après chaque envoi. */
+  const [viewOnce, setViewOnce] = useState(false);
   const [pending, startTransition] = useTransition();
   const { notifyTyping } = useTypingChannel(conversationId, senderId, null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -275,10 +280,17 @@ export function MessageComposer({
     const previousBody = body;
     const previousAttachment = attachment;
     const previousReply = replyTo;
+    const previousViewOnce = viewOnce;
     setBody("");
     setAttachment(null);
+    setViewOnce(false);
     onClearReply();
     requestAnimationFrame(resize);
+
+    /* View-once V1 : effectif uniquement si attachment présent. Un
+       message texte view-once n'a pas vraiment de sens UX (le bubble
+       resterait en clair). */
+    const isViewOnce = previousViewOnce && previousAttachment !== null;
 
     startTransition(async () => {
       const supabase = createClient();
@@ -294,6 +306,7 @@ export function MessageComposer({
           attachment_width: previousAttachment?.width ?? null,
           attachment_height: previousAttachment?.height ?? null,
           reply_to_message_id: previousReply?.id ?? null,
+          view_once: isViewOnce,
         };
 
         /* Mode secret : encrypt le texte avant insert. Les pièces
@@ -330,6 +343,7 @@ export function MessageComposer({
         );
         setBody(previousBody);
         setAttachment(previousAttachment);
+        setViewOnce(previousViewOnce);
         requestAnimationFrame(resize);
       }
     });
@@ -431,12 +445,45 @@ export function MessageComposer({
                 </div>
                 <button
                   type="button"
+                  onClick={() => setViewOnce((v) => !v)}
+                  aria-pressed={viewOnce}
+                  aria-label={
+                    viewOnce
+                      ? "Désactiver le mode Éclat"
+                      : "Activer le mode Éclat (vu une fois)"
+                  }
+                  title={
+                    viewOnce
+                      ? "Éclat ON — vu une seule fois"
+                      : "Éclat OFF — message classique"
+                  }
+                  className={cn(
+                    "w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                    viewOnce
+                      ? "bg-gold/20 text-gold-deep border border-gold/40"
+                      : "hover:bg-night/5 text-night-muted hover:text-night",
+                  )}
+                >
+                  {viewOnce ? (
+                    <Eye className="w-4 h-4" aria-hidden />
+                  ) : (
+                    <EyeOff className="w-4 h-4" aria-hidden />
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={removeAttachment}
                   aria-label="Retirer"
                   className="w-11 h-11 rounded-full hover:bg-red-50 text-red-500 flex items-center justify-center shrink-0"
                 >
                   <X className="w-4 h-4" aria-hidden />
                 </button>
+              </div>
+            ) : null}
+            {viewOnce && attachment ? (
+              <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-full bg-gold/10 border border-gold/30 text-[11.5px] font-semibold text-gold-deep">
+                <Eye className="w-3.5 h-3.5" aria-hidden />
+                Éclat — visible une seule fois par le destinataire
               </div>
             ) : null}
 

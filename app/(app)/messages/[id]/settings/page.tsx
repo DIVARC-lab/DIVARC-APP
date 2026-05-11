@@ -1,16 +1,18 @@
-import { ArrowLeft, Crown, Users } from "lucide-react";
+import { ArrowLeft, Crown, MessageSquare, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
+import { getConversationDetails } from "@/lib/queries/conversations";
 import { getGroupDetails } from "@/lib/queries/groups";
 import { createClient } from "@/lib/supabase/server";
+import { AutoDeleteSection } from "./_components/AutoDeleteSection";
 import { GroupSettingsActions } from "./_components/GroupSettingsActions";
 
 type Params = Promise<{ id: string }>;
 
-export const metadata = { title: "Paramètres du groupe" };
+export const metadata = { title: "Paramètres de la conversation" };
 
-export default async function GroupSettingsPage({
+export default async function ConversationSettingsPage({
   params,
 }: {
   params: Params;
@@ -22,13 +24,23 @@ export default async function GroupSettingsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const details = await getGroupDetails(id, user.id);
-  if (!details || details.conversation.type !== "group" || !details.myRole) {
-    notFound();
-  }
+  const details = await getConversationDetails(id);
+  if (!details) notFound();
+  const { conversation } = details;
+  const isGroup = conversation.type === "group";
 
-  const { conversation, members, myRole } = details;
-  const isOwner = myRole === "owner";
+  /* Cast auto_delete_after_days vers le type union strict attendu par
+     AutoDeleteSection (la DB autorise null + 1/7/30 via CHECK). */
+  const autoDeleteDays = (() => {
+    const v = conversation.auto_delete_after_days;
+    if (v === 1 || v === 7 || v === 30) return v;
+    return null;
+  })();
+
+  const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
+  if (isGroup && (!groupDetails || !groupDetails.myRole)) notFound();
+
+  const isOwner = groupDetails?.myRole === "owner";
 
   return (
     <div className="flex-1 overflow-y-auto bg-bg">
@@ -41,80 +53,98 @@ export default async function GroupSettingsPage({
           <ArrowLeft className="w-4 h-4 text-night" aria-hidden />
         </Link>
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-night" aria-hidden />
+          {isGroup ? (
+            <Users className="w-5 h-5 text-night" aria-hidden />
+          ) : (
+            <MessageSquare className="w-5 h-5 text-night" aria-hidden />
+          )}
           <div>
             <h1 className="font-semibold text-night">
-              Paramètres du groupe
+              {isGroup
+                ? "Paramètres du groupe"
+                : "Paramètres de la conversation"}
             </h1>
-            <p className="text-xs text-muted">
-              {members.length} membre{members.length > 1 ? "s" : ""}
-            </p>
+            {isGroup && groupDetails ? (
+              <p className="text-xs text-muted">
+                {groupDetails.members.length} membre
+                {groupDetails.members.length > 1 ? "s" : ""}
+              </p>
+            ) : null}
           </div>
         </div>
       </header>
 
       <div className="px-4 sm:px-8 py-8 max-w-2xl mx-auto space-y-6">
-        <GroupSettingsActions
+        {isGroup ? (
+          <GroupSettingsActions
+            conversationId={id}
+            initialName={conversation.name ?? ""}
+            isOwner={isOwner}
+          />
+        ) : null}
+
+        <AutoDeleteSection
           conversationId={id}
-          initialName={conversation.name ?? ""}
-          isOwner={isOwner}
+          initialDays={autoDeleteDays}
         />
 
-        <section className="rounded-3xl bg-white border border-line p-6 sm:p-7">
-          <header className="mb-5">
-            <h2 className="font-display text-xl text-night">
-              Membres ({members.length})
-            </h2>
-          </header>
-          <ul className="space-y-2">
-            {members.map((member) => {
-              const profile = member.profile;
-              const displayName =
-                profile?.full_name ?? profile?.username ?? "Membre";
-              const isMe = member.user_id === user.id;
-              const isCreator = member.role === "owner";
+        {isGroup && groupDetails ? (
+          <section className="rounded-3xl bg-white border border-line p-6 sm:p-7">
+            <header className="mb-5">
+              <h2 className="font-display text-xl text-night">
+                Membres ({groupDetails.members.length})
+              </h2>
+            </header>
+            <ul className="space-y-2">
+              {groupDetails.members.map((member) => {
+                const profile = member.profile;
+                const displayName =
+                  profile?.full_name ?? profile?.username ?? "Membre";
+                const isMe = member.user_id === user.id;
+                const isCreator = member.role === "owner";
 
-              return (
-                <li
-                  key={member.user_id}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-night/[0.02] border border-line"
-                >
-                  <Link
-                    href={`/u/${profile?.username ?? ""}`}
-                    className="flex items-center gap-3 flex-1 min-w-0 group"
+                return (
+                  <li
+                    key={member.user_id}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-night/[0.02] border border-line"
                   >
-                    <Avatar
-                      src={profile?.avatar_url ?? null}
-                      fullName={displayName}
-                      size="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-night truncate group-hover:text-night-soft">
-                        {displayName}
-                        {isMe ? (
-                          <span className="ml-2 text-xs font-normal text-muted">
-                            (toi)
-                          </span>
-                        ) : null}
-                      </p>
-                      {profile?.username ? (
-                        <p className="text-xs text-muted truncate">
-                          @{profile.username}
+                    <Link
+                      href={`/u/${profile?.username ?? ""}`}
+                      className="flex items-center gap-3 flex-1 min-w-0 group"
+                    >
+                      <Avatar
+                        src={profile?.avatar_url ?? null}
+                        fullName={displayName}
+                        size="md"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-night truncate group-hover:text-night-soft">
+                          {displayName}
+                          {isMe ? (
+                            <span className="ml-2 text-xs font-normal text-muted">
+                              (toi)
+                            </span>
+                          ) : null}
                         </p>
-                      ) : null}
-                    </div>
-                  </Link>
-                  {isCreator ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/15 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
-                      <Crown className="w-3 h-3" aria-hidden />
-                      Créateur
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+                        {profile?.username ? (
+                          <p className="text-xs text-muted truncate">
+                            @{profile.username}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+                    {isCreator ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gold/15 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
+                        <Crown className="w-3 h-3" aria-hidden />
+                        Créateur
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
       </div>
     </div>
   );

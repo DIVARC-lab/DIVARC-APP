@@ -5422,6 +5422,15 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string;
       };
+      /* Chantier 1.6 (migration 0075) — auto-delete. */
+      set_conversation_auto_delete: {
+        Args: { p_conv_id: string; p_days: number | null };
+        Returns: void;
+      };
+      purge_expired_messages: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
       /* Signal Protocol (migration 0074). */
       consume_one_time_prekey: {
         Args: { p_target_user_id: string };
