@@ -267,6 +267,7 @@ export function CallProvider({
       kind?: CallKind;
     }) => {
       log("startCall", { conversationId, peerId, kind });
+      toast.info("📞 Démarrage de l'appel…");
       if (!currentUserId) {
         toast.error("Tu dois être connecté.");
         return;
@@ -276,8 +277,7 @@ export function CallProvider({
         return;
       }
 
-      /* 1. Permission micro. Fait en premier pour échouer vite si
-         l'user refuse — pas la peine de créer une session DB. */
+      /* 1. Permission micro. */
       let webrtc: WebRTCClient;
       try {
         webrtc = await createWebRTCClient({
@@ -315,6 +315,8 @@ export function CallProvider({
             }
           },
         });
+        log("startCall: webrtc ready");
+        toast.success("🎤 Micro OK");
       } catch (err) {
         console.error("[startCall:getUserMedia]", err);
         toast.error(
@@ -326,21 +328,32 @@ export function CallProvider({
       }
       webrtcRef.current = webrtc;
 
-      /* 2. Crée la session DB → INSERT déclenche postgres_changes côté
-         callee, qui passe en ringing-inbound. */
-      const created = await createCallSession(conversationId, kind);
+      /* 2. Crée la session DB. */
+      log("startCall: calling RPC create_call_session");
+      let created;
+      try {
+        created = await createCallSession(conversationId, kind);
+      } catch (err) {
+        console.error("[startCall:RPC]", err);
+        toast.error(
+          err instanceof Error
+            ? `RPC error : ${err.message}`
+            : "Erreur RPC création appel.",
+        );
+        teardown();
+        return;
+      }
       if (!created.ok) {
-        toast.error(created.error);
+        console.error("[startCall:RPC] returned not-ok", created);
+        toast.error(`DB : ${created.error}`);
         teardown();
         return;
       }
       const { callId } = created.data;
       log("startCall: created", callId);
+      toast.success(`✅ Session créée`);
 
-      /* 3. Subscribe au call channel ET passe immédiatement en
-         ringing-outbound (overlay visible, mic actif, micro mute disponible).
-         On NE bloque PAS l'UI sur ch.ready — la promise se résout en
-         arrière-plan ou timeout en 5s, et send() await ready en interne. */
+      /* 3. Subscribe + ringing-outbound (overlay visible immédiat). */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);
       callChannelRef.current = ch;
 
@@ -353,7 +366,6 @@ export function CallProvider({
       });
       log("caller: ringing-outbound, waiting for accept");
 
-      /* Log async la readiness (juste pour debug, pas de blocking). */
       ch.ready
         .then(() => log("caller: channel ready"))
         .catch((err) => {
