@@ -26,7 +26,7 @@ create table if not exists public.story_highlights (
   cover_image_url text not null
     check (cover_image_url ~* '^https?://'),
   /* Position pour réordonnancement (drag-drop). 0 = premier. */
-  position integer not null default 0,
+  sort_position integer not null default 0,
   /* Compteur dénormalisé : nb de stories incluses. Maintenu par trigger
      sur story_highlight_items. */
   items_count integer not null default 0,
@@ -35,7 +35,7 @@ create table if not exists public.story_highlights (
 );
 
 create index if not exists story_highlights_user_idx
-  on public.story_highlights (user_id, position);
+  on public.story_highlights (user_id, sort_position);
 
 -- Trigger : updated_at
 drop trigger if exists story_highlights_set_updated_at on public.story_highlights;
@@ -48,13 +48,13 @@ create table if not exists public.story_highlight_items (
   highlight_id uuid not null references public.story_highlights(id) on delete cascade,
   story_id uuid not null references public.stories(id) on delete cascade,
   /* Position de la story dans le highlight (ordre de lecture). */
-  position integer not null default 0,
+  sort_position integer not null default 0,
   added_at timestamptz not null default now(),
   primary key (highlight_id, story_id)
 );
 
 create index if not exists story_highlight_items_highlight_idx
-  on public.story_highlight_items (highlight_id, position);
+  on public.story_highlight_items (highlight_id, sort_position);
 
 create index if not exists story_highlight_items_story_idx
   on public.story_highlight_items (story_id);
@@ -161,10 +161,10 @@ as $$
     h.id as highlight_id,
     h.title,
     h.cover_image_url,
-    h.position as sort_position,
+    h.sort_position,
     h.items_count,
     coalesce(
-      array_agg(i.story_id order by i.position)
+      array_agg(i.story_id order by i.sort_position)
         filter (where i.story_id is not null),
       array[]::uuid[]
     ) as story_ids
@@ -172,7 +172,7 @@ as $$
   left join public.story_highlight_items i on i.highlight_id = h.id
   where h.user_id = p_user_id
   group by h.id
-  order by h.position asc, h.created_at desc;
+  order by h.sort_position asc, h.created_at desc;
 $$;
 
 grant execute on function public.get_user_highlights_with_items(uuid)
