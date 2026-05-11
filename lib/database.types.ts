@@ -1544,6 +1544,35 @@ export type EntrepreneurFundraisingStatus = {
   updated_at: string;
 };
 
+/* Identity verification requests (migration 0071). */
+export type IdentityVerificationStatus =
+  | "pending"
+  | "reviewing"
+  | "approved"
+  | "rejected"
+  | "expired";
+
+export type IdentityVerificationType =
+  | "identity"
+  | "press"
+  | "professional"
+  | "business";
+
+export type IdentityVerificationRequest = {
+  id: string;
+  user_id: string;
+  status: IdentityVerificationStatus;
+  verification_type: IdentityVerificationType;
+  document_id_url: string | null;
+  document_selfie_url: string | null;
+  applicant_notes: string | null;
+  reviewer_notes: string | null;
+  reviewer_id: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  expires_at: string | null;
+};
+
 /* Brouillon édition profil (migration 0070). */
 export type DraftProfile = {
   user_id: string;
@@ -3213,6 +3242,23 @@ export type Database = {
           >;
         Update: Partial<
           Pick<DraftProfile, "payload" | "current_section" | "version">
+        >;
+        Relationships: [];
+      };
+      identity_verification_requests: {
+        Row: IdentityVerificationRequest;
+        Insert: Pick<
+          IdentityVerificationRequest,
+          "user_id" | "verification_type"
+        > &
+          Partial<
+            Omit<
+              IdentityVerificationRequest,
+              "user_id" | "verification_type" | "submitted_at"
+            >
+          >;
+        Update: Partial<
+          Pick<IdentityVerificationRequest, "applicant_notes">
         >;
         Relationships: [];
       };
@@ -4989,6 +5035,14 @@ export type Database = {
       };
       clear_draft_profile: {
         Args: Record<string, never>;
+        Returns: void;
+      };
+      admin_approve_verification: {
+        Args: { p_request_id: string; p_notes?: string };
+        Returns: void;
+      };
+      admin_reject_verification: {
+        Args: { p_request_id: string; p_notes: string };
         Returns: void;
       };
       create_payout_request: {
