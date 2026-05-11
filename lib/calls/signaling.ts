@@ -32,12 +32,35 @@ export function subscribeInbox(
   onStatus?: (status: string) => void,
 ): { channel: RealtimeChannel; unsubscribe: () => void } {
   const supabase = createClient();
-  /* Sans filter au niveau Realtime → RLS protège quand même (seul le
-     callee voit les rows où callee_id = me). On filtre côté client en
-     plus pour double-safety. Évite les pbs de filter syntax côté
-     Realtime server. */
+  /* Double subscription pour robustesse :
+     1. broadcast "ring" sur user-calls:<userId> — direct, faible latence,
+        ne dépend pas de la publication Realtime
+     2. postgres_changes INSERT — fallback fiable si broadcast loupé
+
+     Les 2 utilisent le même callback mais on dédupe par callId via le
+     consumer (useCallSession check state.kind avant d'agir). */
+  const dedupedCallIds = new Set<string>();
+  function safeRing(payload: InboundRingPayload) {
+    if (dedupedCallIds.has(payload.callId)) return;
+    dedupedCallIds.add(payload.callId);
+    /* GC le set au-delà de 100 callIds anciens (mémoire bounded). */
+    if (dedupedCallIds.size > 100) {
+      const oldest = dedupedCallIds.values().next().value;
+      if (oldest) dedupedCallIds.delete(oldest);
+    }
+    onRing(payload);
+  }
+
   const channel = supabase
-    .channel(`inbox-calls:${userId}`)
+    .channel(`user-calls:${userId}`, {
+      config: { broadcast: { self: false } },
+    })
+    .on("broadcast", { event: "ring" }, ({ payload }) => {
+      console.log("[inbox] broadcast ring received", payload);
+      if (payload && typeof payload === "object") {
+        safeRing(payload as InboundRingPayload);
+      }
+    })
     .on(
       "postgres_changes",
       {
@@ -48,9 +71,9 @@ export function subscribeInbox(
       (payload) => {
         console.log("[inbox] INSERT received", payload);
         const row = payload.new as CallRow;
-        if (row.callee_id !== userId) return; // client filter
+        if (row.callee_id !== userId) return;
         if (row.status !== "ringing") return;
-        onRing({
+        safeRing({
           callId: row.id,
           conversationId: row.conversation_id,
           callerId: row.caller_id,
@@ -69,6 +92,50 @@ export function subscribeInbox(
       void supabase.removeChannel(channel);
     },
   };
+}
+
+/* Émetteur de "ring" broadcast vers l'inbox du callee. Le caller appelle
+ * ça en plus du RPC create_call_session — comme ça l'iPhone reçoit
+ * l'event peu importe l'état de la publication Realtime. */
+export async function sendRingBroadcast(
+  calleeUserId: string,
+  payload: InboundRingPayload,
+): Promise<void> {
+  const supabase = createClient();
+  const channel = supabase.channel(`user-calls:${calleeUserId}`);
+  /* Subscribe puis send dans une seule promesse. */
+  await new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    channel.subscribe((status) => {
+      console.log("[sendRing] status", status);
+      if (status === "SUBSCRIBED") {
+        channel
+          .send({
+            type: "broadcast",
+            event: "ring",
+            payload,
+          })
+          .finally(() => {
+            void supabase.removeChannel(channel);
+            finish();
+          });
+      } else if (
+        status === "CHANNEL_ERROR" ||
+        status === "TIMED_OUT" ||
+        status === "CLOSED"
+      ) {
+        void supabase.removeChannel(channel);
+        finish();
+      }
+    });
+    /* Timeout filet de sécurité 3s. */
+    setTimeout(finish, 3000);
+  });
 }
 
 /* Channel per-call : signaling broadcast. */

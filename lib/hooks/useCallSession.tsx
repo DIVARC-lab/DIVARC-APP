@@ -30,7 +30,11 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { subscribeCallChannel, subscribeInbox } from "@/lib/calls/signaling";
+import {
+  sendRingBroadcast,
+  subscribeCallChannel,
+  subscribeInbox,
+} from "@/lib/calls/signaling";
 import {
   type CallKind,
   type LocalCallState,
@@ -395,6 +399,18 @@ export function CallProvider({
       const { callId } = created;
       log("startCall: created", callId);
       toast.success(`✅ Session créée`);
+
+      /* 2.5 Broadcast direct "ring" vers l'inbox du callee, en plus du
+         postgres_changes (fire-and-forget, attendons 1s max). Comme ça
+         le callee reçoit l'event même si la publication Realtime n'a
+         pas encore "vu" la nouvelle row. */
+      log("startCall: broadcasting ring to", peerId);
+      void sendRingBroadcast(peerId, {
+        callId,
+        conversationId,
+        callerId: currentUserId,
+        kind,
+      });
 
       /* 3. Subscribe + ringing-outbound (overlay visible immédiat). */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);
