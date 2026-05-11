@@ -1445,6 +1445,115 @@ export type CreatorMediaKit = {
   updated_at: string;
 };
 
+/* Facette Entrepreneur (migration 0070). */
+export type EntrepreneurFounderStatus =
+  | "founder"
+  | "co_founder"
+  | "ceo"
+  | "cto"
+  | "cfo"
+  | "coo"
+  | "president"
+  | "managing_director"
+  | "board_member"
+  | "advisor"
+  | "other";
+
+export type EntrepreneurCompanyStage =
+  | "idea"
+  | "mvp"
+  | "seed"
+  | "series_a"
+  | "series_b"
+  | "series_c_plus"
+  | "profitable"
+  | "acquired"
+  | "shutdown"
+  | "ipo";
+
+export type EntrepreneurRound =
+  | "pre_seed"
+  | "seed"
+  | "series_a"
+  | "series_b"
+  | "series_c"
+  | "series_d_plus"
+  | "bridge"
+  | "crowdfunding"
+  | "angel"
+  | "other";
+
+export type EntrepreneurCurrency =
+  | "EUR"
+  | "USD"
+  | "XAF"
+  | "XOF"
+  | "MAD"
+  | "TND"
+  | "DZD"
+  | "CAD"
+  | "CHF"
+  | "GBP";
+
+export type EntrepreneurCompany = {
+  id: string;
+  user_id: string;
+  company_id: string | null;
+  company_name: string;
+  company_logo_url: string | null;
+  role: string;
+  founder_status: EntrepreneurFounderStatus;
+  founded_year: number | null;
+  exit_year: number | null;
+  is_current: boolean;
+  description: string | null;
+  industry: string | null;
+  company_stage: EntrepreneurCompanyStage | null;
+  sort_position: number;
+  created_at: string;
+};
+
+export type EntrepreneurInvestment = {
+  id: string;
+  user_id: string;
+  invested_company_id: string | null;
+  company_name: string;
+  company_logo_url: string | null;
+  round: EntrepreneurRound | null;
+  amount: number | null;
+  currency: EntrepreneurCurrency | null;
+  is_amount_public: boolean;
+  invested_at: string | null;
+  exit_at: string | null;
+  description: string | null;
+  sort_position: number;
+  created_at: string;
+};
+
+export type EntrepreneurFundraisingStatus = {
+  user_id: string;
+  is_open: boolean;
+  round_type: Exclude<EntrepreneurRound, "angel"> | null;
+  target_amount: number | null;
+  raised_amount: number | null;
+  currency: EntrepreneurCurrency | null;
+  pitch_deck_url: string | null;
+  contact_email: string | null;
+  closing_date: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
+/* Brouillon édition profil (migration 0070). */
+export type DraftProfile = {
+  user_id: string;
+  payload: Record<string, unknown>;
+  current_section: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CircleColor =
   | "gold"
   | "navy"
@@ -3052,6 +3161,59 @@ export type Database = {
         Insert: Pick<CreatorMediaKit, "user_id"> &
           Partial<Omit<CreatorMediaKit, "user_id" | "updated_at">>;
         Update: Partial<Omit<CreatorMediaKit, "user_id" | "updated_at">>;
+        Relationships: [];
+      };
+      entrepreneur_companies: {
+        Row: EntrepreneurCompany;
+        Insert: Pick<
+          EntrepreneurCompany,
+          "user_id" | "company_name" | "role" | "founder_status"
+        > &
+          Partial<
+            Omit<
+              EntrepreneurCompany,
+              "user_id" | "company_name" | "role" | "founder_status" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Omit<EntrepreneurCompany, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      entrepreneur_investments: {
+        Row: EntrepreneurInvestment;
+        Insert: Pick<EntrepreneurInvestment, "user_id" | "company_name"> &
+          Partial<
+            Omit<
+              EntrepreneurInvestment,
+              "user_id" | "company_name" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Omit<EntrepreneurInvestment, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      entrepreneur_fundraising_status: {
+        Row: EntrepreneurFundraisingStatus;
+        Insert: Pick<EntrepreneurFundraisingStatus, "user_id"> &
+          Partial<
+            Omit<EntrepreneurFundraisingStatus, "user_id" | "updated_at">
+          >;
+        Update: Partial<
+          Omit<EntrepreneurFundraisingStatus, "user_id" | "updated_at">
+        >;
+        Relationships: [];
+      };
+      draft_profiles: {
+        Row: DraftProfile;
+        Insert: Pick<DraftProfile, "user_id"> &
+          Partial<
+            Omit<DraftProfile, "user_id" | "created_at" | "updated_at">
+          >;
+        Update: Partial<
+          Pick<DraftProfile, "payload" | "current_section" | "version">
+        >;
         Relationships: [];
       };
       listings: {
@@ -4819,6 +4981,14 @@ export type Database = {
       };
       toggle_badge_visibility: {
         Args: { p_badge_id: string; p_visible: boolean };
+        Returns: void;
+      };
+      upsert_draft_profile: {
+        Args: { p_payload: Record<string, unknown>; p_current_section?: string };
+        Returns: number;
+      };
+      clear_draft_profile: {
+        Args: Record<string, never>;
         Returns: void;
       };
       create_payout_request: {
