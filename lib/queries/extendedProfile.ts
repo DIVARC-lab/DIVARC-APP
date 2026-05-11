@@ -20,6 +20,11 @@ import type {
   EntrepreneurCompany,
   EntrepreneurInvestment,
   EntrepreneurFundraisingStatus,
+  ProfileExperience,
+  ProfileEducation,
+  ProfileSkill,
+  ProfileLanguage,
+  ProfileCertification,
 } from "@/lib/database.types";
 
 /* Profil étendu V2 — hydratation complète en 1 fetch parallèle.
@@ -71,7 +76,13 @@ export type ExtendedProfilePackage = {
   highlights: StoryHighlight[];
   recommendations_received: ProfileRecommendation[];
   open_to_work: ProfileOpenToWork | null;
-  /* Sections facette PRO */
+  /* Sections facette PRO (V0019 existantes) */
+  experiences: ProfileExperience[];
+  education: ProfileEducation[];
+  skills: ProfileSkill[];
+  languages: ProfileLanguage[];
+  certifications: ProfileCertification[];
+  /* Sections facette PRO étendues (V0066) */
   projects: ProfileProject[];
   publications: ProfilePublication[];
   volunteer: ProfileVolunteer[];
@@ -122,6 +133,11 @@ export async function getExtendedProfileByUsername(
     highlightsRes,
     recosRes,
     otwRes,
+    experiencesRes,
+    educationRes,
+    skillsRes,
+    languagesRes,
+    certificationsRes,
     projectsRes,
     publicationsRes,
     volunteerRes,
@@ -157,6 +173,43 @@ export async function getExtendedProfileByUsername(
       .select("*")
       .eq("user_id", header.id)
       .maybeSingle(),
+    hasPro
+      ? supabase
+          .from("profile_experiences")
+          .select("*")
+          .eq("user_id", header.id)
+          .order("position_order", { ascending: true })
+          .order("start_month", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    hasPro
+      ? supabase
+          .from("profile_education")
+          .select("*")
+          .eq("user_id", header.id)
+          .order("position_order", { ascending: true })
+          .order("start_year", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    hasPro
+      ? supabase
+          .from("profile_skills")
+          .select("*")
+          .eq("user_id", header.id)
+          .order("position_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    hasPro
+      ? supabase
+          .from("profile_languages")
+          .select("*")
+          .eq("user_id", header.id)
+          .order("position_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
+    hasPro
+      ? supabase
+          .from("profile_certifications")
+          .select("*")
+          .eq("user_id", header.id)
+          .order("position_order", { ascending: true })
+      : Promise.resolve({ data: [] }),
     hasPro
       ? supabase
           .from("profile_projects")
@@ -242,6 +295,11 @@ export async function getExtendedProfileByUsername(
     highlights: (highlightsRes.data ?? []) as StoryHighlight[],
     recommendations_received: (recosRes.data ?? []) as ProfileRecommendation[],
     open_to_work: (otwRes.data ?? null) as ProfileOpenToWork | null,
+    experiences: (experiencesRes.data ?? []) as ProfileExperience[],
+    education: (educationRes.data ?? []) as ProfileEducation[],
+    skills: (skillsRes.data ?? []) as ProfileSkill[],
+    languages: (languagesRes.data ?? []) as ProfileLanguage[],
+    certifications: (certificationsRes.data ?? []) as ProfileCertification[],
     projects: (projectsRes.data ?? []) as ProfileProject[],
     publications: (publicationsRes.data ?? []) as ProfilePublication[],
     volunteer: (volunteerRes.data ?? []) as ProfileVolunteer[],
