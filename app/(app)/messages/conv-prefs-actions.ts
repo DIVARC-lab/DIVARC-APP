@@ -124,6 +124,7 @@ const themeSchema = z.object({
     "lavender",
   ]),
   wallpaperId: z.enum([
+    "divarc",
     "none",
     "arcs",
     "dots",

@@ -22,6 +22,7 @@ export type ThemePreset =
   | "lavender";
 
 export type WallpaperId =
+  | "divarc"
   | "none"
   | "arcs"
   | "dots"
@@ -156,6 +157,7 @@ export const WALLPAPERS: Record<
   WallpaperId,
   { id: WallpaperId; name: string; emoji: string }
 > = {
+  divarc: { id: "divarc", name: "DIVARC", emoji: "💎" },
   none: { id: "none", name: "Aucun", emoji: "🚫" },
   arcs: { id: "arcs", name: "Arcs", emoji: "◐" },
   dots: { id: "dots", name: "Pointillés", emoji: "⠿" },
@@ -173,7 +175,8 @@ export function getTheme(preset: string | null | undefined): ConversationTheme {
 
 export function getWallpaper(id: string | null | undefined): WallpaperId {
   if (id && id in WALLPAPERS) return id as WallpaperId;
-  return "none";
+  /* Nouveau default : signature DIVARC (crème + arcs + emojis). */
+  return "divarc";
 }
 
 /* Génère le SVG du wallpaper sous forme de data URL pour utiliser en
@@ -188,6 +191,43 @@ export function wallpaperBackgroundImage(
     `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
 
   switch (wallpaper) {
+    case "divarc": {
+      /* Motif signature DIVARC : tile 240×240px qui combine :
+       *  - Arcs concentriques dorés (signature du logo D) en watermark
+       *  - Emojis sociaux dispersés (💬 ✨ 💛 🤝 🎉 🌟) en opacity faible
+       *  - Petits dots d'accent
+       * Sur fond crème (déjà appliqué via le linear-gradient de base).
+       * Couleur des arcs = #c89c3d (gold-deep DIVARC) — fixe, indépendant
+       * du thème courant pour garder l'identité de marque. */
+      const gold = "#c89c3d";
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'>
+        <g fill='none' stroke='${gold}' stroke-opacity='0.10' stroke-width='1.2'>
+          <path d='M 20 120 A 100 100 0 0 1 120 20'/>
+          <path d='M 30 120 A 90 90 0 0 1 120 30'/>
+          <path d='M 40 120 A 80 80 0 0 1 120 40'/>
+        </g>
+        <g fill='none' stroke='${gold}' stroke-opacity='0.07' stroke-width='1'>
+          <path d='M 140 220 A 80 80 0 0 1 220 140'/>
+          <path d='M 150 220 A 70 70 0 0 1 220 150'/>
+        </g>
+        <g font-size='18' opacity='0.18' font-family='Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif'>
+          <text x='180' y='55' text-anchor='middle'>💬</text>
+          <text x='65' y='180' text-anchor='middle'>✨</text>
+          <text x='200' y='130' text-anchor='middle'>💛</text>
+          <text x='115' y='205' text-anchor='middle'>🤝</text>
+          <text x='35' y='95' text-anchor='middle'>🌟</text>
+          <text x='165' y='95' text-anchor='middle'>🎉</text>
+        </g>
+        <g fill='${gold}' fill-opacity='0.15'>
+          <circle cx='220' cy='40' r='1.5'/>
+          <circle cx='40' cy='40' r='1.5'/>
+          <circle cx='110' cy='130' r='1.2'/>
+          <circle cx='15' cy='220' r='1.5'/>
+          <circle cx='200' cy='200' r='1.2'/>
+        </g>
+      </svg>`;
+      return enc(svg);
+    }
     case "arcs": {
       /* Quart d'arc répété en motif diagonal. */
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='${tint}' stroke-opacity='0.06' stroke-width='1'><path d='M 0 80 A 80 80 0 0 1 80 0'/><path d='M 80 160 A 80 80 0 0 1 160 80'/></g></svg>`;
