@@ -1165,6 +1165,29 @@ export type StoryGroup = {
   has_unviewed: boolean;
 };
 
+/* Highlights (migration 0064) — stories épinglées sur le profil. */
+export type StoryHighlight = {
+  id: string;
+  user_id: string;
+  title: string;
+  cover_image_url: string;
+  position: number;
+  items_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StoryHighlightItem = {
+  highlight_id: string;
+  story_id: string;
+  position: number;
+  added_at: string;
+};
+
+export type StoryHighlightWithStoryIds = StoryHighlight & {
+  story_ids: string[];
+};
+
 export type CircleColor =
   | "gold"
   | "navy"
@@ -2623,6 +2646,27 @@ export type Database = {
             Omit<UserNotificationPreferences, "user_id">
           >;
         Update: Partial<Omit<UserNotificationPreferences, "user_id">>;
+        Relationships: [];
+      };
+      story_highlights: {
+        Row: StoryHighlight;
+        Insert: Pick<StoryHighlight, "user_id" | "title" | "cover_image_url"> &
+          Partial<
+            Pick<
+              StoryHighlight,
+              "id" | "position" | "items_count" | "created_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<StoryHighlight, "title" | "cover_image_url" | "position">
+        >;
+        Relationships: [];
+      };
+      story_highlight_items: {
+        Row: StoryHighlightItem;
+        Insert: Pick<StoryHighlightItem, "highlight_id" | "story_id"> &
+          Partial<Pick<StoryHighlightItem, "position" | "added_at">>;
+        Update: Partial<Pick<StoryHighlightItem, "position">>;
         Relationships: [];
       };
       listings: {
@@ -4348,6 +4392,17 @@ export type Database = {
       compute_profile_completion_score: {
         Args: { p_user_id: string };
         Returns: number;
+      };
+      get_user_highlights_with_items: {
+        Args: { p_user_id: string };
+        Returns: Array<{
+          highlight_id: string;
+          title: string;
+          cover_image_url: string;
+          position: number;
+          items_count: number;
+          story_ids: string[];
+        }>;
       };
       create_payout_request: {
         Args: {
