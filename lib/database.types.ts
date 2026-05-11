@@ -2078,7 +2078,7 @@ export type ConversationMember = {
   can_send_media: boolean;
   /* Toggle "Conversation secrète" (E2E Signal Protocol opt-in). */
   wants_secret: boolean;
-  /* Chantier 3 : thème personnalisé par-membre (migration 0078). */
+  /* Chantier 3 : thème personnalisé par-membre (migration 0077). */
   theme_preset: string | null;
   wallpaper_id: string | null;
 };
@@ -5451,7 +5451,7 @@ export type Database = {
         Args: { p_call_id: string };
         Returns: void;
       };
-      /* Chantier 3 (migration 0078) — thèmes per-conv. */
+      /* Chantier 3 (migration 0077) — thèmes per-conv. */
       set_conversation_theme: {
         Args: {
           p_conv_id: string;
