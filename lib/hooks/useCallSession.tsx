@@ -29,11 +29,6 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import {
-  createCallSession,
-  endCallSession,
-  markCallConnected,
-} from "@/app/(app)/messages/call-actions";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeCallChannel, subscribeInbox } from "@/lib/calls/signaling";
 import {
@@ -43,6 +38,49 @@ import {
   RING_TIMEOUT_MS,
 } from "@/lib/calls/types";
 import { createWebRTCClient, type WebRTCClient } from "@/lib/calls/webrtc";
+
+/* RPC clients-side direct (bypass Server Actions pour éviter le wrap
+   Next.js qui masque les erreurs). RLS sécurise déjà. */
+async function rpcCreateCallSession(
+  conversationId: string,
+  kind: CallKind,
+): Promise<{ ok: true; callId: string } | { ok: false; error: string }> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("create_call_session", {
+    p_conversation_id: conversationId,
+    p_kind: kind,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: `${error.message} (${error.code ?? "no code"})`,
+    };
+  }
+  if (!data) return { ok: false, error: "RPC retourne null" };
+  return { ok: true, callId: data as string };
+}
+
+async function rpcEndCallSession(
+  callId: string,
+  status: "ended" | "missed" | "rejected" | "failed",
+  reason?: string | null,
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("end_call_session", {
+    p_call_id: callId,
+    p_status: status,
+    p_reason: reason ?? undefined,
+  });
+  if (error) console.error("[rpcEndCallSession]", error);
+}
+
+async function rpcMarkCallConnected(callId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("mark_call_connected", {
+    p_call_id: callId,
+  });
+  if (error) console.error("[rpcMarkCallConnected]", error);
+}
 
 type CallChannel = ReturnType<typeof subscribeCallChannel>;
 
@@ -120,7 +158,7 @@ export function CallProvider({
       log("endCall", status, reason);
       setState((cur) => {
         if (cur.kind === "idle") return cur;
-        void endCallSession(cur.callId, status, reason);
+        void rpcEndCallSession(cur.callId, status, reason);
         return { kind: "idle" };
       });
       teardown();
@@ -298,7 +336,7 @@ export function CallProvider({
             if (cs === "connected") {
               setState((cur) => {
                 if (cur.kind === "connecting" || cur.kind === "ringing-outbound") {
-                  void markCallConnected(cur.callId);
+                  void rpcMarkCallConnected(cur.callId);
                   return {
                     kind: "in-call",
                     callId: cur.callId,
@@ -328,28 +366,17 @@ export function CallProvider({
       }
       webrtcRef.current = webrtc;
 
-      /* 2. Crée la session DB. */
+      /* 2. Crée la session DB via RPC direct (pas de Server Action,
+         pour éviter le wrap Next.js qui masque les erreurs DB). */
       log("startCall: calling RPC create_call_session");
-      let created;
-      try {
-        created = await createCallSession(conversationId, kind);
-      } catch (err) {
-        console.error("[startCall:RPC]", err);
-        toast.error(
-          err instanceof Error
-            ? `RPC error : ${err.message}`
-            : "Erreur RPC création appel.",
-        );
-        teardown();
-        return;
-      }
+      const created = await rpcCreateCallSession(conversationId, kind);
       if (!created.ok) {
-        console.error("[startCall:RPC] returned not-ok", created);
+        console.error("[startCall:RPC] failed", created);
         toast.error(`DB : ${created.error}`);
         teardown();
         return;
       }
-      const { callId } = created.data;
+      const { callId } = created;
       log("startCall: created", callId);
       toast.success(`✅ Session créée`);
 
@@ -382,7 +409,7 @@ export function CallProvider({
           ) {
             log("caller: ring timeout, missed");
             toast("Pas de réponse.");
-            void endCallSession(cur.callId, "missed", "no answer");
+            void rpcEndCallSession(cur.callId, "missed", "no answer");
             teardown();
             return { kind: "idle" };
           }
@@ -423,7 +450,7 @@ export function CallProvider({
                 cur.kind === "connecting" ||
                 cur.kind === "ringing-inbound"
               ) {
-                void markCallConnected(cur.callId);
+                void rpcMarkCallConnected(cur.callId);
                 return {
                   kind: "in-call",
                   callId: cur.callId,
