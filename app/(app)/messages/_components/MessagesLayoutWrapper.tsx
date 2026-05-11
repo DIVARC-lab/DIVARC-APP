@@ -22,9 +22,20 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
   const isConvOpen =
     pathname.startsWith("/messages/") && pathname !== "/messages";
 
+  /* Hauteur du conteneur :
+     - Sur /messages (sidebar visible mobile) : 100dvh - 56px TopBar -
+       56px BottomNav - safe-area-bottom
+     - Sur /messages/<id> mobile (chat visible) : 100dvh - 56px TopBar -
+       safe-area-bottom uniquement (la BottomNav est masquée, le composer
+       prend sa place — plus de gap quand le clavier apparaît)
+     - Sur desktop (lg+) : 100dvh - 56px TopBar (BottomNav cachée par défaut) */
+  const heightClass = isConvOpen
+    ? "h-[calc(100dvh-56px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-56px)]"
+    : "h-[calc(100dvh-56px-56px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-56px)]";
+
   return (
     <div
-      className="grid lg:grid-cols-[340px_1fr] overflow-hidden h-[calc(100dvh-56px-56px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-56px)]"
+      className={`grid lg:grid-cols-[340px_1fr] overflow-hidden ${heightClass}`}
     >
       <aside
         className={

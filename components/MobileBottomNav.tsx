@@ -102,6 +102,11 @@ export function MobileBottomNav({
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+  /* Pattern WhatsApp : on cache la BottomNav quand l'utilisateur est dans
+     une conversation (route /messages/<id> ou sous-routes), pour donner
+     la place à la zone d'écriture fixe + éviter le gros gap quand le
+     clavier iOS apparaît. La page /messages racine garde la nav. */
+  if (pathname.startsWith("/messages/") && pathname !== "/messages") return null;
 
   return (
     <>
