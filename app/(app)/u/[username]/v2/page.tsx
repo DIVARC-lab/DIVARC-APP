@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { AboutSection } from "@/components/profile/AboutSection";
+import { CreatorSection } from "@/components/profile/CreatorSection";
 import { EducationTimeline } from "@/components/profile/EducationTimeline";
+import { EntrepreneurSection } from "@/components/profile/EntrepreneurSection";
 import { ExperienceTimeline } from "@/components/profile/ExperienceTimeline";
 import { HighlightsRow } from "@/components/profile/HighlightsRow";
 import { OpenToWorkBanner } from "@/components/profile/OpenToWorkBanner";
@@ -199,7 +201,24 @@ export default async function ProfileV2Page({
           />
         ) : null}
 
-        {/* Fallback placeholder pour tabs pas encore implémentés (8+) */}
+        {activeTab === "creator" ? (
+          <CreatorSection
+            stats={pkg.creator_stats}
+            featured={pkg.creator_featured}
+            collaborations={pkg.creator_collaborations}
+            mediaKit={pkg.creator_media_kit}
+          />
+        ) : null}
+
+        {activeTab === "entrepreneur" ? (
+          <EntrepreneurSection
+            companies={pkg.entrepreneur_companies}
+            investments={pkg.entrepreneur_investments}
+            fundraising={pkg.fundraising_status}
+          />
+        ) : null}
+
+        {/* Fallback placeholder pour tabs pas encore implémentés */}
         {![
           "about",
           "experiences",
@@ -207,6 +226,8 @@ export default async function ProfileV2Page({
           "recommendations",
           "highlights",
           "photos",
+          "creator",
+          "entrepreneur",
         ].includes(activeTab) ? (
           <SectionPlaceholder tab={activeTab} />
         ) : null}
