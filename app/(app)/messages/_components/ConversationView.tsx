@@ -81,6 +81,7 @@ export function ConversationView({
         isGroup={isGroup}
         onReply={setReplyTo}
         decryptFn={isSecretAndReady ? convCrypto.decrypt : undefined}
+        decryptBytesFn={isSecretAndReady ? convCrypto.decryptBytes : undefined}
       />
       <MessageComposer
         conversationId={conversationId}
@@ -88,6 +89,7 @@ export function ConversationView({
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         encryptFn={isSecretAndReady ? convCrypto.encrypt : undefined}
+        encryptBytesFn={isSecretAndReady ? convCrypto.encryptBytes : undefined}
         secretLabel={secretLabel}
       />
     </>

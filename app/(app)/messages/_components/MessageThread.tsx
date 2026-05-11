@@ -39,6 +39,9 @@ type MessageThreadProps = {
   /* Si fourni : la conv est en mode secret effectif, on déchiffre les
      messages is_secret=true à la volée dans MessageBubble. */
   decryptFn?: (payload: EncryptedPayload) => Promise<string>;
+  /* Décrypt des médias E2E (Chantier 1.7). Si fourni AND
+     encryption_metadata.media présent → fetch ciphertext + decrypt. */
+  decryptBytesFn?: (ciphertext: ArrayBuffer, iv: string) => Promise<ArrayBuffer>;
 };
 
 export function MessageThread({
@@ -52,6 +55,7 @@ export function MessageThread({
   isGroup = false,
   onReply,
   decryptFn,
+  decryptBytesFn,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionsState>(initialReactions);
@@ -344,6 +348,7 @@ export function MessageThread({
                   })
                 }
                 decryptFn={decryptFn}
+                decryptBytesFn={decryptBytesFn}
               />
               {isLastOwn && !isGroup ? (
                 <div className="flex justify-end mt-1 pr-1">

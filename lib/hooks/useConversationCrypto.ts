@@ -18,7 +18,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchPeerPublicKey } from "@/app/(app)/messages/crypto-actions";
 import {
+  decryptBytesFromSession,
   decryptFromSession,
+  encryptBytesForSession,
   encryptForSession,
   establishSession,
   getSession,
@@ -132,11 +134,32 @@ export function useConversationCrypto({
     [conversationId, peerUserId],
   );
 
+  /* Variantes bytes pour les médias E2E (Chantier 1.7). */
+  const encryptBytes = useCallback(
+    async (
+      bytes: ArrayBuffer,
+    ): Promise<{ ciphertext: ArrayBuffer; iv: string; sessionKeyHash: string }> => {
+      if (!peerUserId) throw new Error("No peer");
+      return encryptBytesForSession(conversationId, peerUserId, bytes);
+    },
+    [conversationId, peerUserId],
+  );
+
+  const decryptBytes = useCallback(
+    async (ciphertext: ArrayBuffer, iv: string): Promise<ArrayBuffer> => {
+      if (!peerUserId) throw new Error("No peer");
+      return decryptBytesFromSession(conversationId, peerUserId, ciphertext, iv);
+    },
+    [conversationId, peerUserId],
+  );
+
   return {
     state,
     errorMessage,
     encrypt,
     decrypt,
+    encryptBytes,
+    decryptBytes,
     isReady: state === "ready",
   };
 }

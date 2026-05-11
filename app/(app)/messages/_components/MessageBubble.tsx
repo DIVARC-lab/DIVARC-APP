@@ -46,7 +46,23 @@ type MessageBubbleProps = {
      non fourni mais message.is_secret, on affiche un placeholder
      "verrouillé". */
   decryptFn?: (payload: EncryptedPayload) => Promise<string>;
+  /* Décrypt des médias E2E. */
+  decryptBytesFn?: (ciphertext: ArrayBuffer, iv: string) => Promise<ArrayBuffer>;
 };
+
+/* Extrait le sous-objet media de encryption_metadata si présent et valide. */
+function asMediaPayload(
+  meta: Record<string, unknown> | null,
+): { iv: string; contentType: string } | null {
+  if (!meta) return null;
+  const media = (meta as Record<string, unknown>).media;
+  if (!media || typeof media !== "object") return null;
+  const { iv, contentType } = media as Record<string, unknown>;
+  if (typeof iv === "string" && typeof contentType === "string") {
+    return { iv, contentType };
+  }
+  return null;
+}
 
 /* Tente d'extraire un EncryptedPayload valide depuis encryption_metadata
    (jsonb côté DB, donc Record<string,unknown> côté TS). */
@@ -87,6 +103,7 @@ export function MessageBubble({
   replyContext,
   onReply,
   decryptFn,
+  decryptBytesFn,
 }: MessageBubbleProps) {
   const confirm = useConfirm();
   const [pendingDelete, startDelete] = useTransition();
@@ -185,12 +202,77 @@ export function MessageBubble({
   const viewOnceConsumed = isViewOnce && message.view_once_viewed_at !== null;
   const [eclatOverlayOpen, setEclatOverlayOpen] = useState(false);
 
+  /* Si le média est chiffré (encryption_metadata.media) et qu'on a un
+     decryptBytesFn : fetch+decrypt+blob URL. Sinon on garde l'URL
+     directe. */
+  const mediaPayload = message.is_secret
+    ? asMediaPayload(message.encryption_metadata)
+    : null;
+  type MediaState =
+    | { kind: "direct"; url: string | null }
+    | { kind: "decrypting" }
+    | { kind: "ok"; url: string; contentType: string }
+    | { kind: "error" };
+  const [mediaState, setMediaState] = useState<MediaState>(() =>
+    mediaPayload
+      ? { kind: "decrypting" }
+      : { kind: "direct", url: message.attachment_url },
+  );
+
+  useEffect(() => {
+    if (!mediaPayload || !message.attachment_url) {
+      setMediaState({ kind: "direct", url: message.attachment_url });
+      return;
+    }
+    if (!decryptBytesFn) {
+      /* Pas de session crypto → impossible d'afficher le média. */
+      setMediaState({ kind: "error" });
+      return;
+    }
+
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    setMediaState({ kind: "decrypting" });
+    (async () => {
+      try {
+        const res = await fetch(message.attachment_url!);
+        if (!res.ok) throw new Error("Fetch media failed");
+        const buffer = await res.arrayBuffer();
+        const plaintext = await decryptBytesFn(buffer, mediaPayload.iv);
+        if (cancelled) return;
+        const blob = new Blob([plaintext], { type: mediaPayload.contentType });
+        const url = URL.createObjectURL(blob);
+        createdUrl = url;
+        setMediaState({ kind: "ok", url, contentType: mediaPayload.contentType });
+      } catch (err) {
+        console.error("[MessageBubble:decrypt-media]", err);
+        if (!cancelled) setMediaState({ kind: "error" });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.attachment_url, mediaPayload?.iv, decryptBytesFn]);
+
+  /* URL effective à afficher dans les composants visuels. */
+  const mediaUrl =
+    mediaState.kind === "direct"
+      ? mediaState.url
+      : mediaState.kind === "ok"
+        ? mediaState.url
+        : null;
+  const mediaLocked =
+    mediaState.kind === "decrypting" || mediaState.kind === "error";
+
   const hasImage =
-    message.attachment_type === "image" && message.attachment_url;
+    message.attachment_type === "image" && mediaUrl !== null;
   const hasAudio =
-    message.attachment_type === "audio" && message.attachment_url;
+    message.attachment_type === "audio" && mediaUrl !== null;
   const hasFile =
-    message.attachment_url &&
+    mediaUrl !== null &&
     message.attachment_type !== "image" &&
     message.attachment_type !== "audio" &&
     message.attachment_type !== null;
@@ -323,11 +405,17 @@ export function MessageBubble({
                 attachmentType={message.attachment_type}
                 onOpen={handleOpenEclat}
               />
+            ) : mediaLocked ? (
+              <EncryptedMediaPlaceholder
+                isOwn={isOwn}
+                state={mediaState.kind === "decrypting" ? "decrypting" : "error"}
+                attachmentType={message.attachment_type}
+              />
             ) : (
               <>
                 {hasImage ? (
                   <ImageAttachment
-                    url={message.attachment_url!}
+                    url={mediaUrl!}
                     width={message.attachment_width}
                     height={message.attachment_height}
                     isOwn={isOwn}
@@ -336,7 +424,7 @@ export function MessageBubble({
 
                 {hasAudio ? (
                   <AudioPlayer
-                    url={message.attachment_url!}
+                    url={mediaUrl!}
                     durationMs={message.attachment_duration_ms}
                     isOwn={isOwn}
                   />
@@ -344,7 +432,7 @@ export function MessageBubble({
 
                 {hasFile ? (
                   <FileAttachment
-                    url={message.attachment_url!}
+                    url={mediaUrl!}
                     name={message.attachment_name ?? "fichier"}
                     size={message.attachment_size}
                     isOwn={isOwn}
@@ -432,6 +520,45 @@ export function MessageBubble({
           onClose={() => setEclatOverlayOpen(false)}
         />
       ) : null}
+    </div>
+  );
+}
+
+/* Placeholder pour les médias chiffrés en cours de déchiffrement ou en
+ * erreur (session crypto manquante). */
+function EncryptedMediaPlaceholder({
+  isOwn,
+  state,
+  attachmentType,
+}: {
+  isOwn: boolean;
+  state: "decrypting" | "error";
+  attachmentType: Message["attachment_type"];
+}) {
+  const label =
+    attachmentType === "image"
+      ? "Photo chiffrée"
+      : attachmentType === "audio"
+        ? "Message vocal chiffré"
+        : "Fichier chiffré";
+  const message =
+    state === "decrypting"
+      ? "⏳ Déchiffrement…"
+      : "🔒 Déchiffrement impossible (session crypto manquante)";
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 px-4 py-3 rounded-3xl text-sm italic shadow-sm",
+        isOwn
+          ? "bg-night/80 text-cream/90 rounded-br-md"
+          : "bg-white/80 text-night-muted border border-line rounded-bl-md",
+      )}
+    >
+      <Lock className="w-3.5 h-3.5" aria-hidden />
+      <span>
+        {label} · {message}
+      </span>
     </div>
   );
 }

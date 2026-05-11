@@ -12,8 +12,10 @@
  * vivantes, pas exportables une fois importées). */
 
 import {
+  decryptBytes,
   decryptMessage,
   deriveSessionKey,
+  encryptBytes,
   encryptMessage,
   generateIdentityKeyPair,
   generateRegistrationId,
@@ -232,4 +234,38 @@ export async function decryptFromSession(
     );
   }
   return decryptMessage(session.sessionKey, payload);
+}
+
+/* === Bytes encrypt/decrypt (médias E2E Chantier 1.7) === */
+
+/* Chiffre un buffer (image/audio/file) avec la session key courante.
+ * L'IV retourné doit être stocké côté server pour permettre le decrypt. */
+export async function encryptBytesForSession(
+  conversationId: string,
+  peerUserId: string,
+  bytes: ArrayBuffer,
+): Promise<{ ciphertext: ArrayBuffer; iv: string; sessionKeyHash: string }> {
+  const session = await getSession(conversationId, peerUserId);
+  if (!session) {
+    throw new Error(
+      "Pas de session crypto pour cette conversation. Appelle establishSession d'abord.",
+    );
+  }
+  const { ciphertext, iv } = await encryptBytes(session.sessionKey, bytes);
+  return { ciphertext, iv, sessionKeyHash: session.sessionKeyHash };
+}
+
+export async function decryptBytesFromSession(
+  conversationId: string,
+  peerUserId: string,
+  ciphertext: ArrayBuffer,
+  iv: string,
+): Promise<ArrayBuffer> {
+  const session = await getSession(conversationId, peerUserId);
+  if (!session) {
+    throw new Error(
+      "Pas de session crypto pour cette conversation. La session a peut-être été perdue.",
+    );
+  }
+  return decryptBytes(session.sessionKey, ciphertext, iv);
 }

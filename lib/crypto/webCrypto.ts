@@ -155,6 +155,35 @@ export async function decryptMessage(
   return new TextDecoder().decode(plaintext);
 }
 
+/* === Encryption/decryption bytes arbitraires (médias E2E Chantier 1.7) === */
+
+/* Chiffre un buffer arbitraire avec la session key. Utilisé pour les
+ * médias (images, audio, fichiers) avant upload Supabase Storage. */
+export async function encryptBytes(
+  sessionKey: CryptoKey,
+  bytes: ArrayBuffer,
+): Promise<{ ciphertext: ArrayBuffer; iv: string }> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    sessionKey,
+    bytes,
+  );
+  return { ciphertext, iv: bufferToBase64(iv.buffer) };
+}
+
+export async function decryptBytes(
+  sessionKey: CryptoKey,
+  ciphertext: ArrayBuffer,
+  ivBase64: string,
+): Promise<ArrayBuffer> {
+  return crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: base64ToBuffer(ivBase64) },
+    sessionKey,
+    ciphertext,
+  );
+}
+
 /* === Safety number (60 digits pour verify keys anti-MITM) === */
 
 /* Génère un safety number lisible à partir des 2 identity keys publiques

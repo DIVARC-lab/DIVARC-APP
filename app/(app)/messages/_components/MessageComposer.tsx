@@ -36,6 +36,12 @@ type Attachment = {
   size: number;
   width: number | null;
   height: number | null;
+  /* Si le fichier a été chiffré côté client avant upload : iv +
+     contentType original (le blob uploadé est en application/octet-stream). */
+  encryption: {
+    iv: string;
+    contentType: string;
+  } | null;
 };
 
 type MessageComposerProps = {
@@ -46,6 +52,11 @@ type MessageComposerProps = {
   /* Si fourni : conv en mode secret effectif. Le composer chiffrera
      le texte avant insert et marquera is_secret=true. */
   encryptFn?: (text: string) => Promise<EncryptedPayload>;
+  /* Chiffrement des médias E2E (Chantier 1.7). Si fourni AND attachment
+     présent → encrypt les bytes avant upload Supabase Storage. */
+  encryptBytesFn?: (
+    bytes: ArrayBuffer,
+  ) => Promise<{ ciphertext: ArrayBuffer; iv: string; sessionKeyHash: string }>;
   /* Label visuel pour le mode secret (affiché au-dessus du composer). */
   secretLabel?: string | null;
 };
@@ -60,6 +71,7 @@ export function MessageComposer({
   replyTo,
   onClearReply,
   encryptFn,
+  encryptBytesFn,
   secretLabel,
 }: MessageComposerProps) {
   const [body, setBody] = useState("");
@@ -145,13 +157,47 @@ export function MessageComposer({
 
   async function uploadFile(file: File, kind: "image" | "file") {
     const supabase = createClient();
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+    /* Dimensions BEFORE encryption — il faut un Blob image lisible
+       pour mesurer naturalWidth/Height. */
+    let dims: { width: number; height: number } | null = null;
+    if (kind === "image") {
+      dims = await getImageDimensions(file);
+    }
+
+    /* Préparation du payload : si on est en mode secret, on chiffre le
+       fichier côté client avant l'upload. Le ciphertext est uploadé
+       comme application/octet-stream, et l'IV + contentType original
+       voyagent dans encryption_metadata.media. */
+    let bodyToUpload: Blob = file;
+    let contentTypeForUpload = file.type;
+    let encryption: { iv: string; contentType: string } | null = null;
+    const useE2E = encryptBytesFn !== undefined;
+
+    if (useE2E) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const { ciphertext, iv } = await encryptBytesFn(buffer);
+        bodyToUpload = new Blob([ciphertext], {
+          type: "application/octet-stream",
+        });
+        contentTypeForUpload = "application/octet-stream";
+        encryption = { iv, contentType: file.type };
+      } catch (err) {
+        console.error("[uploadFile:encrypt]", err);
+        toast.error("Échec du chiffrement du média.");
+        return null;
+      }
+    }
+
+    const ext = useE2E
+      ? "bin" // ciphertext opaque, pas d'extension réelle
+      : file.name.split(".").pop()?.toLowerCase() ?? "bin";
     const storagePath = `${senderId}/${conversationId}/${crypto.randomUUID()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("chat-media")
-      .upload(storagePath, file, {
-        contentType: file.type,
+      .upload(storagePath, bodyToUpload, {
+        contentType: contentTypeForUpload,
         cacheControl: "3600",
       });
 
@@ -164,11 +210,6 @@ export function MessageComposer({
       data: { publicUrl },
     } = supabase.storage.from("chat-media").getPublicUrl(storagePath);
 
-    let dims: { width: number; height: number } | null = null;
-    if (kind === "image") {
-      dims = await getImageDimensions(file);
-    }
-
     return {
       url: publicUrl,
       storagePath,
@@ -177,6 +218,7 @@ export function MessageComposer({
       size: file.size,
       width: dims?.width ?? null,
       height: dims?.height ?? null,
+      encryption,
     } satisfies Attachment;
   }
 
@@ -229,17 +271,41 @@ export function MessageComposer({
 
   async function handleVoiceSend(audio: RecordedAudio) {
     const supabase = createClient();
-    const ext = audio.mimeType.includes("mp4")
-      ? "m4a"
-      : audio.mimeType.includes("mpeg")
-        ? "mp3"
-        : "webm";
+    const useE2E = encryptBytesFn !== undefined;
+
+    /* Si mode secret : chiffre le blob audio avant upload. */
+    let bodyToUpload: Blob = audio.blob;
+    let contentTypeForUpload = audio.mimeType || "audio/webm";
+    let mediaEncryption: { iv: string; contentType: string } | null = null;
+    if (useE2E) {
+      try {
+        const buffer = await audio.blob.arrayBuffer();
+        const { ciphertext, iv } = await encryptBytesFn(buffer);
+        bodyToUpload = new Blob([ciphertext], {
+          type: "application/octet-stream",
+        });
+        contentTypeForUpload = "application/octet-stream";
+        mediaEncryption = { iv, contentType: audio.mimeType || "audio/webm" };
+      } catch (err) {
+        console.error("[handleVoiceSend:encrypt]", err);
+        toast.error("Échec du chiffrement du message vocal.");
+        throw err;
+      }
+    }
+
+    const ext = useE2E
+      ? "bin"
+      : audio.mimeType.includes("mp4")
+        ? "m4a"
+        : audio.mimeType.includes("mpeg")
+          ? "mp3"
+          : "webm";
     const storagePath = `${senderId}/${conversationId}/${crypto.randomUUID()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("chat-media")
-      .upload(storagePath, audio.blob, {
-        contentType: audio.mimeType || "audio/webm",
+      .upload(storagePath, bodyToUpload, {
+        contentType: contentTypeForUpload,
         cacheControl: "3600",
       });
 
@@ -252,6 +318,14 @@ export function MessageComposer({
       data: { publicUrl },
     } = supabase.storage.from("chat-media").getPublicUrl(storagePath);
 
+    const mediaMetadata = mediaEncryption
+      ? {
+          iv: mediaEncryption.iv,
+          contentType: mediaEncryption.contentType,
+          originalSize: audio.blob.size,
+        }
+      : null;
+
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: senderId,
@@ -260,6 +334,12 @@ export function MessageComposer({
       attachment_size: audio.blob.size,
       attachment_duration_ms: Math.round(audio.durationMs),
       reply_to_message_id: replyTo?.id ?? null,
+      ...(mediaMetadata
+        ? {
+            is_secret: true,
+            encryption_metadata: { version: 1, media: mediaMetadata },
+          }
+        : {}),
     });
 
     if (error) {
@@ -309,8 +389,18 @@ export function MessageComposer({
           view_once: isViewOnce,
         };
 
-        /* Mode secret : encrypt le texte avant insert. Les pièces
-           jointes V1 ne sont pas chiffrées (1.2g future). */
+        /* Mode secret : encrypt le texte ET marque le payload média
+           chiffré dans encryption_metadata.media. Si pas de texte mais
+           juste un média chiffré, on flag quand même is_secret=true. */
+        const mediaMetadata = previousAttachment?.encryption
+          ? {
+              iv: previousAttachment.encryption.iv,
+              contentType: previousAttachment.encryption.contentType,
+              originalName: previousAttachment.name,
+              originalSize: previousAttachment.size,
+            }
+          : null;
+
         let result;
         if (encryptFn && trimmed.length > 0) {
           const encrypted = await encryptFn(trimmed);
@@ -323,6 +413,18 @@ export function MessageComposer({
               iv: encrypted.iv,
               sessionKeyHash: encrypted.sessionKeyHash,
               version: encrypted.version,
+              ...(mediaMetadata ? { media: mediaMetadata } : {}),
+            },
+          });
+        } else if (mediaMetadata) {
+          /* Pas de texte mais média chiffré → marque le message
+             is_secret pour que le bubble lance le decrypt. */
+          result = await supabase.from("messages").insert({
+            ...basePayload,
+            is_secret: true,
+            encryption_metadata: {
+              version: 1,
+              media: mediaMetadata,
             },
           });
         } else {
