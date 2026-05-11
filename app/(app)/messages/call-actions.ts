@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendPushToUser } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 import type { CallKind, CallStatus } from "@/lib/calls/types";
 
@@ -98,6 +99,65 @@ export async function endCallSession(
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Exception endCallSession.",
+    };
+  }
+}
+
+/* Push notification d'appel entrant. Appelée par le caller juste après
+ * la création de la session DB, fire-and-forget. Permet au callee de
+ * voir une notif native même si son navigateur est fermé / en background.
+ *
+ * Sécurité : on lookup le profil du caller (auth.uid()) pour le nom
+ * affiché — pas de bypass possible par un attaquant qui spammerait des
+ * push avec un nom usurpé.
+ *
+ * Note : web push peut avoir 1-3s de latence selon le browser vendor
+ * (FCM, APNs, etc.) — la sonnerie Web Audio in-app reste la voie rapide
+ * quand l'app est ouverte. */
+export async function notifyIncomingCall(
+  calleeUserId: string,
+  conversationId: string,
+): Promise<CallActionResult<null>> {
+  try {
+    const parsedCallee = idSchema.safeParse(calleeUserId);
+    const parsedConv = idSchema.safeParse(conversationId);
+    if (!parsedCallee.success || !parsedConv.success) {
+      return { ok: false, error: "Paramètres invalides." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Non authentifié." };
+
+    /* Récupère le nom du caller pour l'affichage dans la notif. */
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", user.id)
+      .maybeSingle();
+    const callerName =
+      callerProfile?.full_name ??
+      callerProfile?.username ??
+      "Quelqu'un";
+
+    /* Fire-and-forget. Pas d'await sur le retour pour ne pas bloquer
+       l'UI pendant que le push se propage (FCM/APNs prend 1-3s). */
+    void sendPushToUser(parsedCallee.data, {
+      title: `📞 ${callerName} t'appelle`,
+      body: "Touche pour décrocher",
+      url: `/messages/${parsedConv.data}`,
+      tag: `call-${parsedConv.data}`,
+      icon: "/icon-192.png",
+    });
+
+    return { ok: true, data: null };
+  } catch (err) {
+    console.error("[notifyIncomingCall] threw:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Exception push.",
     };
   }
 }

@@ -29,6 +29,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { notifyIncomingCall } from "@/app/(app)/messages/call-actions";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendRingBroadcast,
@@ -418,6 +419,11 @@ export function CallProvider({
         callerId: currentUserId,
         kind,
       });
+
+      /* 2.6 Push notification système (Web Push VAPID). Permet au callee
+         de voir une notif native même app fermée. Fire-and-forget. */
+      log("startCall: triggering push notification");
+      void notifyIncomingCall(peerId, conversationId);
 
       /* 3. Subscribe + ringing-outbound (overlay visible immédiat). */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);

@@ -8,7 +8,7 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v7";
+const CACHE_NAME = "divarc-v8";
 const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
@@ -151,15 +151,22 @@ self.addEventListener("push", (event) => {
     payload.body = event.data.text();
   }
 
+  /* Tag commence par "call-" → notif d'appel entrant. On amplifie :
+     vibration pattern (mobile), requireInteraction (la notif reste
+     tant que l'user n'a pas tap). */
+  const isCall =
+    typeof payload.tag === "string" && payload.tag.startsWith("call-");
+
   event.waitUntil(
     self.registration.showNotification(payload.title ?? "DIVARC", {
       body: payload.body ?? "",
       icon: payload.icon ?? "/icon-192.png",
       badge: payload.badge ?? "/icon-192.png",
       tag: payload.tag ?? "divarc",
-      // `data.url` consommé par notificationclick handler ci-dessous.
       data: { url: payload.url ?? "/" },
-      requireInteraction: false,
+      requireInteraction: isCall,
+      vibrate: isCall ? [300, 200, 300, 200, 300, 200, 300] : undefined,
+      silent: false,
     }),
   );
 });
