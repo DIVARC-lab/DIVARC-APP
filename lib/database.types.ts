@@ -2156,6 +2156,12 @@ export type ConversationListItem = {
   last_message_at: string;
   last_read_at: string;
   unread_count: number;
+  /* Chantier 1.3 — flags par-membre (migration 0073). */
+  is_pinned: boolean;
+  is_archived: boolean;
+  is_muted: boolean;
+  mute_until: string | null;
+  wants_secret: boolean;
   other_member: {
     user_id: string;
     full_name: string | null;
@@ -2167,6 +2173,7 @@ export type ConversationListItem = {
     sender_id: string;
     created_at: string;
     attachment_type: AttachmentType | null;
+    is_secret: boolean;
   } | null;
 };
 

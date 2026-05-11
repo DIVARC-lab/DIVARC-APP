@@ -15,7 +15,9 @@ export async function listConversationsForUser(
 
   const { data: memberRows, error: memberError } = await supabase
     .from("conversation_members")
-    .select("conversation_id, last_read_at")
+    .select(
+      "conversation_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret",
+    )
     .eq("user_id", userId);
 
   if (memberError || !memberRows || memberRows.length === 0) {
@@ -23,8 +25,26 @@ export async function listConversationsForUser(
   }
 
   const conversationIds = memberRows.map((m) => m.conversation_id);
-  const lastReadByConv = new Map(
-    memberRows.map((m) => [m.conversation_id, m.last_read_at]),
+  type MemberFlags = {
+    last_read_at: string;
+    is_pinned: boolean;
+    is_archived: boolean;
+    is_muted: boolean;
+    mute_until: string | null;
+    wants_secret: boolean;
+  };
+  const memberFlagsByConv = new Map<string, MemberFlags>(
+    memberRows.map((m) => [
+      m.conversation_id,
+      {
+        last_read_at: m.last_read_at,
+        is_pinned: m.is_pinned ?? false,
+        is_archived: m.is_archived ?? false,
+        is_muted: m.is_muted ?? false,
+        mute_until: m.mute_until ?? null,
+        wants_secret: m.wants_secret ?? false,
+      },
+    ]),
   );
 
   const { data: conversations, error: convError } = await supabase
@@ -81,7 +101,8 @@ export async function listConversationsForUser(
   }
 
   const items: ConversationListItem[] = conversations.map((conv) => {
-    const lastReadAt = lastReadByConv.get(conv.id) ?? conv.created_at;
+    const flags = memberFlagsByConv.get(conv.id);
+    const lastReadAt = flags?.last_read_at ?? conv.created_at;
     const otherUserId = otherUserIdsByConv.get(conv.id) ?? null;
     const otherProfile = otherUserId
       ? profilesByUserId.get(otherUserId) ?? null
@@ -93,6 +114,12 @@ export async function listConversationsForUser(
         ? 1
         : 0;
 
+    /* Mute_until expiré → on traite comme non-muted côté affichage. */
+    const muteUntil = flags?.mute_until ?? null;
+    const stillMuted = muteUntil
+      ? new Date(muteUntil).getTime() > Date.now()
+      : (flags?.is_muted ?? false);
+
     return {
       id: conv.id,
       type: conv.type,
@@ -101,6 +128,11 @@ export async function listConversationsForUser(
       last_message_at: conv.last_message_at,
       last_read_at: lastReadAt,
       unread_count: unreadCount,
+      is_pinned: flags?.is_pinned ?? false,
+      is_archived: flags?.is_archived ?? false,
+      is_muted: stillMuted,
+      mute_until: muteUntil,
+      wants_secret: flags?.wants_secret ?? false,
       other_member: otherProfile
         ? {
             user_id: otherProfile.id,
@@ -115,9 +147,21 @@ export async function listConversationsForUser(
             sender_id: lastMessage.sender_id,
             created_at: lastMessage.created_at,
             attachment_type: lastMessage.attachment_type,
+            is_secret: lastMessage.is_secret ?? false,
           }
         : null,
     };
+  });
+
+  /* Tri canonique : épinglés d'abord (par last_message_at desc), puis
+     reste (par last_message_at desc). Les archivés gardent ce tri mais
+     sont filtrés par défaut au niveau de la sidebar. */
+  items.sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    return (
+      new Date(b.last_message_at).getTime() -
+      new Date(a.last_message_at).getTime()
+    );
   });
 
   return items;

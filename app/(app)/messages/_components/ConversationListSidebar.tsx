@@ -1,6 +1,14 @@
 "use client";
 
-import { MessageSquarePlus, Search, Users, X } from "lucide-react";
+import {
+  Archive,
+  Lock,
+  MessageSquarePlus,
+  Pin,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -14,12 +22,14 @@ type ConversationListSidebarProps = {
   presenceMap: Record<string, PresenceInfo>;
 };
 
-type FilterId = "all" | "unread" | "groups";
+type FilterId = "all" | "unread" | "groups" | "secret" | "archived";
 
-const FILTERS: { id: FilterId; label: string }[] = [
+const FILTERS: { id: FilterId; label: string; icon?: typeof Pin }[] = [
   { id: "all", label: "Tous" },
   { id: "unread", label: "Non lus" },
   { id: "groups", label: "Groupes" },
+  { id: "secret", label: "Secret", icon: Lock },
+  { id: "archived", label: "Archivés", icon: Archive },
 ];
 
 export function ConversationListSidebar({
@@ -30,17 +40,25 @@ export function ConversationListSidebar({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
 
+  /* Liste filtrée : on applique d'abord la règle "archivés cachés sauf
+     dans l'onglet archived", puis la recherche. */
   const filtered = useMemo(() => {
     let items = conversations;
 
-    /* Tab filter. */
+    if (filter === "archived") {
+      items = items.filter((c) => c.is_archived);
+    } else {
+      items = items.filter((c) => !c.is_archived);
+    }
+
     if (filter === "unread") {
       items = items.filter((c) => c.unread_count > 0);
     } else if (filter === "groups") {
       items = items.filter((c) => c.type === "group");
+    } else if (filter === "secret") {
+      items = items.filter((c) => c.wants_secret);
     }
 
-    /* Text search : name + other member name/username + last message body. */
     const q = query.trim().toLowerCase();
     if (q.length > 0) {
       items = items.filter((c) => {
@@ -60,14 +78,31 @@ export function ConversationListSidebar({
     return items;
   }, [conversations, filter, query]);
 
-  const unreadCount = useMemo(
-    () => conversations.filter((c) => c.unread_count > 0).length,
-    [conversations],
-  );
-  const groupsCount = useMemo(
-    () => conversations.filter((c) => c.type === "group").length,
-    [conversations],
-  );
+  /* Split épinglées vs reste. Dans l'onglet "archived" pas de split (on
+     affiche tout en flat). */
+  const { pinned, rest } = useMemo(() => {
+    if (filter === "archived") {
+      return { pinned: [] as ConversationListItem[], rest: filtered };
+    }
+    const p: ConversationListItem[] = [];
+    const r: ConversationListItem[] = [];
+    for (const c of filtered) (c.is_pinned ? p : r).push(c);
+    return { pinned: p, rest: r };
+  }, [filtered, filter]);
+
+  /* Compteurs pour chaque chip (sur la liste non-archivée pour "tous /
+     non lus / groupes / secret", sur archivés uniquement pour le chip
+     archived). */
+  const counts = useMemo(() => {
+    const active = conversations.filter((c) => !c.is_archived);
+    return {
+      all: active.length,
+      unread: active.filter((c) => c.unread_count > 0).length,
+      groups: active.filter((c) => c.type === "group").length,
+      secret: active.filter((c) => c.wants_secret).length,
+      archived: conversations.filter((c) => c.is_archived).length,
+    } satisfies Record<FilterId, number>;
+  }, [conversations]);
 
   return (
     <aside className="flex flex-col border-r border-line bg-bg h-full">
@@ -99,7 +134,6 @@ export function ConversationListSidebar({
           </div>
         </div>
 
-        {/* Search bar — fonctionnelle */}
         <div className="relative">
           <Search
             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
@@ -125,19 +159,17 @@ export function ConversationListSidebar({
           ) : null}
         </div>
 
-        {/* Filter chips */}
         <nav
           aria-label="Filtres discussions"
           className="mt-3 flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1"
         >
           {FILTERS.map((f) => {
             const active = filter === f.id;
-            const count =
-              f.id === "unread"
-                ? unreadCount
-                : f.id === "groups"
-                  ? groupsCount
-                  : conversations.length;
+            const count = counts[f.id];
+            const Icon = f.icon;
+            /* On masque les chips à 0 sauf "Tous" qu'on garde toujours
+               visible comme reset. */
+            if (count === 0 && f.id !== "all") return null;
             return (
               <button
                 key={f.id}
@@ -151,6 +183,7 @@ export function ConversationListSidebar({
                     : "bg-bg-soft border border-line text-night-soft hover:border-night/30",
                 )}
               >
+                {Icon ? <Icon className="w-3 h-3" aria-hidden /> : null}
                 {f.label}
                 {count > 0 ? (
                   <span
@@ -171,29 +204,77 @@ export function ConversationListSidebar({
       <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
         {filtered.length === 0 ? (
           query.trim().length > 0 || filter !== "all" ? (
-            <NoResults query={query} filter={filter} onReset={() => {
-              setQuery("");
-              setFilter("all");
-            }} />
+            <NoResults
+              query={query}
+              filter={filter}
+              onReset={() => {
+                setQuery("");
+                setFilter("all");
+              }}
+            />
           ) : (
             <EmptyConversationList />
           )
         ) : (
-          filtered.map((conversation) => {
-            const otherId = conversation.other_member?.user_id;
-            const presence = otherId ? presenceMap[otherId] ?? null : null;
-            return (
-              <ConversationItem
-                key={conversation.id}
-                conversation={conversation}
-                currentUserId={currentUserId}
-                presence={presence}
-              />
-            );
-          })
+          <>
+            {pinned.length > 0 ? (
+              <SectionLabel icon={Pin} label="Épinglées" count={pinned.length} />
+            ) : null}
+            {pinned.map((conversation) => {
+              const otherId = conversation.other_member?.user_id;
+              const presence = otherId ? presenceMap[otherId] ?? null : null;
+              return (
+                <ConversationItem
+                  key={conversation.id}
+                  conversation={conversation}
+                  currentUserId={currentUserId}
+                  presence={presence}
+                />
+              );
+            })}
+            {pinned.length > 0 && rest.length > 0 ? (
+              <SectionLabel label="Récentes" />
+            ) : null}
+            {rest.map((conversation) => {
+              const otherId = conversation.other_member?.user_id;
+              const presence = otherId ? presenceMap[otherId] ?? null : null;
+              return (
+                <ConversationItem
+                  key={conversation.id}
+                  conversation={conversation}
+                  currentUserId={currentUserId}
+                  presence={presence}
+                />
+              );
+            })}
+          </>
         )}
       </div>
     </aside>
+  );
+}
+
+function SectionLabel({
+  icon: Icon,
+  label,
+  count,
+}: {
+  icon?: typeof Pin;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <div className="flex items-center gap-1.5 px-2 pt-2 pb-1 first:pt-0">
+      {Icon ? (
+        <Icon className="w-3 h-3 text-gold-deep" aria-hidden />
+      ) : null}
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-night-muted">
+        {label}
+      </p>
+      {count !== undefined ? (
+        <span className="text-[10px] font-bold text-muted">· {count}</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -206,17 +287,27 @@ function NoResults({
   filter: FilterId;
   onReset: () => void;
 }) {
+  const filterLabel =
+    filter === "unread"
+      ? "Aucune discussion non lue."
+      : filter === "groups"
+        ? "Aucun groupe."
+        : filter === "secret"
+          ? "Aucune conversation en mode secret."
+          : filter === "archived"
+            ? "Aucune discussion archivée."
+            : null;
+
   return (
     <div className="text-center py-10 px-4">
       <p className="text-[13px] text-night-muted">
         {query.trim().length > 0 ? (
           <>
-            Aucun résultat pour <span className="font-bold text-night">« {query} »</span>
+            Aucun résultat pour{" "}
+            <span className="font-bold text-night">« {query} »</span>
           </>
-        ) : filter === "unread" ? (
-          "Aucune discussion non lue."
         ) : (
-          "Aucun groupe."
+          filterLabel ?? "Aucune discussion."
         )}
       </p>
       <button
