@@ -7,6 +7,10 @@ import type {
   MessageReplyContext,
 } from "@/lib/database.types";
 import { useConversationCrypto } from "@/lib/hooks/useConversationCrypto";
+import {
+  getTheme,
+  themeContainerStyle,
+} from "@/lib/themes/conversationThemes";
 import { ConversationSearchBar } from "./ConversationSearchBar";
 import { MessageComposer } from "./MessageComposer";
 import { MessageThread } from "./MessageThread";
@@ -33,6 +37,9 @@ type ConversationViewProps = {
   memberMap: Record<string, OtherMember>;
   isGroup: boolean;
   secretContext?: SecretContext | null;
+  /* Chantier 3 : thème personnalisé de cet user pour cette conv. */
+  themePreset?: string | null;
+  wallpaperId?: string | null;
 };
 
 export function ConversationView({
@@ -45,7 +52,14 @@ export function ConversationView({
   memberMap,
   isGroup,
   secretContext = null,
+  themePreset = null,
+  wallpaperId = null,
 }: ConversationViewProps) {
+  const theme = useMemo(() => getTheme(themePreset), [themePreset]);
+  const containerStyle = useMemo(
+    () => themeContainerStyle(themePreset, wallpaperId),
+    [themePreset, wallpaperId],
+  );
   const [replyTo, setReplyTo] = useState<MessageReplyContext | null>(null);
 
   /* Recherche dans la conversation. Déclenchée par bouton search dans
@@ -125,7 +139,7 @@ export function ConversationView({
           : "⚠️ Session indisponible";
 
   return (
-    <>
+    <div className="flex-1 flex flex-col min-h-0" style={containerStyle}>
       <ConversationSearchBar
         open={searchOpen}
         query={searchQuery}
@@ -150,6 +164,12 @@ export function ConversationView({
         decryptBytesFn={isSecretAndReady ? convCrypto.decryptBytes : undefined}
         searchQuery={searchOpen ? searchQuery : ""}
         activeMatchId={activeMatchId}
+        bubbleStyle={{
+          ownBg: theme.accent,
+          ownText: theme.accentText,
+          otherBg: theme.bubbleOther,
+          otherText: theme.bubbleOtherText,
+        }}
       />
       <MessageComposer
         conversationId={conversationId}
@@ -160,6 +180,6 @@ export function ConversationView({
         encryptBytesFn={isSecretAndReady ? convCrypto.encryptBytes : undefined}
         secretLabel={secretLabel}
       />
-    </>
+    </div>
   );
 }

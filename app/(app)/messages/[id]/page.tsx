@@ -105,6 +105,8 @@ export default async function ConversationPage({ params }: { params: Params }) {
         isArchived={myMember?.is_archived ?? false}
         isMuted={myMember?.is_muted ?? false}
         secret={secretBadge}
+        themePreset={myMember?.theme_preset ?? null}
+        wallpaperId={myMember?.wallpaper_id ?? null}
       />
 
       <ConversationView
@@ -131,6 +133,8 @@ export default async function ConversationPage({ params }: { params: Params }) {
               }
             : null
         }
+        themePreset={myMember?.theme_preset ?? null}
+        wallpaperId={myMember?.wallpaper_id ?? null}
       />
     </>
   );

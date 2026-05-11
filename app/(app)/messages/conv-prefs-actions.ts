@@ -108,3 +108,56 @@ export const MUTE_DURATIONS = {
   DAY_1: 24 * 60 * 60 * 1000,
   WEEK_1: 7 * 24 * 60 * 60 * 1000,
 } as const;
+
+/* === Chantier 3 : Themes per-conversation === */
+
+const themeSchema = z.object({
+  conversationId: z.string().uuid(),
+  themePreset: z.enum([
+    "default",
+    "gold",
+    "sunset",
+    "ocean",
+    "forest",
+    "midnight",
+    "rose",
+    "lavender",
+  ]),
+  wallpaperId: z.enum([
+    "none",
+    "arcs",
+    "dots",
+    "waves",
+    "gradient",
+    "stars",
+  ]),
+});
+
+export async function setConversationTheme(
+  conversationId: string,
+  themePreset: string,
+  wallpaperId: string,
+): Promise<ConvPrefResult> {
+  const parsed = themeSchema.safeParse({
+    conversationId,
+    themePreset,
+    wallpaperId,
+  });
+  if (!parsed.success) return { ok: false, error: "Thème invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { error } = await supabase.rpc("set_conversation_theme", {
+    p_conv_id: parsed.data.conversationId,
+    p_theme_preset: parsed.data.themePreset,
+    p_wallpaper_id: parsed.data.wallpaperId,
+  });
+  if (error) return { ok: false, error: `Échec : ${error.message}` };
+
+  revalidatePath(`/messages/${parsed.data.conversationId}`);
+  return { ok: true };
+}

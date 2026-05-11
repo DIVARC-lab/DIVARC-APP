@@ -5,6 +5,7 @@ import {
   BellOff,
   Lock,
   MoreVertical,
+  Palette,
   Phone,
   Pin,
   Search,
@@ -23,6 +24,7 @@ import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import type { PresenceInfo } from "@/lib/database.types";
 import { useCallSession } from "@/lib/hooks/useCallSession";
 import { ConversationActionsSheet } from "./ConversationActionsSheet";
+import { ConversationThemeSheet } from "./ConversationThemeSheet";
 
 type SecretBadge = "active" | "pending" | "off";
 
@@ -43,6 +45,9 @@ type ChatHeaderProps = {
   isMuted: boolean;
   /* État du mode secret (header badge). */
   secret: SecretBadge;
+  /* Chantier 3 : thème personnalisé courant. */
+  themePreset: string | null;
+  wallpaperId: string | null;
 };
 
 export function ChatHeader({
@@ -58,11 +63,14 @@ export function ChatHeader({
   isArchived,
   isMuted,
   secret,
+  themePreset,
+  wallpaperId,
 }: ChatHeaderProps) {
   const router = useRouter();
   const { startCall } = useCallSession();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
   async function handleStartCall(kind: "audio" | "video") {
     if (!otherUserId) {
@@ -245,6 +253,18 @@ export function ChatHeader({
                 Conversation secrète
               </Link>
             ) : null}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setThemeOpen(true);
+              }}
+              className="w-full flex items-center gap-3 px-4 h-12 text-left text-sm font-semibold text-night hover:bg-night/5"
+            >
+              <Palette className="w-4 h-4 text-night-muted" aria-hidden />
+              Personnaliser le thème
+            </button>
             <Link
               href={`/messages/${conversationId}/settings`}
               onClick={() => setMenuOpen(false)}
@@ -270,6 +290,13 @@ export function ChatHeader({
         isPinned={isPinned}
         isArchived={isArchived}
         isMuted={isMuted}
+      />
+      <ConversationThemeSheet
+        open={themeOpen}
+        onClose={() => setThemeOpen(false)}
+        conversationId={conversationId}
+        initialThemePreset={themePreset}
+        initialWallpaperId={wallpaperId}
       />
     </div>
   );

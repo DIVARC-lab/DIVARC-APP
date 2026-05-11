@@ -46,6 +46,13 @@ type MessageThreadProps = {
      dans les bulles + scroll vers activeMatchId. */
   searchQuery?: string;
   activeMatchId?: string | null;
+  /* Chantier 3 : style des bulles depuis le thème courant. */
+  bubbleStyle?: {
+    ownBg: string;
+    ownText: string;
+    otherBg: string;
+    otherText: string;
+  };
 };
 
 export function MessageThread({
@@ -62,6 +69,7 @@ export function MessageThread({
   decryptBytesFn,
   searchQuery = "",
   activeMatchId = null,
+  bubbleStyle,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionsState>(initialReactions);
@@ -405,6 +413,7 @@ export function MessageThread({
                 }
                 decryptFn={decryptFn}
                 decryptBytesFn={decryptBytesFn}
+                bubbleStyle={bubbleStyle}
               />
               {isLastOwn && !isGroup ? (
                 <div className="flex justify-end mt-1 pr-1">

@@ -57,6 +57,14 @@ type MessageBubbleProps = {
   decryptFn?: (payload: EncryptedPayload) => Promise<string>;
   /* Décrypt des médias E2E. */
   decryptBytesFn?: (ciphertext: ArrayBuffer, iv: string) => Promise<ArrayBuffer>;
+  /* Chantier 3 : couleurs des bulles depuis le thème. Si non fourni,
+     fallback vers les couleurs night/cream/white par défaut. */
+  bubbleStyle?: {
+    ownBg: string;
+    ownText: string;
+    otherBg: string;
+    otherText: string;
+  };
 };
 
 /* Extrait le sous-objet media de encryption_metadata si présent et valide. */
@@ -114,7 +122,14 @@ export function MessageBubble({
   onReply,
   decryptFn,
   decryptBytesFn,
+  bubbleStyle,
 }: MessageBubbleProps) {
+  /* Couleurs des bulles depuis le thème (fallback aux valeurs par défaut). */
+  const bubbleColors = bubbleStyle
+    ? isOwn
+      ? { backgroundColor: bubbleStyle.ownBg, color: bubbleStyle.ownText }
+      : { backgroundColor: bubbleStyle.otherBg, color: bubbleStyle.otherText }
+    : undefined;
   const confirm = useConfirm();
   const [pendingDelete, startDelete] = useTransition();
   const [, startMutation] = useTransition();
@@ -490,11 +505,16 @@ export function MessageBubble({
 
             {editing ? (
               <div
+                style={bubbleColors}
                 className={cn(
                   "px-3 py-2 rounded-3xl shadow-sm w-full",
                   isOwn
-                    ? "bg-night text-cream rounded-br-md"
-                    : "bg-white text-night border border-line rounded-bl-md",
+                    ? bubbleColors
+                      ? "rounded-br-md"
+                      : "bg-night text-cream rounded-br-md"
+                    : bubbleColors
+                      ? "border border-line rounded-bl-md"
+                      : "bg-white text-night border border-line rounded-bl-md",
                 )}
               >
                 <textarea
@@ -547,12 +567,17 @@ export function MessageBubble({
               </div>
             ) : hasTextBubble ? (
               <div
+                style={bubbleColors}
                 className={cn(
                   "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm select-none",
                   hasImage || hasFile || hasAudio ? "mt-1.5" : "",
                   isOwn
-                    ? "bg-night text-cream rounded-br-md"
-                    : "bg-white text-night border border-line rounded-bl-md",
+                    ? bubbleColors
+                      ? "rounded-br-md"
+                      : "bg-night text-cream rounded-br-md"
+                    : bubbleColors
+                      ? "border border-line rounded-bl-md"
+                      : "bg-white text-night border border-line rounded-bl-md",
                   isCipherPlaceholder ? "italic opacity-80" : "",
                 )}
               >

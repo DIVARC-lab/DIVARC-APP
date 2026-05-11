@@ -181,6 +181,9 @@ export async function getConversationDetails(
     mute_until: string | null;
     wants_secret: boolean;
     nickname: string | null;
+    /* Chantier 3 : thème personnalisé. */
+    theme_preset: string | null;
+    wallpaper_id: string | null;
   } | null;
 } | null> {
   const supabase = await createClient();
@@ -201,7 +204,7 @@ export async function getConversationDetails(
   const { data: members } = await supabase
     .from("conversation_members")
     .select(
-      "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname",
+      "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname, theme_preset, wallpaper_id",
     )
     .eq("conversation_id", conversationId);
 
@@ -237,6 +240,8 @@ export async function getConversationDetails(
           mute_until: muteUntil,
           wants_secret: myEntry.wants_secret ?? false,
           nickname: myEntry.nickname ?? null,
+          theme_preset: myEntry.theme_preset ?? null,
+          wallpaper_id: myEntry.wallpaper_id ?? null,
         }
       : null,
   };
