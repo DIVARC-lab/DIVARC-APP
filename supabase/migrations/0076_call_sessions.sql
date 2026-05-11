@@ -211,4 +211,17 @@ grant execute on function public.mark_call_connected(uuid) to authenticated;
 -- =====================================================
 -- Note : pour le signaling SDP/ICE on utilise des channels Realtime
 -- éphémères côté client, pas la table. La table sert juste à l'historique.
-alter publication supabase_realtime add table public.call_sessions;
+-- Idempotent : skip si déjà ajouté (sinon abort la transaction).
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime'
+          and schemaname = 'public'
+          and tablename = 'call_sessions'
+     )
+  then
+    alter publication supabase_realtime add table public.call_sessions;
+  end if;
+end $$;
