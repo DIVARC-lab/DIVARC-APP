@@ -20,26 +20,43 @@ export async function createCallSession(
   conversationId: string,
   kind: CallKind = "audio",
 ): Promise<CallActionResult<{ callId: string }>> {
-  const parsed = idSchema.safeParse(conversationId);
-  if (!parsed.success) return { ok: false, error: "Conversation invalide." };
+  try {
+    const parsed = idSchema.safeParse(conversationId);
+    if (!parsed.success) return { ok: false, error: "Conversation invalide." };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Non authentifié." };
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Non authentifié." };
 
-  const { data, error } = await supabase.rpc("create_call_session", {
-    p_conversation_id: parsed.data,
-    p_kind: kind,
-  });
+    const { data, error } = await supabase.rpc("create_call_session", {
+      p_conversation_id: parsed.data,
+      p_kind: kind,
+    });
 
-  if (error || !data) {
-    console.error("[createCallSession]", error);
-    return { ok: false, error: "Impossible de démarrer l'appel." };
+    if (error) {
+      console.error("[createCallSession] RPC error:", JSON.stringify(error));
+      return {
+        ok: false,
+        error: `DB : ${error.message ?? "RPC failed"} (${error.code ?? "no code"})`,
+      };
+    }
+    if (!data) {
+      console.error("[createCallSession] empty data");
+      return { ok: false, error: "RPC a retourné null." };
+    }
+
+    return { ok: true, data: { callId: data as string } };
+  } catch (err) {
+    console.error("[createCallSession] threw:", err);
+    return {
+      ok: false,
+      error: err instanceof Error
+        ? `Exception : ${err.message}`
+        : "Exception inconnue dans createCallSession.",
+    };
   }
-
-  return { ok: true, data: { callId: data as string } };
 }
 
 const endSchema = z.object({
@@ -53,46 +70,62 @@ export async function endCallSession(
   status: Extract<CallStatus, "ended" | "missed" | "rejected" | "failed">,
   reason?: string | null,
 ): Promise<CallActionResult<null>> {
-  const parsed = endSchema.safeParse({ callId, status, reason });
-  if (!parsed.success) return { ok: false, error: "Paramètres invalides." };
+  try {
+    const parsed = endSchema.safeParse({ callId, status, reason });
+    if (!parsed.success) return { ok: false, error: "Paramètres invalides." };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Non authentifié." };
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Non authentifié." };
 
-  const { error } = await supabase.rpc("end_call_session", {
-    p_call_id: parsed.data.callId,
-    p_status: parsed.data.status,
-    p_reason: parsed.data.reason ?? undefined,
-  });
+    const { error } = await supabase.rpc("end_call_session", {
+      p_call_id: parsed.data.callId,
+      p_status: parsed.data.status,
+      p_reason: parsed.data.reason ?? undefined,
+    });
 
-  if (error) {
-    console.error("[endCallSession]", error);
-    return { ok: false, error: "Échec fin d'appel." };
+    if (error) {
+      console.error("[endCallSession]", error);
+      return { ok: false, error: `Échec fin d'appel : ${error.message}` };
+    }
+
+    revalidatePath("/messages");
+    return { ok: true, data: null };
+  } catch (err) {
+    console.error("[endCallSession] threw:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Exception endCallSession.",
+    };
   }
-
-  revalidatePath("/messages");
-  return { ok: true, data: null };
 }
 
 export async function markCallConnected(
   callId: string,
 ): Promise<CallActionResult<null>> {
-  const parsed = idSchema.safeParse(callId);
-  if (!parsed.success) return { ok: false, error: "ID invalide." };
+  try {
+    const parsed = idSchema.safeParse(callId);
+    if (!parsed.success) return { ok: false, error: "ID invalide." };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Non authentifié." };
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: "Non authentifié." };
 
-  const { error } = await supabase.rpc("mark_call_connected", {
-    p_call_id: parsed.data,
-  });
+    const { error } = await supabase.rpc("mark_call_connected", {
+      p_call_id: parsed.data,
+    });
 
-  if (error) return { ok: false, error: "Échec connexion." };
-  return { ok: true, data: null };
+    if (error) return { ok: false, error: `Échec : ${error.message}` };
+    return { ok: true, data: null };
+  } catch (err) {
+    console.error("[markCallConnected] threw:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Exception markCallConnected.",
+    };
+  }
 }
