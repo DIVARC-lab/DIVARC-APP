@@ -12,6 +12,7 @@ import {
   type TabCounters,
 } from "@/components/profile/ProfileTabsV2";
 import { ProfileHeroV2 } from "@/components/profile/ProfileHeroV2";
+import { ProfileRelationsBar } from "@/components/profile/ProfileRelationsBar";
 import { RecommendationsSection } from "@/components/profile/RecommendationsSection";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { getExtendedProfileByUsername } from "@/lib/queries/extendedProfile";
@@ -146,6 +147,12 @@ export default async function ProfileV2Page({
           />
         }
       />
+
+      {!isOwn ? (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 mb-2">
+          <ProfileRelationsBar targetUserId={profile.id} isOwn={isOwn} />
+        </div>
+      ) : null}
 
       <ProfileTabsV2 facets={profile.facets} counters={counters} />
 
