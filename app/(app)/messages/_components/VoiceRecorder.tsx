@@ -1,6 +1,6 @@
 "use client";
 
-import { Mic, Send, Square, Trash2 } from "lucide-react";
+import { Mic, Pause, Play, Send, Square, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
@@ -159,41 +159,13 @@ export function VoiceRecorder({ onCancel, onSend }: VoiceRecorderProps) {
 
   if (state.kind === "preview") {
     return (
-      <div className="flex items-center gap-2 w-full">
-        <button
-          type="button"
-          onClick={handleCancel}
-          disabled={sending}
-          aria-label="Supprimer"
-          className="w-10 h-10 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center"
-        >
-          <Trash2 className="w-4 h-4" aria-hidden />
-        </button>
-        <div className="flex-1 flex items-center gap-2 px-4 h-12 rounded-2xl bg-bg border border-line">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <span className="text-sm font-semibold text-night">
-            Message vocal prêt
-          </span>
-          <span className="text-xs text-muted ml-auto">
-            {formatTime(state.durationMs)}
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sending}
-          aria-label="Envoyer"
-          className={cn(
-            "shrink-0 w-12 h-12 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition disabled:opacity-60",
-          )}
-        >
-          {sending ? (
-            <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" aria-hidden />
-          )}
-        </button>
-      </div>
+      <PreviewBar
+        previewUrl={state.previewUrl}
+        durationMs={state.durationMs}
+        sending={sending}
+        onCancel={handleCancel}
+        onSend={handleSend}
+      />
     );
   }
 
@@ -236,6 +208,124 @@ function formatTime(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/* Bar de preview avec playback intégré. L'user peut écouter avant
+ * d'envoyer (Telegram/WhatsApp UX). On utilise un <audio> natif et on
+ * tracke isPlaying/position pour afficher la progression. */
+function PreviewBar({
+  previewUrl,
+  durationMs,
+  sending,
+  onCancel,
+  onSend,
+}: {
+  previewUrl: string;
+  durationMs: number;
+  sending: boolean;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    function onTime() {
+      if (!audio) return;
+      setPosition(audio.currentTime * 1000);
+    }
+    function onEnd() {
+      setIsPlaying(false);
+      setPosition(0);
+    }
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("ended", onEnd);
+    return () => {
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnd);
+    };
+  }, []);
+
+  async function togglePlay() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch {
+        toast.error("Lecture impossible.");
+      }
+    }
+  }
+
+  const progress = durationMs > 0 ? Math.min(1, position / durationMs) : 0;
+  const remainingMs = Math.max(0, durationMs - position);
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={sending}
+        aria-label="Supprimer"
+        className="w-10 h-10 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center disabled:opacity-50"
+      >
+        <Trash2 className="w-4 h-4" aria-hidden />
+      </button>
+      <div className="flex-1 flex items-center gap-2 px-3 h-12 rounded-2xl bg-bg border border-line">
+        <button
+          type="button"
+          onClick={togglePlay}
+          disabled={sending}
+          aria-label={isPlaying ? "Pause" : "Lire"}
+          className="w-8 h-8 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition shrink-0 disabled:opacity-50"
+        >
+          {isPlaying ? (
+            <Pause className="w-3.5 h-3.5 fill-current" aria-hidden />
+          ) : (
+            <Play className="w-3.5 h-3.5 fill-current ml-0.5" aria-hidden />
+          )}
+        </button>
+        <div className="flex-1 h-1.5 rounded-full bg-night/10 overflow-hidden">
+          <div
+            className="h-full bg-gold rounded-full transition-[width] duration-150"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+        <span className="text-xs font-mono text-night-muted tabular-nums shrink-0">
+          {formatTime(isPlaying ? remainingMs : durationMs)}
+        </span>
+        <audio
+          ref={audioRef}
+          src={previewUrl}
+          preload="metadata"
+          className="sr-only"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={onSend}
+        disabled={sending}
+        aria-label="Envoyer"
+        className={cn(
+          "shrink-0 w-12 h-12 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition disabled:opacity-60",
+        )}
+      >
+        {sending ? (
+          <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
+        ) : (
+          <Send className="w-4 h-4" aria-hidden />
+        )}
+      </button>
+    </div>
+  );
 }
 
 export const VoiceRecorderTrigger = Mic;

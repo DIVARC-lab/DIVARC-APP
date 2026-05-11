@@ -6,6 +6,7 @@ import {
   Mic,
   Paperclip,
   Send,
+  Smile,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -16,6 +17,7 @@ import type { EncryptedPayload } from "@/lib/crypto/types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
+import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 
@@ -62,6 +64,7 @@ export function MessageComposer({
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const { notifyTyping } = useTypingChannel(conversationId, senderId, null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -339,6 +342,30 @@ export function MessageComposer({
     }
   }
 
+  /* Insert l'emoji à la position du curseur (préserve les selections,
+     déplace le caret après l'emoji inséré). Si pas de focus, append à
+     la fin. */
+  function insertEmoji(emoji: string) {
+    const ta = textareaRef.current;
+    if (!ta) {
+      setBody((prev) => prev + emoji);
+      return;
+    }
+    const start = ta.selectionStart ?? body.length;
+    const end = ta.selectionEnd ?? body.length;
+    const next = body.slice(0, start) + emoji + body.slice(end);
+    setBody(next);
+    /* Réapplique le caret après le render. */
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (!node) return;
+      const caret = start + emoji.length;
+      node.focus();
+      node.setSelectionRange(caret, caret);
+      resize();
+    });
+  }
+
   const remaining = MAX_LENGTH - body.length;
   const tooLong = remaining < 0;
   const canSend =
@@ -461,6 +488,39 @@ export function MessageComposer({
                 >
                   <Mic className="w-4 h-4" aria-hidden />
                 </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setEmojiOpen((v) => !v)}
+                    aria-label="Insérer un emoji"
+                    aria-expanded={emojiOpen}
+                    className={cn(
+                      "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
+                      emojiOpen
+                        ? "bg-night/5 text-night"
+                        : "text-night-muted hover:bg-night/5 hover:text-night",
+                    )}
+                  >
+                    <Smile className="w-5 h-5" aria-hidden />
+                  </button>
+                  {emojiOpen ? (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Fermer le sélecteur d'emojis"
+                        onClick={() => setEmojiOpen(false)}
+                        className="fixed inset-0 z-30 cursor-default"
+                      />
+                      <EmojiPicker
+                        onPick={(emoji) => {
+                          insertEmoji(emoji);
+                          notifyTyping();
+                        }}
+                        onClose={() => setEmojiOpen(false)}
+                      />
+                    </>
+                  ) : null}
+                </div>
               </div>
 
               <div className="flex-1 relative">
