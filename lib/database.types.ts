@@ -1362,6 +1362,89 @@ export type UserBadge = {
   is_visible: boolean;
 };
 
+/* Facette Créateur (migration 0069). */
+export type CreatorAudienceAge =
+  | "13-17"
+  | "18-24"
+  | "25-34"
+  | "35-44"
+  | "45-54"
+  | "55-64"
+  | "65+";
+
+export type CreatorStats = {
+  user_id: string;
+  total_views: number;
+  total_likes: number;
+  avg_engagement_rate: number;
+  monthly_active_followers: number;
+  primary_audience_age: CreatorAudienceAge | null;
+  primary_audience_geo: string[];
+  content_categories: string[];
+  updated_at: string;
+};
+
+export type CreatorFeaturedContentType =
+  | "post"
+  | "reel"
+  | "story_highlight"
+  | "external";
+
+export type CreatorFeatured = {
+  id: string;
+  user_id: string;
+  content_type: CreatorFeaturedContentType;
+  post_id: string | null;
+  reel_id: string | null;
+  story_highlight_id: string | null;
+  external_url: string | null;
+  external_title: string | null;
+  external_thumbnail_url: string | null;
+  sort_position: number;
+  created_at: string;
+};
+
+export type CreatorCollaborationType =
+  | "sponsorship"
+  | "partnership"
+  | "ambassador"
+  | "affiliate"
+  | "placement"
+  | "review"
+  | "event"
+  | "other";
+
+export type CreatorCollaboration = {
+  id: string;
+  user_id: string;
+  brand_name: string;
+  brand_company_id: string | null;
+  brand_logo_url: string | null;
+  collaboration_type: CreatorCollaborationType | null;
+  start_month: string | null;
+  end_month: string | null;
+  is_ongoing: boolean;
+  description: string | null;
+  sort_position: number;
+  created_at: string;
+};
+
+export type CreatorMediaKit = {
+  user_id: string;
+  is_open_to_partnerships: boolean;
+  rate_post_amount: number | null;
+  rate_reel_amount: number | null;
+  rate_story_amount: number | null;
+  rate_currency:
+    | "EUR" | "USD" | "XAF" | "XOF" | "MAD" | "TND" | "DZD" | "CAD" | "CHF" | "GBP"
+    | null;
+  contact_email: string | null;
+  booking_url: string | null;
+  media_kit_pdf_url: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
 export type CircleColor =
   | "gold"
   | "navy"
@@ -2933,6 +3016,42 @@ export type Database = {
             Omit<UserBadge, "user_id" | "badge_type" | "label" | "awarded_at">
           >;
         Update: Partial<Pick<UserBadge, "is_visible">>;
+        Relationships: [];
+      };
+      creator_stats: {
+        Row: CreatorStats;
+        Insert: Pick<CreatorStats, "user_id"> &
+          Partial<Omit<CreatorStats, "user_id" | "updated_at">>;
+        Update: Partial<Omit<CreatorStats, "user_id" | "updated_at">>;
+        Relationships: [];
+      };
+      creator_featured: {
+        Row: CreatorFeatured;
+        Insert: Pick<CreatorFeatured, "user_id" | "content_type"> &
+          Partial<
+            Omit<CreatorFeatured, "user_id" | "content_type" | "created_at">
+          >;
+        Update: Partial<
+          Omit<CreatorFeatured, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      creator_collaborations: {
+        Row: CreatorCollaboration;
+        Insert: Pick<CreatorCollaboration, "user_id" | "brand_name"> &
+          Partial<
+            Omit<CreatorCollaboration, "user_id" | "brand_name" | "created_at">
+          >;
+        Update: Partial<
+          Omit<CreatorCollaboration, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      creator_media_kit: {
+        Row: CreatorMediaKit;
+        Insert: Pick<CreatorMediaKit, "user_id"> &
+          Partial<Omit<CreatorMediaKit, "user_id" | "updated_at">>;
+        Update: Partial<Omit<CreatorMediaKit, "user_id" | "updated_at">>;
         Relationships: [];
       };
       listings: {
