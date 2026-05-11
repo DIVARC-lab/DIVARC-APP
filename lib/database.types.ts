@@ -3154,9 +3154,35 @@ export type Database = {
               | "attachment_height"
               | "attachment_duration_ms"
               | "reply_to_message_id"
+              /* Chantier 1 (migration 0073). */
+              | "is_secret"
+              | "encrypted_content"
+              | "encryption_metadata"
+              | "view_once"
+              | "expires_at"
+              | "forwarded_from_message_id"
+              | "forwarded_from_user_id"
+              | "thread_root_id"
+              | "delivery_status"
             >
           >;
-        Update: Partial<Pick<Message, "body" | "edited_at" | "deleted_at">>;
+        Update: Partial<
+          Pick<
+            Message,
+            | "body"
+            | "edited_at"
+            | "deleted_at"
+            | "view_once_viewed_at"
+            | "view_once_viewer_id"
+            | "screenshot_detected"
+            | "forward_count"
+            | "delivery_status"
+            | "is_pinned_in_conv"
+            | "starred_by_user_ids"
+            | "encrypted_content"
+            | "encryption_metadata"
+          >
+        >;
         Relationships: [];
       };
       message_reactions: {
