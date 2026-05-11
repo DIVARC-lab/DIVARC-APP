@@ -61,15 +61,27 @@ export async function toggleArchiveConversation(
 
 const muteSchema = z.object({
   conversationId: z.string().uuid(),
-  /* null = unmute, sinon ISO datetime ou Date. */
-  muteUntil: z.string().datetime().nullable(),
+  /* Trois cas :
+     - { muted: false, until: null } = unmute
+     - { muted: true,  until: <ISO>  } = mute jusqu'à cette date
+     - { muted: true,  until: null  } = mute pour toujours (permanent) */
+  muted: z.boolean(),
+  until: z.string().datetime().nullable(),
 });
 
 export async function setConversationMute(
   conversationId: string,
   muteUntil: string | null,
+  permanent: boolean = false,
 ): Promise<ConvPrefResult> {
-  const parsed = muteSchema.safeParse({ conversationId, muteUntil });
+  /* Mapping vers la sémantique RPC :
+     - permanent === true → p_muted=true, p_until=null
+     - muteUntil !== null → p_muted=true, p_until=<date>
+     - sinon (muteUntil null + !permanent) → p_muted=false (unmute) */
+  const muted = permanent || muteUntil !== null;
+  const until = permanent ? null : muteUntil;
+
+  const parsed = muteSchema.safeParse({ conversationId, muted, until });
   if (!parsed.success) return { ok: false, error: "Paramètres invalides." };
 
   const supabase = await createClient();
@@ -78,11 +90,10 @@ export async function setConversationMute(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
 
-  const muted = parsed.data.muteUntil !== null;
   const { error } = await supabase.rpc("set_conversation_mute", {
     p_conv_id: parsed.data.conversationId,
-    p_muted: muted,
-    p_until: parsed.data.muteUntil ?? undefined,
+    p_muted: parsed.data.muted,
+    p_until: parsed.data.until ?? undefined,
   });
   if (error) return { ok: false, error: "Échec du mute." };
 

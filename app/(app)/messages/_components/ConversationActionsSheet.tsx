@@ -5,6 +5,7 @@ import {
   ArchiveRestore,
   BellOff,
   BellRing,
+  Infinity as InfinityIcon,
   Pin,
   PinOff,
 } from "lucide-react";
@@ -70,8 +71,15 @@ export function ConversationActionsSheet({
         ? null
         : new Date(Date.now() + durationMs).toISOString();
     run(
-      () => setConversationMute(conversationId, muteUntil),
+      () => setConversationMute(conversationId, muteUntil, false),
       muteUntil ? "Conversation muette." : "Notifications réactivées.",
+    );
+  }
+
+  function handleMutePermanent() {
+    run(
+      () => setConversationMute(conversationId, null, true),
+      "Muet pour toujours.",
     );
   }
 
@@ -174,6 +182,15 @@ export function ConversationActionsSheet({
                   onClick={() => handleMute(MUTE_DURATIONS.WEEK_1)}
                   disabled={pending}
                 />
+                <button
+                  type="button"
+                  onClick={handleMutePermanent}
+                  disabled={pending}
+                  className="w-full flex items-center gap-3 px-4 h-12 rounded-2xl text-left text-sm font-bold text-night hover:bg-night/5 disabled:opacity-50 transition-colors border-t border-line mt-1 pt-3"
+                >
+                  <InfinityIcon className="w-5 h-5 text-night-muted" aria-hidden />
+                  Muet pour toujours
+                </button>
               </>
             )}
           </li>

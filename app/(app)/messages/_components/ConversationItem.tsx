@@ -1,9 +1,9 @@
 "use client";
 
-import { BellOff, Lock, Pin } from "lucide-react";
+import { BellOff, Lock, MoreHorizontal, Pin } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { useLongPress } from "@/lib/hooks/useLongPress";
@@ -17,6 +17,9 @@ type ConversationItemProps = {
   presence: PresenceInfo | null;
 };
 
+/* Distance min de swipe à droite pour révéler le bouton ⋯. */
+const SWIPE_REVEAL_THRESHOLD = 40;
+
 export function ConversationItem({
   conversation,
   currentUserId,
@@ -25,10 +28,11 @@ export function ConversationItem({
   const pathname = usePathname();
   const active = pathname === `/messages/${conversation.id}`;
   const [sheetOpen, setSheetOpen] = useState(false);
+  /* Sur mobile : devient true après un swipe vers la droite. Reste vrai
+     jusqu'à un tap n'importe où ou un scroll. Affiche le bouton ⋯. */
+  const [revealed, setRevealed] = useState(false);
 
-  /* Si le long-press a triggered, on annule le click qui suit (sinon
-     iOS Safari navigue quand même vers la conv). Réinitialisé après
-     consommation. */
+  /* Long-press → ouvre directement la sheet. */
   const longPressTriggeredRef = useRef(false);
   const longPressHandlers = useLongPress(
     () => {
@@ -43,8 +47,49 @@ export function ConversationItem({
       event.preventDefault();
       event.stopPropagation();
       longPressTriggeredRef.current = false;
+      return;
+    }
+    if (revealed) {
+      /* Si le bouton ⋯ est visible, le tap sur la card le cache. */
+      event.preventDefault();
+      event.stopPropagation();
+      setRevealed(false);
     }
   }
+
+  /* === Swipe gesture (mobile touch only) === */
+  const swipeStartXRef = useRef<number | null>(null);
+  const swipeStartedAtRef = useRef<number>(0);
+  function onPointerDown(event: React.PointerEvent) {
+    if (event.pointerType === "mouse") return;
+    swipeStartXRef.current = event.clientX;
+    swipeStartedAtRef.current = Date.now();
+  }
+  function onPointerMove(event: React.PointerEvent) {
+    if (event.pointerType === "mouse") return;
+    if (swipeStartXRef.current === null) return;
+    const delta = event.clientX - swipeStartXRef.current;
+    /* Swipe vers la droite (delta positif) > threshold = reveal. */
+    if (delta > SWIPE_REVEAL_THRESHOLD && !revealed) {
+      setRevealed(true);
+    } else if (delta < -SWIPE_REVEAL_THRESHOLD && revealed) {
+      setRevealed(false);
+    }
+  }
+  function onPointerEnd() {
+    swipeStartXRef.current = null;
+  }
+
+  /* Auto-close au scroll. */
+  useEffect(() => {
+    if (!revealed) return;
+    function close() {
+      setRevealed(false);
+    }
+    document.addEventListener("scroll", close, { capture: true, passive: true });
+    return () =>
+      document.removeEventListener("scroll", close, { capture: true });
+  }, [revealed]);
 
   const displayName =
     conversation.other_member?.full_name ??
@@ -67,16 +112,34 @@ export function ConversationItem({
     : "Aucun message pour l'instant";
   const isOwnLastMessage = lastMessage?.sender_id === currentUserId;
 
+  /* Bouton ⋯ visible si :
+     - desktop hover (CSS group-hover, lg:opacity-0 → lg:group-hover:opacity-100)
+     - OU mobile après swipe droite (state `revealed`) */
   return (
     <>
       <div
-        /* Pseudo-virtualization : content-visibility:auto laisse au
-           navigateur l'option de sauter le rendu des items hors viewport.
-           contain-intrinsic-size garde la place réservée pour éviter le
-           scroll-jump. min-w-0 + overflow-hidden évitent que les noms
-           très longs poussent le layout horizontalement sur mobile. */
-        className="relative min-w-0 [content-visibility:auto] [contain-intrinsic-size:auto_80px]"
+        className="group relative min-w-0 [content-visibility:auto] [contain-intrinsic-size:auto_80px]"
         {...longPressHandlers}
+        onPointerDown={(e) => {
+          longPressHandlers.onPointerDown(e);
+          onPointerDown(e);
+        }}
+        onPointerMove={(e) => {
+          longPressHandlers.onPointerMove(e);
+          onPointerMove(e);
+        }}
+        onPointerUp={(e) => {
+          longPressHandlers.onPointerUp(e);
+          onPointerEnd();
+        }}
+        onPointerCancel={(e) => {
+          longPressHandlers.onPointerCancel(e);
+          onPointerEnd();
+        }}
+        onPointerLeave={(e) => {
+          longPressHandlers.onPointerLeave(e);
+          onPointerEnd();
+        }}
       >
         <Link
           href={`/messages/${conversation.id}`}
@@ -179,21 +242,39 @@ export function ConversationItem({
                       : "bg-gold text-night"
                   }`}
                 >
-                  {/* Halo pulsé uniquement si pas muet */}
                   {!conversation.is_muted ? (
                     <span
                       aria-hidden
                       className="absolute inset-0 rounded-full bg-gold animate-ping opacity-50"
                     />
                   ) : null}
-                  <span className="relative">
-                    {conversation.unread_count}
-                  </span>
+                  <span className="relative">{conversation.unread_count}</span>
                 </span>
               ) : null}
             </div>
           </div>
         </Link>
+
+        {/* Bouton ⋯ révélé sur hover desktop ou après swipe right mobile.
+            Click → ouvre ConversationActionsSheet avec toutes les options
+            (épingler, archiver, muet 1h/8h/1j/1sem, muet pour toujours). */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSheetOpen(true);
+            setRevealed(false);
+          }}
+          aria-label="Options de la conversation"
+          className={`absolute top-1/2 -translate-y-1/2 right-2 z-10 w-9 h-9 rounded-full bg-white/95 border border-line items-center justify-center text-night-muted hover:text-night hover:border-night/30 shadow-sm transition-opacity ${
+            revealed
+              ? "flex opacity-100"
+              : "hidden lg:flex lg:opacity-0 lg:group-hover:opacity-100"
+          }`}
+        >
+          <MoreHorizontal className="w-4 h-4" aria-hidden />
+        </button>
       </div>
 
       <ConversationActionsSheet
