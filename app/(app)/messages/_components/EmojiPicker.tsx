@@ -145,7 +145,20 @@ export function EmojiPicker({ onPick, onClose }: EmojiPickerProps) {
       ref={containerRef}
       role="dialog"
       aria-label="Sélectionner un emoji"
-      className="absolute bottom-full mb-2 left-0 z-40 w-[320px] max-w-[90vw] rounded-2xl bg-white border border-line shadow-[0_20px_60px_-20px_rgba(10,31,68,0.3)] overflow-hidden"
+      /* Mobile : bottom-sheet style fixé juste au-dessus du composer
+         (56px BottomNav + safe-area + 72px composer height), pleine
+         largeur, top rounded. Desktop : popover absolute 320px ancré au
+         coin haut-droit du pill input. */
+      className={[
+        // mobile (fixed bottom-sheet)
+        "fixed inset-x-0 z-40",
+        "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+72px)]",
+        "rounded-t-2xl bg-white border-t border-line shadow-[0_-20px_60px_-20px_rgba(10,31,68,0.3)]",
+        // desktop (absolute popover)
+        "sm:absolute sm:bottom-full sm:inset-x-auto sm:right-0 sm:w-[320px]",
+        "sm:rounded-2xl sm:border sm:mb-2 sm:shadow-[0_20px_60px_-20px_rgba(10,31,68,0.3)]",
+        "overflow-hidden",
+      ].join(" ")}
     >
       {/* Tabs catégories */}
       <div className="flex items-center gap-1 px-2 py-2 border-b border-line overflow-x-auto scrollbar-none">

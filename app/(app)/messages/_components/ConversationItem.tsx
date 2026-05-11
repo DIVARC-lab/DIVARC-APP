@@ -82,7 +82,7 @@ export function ConversationItem({
           href={`/messages/${conversation.id}`}
           aria-current={active ? "page" : undefined}
           onClickCapture={handleClickGuard}
-          className={`flex items-center gap-3 p-3 rounded-2xl border transition-colors ${
+          className={`flex items-center gap-2.5 p-2.5 sm:p-3 rounded-2xl border overflow-hidden transition-colors ${
             active
               ? "bg-night text-cream border-night shadow-soft"
               : "bg-white border-line hover:border-night/30 hover:bg-night/[0.02]"
@@ -126,7 +126,7 @@ export function ConversationItem({
                   />
                 ) : null}
                 <p
-                  className={`text-sm font-semibold truncate ${
+                  className={`flex-1 min-w-0 text-sm font-semibold truncate ${
                     active ? "text-cream" : "text-night"
                   }`}
                 >
@@ -157,9 +157,9 @@ export function ConversationItem({
                 {formatRelative(conversation.last_message_at)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2 mt-0.5">
+            <div className="flex items-center justify-between gap-2 mt-0.5 min-w-0">
               <p
-                className={`text-xs truncate ${
+                className={`flex-1 min-w-0 text-xs truncate ${
                   active
                     ? "text-cream/80"
                     : conversation.unread_count > 0 && !conversation.is_muted

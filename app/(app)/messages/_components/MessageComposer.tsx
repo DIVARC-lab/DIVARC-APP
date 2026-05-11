@@ -630,8 +630,10 @@ export function MessageComposer({
                 )}
               </button>
 
-              {/* Pill input WhatsApp-style avec emoji intégré à droite */}
-              <div className="flex-1 min-w-0 relative flex items-end bg-bg rounded-3xl border border-line focus-within:border-night focus-within:ring-2 focus-within:ring-night/15 transition-colors">
+              {/* Pill input WhatsApp-style avec emoji intégré à droite.
+                  Pas de transition au focus (animation que le user trouve
+                  désagréable) — juste border statique. */}
+              <div className="flex-1 min-w-0 relative flex items-end bg-bg rounded-3xl border border-line focus-within:border-night/40">
                 <textarea
                   ref={textareaRef}
                   value={body}
