@@ -2,7 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { AboutSection } from "@/components/profile/AboutSection";
 import { EducationTimeline } from "@/components/profile/EducationTimeline";
 import { ExperienceTimeline } from "@/components/profile/ExperienceTimeline";
+import { HighlightsRow } from "@/components/profile/HighlightsRow";
 import { OpenToWorkBanner } from "@/components/profile/OpenToWorkBanner";
+import { PhotosGrid, type GridPhotoItem } from "@/components/profile/PhotosGrid";
 import {
   ProfileTabsV2,
   type TabCounters,
@@ -11,6 +13,7 @@ import { ProfileHeroV2 } from "@/components/profile/ProfileHeroV2";
 import { RecommendationsSection } from "@/components/profile/RecommendationsSection";
 import { SkillsSection } from "@/components/profile/SkillsSection";
 import { getExtendedProfileByUsername } from "@/lib/queries/extendedProfile";
+import { listPostsByAuthor } from "@/lib/queries/posts";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
 import { createClient } from "@/lib/supabase/server";
 import { UserActionBar } from "../_components/UserActionBar";
@@ -66,6 +69,22 @@ export default async function ProfileV2Page({
   const isOwn = profile.id === user.id;
   const friendship = await lookupFriendshipState(user.id, profile.id);
 
+  /* Fetch derniers posts photos pour grid + count. */
+  const recentPosts = await listPostsByAuthor(profile.id, user.id, 30);
+  const gridPhotos: GridPhotoItem[] = [];
+  for (const post of recentPosts) {
+    if (post.photos.length > 0 && post.photos[0]?.url) {
+      gridPhotos.push({
+        post_id: post.id,
+        url: post.photos[0].url,
+        alt: post.body?.slice(0, 80) ?? "Photo",
+        likes_count: post.likes_count,
+        comments_count: post.comments_count,
+      });
+      if (gridPhotos.length >= 15) break;
+    }
+  }
+
   /* Compteurs pour les onglets. */
   const counters: TabCounters = {
     highlights: pkg.highlights.length,
@@ -73,6 +92,8 @@ export default async function ProfileV2Page({
     projects: pkg.projects.length,
     publications: pkg.publications.length,
     experiences: pkg.experiences.length,
+    posts: recentPosts.length,
+    photos: gridPhotos.length,
   };
 
   /* Hydrate auteurs des recommandations pour affichage avatar. */
@@ -133,7 +154,31 @@ export default async function ProfileV2Page({
         ) : null}
 
         {activeTab === "about" ? (
-          <AboutSection profile={profile} interests={[]} />
+          <div className="space-y-5">
+            {pkg.highlights.length > 0 || isOwn ? (
+              <HighlightsRow
+                highlights={pkg.highlights}
+                username={profile.username ?? ""}
+                isOwn={isOwn}
+              />
+            ) : null}
+            <AboutSection profile={profile} interests={[]} />
+            {gridPhotos.length > 0 ? (
+              <PhotosGrid photos={gridPhotos.slice(0, 9)} />
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === "highlights" ? (
+          <HighlightsRow
+            highlights={pkg.highlights}
+            username={profile.username ?? ""}
+            isOwn={isOwn}
+          />
+        ) : null}
+
+        {activeTab === "photos" ? (
+          <PhotosGrid photos={gridPhotos} />
         ) : null}
 
         {activeTab === "experiences" ? (
@@ -154,10 +199,15 @@ export default async function ProfileV2Page({
           />
         ) : null}
 
-        {/* Fallback placeholder pour tabs pas encore implémentés */}
-        {!["about", "experiences", "skills", "recommendations"].includes(
-          activeTab,
-        ) ? (
+        {/* Fallback placeholder pour tabs pas encore implémentés (8+) */}
+        {![
+          "about",
+          "experiences",
+          "skills",
+          "recommendations",
+          "highlights",
+          "photos",
+        ].includes(activeTab) ? (
           <SectionPlaceholder tab={activeTab} />
         ) : null}
       </main>
