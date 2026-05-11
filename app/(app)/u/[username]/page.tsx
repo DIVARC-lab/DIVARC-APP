@@ -1,76 +1,61 @@
-import {
-  Award,
-  Briefcase,
-  Calendar,
-  Image as ImageIcon,
-  MapPin,
-  ShoppingBag,
-  Sparkles,
-  Video,
-} from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArcDeco } from "@/components/marketing/ArcDeco";
-import { Avatar } from "@/components/ui/Avatar";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
-import { listListings } from "@/lib/queries/listings";
+import { AboutSection } from "@/components/profile/AboutSection";
+import { CreatorSection } from "@/components/profile/CreatorSection";
+import { EducationTimeline } from "@/components/profile/EducationTimeline";
+import { EntrepreneurSection } from "@/components/profile/EntrepreneurSection";
+import { ExperienceTimeline } from "@/components/profile/ExperienceTimeline";
+import { HighlightsRow } from "@/components/profile/HighlightsRow";
+import { OpenToWorkBanner } from "@/components/profile/OpenToWorkBanner";
+import { PhotosGrid, type GridPhotoItem } from "@/components/profile/PhotosGrid";
 import { listJobs } from "@/lib/queries/jobs";
+import { listListings } from "@/lib/queries/listings";
+import {
+  ProfileTabsV2,
+  type TabCounters,
+} from "@/components/profile/ProfileTabsV2";
+import { ProfileHeroV2 } from "@/components/profile/ProfileHeroV2";
+import { ProfileRelationsBar } from "@/components/profile/ProfileRelationsBar";
+import { RecommendationsSection } from "@/components/profile/RecommendationsSection";
+import { ShareProfileButton } from "@/components/profile/ShareProfileButton";
+import { SkillsSection } from "@/components/profile/SkillsSection";
+import { getExtendedProfileByUsername } from "@/lib/queries/extendedProfile";
 import { listPostsByAuthor } from "@/lib/queries/posts";
-import {
-  getPublicProfileByUsername,
-  getPublicStatsByUserId,
-} from "@/lib/queries/publicProfile";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
-import { jsonLdScriptProps, profileJsonLd } from "@/lib/seo/jsonLd";
 import { createClient } from "@/lib/supabase/server";
-import { safeFormatDate } from "@/lib/utils/date";
-import { cn } from "@/lib/utils/cn";
-import {
-  UserActionBar,
-  type FriendshipState,
-} from "./_components/UserActionBar";
-import { IntroVideoPlayer } from "./_components/IntroVideoPlayer";
-import { ProConnectButton } from "./_components/ProConnectButton";
-import { ProfileTopBar } from "./_components/ProfileTopBar";
-import type { JobWithDetails, PostWithDetails } from "@/lib/database.types";
+import { UserActionBar } from "./_components/UserActionBar";
 
-type Params = Promise<{ username: string }>;
-type SearchParams = Promise<{ tab?: string }>;
+/* Page profil public /u/[username] — Profil v2 (bascule V2 effective).
+ *
+ * Cette page utilise le layout V2 (cover + hero + tabs + sections par
+ * facette). L'ancienne version (Posts/Marketplace/Jobs trois tabs) est
+ * conservée dans l'historique git. La route /u/[username]/v2 reste
+ * accessible le temps de la transition (redirect vers / V2). */
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
   const { username } = await params;
-  const profile = await getPublicProfileByUsername(username);
-  if (!profile) return { title: "Profil introuvable" };
+  const pkg = await getExtendedProfileByUsername(username);
+  if (!pkg) return { title: "Profil introuvable" };
   return {
-    title: profile.full_name ?? `@${profile.username}`,
-    description: profile.bio ?? `Profil de ${profile.full_name ?? username} sur DIVARC.`,
+    title: pkg.profile.full_name ?? `@${pkg.profile.username}`,
+    description: pkg.profile.headline ?? pkg.profile.bio ?? undefined,
   };
 }
-
-/* Brief Session 6 — handoff /u/[username] :
-   3 onglets stricts (Posts / Marketplace / Jobs) avec indicateur gold sous
-   l'actif. Pas d'onglet "Pro" ni "À propos" : l'identité tient dans le hero
-   (badge fondateur, bio, ville, membre depuis). */
-const TABS = [
-  { id: "posts", label: "Posts", icon: Sparkles },
-  { id: "marketplace", label: "Marketplace", icon: ShoppingBag },
-  { id: "jobs", label: "Jobs", icon: Briefcase },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
 
 export default async function PublicProfilePage({
   params,
   searchParams,
 }: {
-  params: Params;
-  searchParams: SearchParams;
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { username } = await params;
   const { tab } = await searchParams;
-  const activeTab: TabId =
-    (TABS.find((t) => t.id === tab)?.id as TabId) ?? "posts";
+  const activeTab = tab ?? "about";
 
   const supabase = await createClient();
   const {
@@ -78,186 +63,205 @@ export default async function PublicProfilePage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const profile = await getPublicProfileByUsername(username);
-  if (!profile) notFound();
+  const pkg = await getExtendedProfileByUsername(username);
+  if (!pkg) notFound();
 
-  if (!profile.discoverable && profile.id !== user.id) {
-    notFound();
-  }
+  const { profile } = pkg;
+  const isOwn = profile.id === user.id;
+  const friendship = await lookupFriendshipState(user.id, profile.id);
 
-  const [stats, friendshipState] = await Promise.all([
-    getPublicStatsByUserId(profile.id),
-    lookupFriendshipState(user.id, profile.id),
+  /* Posts + listings + jobs en parallèle. */
+  const [recentPosts, listings, userJobs] = await Promise.all([
+    listPostsByAuthor(profile.id, user.id, 30),
+    listListings(user.id, { sellerId: profile.id, limit: 12 }),
+    listJobs(user.id, { posterId: profile.id, limit: 20 }),
   ]);
 
-  const initialFriendState: FriendshipState =
-    friendshipState.status === "self"
-      ? { status: "self" }
-      : friendshipState.status === "friends"
-        ? { status: "friends", friendshipId: friendshipState.friendshipId }
-        : friendshipState.status === "outgoing"
-          ? { status: "outgoing", friendshipId: friendshipState.friendshipId }
-          : friendshipState.status === "incoming"
-            ? { status: "incoming", friendshipId: friendshipState.friendshipId }
-            : { status: "none" };
-
-  const isSelf = profile.id === user.id;
-  const isFriend = initialFriendState.status === "friends";
-
-  if (!isSelf) {
-    void supabase.rpc("record_profile_view", { target_user_id: profile.id });
-  }
-
-  let proConnectionState: "none" | "connected" | "pending_in" | "pending_out" =
-    "none";
-  if (!isSelf) {
-    const { data: existing } = await supabase
-      .from("pro_connections")
-      .select("requester_id, recipient_id, status")
-      .or(
-        `and(requester_id.eq.${user.id},recipient_id.eq.${profile.id}),and(requester_id.eq.${profile.id},recipient_id.eq.${user.id})`,
-      )
-      .in("status", ["pending", "accepted"])
-      .maybeSingle();
-    if (existing) {
-      if (existing.status === "accepted") proConnectionState = "connected";
-      else if (existing.requester_id === user.id) proConnectionState = "pending_out";
-      else proConnectionState = "pending_in";
+  /* Extract photos pour grid. */
+  const gridPhotos: GridPhotoItem[] = [];
+  for (const post of recentPosts) {
+    if (post.photos.length > 0 && post.photos[0]?.url) {
+      gridPhotos.push({
+        post_id: post.id,
+        url: post.photos[0].url,
+        alt: post.body?.slice(0, 80) ?? "Photo",
+        likes_count: post.likes_count,
+        comments_count: post.comments_count,
+      });
+      if (gridPhotos.length >= 15) break;
     }
   }
 
-  /* Posts visibles : RLS + policy "amis seulement" — on ne fetch que si
-     soi-même ou ami pour économiser la requête réseau. */
-  const posts: PostWithDetails[] =
-    isSelf || isFriend ? await listPostsByAuthor(profile.id, user.id, 24) : [];
+  /* Compteurs pour les onglets. */
+  const counters: TabCounters = {
+    highlights: pkg.highlights.length,
+    recommendations: pkg.recommendations_received.length,
+    projects: pkg.projects.length,
+    publications: pkg.publications.length,
+    experiences: pkg.experiences.length,
+    posts: recentPosts.length,
+    photos: gridPhotos.length,
+    marketplace: listings.length,
+    jobs: userJobs.length,
+  };
 
-  const listings = await listListings(user.id, {
-    sellerId: profile.id,
-    limit: 12,
-  });
-
-  /* Jobs postées par cet utilisateur — public (RLS authorise lecture si status=active). */
-  const userJobs: JobWithDetails[] =
-    activeTab === "jobs"
-      ? await listJobs(user.id, { posterId: profile.id, limit: 20 })
-      : [];
-
-  const memberSince = safeFormatDate(profile.created_at, {
-    month: "long",
-    year: "numeric",
-  });
-
-  const tabBase = `/u/${profile.username}`;
-
-  /* JSON-LD Person — n'est rendu que pour les profils discoverable
-     (sinon notFound() plus haut a déjà court-circuité). */
-  const jsonLd = profileJsonLd({
-    username: profile.username ?? "",
-    fullName: profile.full_name,
-    bio: profile.bio,
-    avatarUrl: profile.avatar_url,
-    location: profile.show_location ? profile.location : null,
-  });
+  /* Hydrate auteurs des recommandations pour affichage avatar. */
+  const recoAuthorIds = Array.from(
+    new Set(pkg.recommendations_received.map((r) => r.from_user_id)),
+  );
+  let authorById = new Map<
+    string,
+    {
+      id: string;
+      full_name: string | null;
+      username: string | null;
+      avatar_url: string | null;
+      headline: string | null;
+    }
+  >();
+  if (recoAuthorIds.length > 0) {
+    const { data: authors } = await supabase
+      .from("profiles")
+      .select("id, full_name, username, avatar_url, headline")
+      .in("id", recoAuthorIds);
+    if (authors) {
+      authorById = new Map(
+        authors.map((a) => [
+          a.id as string,
+          {
+            id: a.id as string,
+            full_name: (a.full_name as string | null) ?? null,
+            username: (a.username as string | null) ?? null,
+            avatar_url: (a.avatar_url as string | null) ?? null,
+            headline: (a.headline as string | null) ?? null,
+          },
+        ]),
+      );
+    }
+  }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
-      <script {...jsonLdScriptProps(jsonLd)} />
-      <Hero
+    <div className="min-h-screen bg-bg-soft">
+      <ProfileHeroV2
         profile={profile}
-        stats={stats}
-        actionBar={
-          <div className="flex flex-wrap items-center gap-2">
-            <UserActionBar
-              targetUserId={profile.id}
-              initialState={initialFriendState}
+        badges={pkg.badges}
+        isOwn={isOwn}
+        actionsBar={
+          <UserActionBar
+            targetUserId={profile.id}
+            initialState={friendship}
+          />
+        }
+        shareButton={
+          profile.username ? (
+            <ShareProfileButton
+              username={profile.username}
+              fullName={profile.full_name ?? profile.username}
             />
-            {!isSelf ? (
-              <ProConnectButton
-                targetUserId={profile.id}
-                initialState={proConnectionState}
-              />
-            ) : null}
-          </div>
+          ) : undefined
         }
       />
 
-      {profile.intro_video_url ? (
-        <section className="mt-6 mx-4 sm:mx-6 rounded-3xl border border-line bg-white p-5 sm:p-6 shadow-soft flex flex-col sm:flex-row items-center gap-5">
-          <IntroVideoPlayer
-            url={profile.intro_video_url}
-            thumbnailUrl={profile.intro_video_thumbnail_url}
-            durationMs={profile.intro_video_duration_ms}
-          />
-          <div className="flex-1 text-center sm:text-left">
-            <span className="text-kicker">· Vidéo de présentation</span>
-            <h2 className="mt-2 font-display italic text-[26px] sm:text-[30px] text-night text-balance leading-[1.1]">
-              {profile.full_name?.split(" ")[0] ?? "Iel"} se présente.
-            </h2>
-            <p className="mt-2 text-sm text-night-muted leading-relaxed max-w-md">
-              60 secondes pour comprendre qui iel est, vraiment.
-            </p>
-          </div>
-        </section>
+      {!isOwn ? (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 mb-2">
+          <ProfileRelationsBar targetUserId={profile.id} isOwn={isOwn} />
+        </div>
       ) : null}
 
-      {/* Tabs locaux : 3 onglets avec indicateur gold sous l'actif. */}
-      <nav
-        aria-label="Sections du profil"
-        className="mt-6 px-4 sm:px-6 border-b border-line"
-      >
-        <ul className="flex items-stretch gap-6">
-          {TABS.map((t) => {
-            const isActive = t.id === activeTab;
-            const Icon = t.icon;
-            const href = t.id === "posts" ? tabBase : `${tabBase}?tab=${t.id}`;
-            return (
-              <li key={t.id}>
-                <Link
-                  href={href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 pt-2 pb-2.5 text-sm transition-colors",
-                    isActive
-                      ? "border-b-2 border-gold font-extrabold text-night"
-                      : "border-b-2 border-transparent font-semibold text-muted-strong hover:text-night",
-                  )}
-                >
-                  <Icon className="w-4 h-4" aria-hidden />
-                  {t.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <ProfileTabsV2 facets={profile.facets} counters={counters} />
 
-      <div className="px-4 sm:px-6 py-6">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
+        {pkg.open_to_work && pkg.open_to_work.visibility !== "hidden" ? (
+          <OpenToWorkBanner data={pkg.open_to_work} />
+        ) : null}
+
+        {activeTab === "about" ? (
+          <div className="space-y-5">
+            {pkg.highlights.length > 0 || isOwn ? (
+              <HighlightsRow
+                highlights={pkg.highlights}
+                username={profile.username ?? ""}
+                isOwn={isOwn}
+              />
+            ) : null}
+            <AboutSection profile={profile} interests={[]} />
+            {gridPhotos.length > 0 ? (
+              <PhotosGrid photos={gridPhotos.slice(0, 9)} />
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeTab === "highlights" ? (
+          <HighlightsRow
+            highlights={pkg.highlights}
+            username={profile.username ?? ""}
+            isOwn={isOwn}
+          />
+        ) : null}
+
+        {activeTab === "photos" ? <PhotosGrid photos={gridPhotos} /> : null}
+
+        {activeTab === "experiences" ? (
+          <div className="space-y-5">
+            <ExperienceTimeline experiences={pkg.experiences} />
+            <EducationTimeline education={pkg.education} />
+          </div>
+        ) : null}
+
+        {activeTab === "skills" ? (
+          <SkillsSection skills={pkg.skills} />
+        ) : null}
+
+        {activeTab === "recommendations" ? (
+          <RecommendationsSection
+            recommendations={pkg.recommendations_received}
+            authorById={authorById}
+          />
+        ) : null}
+
+        {activeTab === "creator" ? (
+          <CreatorSection
+            stats={pkg.creator_stats}
+            featured={pkg.creator_featured}
+            collaborations={pkg.creator_collaborations}
+            mediaKit={pkg.creator_media_kit}
+          />
+        ) : null}
+
+        {activeTab === "entrepreneur" ? (
+          <EntrepreneurSection
+            companies={pkg.entrepreneur_companies}
+            investments={pkg.entrepreneur_investments}
+            fundraising={pkg.fundraising_status}
+          />
+        ) : null}
+
         {activeTab === "posts" ? (
-          posts.length === 0 ? (
-            <EmptyState
-              emoji="✨"
-              title={
-                isSelf
-                  ? "Tu n'as pas encore publié"
-                  : isFriend
-                    ? `${profile.full_name?.split(" ")[0] ?? profile.username} n'a encore rien publié`
-                    : "Posts visibles entre amis"
-              }
-              body={
-                isSelf
-                  ? "Va sur le feed pour publier ton premier post."
-                  : isFriend
-                    ? "Reviens un peu plus tard."
-                    : "Demande à devenir ami pour voir ses posts."
-              }
-              ctaHref={isSelf ? "/feed" : undefined}
-              ctaLabel={isSelf ? "Publier un post" : undefined}
-            />
+          recentPosts.length === 0 ? (
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucun post publié.
+              </p>
+            </div>
           ) : (
             <ul className="grid grid-cols-3 gap-1 sm:gap-2">
-              {posts.map((post) => (
-                <li key={post.id}>
-                  <PostThumb post={post} username={profile.username} />
+              {recentPosts.map((post) => (
+                <li
+                  key={post.id}
+                  className="aspect-square overflow-hidden rounded-md bg-bg-soft"
+                >
+                  {post.photos[0]?.url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={post.photos[0].url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full p-2 text-[11px] text-night-soft line-clamp-6">
+                      {post.body?.slice(0, 200) ?? ""}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -266,17 +270,11 @@ export default async function PublicProfilePage({
 
         {activeTab === "marketplace" ? (
           listings.length === 0 ? (
-            <EmptyState
-              emoji="🛍️"
-              title="Aucune annonce active"
-              body={
-                isSelf
-                  ? "Publie une annonce sur la marketplace."
-                  : "Cet utilisateur n'a pas d'annonce active pour le moment."
-              }
-              ctaHref={isSelf ? "/marketplace/new" : undefined}
-              ctaLabel={isSelf ? "Vendre quelque chose" : undefined}
-            />
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucune annonce active.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {listings.map((listing) => (
@@ -288,255 +286,32 @@ export default async function PublicProfilePage({
 
         {activeTab === "jobs" ? (
           userJobs.length === 0 ? (
-            <EmptyState
-              emoji="💼"
-              title="Aucune offre publiée"
-              body={
-                isSelf
-                  ? "Publie une offre pour recruter via DIVARC."
-                  : "Cet utilisateur n'a pas d'offre active actuellement."
-              }
-              ctaHref={isSelf ? "/jobs/new" : undefined}
-              ctaLabel={isSelf ? "Poster une offre" : undefined}
-            />
+            <div className="rounded-2xl bg-white border border-line p-6 text-center">
+              <p className="text-[13px] text-night-muted">
+                Aucune offre publiée.
+              </p>
+            </div>
           ) : (
-            <ul className="grid sm:grid-cols-2 gap-3">
+            <ul className="space-y-3">
               {userJobs.map((job) => (
-                <li key={job.id}>
-                  <JobMiniCard job={job} />
+                <li
+                  key={job.id}
+                  className="rounded-2xl bg-white border border-line p-4"
+                >
+                  <p className="text-[14px] font-bold text-night">
+                    {job.title}
+                  </p>
+                  {job.location ? (
+                    <p className="text-[12.5px] text-night-muted">
+                      {job.location}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>
           )
         ) : null}
-
-        <p className="mt-10 flex items-center justify-center gap-1.5 text-xs text-muted">
-          <Calendar className="w-3.5 h-3.5" aria-hidden />
-          <span>Membre depuis {memberSince}</span>
-          {profile.show_location && profile.location ? (
-            <>
-              <span className="text-night-muted">·</span>
-              <MapPin className="w-3.5 h-3.5" aria-hidden />
-              {profile.location}
-            </>
-          ) : null}
-        </p>
-      </div>
+      </main>
     </div>
   );
 }
-
-function Hero({
-  profile,
-  stats,
-  actionBar,
-}: {
-  profile: NonNullable<Awaited<ReturnType<typeof getPublicProfileByUsername>>>;
-  stats: Awaited<ReturnType<typeof getPublicStatsByUserId>>;
-  actionBar: React.ReactNode;
-}) {
-  const fullName = profile.full_name ?? `@${profile.username}`;
-
-  return (
-    <section className="relative">
-      {/* Cover navy 140px + ArcDeco gold filigrane (spec proto). Arrondi
-          desktop only — full-bleed mobile. */}
-      <div className="relative h-[140px] bg-night overflow-hidden sm:rounded-b-[28px]">
-        <div
-          aria-hidden
-          className="absolute -right-16 -top-20 pointer-events-none"
-        >
-          <ArcDeco size={320} tone="gold" opacity={0.55} stroke={1.25} />
-        </div>
-        <div
-          aria-hidden
-          className="absolute -left-24 -bottom-16 pointer-events-none"
-        >
-          <ArcDeco size={240} tone="gold" opacity={0.28} stroke={1} />
-        </div>
-        <ProfileTopBar />
-      </div>
-
-      <div className="px-4 sm:px-6 -mt-11 relative">
-        <div className="flex items-end justify-between gap-3">
-          {/* Avatar 76px wrapped en double ring (handoff feed-profile L49-53) :
-              outer p-1 gradient gold 135deg + inner p-[3px] white. */}
-          <div className="rounded-full p-1 bg-gradient-to-br from-gold to-gold-deep shrink-0">
-            <div className="rounded-full p-[3px] bg-white">
-              <Avatar
-                src={profile.avatar_url}
-                fullName={fullName}
-                size="profile"
-                priority
-              />
-            </div>
-          </div>
-          <div className="pb-1.5">{actionBar}</div>
-        </div>
-
-        {/* Badges status sous l'avatar. */}
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
-          {profile.founder_rank ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold/15 text-gold-deep text-[10px] font-extrabold uppercase tracking-[0.16em] border border-gold/30">
-              <Award className="w-3 h-3" aria-hidden />
-              Fondateur · #{profile.founder_rank}
-            </span>
-          ) : null}
-          {profile.open_to_work ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest border border-emerald-200">
-              Ouvert aux opportunités
-            </span>
-          ) : null}
-          {profile.open_to_hiring ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest border border-blue-200">
-              Recrute
-            </span>
-          ) : null}
-        </div>
-
-        {/* Nom Instrument Serif italic 30px (handoff feed-profile L63 : 30px,
-            non-italic dans le proto mais on garde l'italic pour cohérence
-            grammaticale DIVARC). */}
-        <h1 className="mt-2 font-display italic text-[30px] text-night text-balance leading-[1.05] tracking-[-0.01em]">
-          {fullName}
-        </h1>
-        <p className="text-sm text-muted-strong mt-0.5">@{profile.username}</p>
-        {profile.bio ? (
-          <p className="mt-3 text-sm text-night-muted leading-relaxed text-pretty max-w-2xl">
-            {profile.bio}
-          </p>
-        ) : profile.headline ? (
-          <p className="mt-3 text-sm text-night-muted max-w-md">
-            {profile.headline}
-          </p>
-        ) : null}
-
-        {/* Stats : 3 colonnes, chiffre Instrument Serif italic 24px (brief). */}
-        <dl className="mt-5 grid grid-cols-3 gap-3">
-          <Stat label="Posts" value={stats.postsCount} />
-          <Stat label="Annonces" value={stats.listingsCount} />
-          <Stat label="Amis" value={stats.friendsCount} />
-        </dl>
-      </div>
-    </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="text-center px-3 py-3 rounded-2xl bg-night/[0.03] border border-line">
-      <dt className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-night-dim">
-        {label}
-      </dt>
-      <dd className="mt-1 font-display italic text-2xl text-night leading-none">
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function PostThumb({
-  post,
-  username,
-}: {
-  post: PostWithDetails;
-  username: string | null;
-}) {
-  const firstPhoto = post.photos[0]?.url ?? null;
-  const hasVideo = !!post.video_url;
-  const videoThumb = post.video_thumbnail_url ?? null;
-  const cover = firstPhoto ?? videoThumb;
-  const firstLine = (post.body ?? "").split("\n")[0]?.trim() ?? "";
-
-  return (
-    <Link
-      href={username ? `/u/${username}/posts/${post.id}` : `/feed`}
-      className="group relative block aspect-square overflow-hidden rounded-md bg-bg-deep border border-line"
-      aria-label={firstLine || "Post"}
-    >
-      {cover ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={cover}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-          loading="lazy"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center p-3 bg-gradient-to-br from-cream via-white to-bg-deep">
-          <p className="font-display italic text-[15px] leading-[1.25] text-night text-balance line-clamp-4">
-            {firstLine || "Note"}
-          </p>
-        </div>
-      )}
-      {hasVideo ? (
-        <span
-          aria-hidden
-          className="absolute top-1.5 right-1.5 inline-flex items-center justify-center h-6 w-6 rounded-full bg-night/80 text-cream"
-        >
-          <Video className="h-3 w-3" />
-        </span>
-      ) : firstPhoto && post.photos.length > 1 ? (
-        <span
-          aria-hidden
-          className="absolute top-1.5 right-1.5 inline-flex items-center justify-center h-6 w-6 rounded-full bg-night/70 text-cream"
-        >
-          <ImageIcon className="h-3 w-3" />
-        </span>
-      ) : null}
-    </Link>
-  );
-}
-
-function JobMiniCard({ job }: { job: JobWithDetails }) {
-  const salary =
-    job.salary_min && job.salary_max
-      ? `${Math.round(job.salary_min / 1000)}–${Math.round(job.salary_max / 1000)}k`
-      : null;
-  return (
-    <Link
-      href={`/jobs/${job.id}`}
-      className="group flex flex-col gap-2 rounded-2xl border border-line bg-white p-4 hover:border-gold/40 transition-colors"
-    >
-      <div className="flex items-start gap-2">
-        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-cream text-gold-deep shrink-0">
-          <Briefcase className="w-4 h-4" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="font-display italic text-[19px] text-night leading-[1.15] line-clamp-2">
-            {job.title}
-          </h3>
-          {job.company_name ? (
-            <p className="mt-0.5 text-xs font-semibold text-night-muted truncate">
-              {job.company_name}
-            </p>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="inline-flex items-center px-2 h-6 rounded-full bg-bg-deep border border-line text-[10px] font-bold uppercase tracking-wider text-night-muted">
-          {job.job_type}
-        </span>
-        <span className="inline-flex items-center px-2 h-6 rounded-full bg-bg-deep border border-line text-[10px] font-bold uppercase tracking-wider text-night-muted">
-          {job.work_mode === "remote"
-            ? "Remote"
-            : job.work_mode === "hybrid"
-              ? "Hybride"
-              : "Sur site"}
-        </span>
-        {job.location ? (
-          <span className="inline-flex items-center gap-1 text-[11px] text-night-muted">
-            <MapPin className="w-3 h-3" aria-hidden />
-            {job.location}
-          </span>
-        ) : null}
-        {salary ? (
-          <span className="ml-auto text-[12px] font-extrabold text-gold-deep">
-            {salary}€
-          </span>
-        ) : null}
-      </div>
-    </Link>
-  );
-}
-

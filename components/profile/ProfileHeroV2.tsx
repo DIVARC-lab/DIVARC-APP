@@ -51,6 +51,8 @@ type Props = {
   email?: string | null;
   badges?: UserBadge[];
   actionsBar?: React.ReactNode;
+  /** Bouton de partage (QR + copy + share native) — slot pour ShareProfileButton. */
+  shareButton?: React.ReactNode;
   isOwn?: boolean;
 };
 
@@ -59,6 +61,7 @@ export function ProfileHeroV2({
   email,
   badges = [],
   actionsBar,
+  shareButton,
   isOwn = false,
 }: Props) {
   const cover = getCoverBackground(profile.cover_photo_url, profile.cover_gradient);
@@ -159,10 +162,11 @@ export function ProfileHeroV2({
                 <StatsRow profile={profile} />
               </div>
 
-              {/* Actions bar (client component injecté) */}
-              {actionsBar ? (
-                <div className="shrink-0 self-start sm:self-end">
+              {/* Actions bar (client component injecté) + share */}
+              {(actionsBar || shareButton) ? (
+                <div className="shrink-0 self-start sm:self-end flex items-center gap-2">
                   {actionsBar}
+                  {shareButton}
                 </div>
               ) : null}
             </div>
