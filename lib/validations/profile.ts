@@ -87,6 +87,76 @@ export const preferencesFormSchema = z.object({
 
 export type PreferencesFormInput = z.infer<typeof preferencesFormSchema>;
 
+/* Identité étendue (migration 0063). */
+export const coverGradientSchema = z.enum([
+  "navy_gold",
+  "sunset",
+  "ocean",
+  "forest",
+  "rose",
+  "aurora",
+  "cream_navy",
+  "noir",
+  "cyber",
+]);
+
+export const socialLinkKindSchema = z.enum([
+  "instagram",
+  "twitter",
+  "linkedin",
+  "github",
+  "youtube",
+  "tiktok",
+  "behance",
+  "dribbble",
+  "mastodon",
+  "bluesky",
+  "custom",
+]);
+
+export const socialLinkSchema = z.object({
+  kind: socialLinkKindSchema,
+  url: z.string().url().max(500),
+  label: z.string().max(40).optional(),
+});
+
+export const facetSchema = z.enum([
+  "particulier",
+  "professionnel",
+  "createur",
+  "vendeur",
+  "mentor",
+  "recruteur",
+  "entrepreneur",
+]);
+
+export const identityExtendedSchema = z.object({
+  pronouns: z.string().max(30).nullable().optional(),
+  cover_photo_url: z.string().url().nullable().optional(),
+  cover_gradient: coverGradientSchema.nullable().optional(),
+  website: z.string().url().nullable().optional(),
+  headline: z.string().max(220).nullable().optional(),
+  social_links: z.array(socialLinkSchema).max(15),
+});
+
+export type IdentityExtendedInput = z.infer<typeof identityExtendedSchema>;
+
+export const facetsUpdateSchema = z
+  .object({
+    facets: z.array(facetSchema).min(1).max(7),
+    primary_facet: facetSchema,
+  })
+  .refine((data) => data.facets.includes(data.primary_facet), {
+    message: "La facette principale doit être dans la liste activée.",
+    path: ["primary_facet"],
+  })
+  .refine((data) => data.facets.includes("particulier"), {
+    message: "La facette 'particulier' est toujours active.",
+    path: ["facets"],
+  });
+
+export type FacetsUpdateInput = z.infer<typeof facetsUpdateSchema>;
+
 export type FieldErrors<T> = Partial<Record<keyof T, string>>;
 
 export function flattenZodErrors<T>(
