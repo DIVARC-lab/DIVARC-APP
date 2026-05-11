@@ -248,6 +248,86 @@ export type MessageDeliveryStatusMap = Record<
   string,
   MessageDeliveryStatusValue
 >;
+
+/* Signal Protocol — Chantier 1.2 (migration 0074). Clés PUBLIQUES
+ * stockées côté serveur. Les privées sont dans IndexedDB chiffré côté
+ * client UNIQUEMENT — le serveur ne les voit jamais. */
+export type SignalIdentityKey = {
+  user_id: string;
+  public_key: string;
+  registration_id: number;
+  device_id: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SignalSignedPreKeyStatus = "active" | "rotated" | "compromised";
+
+export type SignalSignedPreKey = {
+  id: string;
+  user_id: string;
+  prekey_id: number;
+  public_key: string;
+  signature: string;
+  status: SignalSignedPreKeyStatus;
+  created_at: string;
+  rotated_at: string | null;
+};
+
+export type SignalOneTimePreKey = {
+  id: string;
+  user_id: string;
+  prekey_id: number;
+  public_key: string;
+  consumed_at: string | null;
+  consumed_by_user_id: string | null;
+  created_at: string;
+};
+
+export type SignalSession = {
+  id: string;
+  conversation_id: string;
+  user_a: string;
+  user_b: string;
+  established_at: string;
+  last_message_at: string | null;
+  last_ratchet_at: string | null;
+  message_count: number;
+  is_compromised: boolean;
+  compromised_at: string | null;
+};
+
+export type SignalSafetyNumber = {
+  id: string;
+  user_a: string;
+  user_b: string;
+  safety_number: string;
+  safety_number_hash: string;
+  verified_by_a: boolean;
+  verified_by_b: boolean;
+  verified_a_at: string | null;
+  verified_b_at: string | null;
+  changed_at: string | null;
+  created_at: string;
+};
+
+/* PreKeyBundle retourné par RPC get_prekey_bundle — c'est ce dont le
+ * client Bob a besoin pour démarrer une session X3DH avec Alice. */
+export type SignalPreKeyBundle = {
+  identity_key: string;
+  registration_id: number;
+  device_id: number;
+  signed_prekey: {
+    key_id: number;
+    public_key: string;
+    signature: string;
+  };
+  /* Peut être null si le pool est vide (X3DH fallback dégradé). */
+  one_time_prekey: {
+    prekey_id: number;
+    public_key: string;
+  } | null;
+};
 export type FriendshipStatus =
   | "pending"
   | "accepted"
@@ -3127,6 +3207,73 @@ export type Database = {
         Update: Partial<Omit<UserNotificationPreferences, "user_id">>;
         Relationships: [];
       };
+      signal_identity_keys: {
+        Row: SignalIdentityKey;
+        Insert: Pick<
+          SignalIdentityKey,
+          "user_id" | "public_key" | "registration_id"
+        > &
+          Partial<Pick<SignalIdentityKey, "device_id">>;
+        Update: Partial<
+          Pick<SignalIdentityKey, "public_key" | "registration_id" | "device_id">
+        >;
+        Relationships: [];
+      };
+      signal_signed_prekeys: {
+        Row: SignalSignedPreKey;
+        Insert: Pick<
+          SignalSignedPreKey,
+          "user_id" | "prekey_id" | "public_key" | "signature"
+        > &
+          Partial<Pick<SignalSignedPreKey, "status">>;
+        Update: Partial<Pick<SignalSignedPreKey, "status" | "rotated_at">>;
+        Relationships: [];
+      };
+      signal_one_time_prekeys: {
+        Row: SignalOneTimePreKey;
+        Insert: Pick<
+          SignalOneTimePreKey,
+          "user_id" | "prekey_id" | "public_key"
+        >;
+        Update: never;
+        Relationships: [];
+      };
+      signal_sessions: {
+        Row: SignalSession;
+        Insert: Pick<
+          SignalSession,
+          "conversation_id" | "user_a" | "user_b"
+        >;
+        Update: Partial<
+          Pick<
+            SignalSession,
+            | "last_message_at"
+            | "last_ratchet_at"
+            | "message_count"
+            | "is_compromised"
+            | "compromised_at"
+          >
+        >;
+        Relationships: [];
+      };
+      signal_safety_numbers: {
+        Row: SignalSafetyNumber;
+        Insert: Pick<
+          SignalSafetyNumber,
+          "user_a" | "user_b" | "safety_number" | "safety_number_hash"
+        >;
+        Update: Partial<
+          Pick<
+            SignalSafetyNumber,
+            | "verified_by_a"
+            | "verified_by_b"
+            | "verified_a_at"
+            | "verified_b_at"
+            | "changed_at"
+          >
+        >;
+        Relationships: [];
+      };
       story_highlights: {
         Row: StoryHighlight;
         Insert: Pick<StoryHighlight, "user_id" | "title" | "cover_image_url"> &
@@ -5241,6 +5388,23 @@ export type Database = {
       get_or_create_self_conversation: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      /* Signal Protocol (migration 0074). */
+      consume_one_time_prekey: {
+        Args: { p_target_user_id: string };
+        Returns: { prekey_id: number; public_key: string } | null;
+      };
+      get_prekey_bundle: {
+        Args: { p_target_user_id: string };
+        Returns: SignalPreKeyBundle;
+      };
+      count_my_available_otpk: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      mark_safety_verified: {
+        Args: { p_other_user_id: string };
+        Returns: void;
       };
       send_friend_request: {
         Args: { recipient_user_id: string; intro?: string | null };
