@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import { ConversationView } from "../_components/ConversationView";
+import { getSecretStatus } from "../secret-actions";
 
 type Params = Promise<{ id: string }>;
 
@@ -32,10 +33,11 @@ export default async function ConversationPage({ params }: { params: Params }) {
   const isGroup = conversation.type === "group";
 
   const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
-  const [initialMessages, initialReactions, otherPresence] = await Promise.all([
+  const [initialMessages, initialReactions, otherPresence, secretStatus] = await Promise.all([
     getMessagesForConversation(id),
     getReactionsForConversation(id),
     !isGroup && otherMember ? getPresenceForUser(otherMember.id) : Promise.resolve(null),
+    !isGroup ? getSecretStatus(id) : Promise.resolve(null),
   ]);
 
   // Mark as read in the background
@@ -150,6 +152,14 @@ export default async function ConversationPage({ params }: { params: Params }) {
           : null}
         memberMap={memberMap}
         isGroup={isGroup}
+        secretContext={
+          secretStatus && !isGroup
+            ? {
+                peerUserId: secretStatus.peerUserId,
+                isEffectiveSecret: secretStatus.isEffectiveSecret,
+              }
+            : null
+        }
       />
     </>
   );

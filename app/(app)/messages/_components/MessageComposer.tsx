@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { MessageReplyContext } from "@/lib/database.types";
+import type { EncryptedPayload } from "@/lib/crypto/types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
@@ -38,6 +39,11 @@ type MessageComposerProps = {
   senderId: string;
   replyTo: MessageReplyContext | null;
   onClearReply: () => void;
+  /* Si fourni : conv en mode secret effectif. Le composer chiffrera
+     le texte avant insert et marquera is_secret=true. */
+  encryptFn?: (text: string) => Promise<EncryptedPayload>;
+  /* Label visuel pour le mode secret (affiché au-dessus du composer). */
+  secretLabel?: string | null;
 };
 
 function draftKey(conversationId: string) {
@@ -49,6 +55,8 @@ export function MessageComposer({
   senderId,
   replyTo,
   onClearReply,
+  encryptFn,
+  secretLabel,
 }: MessageComposerProps) {
   const [body, setBody] = useState("");
   const [attachment, setAttachment] = useState<Attachment | null>(null);
@@ -271,21 +279,52 @@ export function MessageComposer({
 
     startTransition(async () => {
       const supabase = createClient();
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: senderId,
-        body: trimmed.length > 0 ? trimmed : null,
-        attachment_url: previousAttachment?.url ?? null,
-        attachment_type: previousAttachment?.type ?? null,
-        attachment_name: previousAttachment?.name ?? null,
-        attachment_size: previousAttachment?.size ?? null,
-        attachment_width: previousAttachment?.width ?? null,
-        attachment_height: previousAttachment?.height ?? null,
-        reply_to_message_id: previousReply?.id ?? null,
-      });
+      try {
+        const basePayload = {
+          conversation_id: conversationId,
+          sender_id: senderId,
+          body: trimmed.length > 0 ? trimmed : null,
+          attachment_url: previousAttachment?.url ?? null,
+          attachment_type: previousAttachment?.type ?? null,
+          attachment_name: previousAttachment?.name ?? null,
+          attachment_size: previousAttachment?.size ?? null,
+          attachment_width: previousAttachment?.width ?? null,
+          attachment_height: previousAttachment?.height ?? null,
+          reply_to_message_id: previousReply?.id ?? null,
+        };
 
-      if (error) {
-        toast.error("Échec de l'envoi.");
+        /* Mode secret : encrypt le texte avant insert. Les pièces
+           jointes V1 ne sont pas chiffrées (1.2g future). */
+        let result;
+        if (encryptFn && trimmed.length > 0) {
+          const encrypted = await encryptFn(trimmed);
+          result = await supabase.from("messages").insert({
+            ...basePayload,
+            body: null,
+            is_secret: true,
+            encryption_metadata: {
+              ciphertext: encrypted.ciphertext,
+              iv: encrypted.iv,
+              sessionKeyHash: encrypted.sessionKeyHash,
+              version: encrypted.version,
+            },
+          });
+        } else {
+          result = await supabase.from("messages").insert(basePayload);
+        }
+        const { error } = result;
+
+        if (error) {
+          toast.error("Échec de l'envoi.");
+          setBody(previousBody);
+          setAttachment(previousAttachment);
+          requestAnimationFrame(resize);
+        }
+      } catch (err) {
+        console.error("[MessageComposer:send]", err);
+        toast.error(
+          err instanceof Error ? err.message : "Échec du chiffrement.",
+        );
         setBody(previousBody);
         setAttachment(previousAttachment);
         requestAnimationFrame(resize);
@@ -308,6 +347,11 @@ export function MessageComposer({
   return (
     <div className="border-t border-line bg-white px-4 py-3 sm:px-6 sm:py-4">
       <div className="max-w-3xl mx-auto">
+        {secretLabel ? (
+          <div className="mb-2 px-3 py-1.5 rounded-full bg-night/5 border border-line text-[11.5px] font-semibold text-night inline-flex items-center gap-1">
+            {secretLabel}
+          </div>
+        ) : null}
         {recording ? (
           <VoiceRecorder
             onCancel={() => setRecording(false)}

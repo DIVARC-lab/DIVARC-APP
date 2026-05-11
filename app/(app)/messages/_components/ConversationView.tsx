@@ -6,6 +6,7 @@ import type {
   MessageReactionSummary,
   MessageReplyContext,
 } from "@/lib/database.types";
+import { useConversationCrypto } from "@/lib/hooks/useConversationCrypto";
 import { MessageComposer } from "./MessageComposer";
 import { MessageThread } from "./MessageThread";
 
@@ -14,6 +15,11 @@ type OtherMember = {
   full_name: string | null;
   username: string | null;
   avatar_url: string | null;
+};
+
+type SecretContext = {
+  peerUserId: string | null;
+  isEffectiveSecret: boolean;
 };
 
 type ConversationViewProps = {
@@ -25,6 +31,7 @@ type ConversationViewProps = {
   otherMember: OtherMember | null;
   memberMap: Record<string, OtherMember>;
   isGroup: boolean;
+  secretContext?: SecretContext | null;
 };
 
 export function ConversationView({
@@ -36,8 +43,30 @@ export function ConversationView({
   otherMember,
   memberMap,
   isGroup,
+  secretContext = null,
 }: ConversationViewProps) {
   const [replyTo, setReplyTo] = useState<MessageReplyContext | null>(null);
+
+  /* Hook crypto pour cette conv. Si pas de secretContext OU pas
+     effective, le hook reste à state "no_secret" et encrypt n'est
+     jamais appelé. */
+  const convCrypto = useConversationCrypto({
+    conversationId,
+    peerUserId: secretContext?.peerUserId ?? null,
+    isEffectiveSecret: secretContext?.isEffectiveSecret ?? false,
+  });
+
+  const isSecretAndReady =
+    secretContext?.isEffectiveSecret === true && convCrypto.isReady;
+  const secretLabel: string | null = !secretContext?.isEffectiveSecret
+    ? null
+    : convCrypto.state === "ready"
+      ? "🔐 Mode secret actif"
+      : convCrypto.state === "needs_unlock"
+        ? "🔒 Coffre verrouillé"
+        : convCrypto.state === "establishing"
+          ? "⏳ Établissement session…"
+          : "⚠️ Session indisponible";
 
   return (
     <>
@@ -57,6 +86,8 @@ export function ConversationView({
         senderId={currentUserId}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
+        encryptFn={isSecretAndReady ? convCrypto.encrypt : undefined}
+        secretLabel={secretLabel}
       />
     </>
   );
