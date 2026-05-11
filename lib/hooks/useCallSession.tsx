@@ -35,6 +35,7 @@ import {
   subscribeCallChannel,
   subscribeInbox,
 } from "@/lib/calls/signaling";
+import { startInbound, startOutbound, stopRingtone } from "@/lib/calls/ringtone";
 import {
   type CallKind,
   type LocalCallState,
@@ -140,6 +141,7 @@ export function CallProvider({
   /* Cleanup. */
   const teardown = useCallback(() => {
     log("teardown");
+    stopRingtone();
     if (ringTimeoutRef.current) {
       clearTimeout(ringTimeoutRef.current);
       ringTimeoutRef.current = null;
@@ -177,6 +179,8 @@ export function CallProvider({
     if (!webrtc || !ch || !currentUserId) return;
     if (calleeAcceptedRef.current) return; // already done
     calleeAcceptedRef.current = true;
+    /* Stop la sonnerie d'attente : le callee a décroché. */
+    stopRingtone();
     try {
       log("caller: createOffer");
       const offer = await webrtc.createOffer();
@@ -270,6 +274,9 @@ export function CallProvider({
             log("inbox: already in call, ignoring");
             return prev;
           }
+          /* Démarre la sonnerie inbound (peut être muet sur iOS Safari
+             si pas de user gesture récent, mais l'overlay reste visible). */
+          startInbound();
           return {
             kind: "ringing-inbound",
             callId: payload.callId,
@@ -424,6 +431,8 @@ export function CallProvider({
         startedAt: Date.now(),
       });
       log("caller: ringing-outbound, waiting for accept");
+      /* Sonnerie d'attente (autorisée car déclenchée par click Phone). */
+      startOutbound();
 
       ch.ready
         .then(() => log("caller: channel ready"))
@@ -457,6 +466,8 @@ export function CallProvider({
     if (!currentUserId) return;
     if (state.kind !== "ringing-inbound") return;
     log("acceptCall");
+    /* Stop la sonnerie inbound : le user a décroché. */
+    stopRingtone();
     const { callId } = state;
 
     let webrtc: WebRTCClient;
