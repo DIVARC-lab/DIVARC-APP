@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   Message,
   MessageReactionSummary,
   MessageReplyContext,
 } from "@/lib/database.types";
 import { useConversationCrypto } from "@/lib/hooks/useConversationCrypto";
+import { ConversationSearchBar } from "./ConversationSearchBar";
 import { MessageComposer } from "./MessageComposer";
 import { MessageThread } from "./MessageThread";
 
@@ -47,6 +48,61 @@ export function ConversationView({
 }: ConversationViewProps) {
   const [replyTo, setReplyTo] = useState<MessageReplyContext | null>(null);
 
+  /* Recherche dans la conversation. Déclenchée par bouton search dans
+     ChatHeader via window event (les 2 composants sont siblings). */
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  const [matchedIds, setMatchedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    function handleOpen() {
+      setSearchOpen(true);
+    }
+    window.addEventListener("divarc:open-conv-search", handleOpen);
+    return () =>
+      window.removeEventListener("divarc:open-conv-search", handleOpen);
+  }, []);
+
+  /* Calcul des matches : tous les messages dont body inclut la query
+     (case-insensitive). On ignore les messages secrets pour V1 (le
+     déchiffrement est asynchrone côté Bubble, pas accessible ici). */
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length === 0 || !searchOpen) {
+      setMatchedIds([]);
+      setActiveMatchIndex(0);
+      return;
+    }
+    const matches: string[] = [];
+    for (const m of initialMessages) {
+      if (m.is_secret) continue;
+      if (m.body && m.body.toLowerCase().includes(q)) matches.push(m.id);
+    }
+    setMatchedIds(matches);
+    setActiveMatchIndex(0);
+  }, [searchQuery, searchOpen, initialMessages]);
+
+  const activeMatchId = useMemo(
+    () => matchedIds[activeMatchIndex] ?? null,
+    [matchedIds, activeMatchIndex],
+  );
+
+  function handleNext() {
+    if (matchedIds.length === 0) return;
+    setActiveMatchIndex((i) => (i + 1) % matchedIds.length);
+  }
+  function handlePrev() {
+    if (matchedIds.length === 0) return;
+    setActiveMatchIndex(
+      (i) => (i - 1 + matchedIds.length) % matchedIds.length,
+    );
+  }
+  function handleCloseSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+  }
+
   /* Hook crypto pour cette conv. Si pas de secretContext OU pas
      effective, le hook reste à state "no_secret" et encrypt n'est
      jamais appelé. */
@@ -70,6 +126,16 @@ export function ConversationView({
 
   return (
     <>
+      <ConversationSearchBar
+        open={searchOpen}
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        onClose={handleCloseSearch}
+        matchCount={matchedIds.length}
+        activeMatchIndex={activeMatchIndex}
+        onPrev={handlePrev}
+        onNext={handleNext}
+      />
       <MessageThread
         conversationId={conversationId}
         currentUserId={currentUserId}
@@ -82,6 +148,8 @@ export function ConversationView({
         onReply={setReplyTo}
         decryptFn={isSecretAndReady ? convCrypto.decrypt : undefined}
         decryptBytesFn={isSecretAndReady ? convCrypto.decryptBytes : undefined}
+        searchQuery={searchOpen ? searchQuery : ""}
+        activeMatchId={activeMatchId}
       />
       <MessageComposer
         conversationId={conversationId}

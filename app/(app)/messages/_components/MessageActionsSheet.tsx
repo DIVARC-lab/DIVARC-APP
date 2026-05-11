@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Reply, Trash2 } from "lucide-react";
+import { Copy, Forward, Pencil, Pin, PinOff, Reply, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
@@ -14,6 +14,14 @@ type MessageActionsSheetProps = {
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete: () => void;
+  /* Actions Chantier 1.8 (optionnelles). Si non fournies, l'item
+     correspondant n'est pas rendu. */
+  onForward?: () => void;
+  onTogglePin?: () => void;
+  onEdit?: () => void;
+  isPinnedInConv?: boolean;
+  canEdit?: boolean;
+  canForward?: boolean;
 };
 
 /* Bottom sheet mobile : actions sur un message déclenchées par long-press.
@@ -27,6 +35,12 @@ export function MessageActionsSheet({
   onReact,
   onReply,
   onDelete,
+  onForward,
+  onTogglePin,
+  onEdit,
+  isPinnedInConv = false,
+  canEdit = false,
+  canForward = true,
 }: MessageActionsSheetProps) {
   /* Escape pour fermer (clavier physique branché en cas de tablette). */
   useEffect(() => {
@@ -114,6 +128,57 @@ export function MessageActionsSheet({
               >
                 <Copy className="w-5 h-5 text-night-muted" aria-hidden />
                 Copier le message
+              </button>
+            </li>
+          ) : null}
+          {onForward && canForward ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onForward();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 h-14 rounded-2xl text-left text-sm font-semibold text-night hover:bg-night/5 transition-colors"
+              >
+                <Forward className="w-5 h-5 text-night-muted" aria-hidden />
+                Transférer
+              </button>
+            </li>
+          ) : null}
+          {onTogglePin ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePin();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 h-14 rounded-2xl text-left text-sm font-semibold text-night hover:bg-night/5 transition-colors"
+              >
+                {isPinnedInConv ? (
+                  <PinOff className="w-5 h-5 text-night-muted" aria-hidden />
+                ) : (
+                  <Pin className="w-5 h-5 text-night-muted" aria-hidden />
+                )}
+                {isPinnedInConv
+                  ? "Désépingler du fil"
+                  : "Épingler dans le fil"}
+              </button>
+            </li>
+          ) : null}
+          {onEdit && canEdit ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onEdit();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 h-14 rounded-2xl text-left text-sm font-semibold text-night hover:bg-night/5 transition-colors"
+              >
+                <Pencil className="w-5 h-5 text-night-muted" aria-hidden />
+                Modifier
               </button>
             </li>
           ) : null}

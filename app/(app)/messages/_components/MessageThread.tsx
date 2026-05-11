@@ -42,6 +42,10 @@ type MessageThreadProps = {
   /* Décrypt des médias E2E (Chantier 1.7). Si fourni AND
      encryption_metadata.media présent → fetch ciphertext + decrypt. */
   decryptBytesFn?: (ciphertext: ArrayBuffer, iv: string) => Promise<ArrayBuffer>;
+  /* Search overlay (Chantier 1.8). Si non-empty, highlight les matches
+     dans les bulles + scroll vers activeMatchId. */
+  searchQuery?: string;
+  activeMatchId?: string | null;
 };
 
 export function MessageThread({
@@ -56,6 +60,8 @@ export function MessageThread({
   onReply,
   decryptFn,
   decryptBytesFn,
+  searchQuery = "",
+  activeMatchId = null,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionsState>(initialReactions);
@@ -71,6 +77,24 @@ export function MessageThread({
     () => messages.filter((m) => m.deleted_at === null),
     [messages],
   );
+
+  /* Messages épinglés dans le fil (Chantier 1.8). Affichés dans la
+     PinnedBar en haut du thread. */
+  const pinnedMessages = useMemo(
+    () => visibleMessages.filter((m) => m.is_pinned_in_conv),
+    [visibleMessages],
+  );
+
+  /* Scroll vers le message actif quand activeMatchId change. */
+  useEffect(() => {
+    if (!activeMatchId) return;
+    const node = document.querySelector<HTMLElement>(
+      `[data-message-id="${activeMatchId}"]`,
+    );
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [activeMatchId]);
 
   // Quick lookup for reply context resolution
   const messagesById = useMemo(() => {
@@ -259,6 +283,18 @@ export function MessageThread({
       ref={scrollRef}
       className="flex-1 overflow-y-auto px-4 sm:px-6 py-6"
     >
+      {pinnedMessages.length > 0 ? (
+        <PinnedMessagesBar
+          messages={pinnedMessages}
+          onJump={(id) => {
+            const node = document.querySelector<HTMLElement>(
+              `[data-message-id="${id}"]`,
+            );
+            if (node)
+              node.scrollIntoView({ behavior: "smooth", block: "center" });
+          }}
+        />
+      ) : null}
       <div className="max-w-3xl mx-auto w-full space-y-1.5">
         {visibleMessages.map((message, idx) => {
           const previous = visibleMessages[idx - 1];
@@ -311,8 +347,27 @@ export function MessageThread({
 
           const messageReactions = reactions[message.id] ?? [];
 
+          const isSearchMatch =
+            searchQuery.trim().length > 0 &&
+            !message.is_secret &&
+            message.body !== null &&
+            message.body
+              .toLowerCase()
+              .includes(searchQuery.trim().toLowerCase());
+          const isActiveMatch = activeMatchId === message.id;
+
           return (
-            <div key={message.id}>
+            <div
+              key={message.id}
+              data-message-id={message.id}
+              className={
+                isActiveMatch
+                  ? "rounded-2xl bg-gold/15 ring-2 ring-gold/40 transition-colors duration-300"
+                  : isSearchMatch
+                    ? "rounded-2xl bg-gold/5 transition-colors duration-300"
+                    : ""
+              }
+            >
               {showDateSeparator ? (
                 <div className="flex items-center gap-3 my-6 first:mt-0">
                   <span className="flex-1 h-px bg-line" />
@@ -330,6 +385,7 @@ export function MessageThread({
               <MessageBubble
                 message={message}
                 isOwn={isOwn}
+                currentUserId={currentUserId}
                 showAvatar={showAvatar}
                 showTime={showTime}
                 senderName={senderName}
@@ -368,6 +424,47 @@ export function MessageThread({
         memberMap={memberMap ?? {}}
         isGroup={isGroup}
       />
+    </div>
+  );
+}
+
+/* Barre des messages épinglés (Chantier 1.8). Click → jump vers le
+ * message dans le thread. */
+function PinnedMessagesBar({
+  messages,
+  onJump,
+}: {
+  messages: Message[];
+  onJump: (id: string) => void;
+}) {
+  return (
+    <div className="max-w-3xl mx-auto w-full mb-3 rounded-2xl bg-gold/10 border border-gold/30 px-3 py-2">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-gold-deep">
+          📌 Épinglés
+        </span>
+        <span className="text-[10px] font-bold text-night-muted">
+          · {messages.length}
+        </span>
+      </div>
+      <ul className="space-y-1">
+        {messages.slice(0, 3).map((m) => (
+          <li key={m.id}>
+            <button
+              type="button"
+              onClick={() => onJump(m.id)}
+              className="w-full text-left text-[12px] text-night-soft hover:text-night truncate transition-colors"
+            >
+              {m.is_secret ? "🔒 Message secret" : (m.body ?? "Pièce jointe")}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {messages.length > 3 ? (
+        <p className="text-[10px] text-night-muted mt-1">
+          +{messages.length - 3} autre{messages.length - 3 > 1 ? "s" : ""}…
+        </p>
+      ) : null}
     </div>
   );
 }

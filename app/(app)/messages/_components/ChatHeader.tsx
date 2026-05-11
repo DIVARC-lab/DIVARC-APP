@@ -149,9 +149,11 @@ export function ChatHeader({
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
-            onClick={() => toast("Recherche dans la conversation arrive bientôt.")}
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("divarc:open-conv-search"))
+            }
             aria-label="Rechercher dans la conversation"
-            title="Rechercher (bientôt)"
+            title="Rechercher (Ctrl/Cmd+F)"
             className="hidden sm:flex w-9 h-9 rounded-full hover:bg-night/5 items-center justify-center text-night-muted hover:text-night transition-colors"
           >
             <Search className="w-4 h-4" aria-hidden />

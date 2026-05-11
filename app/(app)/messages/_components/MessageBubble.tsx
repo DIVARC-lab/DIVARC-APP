@@ -1,14 +1,17 @@
 "use client";
 
 import {
+  Check,
   Download,
   Eye,
   EyeOff,
   FileText,
   Lock,
+  Pin,
   Reply,
   Sparkles,
   Trash2,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
@@ -26,7 +29,12 @@ import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { formatTimestamp } from "@/lib/utils/relativeTime";
 import { markViewOnceViewed } from "../eclats-actions";
+import {
+  editOwnMessage,
+  togglePinInConv,
+} from "../message-actions";
 import { AudioPlayer } from "./AudioPlayer";
+import { ForwardPicker } from "./ForwardPicker";
 import { MessageActionsSheet } from "./MessageActionsSheet";
 import { MessageReactions } from "./MessageReactions";
 import { ReactionPicker } from "./ReactionPicker";
@@ -35,6 +43,7 @@ import { ReplyPreview } from "./ReplyPreview";
 type MessageBubbleProps = {
   message: Message;
   isOwn: boolean;
+  currentUserId: string;
   showAvatar: boolean;
   showTime: boolean;
   senderName: string | null;
@@ -95,6 +104,7 @@ type DecryptState =
 export function MessageBubble({
   message,
   isOwn,
+  currentUserId,
   showAvatar,
   showTime,
   senderName,
@@ -107,7 +117,11 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const confirm = useConfirm();
   const [pendingDelete, startDelete] = useTransition();
+  const [, startMutation] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState<string>(message.body ?? "");
 
   /* Déchiffrement asynchrone si message secret. Pour les messages clairs
      on saute direct au status "plain". */
@@ -318,6 +332,39 @@ export function MessageBubble({
     }
   }
 
+  function handleTogglePin() {
+    startMutation(async () => {
+      const res = await togglePinInConv(message.id);
+      if (!res.ok) toast.error(res.error);
+    });
+  }
+
+  function handleStartEdit() {
+    setEditValue(message.body ?? "");
+    setEditing(true);
+  }
+
+  function handleCancelEdit() {
+    setEditing(false);
+    setEditValue(message.body ?? "");
+  }
+
+  function handleSaveEdit() {
+    const trimmed = editValue.trim();
+    if (trimmed.length === 0 || trimmed === message.body) {
+      setEditing(false);
+      return;
+    }
+    startMutation(async () => {
+      const res = await editOwnMessage(message.id, trimmed);
+      if (res.ok) {
+        setEditing(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
   async function handleDelete() {
     const ok = await confirm({
       title: "Supprimer ce message ?",
@@ -441,7 +488,64 @@ export function MessageBubble({
               </>
             )}
 
-            {hasTextBubble ? (
+            {editing ? (
+              <div
+                className={cn(
+                  "px-3 py-2 rounded-3xl shadow-sm w-full",
+                  isOwn
+                    ? "bg-night text-cream rounded-br-md"
+                    : "bg-white text-night border border-line rounded-bl-md",
+                )}
+              >
+                <textarea
+                  autoFocus
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveEdit();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      handleCancelEdit();
+                    }
+                  }}
+                  rows={2}
+                  maxLength={4000}
+                  className={cn(
+                    "w-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:opacity-50",
+                    isOwn
+                      ? "text-cream placeholder:text-cream/40"
+                      : "text-night placeholder:text-muted",
+                  )}
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    aria-label="Annuler"
+                    className={cn(
+                      "px-3 h-7 rounded-full text-[11px] font-bold",
+                      isOwn
+                        ? "bg-cream/15 text-cream hover:bg-cream/25"
+                        : "bg-night/5 text-night-muted hover:bg-night/10",
+                    )}
+                  >
+                    <X className="w-3 h-3 inline mr-1" aria-hidden />
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    aria-label="Enregistrer"
+                    className="px-3 h-7 rounded-full text-[11px] font-bold bg-gold text-night hover:bg-gold-soft"
+                  >
+                    <Check className="w-3 h-3 inline mr-1" aria-hidden />
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+            ) : hasTextBubble ? (
               <div
                 className={cn(
                   "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm select-none",
@@ -452,19 +556,42 @@ export function MessageBubble({
                   isCipherPlaceholder ? "italic opacity-80" : "",
                 )}
               >
-                {message.is_secret && !isCipherPlaceholder ? (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-70",
-                    )}
-                  >
-                    <Lock className="w-2.5 h-2.5" aria-hidden />
-                    Secret
-                  </span>
-                ) : null}
+                <div className="flex items-center gap-1.5 mb-1">
+                  {message.is_secret && !isCipherPlaceholder ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider opacity-70",
+                      )}
+                    >
+                      <Lock className="w-2.5 h-2.5" aria-hidden />
+                      Secret
+                    </span>
+                  ) : null}
+                  {message.is_pinned_in_conv ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider opacity-70",
+                      )}
+                      aria-label="Épinglé"
+                    >
+                      <Pin className="w-2.5 h-2.5" aria-hidden />
+                      Épinglé
+                    </span>
+                  ) : null}
+                </div>
                 <p className="whitespace-pre-wrap break-words">
                   {displayBody}
                 </p>
+                {message.edited_at ? (
+                  <p
+                    className={cn(
+                      "text-[10px] mt-1 italic",
+                      isOwn ? "text-cream/50" : "text-muted",
+                    )}
+                  >
+                    (modifié)
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -508,6 +635,24 @@ export function MessageBubble({
         onReact={handleQuickReact}
         onReply={onReply}
         onDelete={handleDelete}
+        onForward={() => setForwardOpen(true)}
+        onTogglePin={handleTogglePin}
+        onEdit={handleStartEdit}
+        isPinnedInConv={message.is_pinned_in_conv}
+        canEdit={
+          isOwn &&
+          !message.is_secret &&
+          !isViewOnce &&
+          message.body !== null
+        }
+        canForward={!message.is_secret && !isViewOnce}
+      />
+
+      <ForwardPicker
+        open={forwardOpen}
+        onClose={() => setForwardOpen(false)}
+        messageId={message.id}
+        currentUserId={currentUserId}
       />
 
       {eclatOverlayOpen && message.attachment_url ? (
