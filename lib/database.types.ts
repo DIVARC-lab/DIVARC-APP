@@ -1188,6 +1188,39 @@ export type StoryHighlightWithStoryIds = StoryHighlight & {
   story_ids: string[];
 };
 
+/* Recommendations LinkedIn-style (migration 0065). */
+export type RecommendationRelationship =
+  | "manager"
+  | "report"
+  | "colleague"
+  | "client"
+  | "supplier"
+  | "mentor"
+  | "mentee"
+  | "classmate"
+  | "professor"
+  | "student"
+  | "collaborator"
+  | "business_partner"
+  | "friend"
+  | "custom";
+
+export type ProfileRecommendation = {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  relationship: RecommendationRelationship;
+  relationship_custom: string | null;
+  text: string;
+  is_visible: boolean;
+  given_at: string;
+  updated_at: string;
+};
+
+export type ProfileRecommendationWithAuthor = ProfileRecommendation & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "headline">;
+};
+
 export type CircleColor =
   | "gold"
   | "navy"
@@ -2667,6 +2700,26 @@ export type Database = {
         Insert: Pick<StoryHighlightItem, "highlight_id" | "story_id"> &
           Partial<Pick<StoryHighlightItem, "position" | "added_at">>;
         Update: Partial<Pick<StoryHighlightItem, "position">>;
+        Relationships: [];
+      };
+      profile_recommendations: {
+        Row: ProfileRecommendation;
+        Insert: Pick<
+          ProfileRecommendation,
+          "from_user_id" | "to_user_id" | "relationship" | "text"
+        > &
+          Partial<
+            Pick<
+              ProfileRecommendation,
+              "id" | "relationship_custom" | "is_visible" | "given_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            ProfileRecommendation,
+            "relationship" | "relationship_custom" | "text" | "is_visible"
+          >
+        >;
         Relationships: [];
       };
       listings: {
@@ -4403,6 +4456,14 @@ export type Database = {
           items_count: number;
           story_ids: string[];
         }>;
+      };
+      toggle_recommendation_visibility: {
+        Args: { p_reco_id: string; p_visible: boolean };
+        Returns: void;
+      };
+      count_user_recommendations: {
+        Args: { p_user_id: string };
+        Returns: { received_count: number; given_count: number };
       };
       create_payout_request: {
         Args: {
