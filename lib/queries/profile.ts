@@ -58,6 +58,8 @@ const PROFILE_DEFAULTS: Omit<
   profile_completion_score: 0,
   facets: ["particulier"],
   primary_facet: "particulier",
+  followers_count: 0,
+  following_count: 0,
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -175,6 +177,12 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     primary_facet:
       (data as { primary_facet?: Profile["primary_facet"] }).primary_facet ??
       PROFILE_DEFAULTS.primary_facet,
+    followers_count:
+      (data as { followers_count?: number }).followers_count ??
+      PROFILE_DEFAULTS.followers_count,
+    following_count:
+      (data as { following_count?: number }).following_count ??
+      PROFILE_DEFAULTS.following_count,
     /* Trust & Safety (migration 0047) — defaults tolérants si la
        migration n'est pas encore appliquée en prod. */
     email_verified_at:

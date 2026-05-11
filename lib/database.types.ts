@@ -114,6 +114,9 @@ export type Profile = {
   profile_completion_score: number;
   facets: ProfileFacet[];
   primary_facet: ProfileFacet;
+  /* Compteurs follows asymétriques (migration 0067, dénormalisés) */
+  followers_count: number;
+  following_count: number;
   /* Trust & Safety (migration 0047) */
   email_verified_at: string | null;
   phone_verified_at: string | null;
@@ -1310,6 +1313,26 @@ export type ProfileOpenToWork = {
   visibility: OpenToWorkVisibility;
   note: string | null;
   updated_at: string;
+};
+
+/* Follows asymétriques + close friends (migration 0067). */
+export type UserFollow = {
+  follower_id: string;
+  followed_id: string;
+  created_at: string;
+};
+
+export type CloseFriend = {
+  user_id: string;
+  close_friend_id: string;
+  created_at: string;
+};
+
+export type MutualFollower = {
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
 };
 
 export type CircleColor =
@@ -2860,6 +2883,20 @@ export type Database = {
         Insert: Pick<ProfileOpenToWork, "user_id"> &
           Partial<Omit<ProfileOpenToWork, "user_id" | "updated_at">>;
         Update: Partial<Omit<ProfileOpenToWork, "user_id" | "updated_at">>;
+        Relationships: [];
+      };
+      user_follows: {
+        Row: UserFollow;
+        Insert: Pick<UserFollow, "follower_id" | "followed_id"> &
+          Partial<Pick<UserFollow, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      close_friends: {
+        Row: CloseFriend;
+        Insert: Pick<CloseFriend, "user_id" | "close_friend_id"> &
+          Partial<Pick<CloseFriend, "created_at">>;
+        Update: never;
         Relationships: [];
       };
       listings: {
@@ -4604,6 +4641,26 @@ export type Database = {
       count_user_recommendations: {
         Args: { p_user_id: string };
         Returns: { received_count: number; given_count: number };
+      };
+      toggle_follow: {
+        Args: { p_followed_id: string };
+        Returns: boolean;
+      };
+      is_following: {
+        Args: { p_follower_id: string; p_followed_id: string };
+        Returns: boolean;
+      };
+      get_mutual_followers: {
+        Args: {
+          p_user_a: string;
+          p_user_b: string;
+          p_limit?: number;
+        };
+        Returns: MutualFollower[];
+      };
+      toggle_close_friend: {
+        Args: { p_close_friend_id: string };
+        Returns: boolean;
       };
       create_payout_request: {
         Args: {
