@@ -1,19 +1,21 @@
 "use client";
 
 import {
-  Award,
+  BookOpen,
+  Bookmark,
   Briefcase,
-  CalendarHeart,
+  Building2,
   Camera,
+  FileText,
+  FolderOpen,
   GraduationCap,
-  Lightbulb,
   MessageSquareQuote,
+  Palette,
   Rocket,
   ShoppingBag,
-  Sparkles,
-  Star,
   User,
   Video,
+  Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -69,13 +71,13 @@ export type TabCounters = {
 
 const ALL_TABS: TabDef[] = [
   { id: "about", label: "À propos", icon: User },
-  { id: "posts", label: "Posts", icon: Sparkles, counterKey: "posts" },
+  { id: "posts", label: "Posts", icon: FileText, counterKey: "posts" },
   { id: "photos", label: "Photos", icon: Camera, counterKey: "photos" },
   { id: "reels", label: "Reels", icon: Video, counterKey: "reels" },
   {
     id: "highlights",
     label: "Highlights",
-    icon: Star,
+    icon: Bookmark,
     counterKey: "highlights",
   },
   {
@@ -87,7 +89,7 @@ const ALL_TABS: TabDef[] = [
   {
     id: "skills",
     label: "Compétences",
-    icon: GraduationCap,
+    icon: Zap,
     requiresFacet: "professionnel",
   },
   {
@@ -100,21 +102,21 @@ const ALL_TABS: TabDef[] = [
   {
     id: "projects",
     label: "Projets",
-    icon: Lightbulb,
+    icon: FolderOpen,
     requiresFacet: "professionnel",
     counterKey: "projects",
   },
   {
     id: "publications",
     label: "Publications",
-    icon: Award,
+    icon: BookOpen,
     requiresFacet: "professionnel",
     counterKey: "publications",
   },
   {
     id: "creator",
     label: "Créateur",
-    icon: Sparkles,
+    icon: Palette,
     requiresFacet: "createur",
   },
   {
@@ -127,7 +129,7 @@ const ALL_TABS: TabDef[] = [
   {
     id: "mentor",
     label: "Mentor",
-    icon: CalendarHeart,
+    icon: GraduationCap,
     requiresFacet: "mentor",
   },
   {
@@ -136,7 +138,7 @@ const ALL_TABS: TabDef[] = [
     icon: Rocket,
     requiresFacet: "entrepreneur",
   },
-  { id: "jobs", label: "Jobs", icon: Briefcase, counterKey: "jobs" },
+  { id: "jobs", label: "Jobs", icon: Building2, counterKey: "jobs" },
 ];
 
 type Props = {

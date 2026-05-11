@@ -1,4 +1,4 @@
-import { Eye, ExternalLink, Heart, Sparkles, Users } from "lucide-react";
+import { Eye, ExternalLink, Heart, Palette, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import { safeFormatDate } from "@/lib/utils/date";
 import type {
@@ -63,7 +63,7 @@ export function CreatorSection({
   if (!hasAny) {
     return (
       <div className="rounded-2xl bg-white border border-line p-6 text-center">
-        <Sparkles className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
+        <Palette className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
         <p className="text-[13px] text-night-muted">
           Aucune info créateur pour l&apos;instant.
         </p>
@@ -168,7 +168,7 @@ function StatsCard({ stats }: { stats: CreatorStats }) {
           value={formatBigNumber(stats.total_likes)}
         />
         <StatBox
-          icon={Sparkles}
+          icon={TrendingUp}
           label="Engagement"
           value={`${stats.avg_engagement_rate.toFixed(1)}%`}
         />
@@ -277,7 +277,7 @@ function MediaKitCard({ mediaKit }: { mediaKit: CreatorMediaKit }) {
     <section className="rounded-2xl bg-white border border-gold/40 p-5">
       <div className="flex items-start gap-3">
         <span className="w-10 h-10 rounded-xl bg-gold-deep text-white flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5" aria-hidden />
+          <Palette className="w-5 h-5" aria-hidden />
         </span>
         <div className="flex-1 min-w-0">
           <h2 className="text-[14px] font-bold text-night">

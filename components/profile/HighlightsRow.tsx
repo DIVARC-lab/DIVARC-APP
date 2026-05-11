@@ -1,4 +1,4 @@
-import { Plus, Star } from "lucide-react";
+import { Bookmark, Plus } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import type { StoryHighlight } from "@/lib/database.types";
@@ -26,7 +26,7 @@ export function HighlightsRow({ highlights, username, isOwn = false }: Props) {
       className="rounded-2xl bg-white border border-line p-4"
     >
       <header className="flex items-center gap-2 mb-3 px-1">
-        <Star className="w-4 h-4 text-gold-deep" aria-hidden />
+        <Bookmark className="w-4 h-4 text-gold-deep" aria-hidden />
         <h2 className="text-[14px] font-bold text-night">Highlights</h2>
         <span className="text-[12px] text-night-muted">
           · {highlights.length}

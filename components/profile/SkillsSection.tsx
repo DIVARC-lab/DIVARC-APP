@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Zap } from "lucide-react";
 import type { ProfileSkill } from "@/lib/database.types";
 
 type Props = {
@@ -18,7 +18,7 @@ export function SkillsSection({ skills, topN = 3 }: Props) {
   if (skills.length === 0) {
     return (
       <div className="rounded-2xl bg-white border border-line p-6 text-center">
-        <Sparkles className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
+        <Zap className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
         <p className="text-[13px] text-night-muted">Aucune compétence renseignée.</p>
       </div>
     );
@@ -33,7 +33,7 @@ export function SkillsSection({ skills, topN = 3 }: Props) {
   return (
     <section className="rounded-2xl bg-white border border-line overflow-hidden">
       <header className="px-5 py-4 border-b border-line flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-gold-deep" aria-hidden />
+        <Zap className="w-4 h-4 text-gold-deep" aria-hidden />
         <h2 className="text-[14px] font-bold text-night">Compétences</h2>
         <span className="text-[12px] text-night-muted">· {skills.length}</span>
       </header>

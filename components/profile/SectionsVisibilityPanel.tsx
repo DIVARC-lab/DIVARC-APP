@@ -2,21 +2,25 @@
 
 import {
   Award,
+  BookOpen,
+  Bookmark,
   Briefcase,
+  Calendar,
   Camera,
-  CalendarHeart,
+  FileText,
+  FolderOpen,
   GraduationCap,
   Heart,
   Loader2,
   Lock,
   MessageSquareQuote,
+  Palette,
   Rocket,
   ShoppingBag,
-  Sparkles,
-  Star,
+  Trophy,
   User,
-  Users,
   Video,
+  Zap,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -41,9 +45,9 @@ const SECTIONS: Array<{
   category: "social" | "professionnel" | "monétisation";
 }> = [
   { id: "about", label: "À propos", icon: User, category: "social" },
-  { id: "highlights", label: "Highlights", icon: Star, category: "social" },
+  { id: "highlights", label: "Highlights", icon: Bookmark, category: "social" },
   { id: "photos", label: "Photos", icon: Camera, category: "social" },
-  { id: "posts", label: "Posts", icon: Sparkles, category: "social" },
+  { id: "posts", label: "Posts", icon: FileText, category: "social" },
   {
     id: "experiences",
     label: "Expérience",
@@ -59,7 +63,7 @@ const SECTIONS: Array<{
   {
     id: "skills",
     label: "Compétences",
-    icon: Sparkles,
+    icon: Zap,
     category: "professionnel",
   },
   {
@@ -77,19 +81,25 @@ const SECTIONS: Array<{
   {
     id: "projects",
     label: "Projets",
-    icon: Briefcase,
+    icon: FolderOpen,
+    category: "professionnel",
+  },
+  {
+    id: "publications",
+    label: "Publications",
+    icon: BookOpen,
     category: "professionnel",
   },
   {
     id: "open_to_work",
     label: "Open to Work",
-    icon: Briefcase,
+    icon: Calendar,
     category: "professionnel",
   },
   {
     id: "creator",
     label: "Stats créateur",
-    icon: Video,
+    icon: Palette,
     category: "monétisation",
   },
   {
@@ -101,7 +111,7 @@ const SECTIONS: Array<{
   {
     id: "mentor",
     label: "Mentor",
-    icon: CalendarHeart,
+    icon: GraduationCap,
     category: "monétisation",
   },
   {
@@ -116,7 +126,7 @@ const SECTIONS: Array<{
     icon: Heart,
     category: "social",
   },
-  { id: "badges", label: "Badges", icon: Award, category: "social" },
+  { id: "badges", label: "Badges", icon: Trophy, category: "social" },
 ];
 
 const VISIBILITY_OPTIONS: Array<{

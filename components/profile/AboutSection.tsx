@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Info } from "lucide-react";
 import type { ExtendedProfileHeader } from "@/lib/queries/extendedProfile";
 
 /* AboutSection — bio + interests + citations.
@@ -19,7 +19,7 @@ export function AboutSection({ profile, interests = [] }: Props) {
   if (!hasContent) {
     return (
       <div className="rounded-2xl bg-white border border-line p-6 text-center">
-        <Sparkles className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
+        <Info className="w-6 h-6 text-night-dim mx-auto mb-2" aria-hidden />
         <p className="text-[13px] text-night-muted">
           Aucune présentation pour l&apos;instant.
         </p>

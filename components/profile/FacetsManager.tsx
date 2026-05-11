@@ -2,13 +2,13 @@
 
 import {
   Briefcase,
-  CalendarHeart,
+  GraduationCap,
+  Loader2,
+  Palette,
   Rocket,
-  Sparkles,
   ShoppingBag,
   User,
   Users,
-  Loader2,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -52,7 +52,7 @@ const FACETS: FacetDef[] = [
     id: "createur",
     label: "Créateur",
     description: "Stats audience, contenus à la une, media kit.",
-    icon: Sparkles,
+    icon: Palette,
   },
   {
     id: "vendeur",
@@ -64,7 +64,7 @@ const FACETS: FacetDef[] = [
     id: "mentor",
     label: "Mentor",
     description: "Sujets de mentorat, tarifs, disponibilité, booking.",
-    icon: CalendarHeart,
+    icon: GraduationCap,
   },
   {
     id: "recruteur",
