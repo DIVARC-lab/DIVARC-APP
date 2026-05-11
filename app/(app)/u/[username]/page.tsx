@@ -23,6 +23,7 @@ import { ViewAsButton } from "@/components/profile/ViewAsButton";
 import { getExtendedProfileByUsername } from "@/lib/queries/extendedProfile";
 import { listPostsByAuthor } from "@/lib/queries/posts";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
+import { canViewSection, computeViewerRelation } from "@/lib/profile/visibility";
 import { createClient } from "@/lib/supabase/server";
 import { UserActionBar } from "./_components/UserActionBar";
 
@@ -83,6 +84,19 @@ export default async function PublicProfilePage({
      (CompletionBar, ShareButton owner shortcuts). */
   const isOwn = isReallyOwn && !viewAsMode;
   const friendship = await lookupFriendshipState(user.id, profile.id);
+  /* Compute relation viewer ↔ owner pour filtrer les sections. Skip si
+     own (toujours self) — économise 2 queries. */
+  const viewerRelation = isReallyOwn
+    ? "self"
+    : await computeViewerRelation(user.id, profile.id);
+  /* Helper local : peut-on voir cette section ? */
+  const canView = (sectionId: string) =>
+    canViewSection(
+      sectionId,
+      profile.sections_visibility,
+      viewerRelation,
+      viewAsMode,
+    );
 
   /* Posts + listings + jobs en parallèle. */
   const [recentPosts, listings, userJobs] = await Promise.all([
@@ -211,9 +225,9 @@ export default async function PublicProfilePage({
           <OpenToWorkBanner data={pkg.open_to_work} />
         ) : null}
 
-        {activeTab === "about" ? (
+        {activeTab === "about" && canView("about") ? (
           <div className="space-y-5">
-            {pkg.highlights.length > 0 || isOwn ? (
+            {canView("highlights") && (pkg.highlights.length > 0 || isOwn) ? (
               <HighlightsRow
                 highlights={pkg.highlights}
                 username={profile.username ?? ""}
@@ -221,13 +235,13 @@ export default async function PublicProfilePage({
               />
             ) : null}
             <AboutSection profile={profile} interests={[]} />
-            {gridPhotos.length > 0 ? (
+            {canView("photos") && gridPhotos.length > 0 ? (
               <PhotosGrid photos={gridPhotos.slice(0, 9)} />
             ) : null}
           </div>
         ) : null}
 
-        {activeTab === "highlights" ? (
+        {activeTab === "highlights" && canView("highlights") ? (
           <HighlightsRow
             highlights={pkg.highlights}
             username={profile.username ?? ""}
@@ -235,27 +249,29 @@ export default async function PublicProfilePage({
           />
         ) : null}
 
-        {activeTab === "photos" ? <PhotosGrid photos={gridPhotos} /> : null}
+        {activeTab === "photos" && canView("photos") ? (
+          <PhotosGrid photos={gridPhotos} />
+        ) : null}
 
-        {activeTab === "experiences" ? (
+        {activeTab === "experiences" && canView("experiences") ? (
           <div className="space-y-5">
             <ExperienceTimeline experiences={pkg.experiences} />
             <EducationTimeline education={pkg.education} />
           </div>
         ) : null}
 
-        {activeTab === "skills" ? (
+        {activeTab === "skills" && canView("skills") ? (
           <SkillsSection skills={pkg.skills} />
         ) : null}
 
-        {activeTab === "recommendations" ? (
+        {activeTab === "recommendations" && canView("recommendations") ? (
           <RecommendationsSection
             recommendations={pkg.recommendations_received}
             authorById={authorById}
           />
         ) : null}
 
-        {activeTab === "creator" ? (
+        {activeTab === "creator" && canView("creator") ? (
           <CreatorSection
             stats={pkg.creator_stats}
             featured={pkg.creator_featured}
@@ -264,7 +280,7 @@ export default async function PublicProfilePage({
           />
         ) : null}
 
-        {activeTab === "entrepreneur" ? (
+        {activeTab === "entrepreneur" && canView("entrepreneur") ? (
           <EntrepreneurSection
             companies={pkg.entrepreneur_companies}
             investments={pkg.entrepreneur_investments}
@@ -272,7 +288,7 @@ export default async function PublicProfilePage({
           />
         ) : null}
 
-        {activeTab === "posts" ? (
+        {activeTab === "posts" && canView("posts") ? (
           recentPosts.length === 0 ? (
             <div className="rounded-2xl bg-white border border-line p-6 text-center">
               <p className="text-[13px] text-night-muted">
@@ -304,7 +320,7 @@ export default async function PublicProfilePage({
           )
         ) : null}
 
-        {activeTab === "marketplace" ? (
+        {activeTab === "marketplace" && canView("marketplace") ? (
           listings.length === 0 ? (
             <div className="rounded-2xl bg-white border border-line p-6 text-center">
               <p className="text-[13px] text-night-muted">
@@ -320,7 +336,7 @@ export default async function PublicProfilePage({
           )
         ) : null}
 
-        {activeTab === "jobs" ? (
+        {activeTab === "jobs" && canView("jobs") ? (
           userJobs.length === 0 ? (
             <div className="rounded-2xl bg-white border border-line p-6 text-center">
               <p className="text-[13px] text-night-muted">
@@ -346,6 +362,32 @@ export default async function PublicProfilePage({
               ))}
             </ul>
           )
+        ) : null}
+
+        {/* Fallback : section restreinte par visibility (si activeTab est
+            une section connue mais canView() retourne false). */}
+        {[
+          "about",
+          "highlights",
+          "photos",
+          "experiences",
+          "skills",
+          "recommendations",
+          "creator",
+          "entrepreneur",
+          "posts",
+          "marketplace",
+          "jobs",
+        ].includes(activeTab) && !canView(activeTab) ? (
+          <div className="rounded-2xl bg-white border border-line p-8 text-center">
+            <p className="text-[13.5px] text-night-muted">
+              🔒 Cette section n&apos;est pas accessible{" "}
+              {viewAsMode
+                ? `dans le mode "${viewAsMode}"`
+                : "avec ton niveau de relation"}
+              .
+            </p>
+          </div>
         ) : null}
       </main>
     </div>
