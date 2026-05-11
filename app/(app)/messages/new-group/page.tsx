@@ -44,7 +44,7 @@ export default async function NewGroupPage() {
           </div>
         </div>
       </header>
-      <div className="px-6 py-8 max-w-2xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-2xl mx-auto">
         <GroupForm friends={friends} />
       </div>
     </div>

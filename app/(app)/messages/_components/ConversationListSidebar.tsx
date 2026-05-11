@@ -105,12 +105,12 @@ export function ConversationListSidebar({
   }, [conversations]);
 
   return (
-    <aside className="flex flex-col border-r border-line bg-bg h-full">
-      <header className="px-5 pt-6 pb-4 border-b border-line">
-        <div className="flex items-start justify-between mb-4 gap-2">
+    <aside className="flex flex-col border-r border-line bg-bg h-full min-h-0">
+      <header className="px-4 sm:px-5 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-line shrink-0">
+        <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
           <div className="min-w-0">
             <KickerLabel>· Messages</KickerLabel>
-            <h2 className="mt-2 font-display italic text-[34px] sm:text-[42px] text-night leading-[1.05] tracking-[-0.02em]">
+            <h2 className="mt-1.5 sm:mt-2 font-display italic text-[26px] sm:text-[42px] text-night leading-[1.05] tracking-[-0.02em]">
               Discussions
             </h2>
           </div>
@@ -201,7 +201,7 @@ export function ConversationListSidebar({
         </nav>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+      <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
         {filtered.length === 0 ? (
           query.trim().length > 0 || filter !== "all" ? (
             <NoResults

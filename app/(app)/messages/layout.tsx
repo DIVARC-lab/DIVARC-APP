@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listConversationsForUser } from "@/lib/queries/conversations";
 import { getPresenceForUsers } from "@/lib/queries/presence";
 import { ConversationListSidebar } from "./_components/ConversationListSidebar";
+import { MessagesLayoutWrapper } from "./_components/MessagesLayoutWrapper";
 
 export const metadata = {
   title: "Discussions",
@@ -27,15 +28,16 @@ export default async function MessagesLayout({
   const presenceMap = await getPresenceForUsers(otherMemberIds);
 
   return (
-    <div className="grid lg:grid-cols-[340px_1fr] h-[calc(100vh-44px)] overflow-hidden">
-      <ConversationListSidebar
-        conversations={conversations}
-        currentUserId={user.id}
-        presenceMap={presenceMap}
-      />
-      <section className="flex flex-col bg-bg overflow-hidden">
-        {children}
-      </section>
-    </div>
+    <MessagesLayoutWrapper
+      sidebar={
+        <ConversationListSidebar
+          conversations={conversations}
+          currentUserId={user.id}
+          presenceMap={presenceMap}
+        />
+      }
+    >
+      {children}
+    </MessagesLayoutWrapper>
   );
 }

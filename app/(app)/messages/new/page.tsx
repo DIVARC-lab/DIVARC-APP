@@ -24,7 +24,7 @@ export default function NewConversationPage() {
           </p>
         </div>
       </header>
-      <div className="px-6 py-8 max-w-2xl mx-auto">
+      <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-2xl mx-auto">
         <UserSearch />
       </div>
     </div>

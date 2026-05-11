@@ -89,11 +89,11 @@ export function ChatHeader({
 
   return (
     <div className="relative">
-      <header className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-line bg-white">
+      <header className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-2.5 sm:py-3 border-b border-line bg-white">
         <Link
           href="/messages"
           aria-label="Retour aux discussions"
-          className="lg:hidden w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted"
+          className="lg:hidden w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted shrink-0"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden />
         </Link>
@@ -182,7 +182,7 @@ export function ChatHeader({
                 onClick={() => void handleStartCall("audio")}
                 aria-label="Appel audio"
                 title="Appel audio"
-                className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors"
+                className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors shrink-0"
               >
                 <Phone className="w-4 h-4" aria-hidden />
               </button>
@@ -191,7 +191,7 @@ export function ChatHeader({
                 onClick={() => void handleStartCall("video")}
                 aria-label="Appel vidéo"
                 title="Visio (bientôt)"
-                className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors"
+                className="hidden sm:flex w-9 h-9 rounded-full hover:bg-night/5 items-center justify-center text-night-muted hover:text-night transition-colors shrink-0"
               >
                 <Video className="w-4 h-4" aria-hidden />
               </button>
@@ -202,7 +202,7 @@ export function ChatHeader({
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Plus d'options"
             aria-expanded={menuOpen}
-            className="relative w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors"
+            className="relative w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors shrink-0"
           >
             <MoreVertical className="w-4 h-4" aria-hidden />
           </button>
