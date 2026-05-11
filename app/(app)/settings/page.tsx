@@ -101,6 +101,13 @@ export default async function SettingsPage() {
       sub: "Changer ton mot de passe",
       href: "/profile?tab=securite",
     },
+    {
+      icon: Lock,
+      label: "Chiffrement bout-en-bout",
+      sub: "Conversations secrètes E2E",
+      href: "/settings/security/encryption",
+      accent: true,
+    },
   ];
 
   return (

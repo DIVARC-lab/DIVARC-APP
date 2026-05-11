@@ -18,6 +18,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { LeftSidebar } from "@/components/layout/LeftSidebar";
 import { VideoPlayerProvider } from "@/components/video/VideoPlayerProvider";
 import { VideoPlayerHost } from "@/components/video/VideoPlayerHost";
+import { CryptoProvider } from "@/lib/hooks/useCrypto";
 
 /* Layout app refonte étape 9 — pattern Facebook adapté à DIVARC.
  *
@@ -73,6 +74,7 @@ export default async function DashboardLayout({
     <CreatorProvider>
       <ConfirmProvider>
         <VideoPlayerProvider>
+        <CryptoProvider>
         <div className="min-h-screen bg-bg">
           <TopBar
             userId={user.id}
@@ -124,6 +126,7 @@ export default async function DashboardLayout({
               mini / fullscreen quand une vidéo est active. */}
           <VideoPlayerHost />
         </div>
+        </CryptoProvider>
         </VideoPlayerProvider>
       </ConfirmProvider>
     </CreatorProvider>
