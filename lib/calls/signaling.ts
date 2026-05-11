@@ -32,6 +32,10 @@ export function subscribeInbox(
   onStatus?: (status: string) => void,
 ): { channel: RealtimeChannel; unsubscribe: () => void } {
   const supabase = createClient();
+  /* Sans filter au niveau Realtime → RLS protège quand même (seul le
+     callee voit les rows où callee_id = me). On filtre côté client en
+     plus pour double-safety. Évite les pbs de filter syntax côté
+     Realtime server. */
   const channel = supabase
     .channel(`inbox-calls:${userId}`)
     .on(
@@ -40,11 +44,11 @@ export function subscribeInbox(
         event: "INSERT",
         schema: "public",
         table: "call_sessions",
-        filter: `callee_id=eq.${userId}`,
       },
       (payload) => {
         console.log("[inbox] INSERT received", payload);
         const row = payload.new as CallRow;
+        if (row.callee_id !== userId) return; // client filter
         if (row.status !== "ringing") return;
         onRing({
           callId: row.id,
@@ -54,8 +58,8 @@ export function subscribeInbox(
         });
       },
     )
-    .subscribe((status) => {
-      console.log("[inbox] subscribe status:", status);
+    .subscribe((status, err) => {
+      console.log("[inbox] subscribe status:", status, err);
       onStatus?.(status);
     });
 
