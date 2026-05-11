@@ -33,6 +33,7 @@ import { ProHeaderForm } from "./_components/ProHeaderForm";
 import { ProSectionsPanel } from "./_components/ProSectionsPanel";
 import { ExtendedIdentityPanel } from "@/components/profile/ExtendedIdentityPanel";
 import { FacetsManager } from "@/components/profile/FacetsManager";
+import { SectionsVisibilityPanel } from "@/components/profile/SectionsVisibilityPanel";
 
 export const metadata = {
   title: "Profil",
@@ -149,6 +150,14 @@ export default async function ProfilePage({
                 <FacetsManager
                   initialFacets={profile.facets}
                   initialPrimaryFacet={profile.primary_facet}
+                />
+              </SectionCard>
+              <SectionCard
+                title="Visibilité granulaire"
+                hint="Choisis qui peut voir chaque section de ton profil."
+              >
+                <SectionsVisibilityPanel
+                  initial={profile.sections_visibility}
                 />
               </SectionCard>
             </>

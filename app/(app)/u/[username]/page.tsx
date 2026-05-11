@@ -19,6 +19,7 @@ import { ProfileRelationsBar } from "@/components/profile/ProfileRelationsBar";
 import { RecommendationsSection } from "@/components/profile/RecommendationsSection";
 import { ShareProfileButton } from "@/components/profile/ShareProfileButton";
 import { SkillsSection } from "@/components/profile/SkillsSection";
+import { ViewAsButton } from "@/components/profile/ViewAsButton";
 import { getExtendedProfileByUsername } from "@/lib/queries/extendedProfile";
 import { listPostsByAuthor } from "@/lib/queries/posts";
 import { lookupFriendshipState } from "@/lib/queries/friendships";
@@ -51,11 +52,21 @@ export default async function PublicProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; view_as?: string }>;
 }) {
   const { username } = await params;
-  const { tab } = await searchParams;
+  const { tab, view_as } = await searchParams;
   const activeTab = tab ?? "about";
+  /* ViewAs simulation : owner peut visualiser son profil tel que vu par
+     un visiteur public / friend / friend-of-friend. V1 = juste un override
+     du flag isOwn pour cacher la completion bar + afficher les
+     ProfileRelationsBar mocked. V2 : filtrer sections_visibility. */
+  const viewAsMode =
+    view_as === "public" ||
+    view_as === "friends" ||
+    view_as === "friends_of_friends"
+      ? view_as
+      : null;
 
   const supabase = await createClient();
   const {
@@ -67,7 +78,10 @@ export default async function PublicProfilePage({
   if (!pkg) notFound();
 
   const { profile } = pkg;
-  const isOwn = profile.id === user.id;
+  const isReallyOwn = profile.id === user.id;
+  /* En mode view_as, isOwn devient false pour cacher les UI propriétaire
+     (CompletionBar, ShareButton owner shortcuts). */
+  const isOwn = isReallyOwn && !viewAsMode;
   const friendship = await lookupFriendshipState(user.id, profile.id);
 
   /* Posts + listings + jobs en parallèle. */
@@ -142,15 +156,37 @@ export default async function PublicProfilePage({
 
   return (
     <div className="min-h-screen bg-bg-soft">
+      {/* Bannière "Tu visualises en mode X" si view_as actif. */}
+      {viewAsMode && isReallyOwn ? (
+        <div className="bg-gold-deep text-white text-center py-2 px-4 text-[12.5px] font-semibold">
+          Tu visualises ton profil en mode{" "}
+          <strong>
+            {viewAsMode === "public"
+              ? "Public"
+              : viewAsMode === "friends"
+                ? "Relations"
+                : "Amis d'amis"}
+          </strong>
+          {" · "}
+          <a href={`/u/${profile.username}`} className="underline">
+            Revenir à ma vue
+          </a>
+        </div>
+      ) : null}
+
       <ProfileHeroV2
         profile={profile}
         badges={pkg.badges}
         isOwn={isOwn}
         actionsBar={
-          <UserActionBar
-            targetUserId={profile.id}
-            initialState={friendship}
-          />
+          isReallyOwn && !viewAsMode && profile.username ? (
+            <ViewAsButton username={profile.username} />
+          ) : !isReallyOwn ? (
+            <UserActionBar
+              targetUserId={profile.id}
+              initialState={friendship}
+            />
+          ) : null
         }
         shareButton={
           profile.username ? (
