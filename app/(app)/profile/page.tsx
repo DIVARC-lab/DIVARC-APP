@@ -4,6 +4,7 @@ import {
   Calendar,
   History,
   IdCard,
+  Layers,
   Mail,
   Settings2,
   Shield,
@@ -30,6 +31,8 @@ import { SecurityPanel } from "./SecurityPanel";
 import { IntroVideoCard } from "./_components/IntroVideoCard";
 import { ProHeaderForm } from "./_components/ProHeaderForm";
 import { ProSectionsPanel } from "./_components/ProSectionsPanel";
+import { ExtendedIdentityPanel } from "@/components/profile/ExtendedIdentityPanel";
+import { FacetsManager } from "@/components/profile/FacetsManager";
 
 export const metadata = {
   title: "Profil",
@@ -37,6 +40,7 @@ export const metadata = {
 
 const TABS = [
   { id: "identite", label: "Identité", icon: IdCard },
+  { id: "avance", label: "Avancé", icon: Layers },
   { id: "pro", label: "Pro", icon: Briefcase },
   { id: "preferences", label: "Préférences", icon: Settings2 },
   { id: "securite", label: "Sécurité", icon: Shield },
@@ -126,6 +130,26 @@ export default async function ProfilePage({
                 hint="Visibles par les autres utilisateurs."
               >
                 <ProfileForm profile={profile} />
+              </SectionCard>
+            </>
+          ) : null}
+
+          {activeTab === "avance" ? (
+            <>
+              <SectionCard
+                title="Identité étendue"
+                hint="Cover, pronoms, site web, liens externes."
+              >
+                <ExtendedIdentityPanel profile={profile} />
+              </SectionCard>
+              <SectionCard
+                title="Facettes activées"
+                hint="Active les facettes qui te concernent. Tes sections suivront."
+              >
+                <FacetsManager
+                  initialFacets={profile.facets}
+                  initialPrimaryFacet={profile.primary_facet}
+                />
               </SectionCard>
             </>
           ) : null}
