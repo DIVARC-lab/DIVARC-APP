@@ -60,6 +60,8 @@ const PROFILE_DEFAULTS: Omit<
   primary_facet: "particulier",
   followers_count: 0,
   following_count: 0,
+  scheduled_deletion_at: null,
+  deletion_requested_at: null,
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -183,6 +185,12 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     following_count:
       (data as { following_count?: number }).following_count ??
       PROFILE_DEFAULTS.following_count,
+    scheduled_deletion_at:
+      (data as { scheduled_deletion_at?: string | null }).scheduled_deletion_at ??
+      null,
+    deletion_requested_at:
+      (data as { deletion_requested_at?: string | null }).deletion_requested_at ??
+      null,
     /* Trust & Safety (migration 0047) — defaults tolérants si la
        migration n'est pas encore appliquée en prod. */
     email_verified_at:

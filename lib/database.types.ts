@@ -117,6 +117,9 @@ export type Profile = {
   /* Compteurs follows asymétriques (migration 0067, dénormalisés) */
   followers_count: number;
   following_count: number;
+  /* Suppression compte avec grâce 30j (migration 0072). */
+  scheduled_deletion_at: string | null;
+  deletion_requested_at: string | null;
   /* Trust & Safety (migration 0047) */
   email_verified_at: string | null;
   phone_verified_at: string | null;
@@ -5043,6 +5046,14 @@ export type Database = {
       };
       admin_reject_verification: {
         Args: { p_request_id: string; p_notes: string };
+        Returns: void;
+      };
+      request_account_deletion: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      cancel_account_deletion: {
+        Args: Record<string, never>;
         Returns: void;
       };
       create_payout_request: {
