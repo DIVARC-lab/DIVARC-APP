@@ -21,6 +21,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import type { PresenceInfo } from "@/lib/database.types";
+import { useCallSession } from "@/lib/hooks/useCallSession";
 import { ConversationActionsSheet } from "./ConversationActionsSheet";
 
 type SecretBadge = "active" | "pending" | "off";
@@ -34,6 +35,8 @@ type ChatHeaderProps = {
   otherPresence: PresenceInfo | null;
   /* Conv directe : username pour deep-link vers profil. */
   otherUsername: string | null;
+  /* user_id du peer (conv directe) pour l'appel. */
+  otherUserId: string | null;
   /* Flags par-membre courants (pré-fetchés côté server). */
   isPinned: boolean;
   isArchived: boolean;
@@ -50,14 +53,28 @@ export function ChatHeader({
   isGroup,
   otherPresence,
   otherUsername,
+  otherUserId,
   isPinned,
   isArchived,
   isMuted,
   secret,
 }: ChatHeaderProps) {
   const router = useRouter();
+  const { startCall } = useCallSession();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  async function handleStartCall(kind: "audio" | "video") {
+    if (!otherUserId) {
+      toast.error("Pas de destinataire pour l'appel.");
+      return;
+    }
+    if (kind === "video") {
+      toast("Visio disponible avec le Chantier 2 V2.");
+      return;
+    }
+    await startCall({ conversationId, peerId: otherUserId, kind: "audio" });
+  }
 
   /* Click sur la zone nom/avatar :
      - conv directe → profil de l'autre (/u/[username])
@@ -162,16 +179,16 @@ export function ChatHeader({
             <>
               <button
                 type="button"
-                onClick={() => toast("Appel audio arrive avec le Chantier 2.")}
+                onClick={() => void handleStartCall("audio")}
                 aria-label="Appel audio"
-                title="Appel audio (bientôt)"
+                title="Appel audio"
                 className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors"
               >
                 <Phone className="w-4 h-4" aria-hidden />
               </button>
               <button
                 type="button"
-                onClick={() => toast("Visio arrive avec le Chantier 2.")}
+                onClick={() => void handleStartCall("video")}
                 aria-label="Appel vidéo"
                 title="Visio (bientôt)"
                 className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors"

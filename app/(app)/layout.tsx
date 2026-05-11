@@ -19,6 +19,8 @@ import { LeftSidebar } from "@/components/layout/LeftSidebar";
 import { VideoPlayerProvider } from "@/components/video/VideoPlayerProvider";
 import { VideoPlayerHost } from "@/components/video/VideoPlayerHost";
 import { CryptoProvider } from "@/lib/hooks/useCrypto";
+import { CallProvider } from "@/lib/hooks/useCallSession";
+import { CallOverlay } from "@/components/calls/CallOverlay";
 
 /* Layout app refonte étape 9 — pattern Facebook adapté à DIVARC.
  *
@@ -75,6 +77,7 @@ export default async function DashboardLayout({
       <ConfirmProvider>
         <VideoPlayerProvider>
         <CryptoProvider>
+        <CallProvider currentUserId={user.id}>
         <div className="min-h-screen bg-bg">
           <TopBar
             userId={user.id}
@@ -125,7 +128,11 @@ export default async function DashboardLayout({
           {/* Host vidéo Facebook-style — rend les overlays expanded /
               mini / fullscreen quand une vidéo est active. */}
           <VideoPlayerHost />
+          {/* Overlay d'appel : visible quand un appel est actif (peu importe
+              la route courante). */}
+          <CallOverlay />
         </div>
+        </CallProvider>
         </CryptoProvider>
         </VideoPlayerProvider>
       </ConfirmProvider>

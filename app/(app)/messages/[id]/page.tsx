@@ -100,6 +100,7 @@ export default async function ConversationPage({ params }: { params: Params }) {
         isGroup={isGroup}
         otherPresence={!isGroup ? otherPresence : null}
         otherUsername={!isGroup ? otherMember?.username ?? null : null}
+        otherUserId={!isGroup ? otherMember?.id ?? null : null}
         isPinned={myMember?.is_pinned ?? false}
         isArchived={myMember?.is_archived ?? false}
         isMuted={myMember?.is_muted ?? false}

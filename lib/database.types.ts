@@ -5431,6 +5431,23 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number;
       };
+      /* Chantier 2.1 (migration 0076) — appels P2P. */
+      create_call_session: {
+        Args: { p_conversation_id: string; p_kind?: "audio" | "video" };
+        Returns: string;
+      };
+      end_call_session: {
+        Args: {
+          p_call_id: string;
+          p_status: "ended" | "missed" | "rejected" | "failed";
+          p_reason?: string;
+        };
+        Returns: void;
+      };
+      mark_call_connected: {
+        Args: { p_call_id: string };
+        Returns: void;
+      };
       /* Signal Protocol (migration 0074). */
       consume_one_time_prekey: {
         Args: { p_target_user_id: string };
