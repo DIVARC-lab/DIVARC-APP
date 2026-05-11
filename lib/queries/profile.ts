@@ -31,6 +31,12 @@ const PROFILE_DEFAULTS: Omit<
   | "timeouts_received"
   | "trust_score"
   | "trust_score_updated_at"
+  /* Profil v2 (migration 0063) — defaults gérés côté DB. */
+  | "pronouns"
+  | "cover_photo_url"
+  | "cover_gradient"
+  | "website"
+  | "sections_order"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -47,6 +53,11 @@ const PROFILE_DEFAULTS: Omit<
   open_to_hiring: false,
   discrete_search: false,
   interests: [],
+  social_links: [],
+  sections_visibility: {},
+  profile_completion_score: 0,
+  facets: ["particulier"],
+  primary_facet: "particulier",
 };
 
 export async function getCurrentProfile(): Promise<Profile | null> {
@@ -138,6 +149,32 @@ export async function getCurrentProfile(): Promise<Profile | null> {
         .intro_video_uploaded_at ?? null,
     interests:
       (data as { interests?: string[] | null }).interests ?? [],
+    /* Profil v2 (migration 0063) — defaults tolérants si la migration
+       n'est pas encore appliquée en prod. */
+    pronouns: (data as { pronouns?: string | null }).pronouns ?? null,
+    cover_photo_url:
+      (data as { cover_photo_url?: string | null }).cover_photo_url ?? null,
+    cover_gradient:
+      (data as { cover_gradient?: Profile["cover_gradient"] | null })
+        .cover_gradient ?? null,
+    website: (data as { website?: string | null }).website ?? null,
+    social_links:
+      (data as { social_links?: Profile["social_links"] | null })
+        .social_links ?? PROFILE_DEFAULTS.social_links,
+    sections_order:
+      (data as { sections_order?: string[] | null }).sections_order ?? null,
+    sections_visibility:
+      (data as { sections_visibility?: Profile["sections_visibility"] | null })
+        .sections_visibility ?? PROFILE_DEFAULTS.sections_visibility,
+    profile_completion_score:
+      (data as { profile_completion_score?: number }).profile_completion_score ??
+      PROFILE_DEFAULTS.profile_completion_score,
+    facets:
+      (data as { facets?: Profile["facets"] | null }).facets ??
+      PROFILE_DEFAULTS.facets,
+    primary_facet:
+      (data as { primary_facet?: Profile["primary_facet"] }).primary_facet ??
+      PROFILE_DEFAULTS.primary_facet,
     /* Trust & Safety (migration 0047) — defaults tolérants si la
        migration n'est pas encore appliquée en prod. */
     email_verified_at:

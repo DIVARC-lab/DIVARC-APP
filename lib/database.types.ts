@@ -26,6 +26,53 @@ export type PresenceStatus = "online" | "away" | "offline";
 export type CustomStatus = "available" | "busy" | "dnd" | "invisible";
 export type PresenceVisibility = "everyone" | "friends" | "nobody";
 
+/* Profil v2 — Migration 0063 */
+export type ProfileFacet =
+  | "particulier"
+  | "professionnel"
+  | "createur"
+  | "vendeur"
+  | "mentor"
+  | "recruteur"
+  | "entrepreneur";
+
+export type ProfileCoverGradient =
+  | "navy_gold"
+  | "sunset"
+  | "ocean"
+  | "forest"
+  | "rose"
+  | "aurora"
+  | "cream_navy"
+  | "noir"
+  | "cyber";
+
+export type ProfileSocialLinkKind =
+  | "instagram"
+  | "twitter"
+  | "linkedin"
+  | "github"
+  | "youtube"
+  | "tiktok"
+  | "behance"
+  | "dribbble"
+  | "mastodon"
+  | "bluesky"
+  | "custom";
+
+export type ProfileSocialLink = {
+  kind: ProfileSocialLinkKind;
+  url: string;
+  label?: string;
+};
+
+export type ProfileSectionVisibility =
+  | "public"
+  | "friends"
+  | "friends_of_friends"
+  | "private"
+  | "custom";
+
 export type Profile = {
   id: string;
   username: string | null;
@@ -56,6 +103,17 @@ export type Profile = {
   intro_video_duration_ms: number | null;
   intro_video_uploaded_at: string | null;
   interests: string[];
+  /* Profil étendu (migration 0063 — Profil v2) */
+  pronouns: string | null;
+  cover_photo_url: string | null;
+  cover_gradient: ProfileCoverGradient | null;
+  website: string | null;
+  social_links: ProfileSocialLink[];
+  sections_order: string[] | null;
+  sections_visibility: Record<string, ProfileSectionVisibility>;
+  profile_completion_score: number;
+  facets: ProfileFacet[];
+  primary_facet: ProfileFacet;
   /* Trust & Safety (migration 0047) */
   email_verified_at: string | null;
   phone_verified_at: string | null;
@@ -95,6 +153,15 @@ export type ProfileIdentityUpdate = Partial<
     | "intro_video_thumbnail_url"
     | "intro_video_duration_ms"
     | "intro_video_uploaded_at"
+    | "pronouns"
+    | "cover_photo_url"
+    | "cover_gradient"
+    | "website"
+    | "social_links"
+    | "sections_order"
+    | "sections_visibility"
+    | "facets"
+    | "primary_facet"
   >
 >;
 
@@ -4273,6 +4340,14 @@ export type Database = {
       enqueue_reel_fingerprint: {
         Args: { p_reel_id: string; p_hash: string };
         Returns: void;
+      };
+      refresh_my_completion_score: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      compute_profile_completion_score: {
+        Args: { p_user_id: string };
+        Returns: number;
       };
       create_payout_request: {
         Args: {
