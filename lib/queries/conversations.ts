@@ -201,12 +201,47 @@ export async function getConversationDetails(
 
   if (convError || !conversation) return null;
 
-  const { data: members } = await supabase
-    .from("conversation_members")
-    .select(
-      "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname, theme_preset, wallpaper_id",
-    )
-    .eq("conversation_id", conversationId);
+  /* Tentative avec les colonnes Chantier 3 (theme_preset, wallpaper_id).
+     Si la migration 0077 n'a pas été appliquée, ces colonnes n'existent
+     pas → la requête échoue. Fallback avec la liste de colonnes
+     pré-Chantier-3 pour éviter de crasher la page entière. */
+  let members:
+    | Array<{
+        user_id: string;
+        last_read_at: string;
+        is_pinned: boolean | null;
+        is_archived: boolean | null;
+        is_muted: boolean | null;
+        mute_until: string | null;
+        wants_secret: boolean | null;
+        nickname: string | null;
+        theme_preset?: string | null;
+        wallpaper_id?: string | null;
+      }>
+    | null = null;
+  {
+    const withThemeCols = await supabase
+      .from("conversation_members")
+      .select(
+        "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname, theme_preset, wallpaper_id",
+      )
+      .eq("conversation_id", conversationId);
+    if (withThemeCols.error) {
+      console.warn(
+        "[getConversationDetails] theme columns missing, retrying without:",
+        withThemeCols.error.message,
+      );
+      const fallback = await supabase
+        .from("conversation_members")
+        .select(
+          "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname",
+        )
+        .eq("conversation_id", conversationId);
+      members = fallback.data;
+    } else {
+      members = withThemeCols.data;
+    }
+  }
 
   const otherEntry = members?.find((m) => m.user_id !== user.id);
   const myEntry = members?.find((m) => m.user_id === user.id);
