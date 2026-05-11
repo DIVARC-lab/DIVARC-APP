@@ -15,6 +15,7 @@ import {
   User,
   Video,
 } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -191,8 +192,14 @@ export function ProfileTabsV2({ facets, counters, showAll = false }: Props) {
                   </span>
                 ) : null}
                 {isActive ? (
-                  <span
+                  <motion.span
+                    layoutId="profile-tabs-underline"
                     aria-hidden
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
                     className="absolute left-2 right-2 bottom-0 h-[2px] rounded-full bg-gold-deep"
                   />
                 ) : null}

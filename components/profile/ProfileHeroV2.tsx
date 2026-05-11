@@ -8,7 +8,8 @@ import {
   Palette,
 } from "lucide-react";
 import Link from "next/link";
-import { Avatar } from "@/components/ui/Avatar";
+import { AnimatedAvatar } from "./AnimatedAvatar";
+import { ParallaxCover } from "./ParallaxCover";
 import { cn } from "@/lib/utils/cn";
 import { getCoverBackground } from "@/lib/profile/coverHelpers";
 import type { ExtendedProfileHeader } from "@/lib/queries/extendedProfile";
@@ -75,9 +76,8 @@ export function ProfileHeroV2({
       aria-label="En-tête du profil"
       className="relative bg-bg-soft"
     >
-      {/* Cover */}
-      <div
-        className="relative w-full aspect-[16/9] sm:aspect-[3/1] lg:aspect-[4/1] overflow-hidden bg-night/5"
+      {/* Cover avec parallax au scroll */}
+      <ParallaxCover
         style={
           cover.type === "image"
             ? undefined
@@ -94,18 +94,17 @@ export function ProfileHeroV2({
         ) : null}
         {/* Overlay subtil pour lisibilité texte au-dessus si on en met */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent pointer-events-none" />
-      </div>
+      </ParallaxCover>
 
       {/* Identité + actions */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
         <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5 -mt-12 sm:-mt-16 lg:-mt-20">
-          {/* Avatar */}
+          {/* Avatar avec scale-in animation */}
           <div className="shrink-0">
             <div className="relative inline-block">
-              <Avatar
+              <AnimatedAvatar
                 src={profile.avatar_url}
                 fullName={displayName}
-                size="xxl"
                 className="ring-4 ring-white shadow-[0_8px_28px_-12px_rgba(10,31,68,0.4)]"
               />
               {isVerified ? (
