@@ -10,10 +10,8 @@ import {
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils/cn";
-import {
-  getCoverBackground,
-  type ExtendedProfileHeader,
-} from "@/lib/queries/extendedProfile";
+import { getCoverBackground } from "@/lib/profile/coverHelpers";
+import type { ExtendedProfileHeader } from "@/lib/queries/extendedProfile";
 import type {
   ProfileSocialLink,
   ProfileSocialLinkKind,

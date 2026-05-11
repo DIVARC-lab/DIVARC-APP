@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
-import { COVER_GRADIENTS } from "@/lib/queries/extendedProfile";
+import { COVER_GRADIENTS } from "@/lib/profile/coverHelpers";
 import type { ProfileCoverGradient } from "@/lib/database.types";
 
 /* CoverUpload — upload image cover (ratio 4:1) OU sélection gradient.
