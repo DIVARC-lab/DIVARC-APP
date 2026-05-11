@@ -173,6 +173,15 @@ export async function getConversationDetails(
   conversation: Conversation;
   otherMember: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
   otherLastReadAt: string | null;
+  /* Flags par-membre pour l'utilisateur courant (Chantier 1.4 header). */
+  myMember: {
+    is_pinned: boolean;
+    is_archived: boolean;
+    is_muted: boolean;
+    mute_until: string | null;
+    wants_secret: boolean;
+    nickname: string | null;
+  } | null;
 } | null> {
   const supabase = await createClient();
 
@@ -191,10 +200,13 @@ export async function getConversationDetails(
 
   const { data: members } = await supabase
     .from("conversation_members")
-    .select("user_id, last_read_at")
+    .select(
+      "user_id, last_read_at, is_pinned, is_archived, is_muted, mute_until, wants_secret, nickname",
+    )
     .eq("conversation_id", conversationId);
 
   const otherEntry = members?.find((m) => m.user_id !== user.id);
+  const myEntry = members?.find((m) => m.user_id === user.id);
   let otherMember: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null =
     null;
 
@@ -207,10 +219,26 @@ export async function getConversationDetails(
     otherMember = profile ?? null;
   }
 
+  /* Normalisation mute_until expiré → considéré non-muted. */
+  const muteUntil = myEntry?.mute_until ?? null;
+  const stillMuted = muteUntil
+    ? new Date(muteUntil).getTime() > Date.now()
+    : (myEntry?.is_muted ?? false);
+
   return {
     conversation,
     otherMember,
     otherLastReadAt: otherEntry?.last_read_at ?? null,
+    myMember: myEntry
+      ? {
+          is_pinned: myEntry.is_pinned ?? false,
+          is_archived: myEntry.is_archived ?? false,
+          is_muted: stillMuted,
+          mute_until: muteUntil,
+          wants_secret: myEntry.wants_secret ?? false,
+          nickname: myEntry.nickname ?? null,
+        }
+      : null,
   };
 }
 

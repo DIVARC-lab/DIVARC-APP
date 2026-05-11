@@ -1,7 +1,4 @@
-import { ArrowLeft, Settings, Users } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Avatar } from "@/components/ui/Avatar";
 import {
   getConversationDetails,
   getMessagesForConversation,
@@ -10,8 +7,7 @@ import {
 import { getGroupDetails } from "@/lib/queries/groups";
 import { getPresenceForUser } from "@/lib/queries/presence";
 import { createClient } from "@/lib/supabase/server";
-import { PresenceDot } from "@/components/ui/PresenceDot";
-import { PresenceLabel } from "@/components/ui/PresenceLabel";
+import { ChatHeader } from "../_components/ChatHeader";
 import { ConversationView } from "../_components/ConversationView";
 import { getSecretStatus } from "../secret-actions";
 
@@ -29,7 +25,7 @@ export default async function ConversationPage({ params }: { params: Params }) {
   const details = await getConversationDetails(id);
   if (!details) notFound();
 
-  const { conversation, otherMember, otherLastReadAt } = details;
+  const { conversation, otherMember, otherLastReadAt, myMember } = details;
   const isGroup = conversation.type === "group";
 
   const groupDetails = isGroup ? await getGroupDetails(id, user.id) : null;
@@ -82,59 +78,33 @@ export default async function ConversationPage({ params }: { params: Params }) {
       ? `@${otherMember.username}`
       : "Conversation directe";
 
+  /* Mapping secret badge pour le header :
+     - active = les deux ont accepté + peer a une identity_key
+     - pending = j'ai accepté mais le peer pas encore (ou pas d'identity)
+     - off = pas demandé */
+  const secretBadge: "active" | "pending" | "off" = !isGroup && secretStatus
+    ? secretStatus.isEffectiveSecret
+      ? "active"
+      : secretStatus.myWantsSecret
+        ? "pending"
+        : "off"
+    : "off";
+
   return (
     <>
-      <header className="flex items-center gap-3 px-4 sm:px-6 py-3.5 border-b border-line bg-white">
-        <Link
-          href="/messages"
-          aria-label="Retour"
-          className="lg:hidden w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center"
-        >
-          <ArrowLeft className="w-4 h-4 text-night" aria-hidden />
-        </Link>
-        <div className="relative shrink-0">
-          <Avatar
-            src={otherMember?.avatar_url ?? conversation.avatar_url}
-            fullName={displayName}
-            size="md"
-          />
-          {!isGroup && otherPresence ? (
-            <PresenceDot
-              status={otherPresence.presence_status}
-              customStatus={otherPresence.custom_status}
-              size="md"
-              className="absolute bottom-0 right-0"
-            />
-          ) : null}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-semibold text-night truncate flex items-center gap-1.5">
-            {displayName}
-            {isGroup ? (
-              <Users
-                className="w-3.5 h-3.5 text-night-muted shrink-0"
-                aria-hidden
-              />
-            ) : null}
-          </h1>
-          <p className="text-xs text-muted truncate">
-            {!isGroup && otherPresence ? (
-              <PresenceLabel presence={otherPresence} fallback={fallbackSubtitle} />
-            ) : (
-              fallbackSubtitle
-            )}
-          </p>
-        </div>
-        {isGroup ? (
-          <Link
-            href={`/messages/${id}/settings`}
-            aria-label="Réglages du groupe"
-            className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night"
-          >
-            <Settings className="w-4 h-4" aria-hidden />
-          </Link>
-        ) : null}
-      </header>
+      <ChatHeader
+        conversationId={id}
+        displayName={displayName}
+        subtitle={fallbackSubtitle}
+        avatarUrl={otherMember?.avatar_url ?? conversation.avatar_url}
+        isGroup={isGroup}
+        otherPresence={!isGroup ? otherPresence : null}
+        otherUsername={!isGroup ? otherMember?.username ?? null : null}
+        isPinned={myMember?.is_pinned ?? false}
+        isArchived={myMember?.is_archived ?? false}
+        isMuted={myMember?.is_muted ?? false}
+        secret={secretBadge}
+      />
 
       <ConversationView
         conversationId={id}
