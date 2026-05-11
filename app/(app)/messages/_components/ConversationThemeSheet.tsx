@@ -3,6 +3,7 @@
 import { Check, Palette, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import {
   CONVERSATION_THEMES,
   type ThemePreset,
@@ -11,7 +12,24 @@ import {
   getTheme,
   themeContainerStyle,
 } from "@/lib/themes/conversationThemes";
-import { setConversationTheme } from "../conv-prefs-actions";
+
+/* RPC direct client (évite le wrap Next.js qui masque les erreurs). */
+async function setThemeClient(
+  conversationId: string,
+  themePreset: string,
+  wallpaperId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("set_conversation_theme", {
+    p_conv_id: conversationId,
+    p_theme_preset: themePreset,
+    p_wallpaper_id: wallpaperId,
+  });
+  if (error) {
+    return { ok: false, error: `${error.message} (${error.code ?? "?"})` };
+  }
+  return { ok: true };
+}
 
 type ConversationThemeSheetProps = {
   open: boolean;
@@ -60,7 +78,7 @@ export function ConversationThemeSheet({
 
   function handleSave() {
     startTransition(async () => {
-      const res = await setConversationTheme(
+      const res = await setThemeClient(
         conversationId,
         selectedTheme,
         selectedWallpaper,
@@ -68,8 +86,13 @@ export function ConversationThemeSheet({
       if (res.ok) {
         toast.success("Thème appliqué.");
         onClose();
+        /* Reload de la page pour que le SSR récupère les nouvelles
+           valeurs de myMember.theme_preset / wallpaper_id et applique
+           le thème sur le thread. Force soft refresh sans recharger
+           tout le bundle. */
+        window.location.reload();
       } else {
-        toast.error(res.error);
+        toast.error(`Échec : ${res.error}`);
       }
     });
   }

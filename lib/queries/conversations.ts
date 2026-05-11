@@ -186,6 +186,31 @@ export async function getConversationDetails(
     wallpaper_id: string | null;
   } | null;
 } | null> {
+  try {
+    return await getConversationDetailsInner(conversationId);
+  } catch (err) {
+    console.error("[getConversationDetails] unexpected error:", err);
+    return null;
+  }
+}
+
+async function getConversationDetailsInner(
+  conversationId: string,
+): Promise<{
+  conversation: Conversation;
+  otherMember: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  otherLastReadAt: string | null;
+  myMember: {
+    is_pinned: boolean;
+    is_archived: boolean;
+    is_muted: boolean;
+    mute_until: string | null;
+    wants_secret: boolean;
+    nickname: string | null;
+    theme_preset: string | null;
+    wallpaper_id: string | null;
+  } | null;
+} | null> {
   const supabase = await createClient();
 
   const {
@@ -199,7 +224,14 @@ export async function getConversationDetails(
     .eq("id", conversationId)
     .maybeSingle();
 
-  if (convError || !conversation) return null;
+  if (convError) {
+    console.error(
+      "[getConversationDetails] conversation query error:",
+      convError.message,
+    );
+    return null;
+  }
+  if (!conversation) return null;
 
   /* Tentative avec les colonnes Chantier 3 (theme_preset, wallpaper_id).
      Si la migration 0077 n'a pas été appliquée, ces colonnes n'existent
