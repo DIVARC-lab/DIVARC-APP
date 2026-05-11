@@ -208,9 +208,46 @@ export type ProfileUpdate = ProfileIdentityUpdate &
   ProfilePreferencesUpdate &
   ProfileTrustUpdate;
 
-export type ConversationType = "direct" | "group";
-export type MemberRole = "owner" | "member";
-export type MessageType = "text" | "system";
+/* Migration 0003 (base) + 0073 (étendu Chantier 1). */
+export type ConversationType =
+  | "direct"
+  | "group"
+  | "self"
+  | "broadcast"
+  | "channel";
+
+export type MemberRole = "owner" | "admin" | "member";
+
+export type MessageType =
+  | "text"
+  | "image"
+  | "video"
+  | "voice"
+  | "audio"
+  | "document"
+  | "location"
+  | "location_live"
+  | "contact"
+  | "poll"
+  | "sticker"
+  | "gif"
+  | "link"
+  | "payment"
+  | "system"
+  | "call_record";
+
+export type MessageDeliveryStatusValue =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
+
+/* Map { user_id: status } stocké en jsonb sur messages.delivery_status. */
+export type MessageDeliveryStatusMap = Record<
+  string,
+  MessageDeliveryStatusValue
+>;
 export type FriendshipStatus =
   | "pending"
   | "accepted"
@@ -1932,6 +1969,17 @@ export type Conversation = {
   created_by: string | null;
   created_at: string;
   last_message_at: string;
+  /* Étendu Chantier 1 (migration 0073). */
+  description: string | null;
+  cover_url: string | null;
+  last_message_id: string | null;
+  /* Préparation Chantier 4 — Liens DIVARC (alimenté plus tard). */
+  link_level: number;
+  link_xp: number;
+  link_streak_days: number;
+  last_meaningful_exchange_at: string | null;
+  /* Disparition auto au niveau de la conv (Éclats globaux). */
+  auto_delete_after_days: 1 | 7 | 30 | null;
 };
 
 export type ConversationMember = {
@@ -1940,6 +1988,16 @@ export type ConversationMember = {
   joined_at: string;
   last_read_at: string;
   role: MemberRole;
+  /* Étendu Chantier 1 (migration 0073). */
+  is_pinned: boolean;
+  is_archived: boolean;
+  is_muted: boolean;
+  mute_until: string | null;
+  nickname: string | null;
+  custom_color: string | null;
+  can_send_media: boolean;
+  /* Toggle "Conversation secrète" (E2E Signal Protocol opt-in). */
+  wants_secret: boolean;
 };
 
 export type AttachmentType = "image" | "audio" | "video" | "file";
@@ -1961,6 +2019,29 @@ export type Message = {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+  /* Étendu Chantier 1 (migration 0073). */
+  /* Chiffrement E2E opt-in (Conversations secrètes). */
+  is_secret: boolean;
+  /* Encoded en base64 côté DB jsonb (bytea retourné par Supabase). */
+  encrypted_content: string | null;
+  encryption_metadata: Record<string, unknown> | null;
+  /* Disparition auto / view_once. */
+  view_once: boolean;
+  view_once_viewed_at: string | null;
+  view_once_viewer_id: string | null;
+  expires_at: string | null;
+  screenshot_detected: boolean;
+  /* Forwarding. */
+  forwarded_from_message_id: string | null;
+  forwarded_from_user_id: string | null;
+  forward_count: number;
+  /* Threading 3 niveaux. */
+  thread_root_id: string | null;
+  /* Delivery status map. */
+  delivery_status: MessageDeliveryStatusMap;
+  /* Pin/star. */
+  is_pinned_in_conv: boolean;
+  starred_by_user_ids: string[];
 };
 
 export type MessageReaction = {
@@ -5135,6 +5216,31 @@ export type Database = {
       is_conversation_member: {
         Args: { conv_id: string };
         Returns: boolean;
+      };
+      /* Chantier 1 (migration 0073) — messagerie étendue. */
+      mark_view_once_viewed: {
+        Args: { p_message_id: string };
+        Returns: void;
+      };
+      flag_screenshot_detected: {
+        Args: { p_message_id: string };
+        Returns: void;
+      };
+      toggle_conversation_pin: {
+        Args: { p_conv_id: string };
+        Returns: boolean;
+      };
+      toggle_conversation_archive: {
+        Args: { p_conv_id: string };
+        Returns: boolean;
+      };
+      set_conversation_mute: {
+        Args: { p_conv_id: string; p_muted: boolean; p_until?: string };
+        Returns: void;
+      };
+      get_or_create_self_conversation: {
+        Args: Record<string, never>;
+        Returns: string;
       };
       send_friend_request: {
         Args: { recipient_user_id: string; intro?: string | null };
