@@ -148,7 +148,7 @@ returns table (
   highlight_id uuid,
   title text,
   cover_image_url text,
-  position integer,
+  sort_position integer,
   items_count integer,
   story_ids uuid[]
 )
@@ -161,7 +161,7 @@ as $$
     h.id as highlight_id,
     h.title,
     h.cover_image_url,
-    h.position,
+    h.position as sort_position,
     h.items_count,
     coalesce(
       array_agg(i.story_id order by i.position)

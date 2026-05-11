@@ -4592,7 +4592,7 @@ export type Database = {
           highlight_id: string;
           title: string;
           cover_image_url: string;
-          position: number;
+          sort_position: number;
           items_count: number;
           story_ids: string[];
         }>;
