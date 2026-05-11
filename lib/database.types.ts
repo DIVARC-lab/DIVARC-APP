@@ -1221,6 +1221,97 @@ export type ProfileRecommendationWithAuthor = ProfileRecommendation & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "headline">;
 };
 
+/* Sections étendues (migration 0066). */
+export type ProfileProject = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  start_month: string | null;
+  end_month: string | null;
+  is_ongoing: boolean;
+  demo_url: string | null;
+  source_url: string | null;
+  tech_tags: string[];
+  media_urls: string[];
+  position_order: number;
+  created_at: string;
+};
+
+export type PublicationMediaType =
+  | "book"
+  | "article"
+  | "podcast"
+  | "research_paper"
+  | "blog_post"
+  | "white_paper"
+  | "other";
+
+export type ProfilePublication = {
+  id: string;
+  user_id: string;
+  title: string;
+  media_type: PublicationMediaType;
+  publisher: string | null;
+  publication_date: string | null;
+  url: string | null;
+  description: string | null;
+  co_author_user_ids: string[];
+  co_authors_text: string[];
+  cover_image_url: string | null;
+  position_order: number;
+  created_at: string;
+};
+
+export type ProfileVolunteer = {
+  id: string;
+  user_id: string;
+  organization: string;
+  cause: string | null;
+  role: string;
+  start_month: string;
+  end_month: string | null;
+  is_current: boolean;
+  description: string | null;
+  position_order: number;
+  created_at: string;
+};
+
+export type ProfileAward = {
+  id: string;
+  user_id: string;
+  title: string;
+  issuer: string | null;
+  issued_date: string | null;
+  description: string | null;
+  url: string | null;
+  position_order: number;
+  created_at: string;
+};
+
+export type OpenToWorkStartDatePreference =
+  | "immediately"
+  | "within_1_month"
+  | "within_3_months"
+  | "flexible";
+
+export type OpenToWorkVisibility =
+  | "all_members"
+  | "recruiters_only"
+  | "hidden";
+
+export type ProfileOpenToWork = {
+  user_id: string;
+  job_titles: string[];
+  locations: string[];
+  work_types: string[];
+  industries: string[];
+  start_date_preference: OpenToWorkStartDatePreference | null;
+  visibility: OpenToWorkVisibility;
+  note: string | null;
+  updated_at: string;
+};
+
 export type CircleColor =
   | "gold"
   | "navy"
@@ -2720,6 +2811,55 @@ export type Database = {
             "relationship" | "relationship_custom" | "text" | "is_visible"
           >
         >;
+        Relationships: [];
+      };
+      profile_projects: {
+        Row: ProfileProject;
+        Insert: Pick<ProfileProject, "user_id" | "title"> &
+          Partial<Omit<ProfileProject, "user_id" | "title" | "created_at">>;
+        Update: Partial<Omit<ProfileProject, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_publications: {
+        Row: ProfilePublication;
+        Insert: Pick<ProfilePublication, "user_id" | "title" | "media_type"> &
+          Partial<
+            Omit<ProfilePublication, "user_id" | "title" | "media_type" | "created_at">
+          >;
+        Update: Partial<
+          Omit<ProfilePublication, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      profile_volunteer: {
+        Row: ProfileVolunteer;
+        Insert: Pick<
+          ProfileVolunteer,
+          "user_id" | "organization" | "role" | "start_month"
+        > &
+          Partial<
+            Omit<
+              ProfileVolunteer,
+              "user_id" | "organization" | "role" | "start_month" | "created_at"
+            >
+          >;
+        Update: Partial<
+          Omit<ProfileVolunteer, "id" | "user_id" | "created_at">
+        >;
+        Relationships: [];
+      };
+      profile_awards: {
+        Row: ProfileAward;
+        Insert: Pick<ProfileAward, "user_id" | "title"> &
+          Partial<Omit<ProfileAward, "user_id" | "title" | "created_at">>;
+        Update: Partial<Omit<ProfileAward, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      profile_open_to_work: {
+        Row: ProfileOpenToWork;
+        Insert: Pick<ProfileOpenToWork, "user_id"> &
+          Partial<Omit<ProfileOpenToWork, "user_id" | "updated_at">>;
+        Update: Partial<Omit<ProfileOpenToWork, "user_id" | "updated_at">>;
         Relationships: [];
       };
       listings: {
