@@ -337,21 +337,13 @@ export function CallProvider({
       const { callId } = created.data;
       log("startCall: created", callId);
 
-      /* 3. Subscribe au call channel + await SUBSCRIBED. */
+      /* 3. Subscribe au call channel ET passe immédiatement en
+         ringing-outbound (overlay visible, mic actif, micro mute disponible).
+         On NE bloque PAS l'UI sur ch.ready — la promise se résout en
+         arrière-plan ou timeout en 5s, et send() await ready en interne. */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);
       callChannelRef.current = ch;
-      try {
-        await ch.ready;
-        log("caller: channel ready");
-      } catch (err) {
-        console.error("[startCall:channel]", err);
-        toast.error("Channel Realtime indisponible.");
-        await endCall("failed", "channel error");
-        return;
-      }
 
-      /* 4. State → ringing-outbound. On attend "accepted" du callee
-         avant de send l'offer (handleSignal s'en charge). */
       setState({
         kind: "ringing-outbound",
         callId,
@@ -360,6 +352,14 @@ export function CallProvider({
         startedAt: Date.now(),
       });
       log("caller: ringing-outbound, waiting for accept");
+
+      /* Log async la readiness (juste pour debug, pas de blocking). */
+      ch.ready
+        .then(() => log("caller: channel ready"))
+        .catch((err) => {
+          console.error("[startCall:channel]", err);
+          toast.error("Channel Realtime indisponible.");
+        });
 
       /* 5. Timeout : si pas d'answer dans 35s → missed. */
       ringTimeoutRef.current = setTimeout(() => {

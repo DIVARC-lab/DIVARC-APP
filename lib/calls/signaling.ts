@@ -78,7 +78,7 @@ export function subscribeCallChannel(
 } {
   const supabase = createClient();
   const channel = supabase.channel(`call:${callId}`, {
-    config: { broadcast: { self: false, ack: true } },
+    config: { broadcast: { self: false } },
   });
 
   channel.on("broadcast", { event: "signal" }, ({ payload }) => {
@@ -87,13 +87,27 @@ export function subscribeCallChannel(
     onMessage(msg);
   });
 
+  /* Promise de readiness — résout sur SUBSCRIBED OU après 5s timeout
+     (fallback de sécurité au cas où le callback Realtime ne fire jamais).
+     Reject sur erreur explicite uniquement. */
   const ready = new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const settle = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      action();
+    };
     channel.subscribe((status) => {
-      if (status === "SUBSCRIBED") resolve();
+      console.log("[call:channel]", callId.slice(0, 8), status);
+      if (status === "SUBSCRIBED") settle(resolve);
       else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-        reject(new Error(`Call channel ${status}`));
+        settle(() => reject(new Error(`Call channel ${status}`)));
       }
     });
+    /* Filet de sécurité : on resolve quand même après 5s — si le
+       channel n'est pas vraiment subscribed, les send() échoueront
+       côté handleSignal mais au moins l'UI ne se bloque pas. */
+    setTimeout(() => settle(resolve), 5000);
   });
 
   return {
