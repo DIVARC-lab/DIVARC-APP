@@ -1,8 +1,8 @@
 "use client";
 
-import { Download, FileText, Reply, Sparkles, Trash2 } from "lucide-react";
+import { Download, FileText, Lock, Reply, Sparkles, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import type {
@@ -10,6 +10,7 @@ import type {
   MessageReplyContext,
   MessageReactionSummary,
 } from "@/lib/database.types";
+import type { EncryptedPayload } from "@/lib/crypto/types";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useLongPress } from "@/lib/hooks/useLongPress";
 import { cn } from "@/lib/utils/cn";
@@ -31,7 +32,39 @@ type MessageBubbleProps = {
   reactions: MessageReactionSummary[];
   replyContext: MessageReplyContext | null;
   onReply: () => void;
+  /* Si conv en mode secret effectif : fonction de déchiffrement. Si
+     non fourni mais message.is_secret, on affiche un placeholder
+     "verrouillé". */
+  decryptFn?: (payload: EncryptedPayload) => Promise<string>;
 };
+
+/* Tente d'extraire un EncryptedPayload valide depuis encryption_metadata
+   (jsonb côté DB, donc Record<string,unknown> côté TS). */
+function asEncryptedPayload(
+  meta: Record<string, unknown> | null,
+): EncryptedPayload | null {
+  if (!meta) return null;
+  const { ciphertext, iv, sessionKeyHash, version } = meta as Record<
+    string,
+    unknown
+  >;
+  if (
+    typeof ciphertext === "string" &&
+    typeof iv === "string" &&
+    typeof sessionKeyHash === "string" &&
+    version === 1
+  ) {
+    return { ciphertext, iv, sessionKeyHash, version: 1 };
+  }
+  return null;
+}
+
+type DecryptState =
+  | { status: "plain"; text: string | null }
+  | { status: "pending" }
+  | { status: "ok"; text: string }
+  | { status: "locked" }
+  | { status: "error" };
 
 export function MessageBubble({
   message,
@@ -43,10 +76,76 @@ export function MessageBubble({
   reactions,
   replyContext,
   onReply,
+  decryptFn,
 }: MessageBubbleProps) {
   const confirm = useConfirm();
   const [pendingDelete, startDelete] = useTransition();
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  /* Déchiffrement asynchrone si message secret. Pour les messages clairs
+     on saute direct au status "plain". */
+  const payload = message.is_secret
+    ? asEncryptedPayload(message.encryption_metadata)
+    : null;
+  const [decryptState, setDecryptState] = useState<DecryptState>(() =>
+    message.is_secret
+      ? payload && decryptFn
+        ? { status: "pending" }
+        : { status: "locked" }
+      : { status: "plain", text: message.body },
+  );
+
+  useEffect(() => {
+    if (!message.is_secret) {
+      setDecryptState({ status: "plain", text: message.body });
+      return;
+    }
+    if (!payload || !decryptFn) {
+      setDecryptState({ status: "locked" });
+      return;
+    }
+    let cancelled = false;
+    setDecryptState({ status: "pending" });
+    decryptFn(payload)
+      .then((text) => {
+        if (!cancelled) setDecryptState({ status: "ok", text });
+      })
+      .catch(() => {
+        if (!cancelled) setDecryptState({ status: "error" });
+      });
+    return () => {
+      cancelled = true;
+    };
+    /* On dépend du sessionKeyHash (change si la session crypto change) et
+       du ciphertext, mais pas de l'objet payload entier (référence change
+       à chaque render). decryptFn est stable via useCallback côté hook. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    message.is_secret,
+    message.body,
+    payload?.ciphertext,
+    payload?.sessionKeyHash,
+    decryptFn,
+  ]);
+
+  /* Corps à afficher en bulle (null = pas de bulle texte). */
+  const displayBody: string | null = (() => {
+    switch (decryptState.status) {
+      case "plain":
+      case "ok":
+        return decryptState.text;
+      case "pending":
+        return "⏳ Déchiffrement…";
+      case "locked":
+        return "🔒 Conversation secrète — déverrouille le coffre";
+      case "error":
+        return "🔒 Impossible de déchiffrer ce message";
+    }
+  })();
+  const isCipherPlaceholder =
+    decryptState.status === "pending" ||
+    decryptState.status === "locked" ||
+    decryptState.status === "error";
 
   /* Long-press tactile (mobile) → ouvre le bottom sheet d'actions. Sur
      desktop le hover-to-reveal classique reste actif (le hook ignore les
@@ -69,6 +168,8 @@ export function MessageBubble({
       </div>
     );
   }
+
+  const hasTextBubble = displayBody !== null && displayBody !== "";
 
   const hasImage =
     message.attachment_type === "image" && message.attachment_url;
@@ -214,7 +315,7 @@ export function MessageBubble({
               />
             ) : null}
 
-            {message.body ? (
+            {hasTextBubble ? (
               <div
                 className={cn(
                   "px-4 py-2.5 rounded-3xl text-sm leading-relaxed shadow-sm select-none",
@@ -222,10 +323,21 @@ export function MessageBubble({
                   isOwn
                     ? "bg-night text-cream rounded-br-md"
                     : "bg-white text-night border border-line rounded-bl-md",
+                  isCipherPlaceholder ? "italic opacity-80" : "",
                 )}
               >
+                {message.is_secret && !isCipherPlaceholder ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider mb-1 opacity-70",
+                    )}
+                  >
+                    <Lock className="w-2.5 h-2.5" aria-hidden />
+                    Secret
+                  </span>
+                ) : null}
                 <p className="whitespace-pre-wrap break-words">
-                  {message.body}
+                  {displayBody}
                 </p>
               </div>
             ) : null}
@@ -266,7 +378,7 @@ export function MessageBubble({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         isOwn={isOwn}
-        messageBody={message.body ?? null}
+        messageBody={isCipherPlaceholder ? null : displayBody}
         onReact={handleQuickReact}
         onReply={onReply}
         onDelete={handleDelete}

@@ -80,6 +80,7 @@ export function ConversationView({
         memberMap={memberMap}
         isGroup={isGroup}
         onReply={setReplyTo}
+        decryptFn={isSecretAndReady ? convCrypto.decrypt : undefined}
       />
       <MessageComposer
         conversationId={conversationId}

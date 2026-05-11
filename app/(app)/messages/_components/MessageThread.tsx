@@ -9,6 +9,7 @@ import type {
   MessageReactionSummary,
   MessageReplyContext,
 } from "@/lib/database.types";
+import type { EncryptedPayload } from "@/lib/crypto/types";
 import { formatDateSeparator, isSameDay } from "@/lib/utils/dateSeparator";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
 import { MessageBubble } from "./MessageBubble";
@@ -35,6 +36,9 @@ type MessageThreadProps = {
   memberMap?: Record<string, OtherMember>;
   isGroup?: boolean;
   onReply: (ctx: MessageReplyContext) => void;
+  /* Si fourni : la conv est en mode secret effectif, on déchiffre les
+     messages is_secret=true à la volée dans MessageBubble. */
+  decryptFn?: (payload: EncryptedPayload) => Promise<string>;
 };
 
 export function MessageThread({
@@ -47,6 +51,7 @@ export function MessageThread({
   memberMap,
   isGroup = false,
   onReply,
+  decryptFn,
 }: MessageThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionsState>(initialReactions);
@@ -338,6 +343,7 @@ export function MessageThread({
                     attachment_type: message.attachment_type,
                   })
                 }
+                decryptFn={decryptFn}
               />
               {isLastOwn && !isGroup ? (
                 <div className="flex justify-end mt-1 pr-1">
