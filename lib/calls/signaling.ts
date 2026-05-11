@@ -2,17 +2,20 @@
 
 /* lib/calls/signaling.ts — couche signaling sur Supabase Realtime.
  *
- * Deux types de channels :
- *   1. User inbox : `user-calls:<userId>` — listen pour incoming calls
- *      (broadcast envoyé par le caller au moment du create_call_session)
- *   2. Per-call : `call:<callId>` — exchange offer/answer/ICE/hangup
- *      entre les 2 peers
+ * Architecture :
+ *   1. Inbox (incoming calls) : postgres_changes INSERT sur call_sessions
+ *      filtré par callee_id=user. 100% fiable (le RPC create_call_session
+ *      insère la row → la notif déclenche le ring côté callee).
+ *   2. Per-call signaling : broadcast channel `call:<callId>` pour
+ *      l'échange offer/answer/ICE/accepted/hangup/reject entre peers.
  *
- * Les payloads sont des SignalingMessage typés (cf types.ts). */
+ * Le broadcast V1 est "best effort" mais comme les deux peers sont déjà
+ * subscribed via flow connu (callee subscribe au moment du ring INSERT,
+ * caller au moment du RPC), il n'y a pas de race. */
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
-import type { CallKind, SignalingMessage } from "./types";
+import type { CallKind, CallRow, SignalingMessage } from "./types";
 
 export type InboundRingPayload = {
   callId: string;
@@ -21,22 +24,37 @@ export type InboundRingPayload = {
   kind: CallKind;
 };
 
-/* Channel inbox : un seul par user, ouvert au login.
- * Le caller envoie un broadcast "ring" → le callee reçoit l'invitation. */
+/* Inbox : listen INSERT sur call_sessions où callee_id = me.
+ * Triggered immédiatement par la RPC create_call_session du caller. */
 export function subscribeInbox(
   userId: string,
   onRing: (payload: InboundRingPayload) => void,
 ): { channel: RealtimeChannel; unsubscribe: () => void } {
   const supabase = createClient();
-  const channel = supabase.channel(`user-calls:${userId}`, {
-    config: { broadcast: { self: false } },
-  });
-  channel.on("broadcast", { event: "ring" }, ({ payload }) => {
-    if (payload && typeof payload === "object") {
-      onRing(payload as InboundRingPayload);
-    }
-  });
-  channel.subscribe();
+  const channel = supabase
+    .channel(`inbox-calls:${userId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "call_sessions",
+        filter: `callee_id=eq.${userId}`,
+      },
+      (payload) => {
+        const row = payload.new as CallRow;
+        /* Ignore les anciens / déjà-finis (au cas où). */
+        if (row.status !== "ringing") return;
+        onRing({
+          callId: row.id,
+          conversationId: row.conversation_id,
+          callerId: row.caller_id,
+          kind: row.kind,
+        });
+      },
+    )
+    .subscribe();
+
   return {
     channel,
     unsubscribe: () => {
@@ -45,37 +63,7 @@ export function subscribeInbox(
   };
 }
 
-/* Envoie un broadcast "ring" à l'inbox du callee.
- * Note : le caller doit créer son propre channel temporaire pour push
- * (les broadcasts cross-channels ne sont pas autorisés sans config). */
-export async function sendRing(
-  calleeUserId: string,
-  payload: InboundRingPayload,
-): Promise<void> {
-  const supabase = createClient();
-  const channel = supabase.channel(`user-calls:${calleeUserId}`);
-  channel.subscribe();
-  /* Attendre que le channel soit ready avant de push. */
-  await new Promise<void>((resolve) => {
-    const onState = (status: string) => {
-      if (status === "SUBSCRIBED") {
-        resolve();
-      }
-    };
-    channel.subscribe(onState);
-    /* Garde-fou : si le subscribe ne callback pas (déjà subscribed),
-       resolve quand même après 500ms. */
-    setTimeout(resolve, 500);
-  });
-  await channel.send({
-    type: "broadcast",
-    event: "ring",
-    payload,
-  });
-  void supabase.removeChannel(channel);
-}
-
-/* Channel per-call : SDP + ICE + hangup. */
+/* Channel per-call : signaling broadcast. */
 export function subscribeCallChannel(
   callId: string,
   myUserId: string,
@@ -84,22 +72,36 @@ export function subscribeCallChannel(
   channel: RealtimeChannel;
   send: (msg: SignalingMessage) => Promise<void>;
   unsubscribe: () => void;
+  /* Promise qui résout quand le channel est SUBSCRIBED. À await avant
+     de pouvoir envoyer fiablement. */
+  ready: Promise<void>;
 } {
   const supabase = createClient();
   const channel = supabase.channel(`call:${callId}`, {
-    config: { broadcast: { self: false } },
+    config: { broadcast: { self: false, ack: true } },
   });
 
   channel.on("broadcast", { event: "signal" }, ({ payload }) => {
     const msg = payload as SignalingMessage;
-    if (msg.from === myUserId) return; // sécurité — ignore self
+    if (msg.from === myUserId) return;
     onMessage(msg);
   });
-  channel.subscribe();
+
+  const ready = new Promise<void>((resolve, reject) => {
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") resolve();
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        reject(new Error(`Call channel ${status}`));
+      }
+    });
+  });
 
   return {
     channel,
     send: async (msg) => {
+      /* Attend que le channel soit prêt avant d'envoyer. Si déjà prêt,
+         resolve immédiat. */
+      await ready;
       await channel.send({
         type: "broadcast",
         event: "signal",
@@ -109,5 +111,6 @@ export function subscribeCallChannel(
     unsubscribe: () => {
       void supabase.removeChannel(channel);
     },
+    ready,
   };
 }

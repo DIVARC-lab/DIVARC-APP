@@ -2,14 +2,22 @@
 
 /* useCallSession — Provider + hook qui orchestre les appels WebRTC.
  *
- * Responsabilités :
- *   - Écouter l'inbox channel pour les incoming calls
- *   - Gérer la state machine locale (idle → ringing → connecting → in-call)
- *   - Acquérir le micro, créer la PeerConnection, exchange SDP/ICE
- *   - Exposer startCall / acceptCall / rejectCall / hangup
- *   - Cleaner les ressources à la fin (close PC, stop tracks)
+ * Flow caller (handshake) :
+ *   1. RPC create_call_session → callId
+ *   2. getUserMedia + create PeerConnection
+ *   3. Subscribe call channel (await SUBSCRIBED)
+ *   4. State: ringing-outbound, attente du "accepted" du callee
+ *   5. Callee envoie "accepted" → caller createOffer + send offer
+ *   6. Callee envoie answer → applyAnswer
+ *   7. ICE flow en parallèle
+ *   8. connectionState === "connected" → in-call + mark_call_connected
  *
- * Mount : <CallProvider> dans le app layout. */
+ * Flow callee :
+ *   1. postgres_changes INSERT call_sessions → state ringing-inbound +
+ *      subscribe call channel
+ *   2. User clique Accept → getUserMedia + create PC + send "accepted"
+ *   3. Reçoit offer → applyOffer → createAnswer → send answer
+ *   4. ICE flow + connected → in-call + mark_call_connected */
 
 import {
   createContext,
@@ -27,7 +35,7 @@ import {
   markCallConnected,
 } from "@/app/(app)/messages/call-actions";
 import { createClient } from "@/lib/supabase/client";
-import { sendRing, subscribeCallChannel, subscribeInbox } from "@/lib/calls/signaling";
+import { subscribeCallChannel, subscribeInbox } from "@/lib/calls/signaling";
 import {
   type CallKind,
   type LocalCallState,
@@ -35,6 +43,8 @@ import {
   RING_TIMEOUT_MS,
 } from "@/lib/calls/types";
 import { createWebRTCClient, type WebRTCClient } from "@/lib/calls/webrtc";
+
+type CallChannel = ReturnType<typeof subscribeCallChannel>;
 
 type CallContextValue = {
   state: LocalCallState;
@@ -70,17 +80,24 @@ export function CallProvider({
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
-  /* Refs pour les ressources mutables non-React. */
+  /* Refs mutables (non-React). */
   const webrtcRef = useRef<WebRTCClient | null>(null);
-  const callChannelRef = useRef<ReturnType<typeof subscribeCallChannel> | null>(
-    null,
-  );
+  const callChannelRef = useRef<CallChannel | null>(null);
   const ringTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /* ICE candidates reçus AVANT que la PC ne soit prête → buffer. */
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
+  /* Côté caller : on attend que le callee envoie "accepted" avant de
+     créer l'offer. Stocké en ref pour ne pas re-render. */
+  const calleeAcceptedRef = useRef(false);
 
-  /* Cleanup helper : ferme tout. */
+  const log = (...args: unknown[]) => {
+    if (typeof window !== "undefined") {
+      console.log("[call]", ...args);
+    }
+  };
+
+  /* Cleanup. */
   const teardown = useCallback(() => {
+    log("teardown");
     if (ringTimeoutRef.current) {
       clearTimeout(ringTimeoutRef.current);
       ringTimeoutRef.current = null;
@@ -90,76 +107,124 @@ export function CallProvider({
     webrtcRef.current?.close();
     webrtcRef.current = null;
     pendingIceRef.current = [];
+    calleeAcceptedRef.current = false;
     setRemoteStream(null);
     setIsMuted(false);
   }, []);
 
-  /* Handler des messages signaling reçus du peer. */
-  const handleSignal = useCallback(async (msg: SignalingMessage) => {
-    const webrtc = webrtcRef.current;
-    if (!webrtc) return;
-
-    try {
-      if (msg.type === "offer") {
-        const answer = await webrtc.applyOffer(msg.sdp);
-        /* Flush les ICE candidates bufferisés. */
-        for (const ice of pendingIceRef.current) {
-          await webrtc.addIceCandidate(ice);
-        }
-        pendingIceRef.current = [];
-        await callChannelRef.current?.send({
-          type: "answer",
-          sdp: answer,
-          from: currentUserId!,
-        });
-      } else if (msg.type === "answer") {
-        await webrtc.applyAnswer(msg.sdp);
-        for (const ice of pendingIceRef.current) {
-          await webrtc.addIceCandidate(ice);
-        }
-        pendingIceRef.current = [];
-      } else if (msg.type === "ice") {
-        /* Si la remoteDescription n'est pas encore set, on buffer. */
-        if (webrtc.pc.remoteDescription) {
-          await webrtc.addIceCandidate(msg.candidate);
-        } else {
-          pendingIceRef.current.push(msg.candidate);
-        }
-      } else if (msg.type === "hangup") {
-        toast("Appel terminé.");
-        await endCurrentCall("ended", msg.reason ?? "peer hangup");
-      } else if (msg.type === "reject") {
-        toast("Appel refusé.");
-        await endCurrentCall("rejected", "peer rejected");
-      }
-    } catch (err) {
-      console.error("[call:signal]", err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId]);
-
-  /* Fin propre d'un appel (côté local) : RPC + teardown. */
-  const endCurrentCall = useCallback(
+  const endCall = useCallback(
     async (
       status: "ended" | "missed" | "rejected" | "failed",
       reason?: string,
     ) => {
-      const current = state;
-      if (current.kind === "idle") return;
-      await endCallSession(current.callId, status, reason);
+      log("endCall", status, reason);
+      setState((cur) => {
+        if (cur.kind === "idle") return cur;
+        void endCallSession(cur.callId, status, reason);
+        return { kind: "idle" };
+      });
       teardown();
-      setState({ kind: "idle" });
     },
-    [state, teardown],
+    [teardown],
   );
 
-  /* Inbox : écoute les incoming calls. */
+  /* Caller : envoie l'offer (déclenché par "accepted" du callee). */
+  const sendOfferAsCaller = useCallback(async () => {
+    const webrtc = webrtcRef.current;
+    const ch = callChannelRef.current;
+    if (!webrtc || !ch || !currentUserId) return;
+    if (calleeAcceptedRef.current) return; // already done
+    calleeAcceptedRef.current = true;
+    try {
+      log("caller: createOffer");
+      const offer = await webrtc.createOffer();
+      await ch.send({ type: "offer", sdp: offer, from: currentUserId });
+      log("caller: offer sent");
+      setState((cur) =>
+        cur.kind === "ringing-outbound"
+          ? {
+              kind: "connecting",
+              callId: cur.callId,
+              conversationId: cur.conversationId,
+              peerId: cur.peerId,
+              startedAt: cur.startedAt,
+            }
+          : cur,
+      );
+    } catch (err) {
+      console.error("[call] sendOfferAsCaller failed", err);
+      toast.error("Échec création offer.");
+      await endCall("failed", "offer creation failed");
+    }
+  }, [currentUserId, endCall]);
+
+  /* Handler des messages signaling. */
+  const handleSignal = useCallback(
+    async (msg: SignalingMessage) => {
+      log("signal:in", msg.type);
+      const webrtc = webrtcRef.current;
+      const ch = callChannelRef.current;
+      if (!ch || !currentUserId) return;
+
+      try {
+        if (msg.type === "accepted") {
+          /* Caller reçoit l'accept → envoie l'offer. */
+          await sendOfferAsCaller();
+        } else if (msg.type === "offer") {
+          if (!webrtc) {
+            log("signal: offer received but no webrtc yet, ignoring");
+            return;
+          }
+          const answer = await webrtc.applyOffer(msg.sdp);
+          for (const ice of pendingIceRef.current) {
+            await webrtc.addIceCandidate(ice);
+          }
+          pendingIceRef.current = [];
+          await ch.send({
+            type: "answer",
+            sdp: answer,
+            from: currentUserId,
+          });
+          log("callee: answer sent");
+        } else if (msg.type === "answer") {
+          if (!webrtc) return;
+          await webrtc.applyAnswer(msg.sdp);
+          for (const ice of pendingIceRef.current) {
+            await webrtc.addIceCandidate(ice);
+          }
+          pendingIceRef.current = [];
+          log("caller: answer applied");
+        } else if (msg.type === "ice") {
+          if (webrtc && webrtc.pc.remoteDescription) {
+            await webrtc.addIceCandidate(msg.candidate);
+          } else {
+            pendingIceRef.current.push(msg.candidate);
+          }
+        } else if (msg.type === "hangup") {
+          toast("Appel terminé par l'autre personne.");
+          await endCall("ended", msg.reason ?? "peer hangup");
+        } else if (msg.type === "reject") {
+          toast("Appel refusé.");
+          await endCall("rejected", "peer rejected");
+        }
+      } catch (err) {
+        console.error("[call:signal:err]", err);
+      }
+    },
+    [currentUserId, sendOfferAsCaller, endCall],
+  );
+
+  /* Inbox : postgres_changes INSERT sur call_sessions. */
   useEffect(() => {
     if (!currentUserId) return;
+    log("inbox: subscribe", currentUserId);
     const { unsubscribe } = subscribeInbox(currentUserId, (payload) => {
-      /* Ignore si on est déjà dans un appel (le caller verra timeout). */
+      log("inbox: incoming ring", payload);
       setState((prev) => {
-        if (prev.kind !== "idle") return prev;
+        if (prev.kind !== "idle") {
+          log("inbox: already in call, ignoring");
+          return prev;
+        }
         return {
           kind: "ringing-inbound",
           callId: payload.callId,
@@ -172,24 +237,25 @@ export function CallProvider({
     return unsubscribe;
   }, [currentUserId]);
 
-  /* Une fois en "ringing-inbound", on subscribe au channel de l'appel
-     pour pouvoir recevoir le offer dès qu'il arrive. */
+  /* Côté callee : subscribe au call channel dès qu'on est en
+     ringing-inbound, pour pouvoir recevoir l'offer après accept. */
+  const incomingCallId =
+    state.kind === "ringing-inbound" ? state.callId : null;
   useEffect(() => {
-    if (!currentUserId) return;
-    if (state.kind !== "ringing-inbound") return;
-    const { unsubscribe, send } = subscribeCallChannel(
-      state.callId,
+    if (!incomingCallId || !currentUserId) return;
+    log("callee: subscribe call channel", incomingCallId);
+    const ch = subscribeCallChannel(
+      incomingCallId,
       currentUserId,
       handleSignal,
     );
-    callChannelRef.current = { unsubscribe, send, channel: null as never };
+    callChannelRef.current = ch;
     return () => {
-      /* Si on quitte cet état sans avoir établi de WebRTC, on garde le
-         channel pour permettre l'accept. Le teardown final ferme tout. */
+      /* Cleanup géré par teardown() à la fin de l'appel. */
     };
-  }, [state.kind, state.kind === "ringing-inbound" ? state.callId : null, currentUserId, handleSignal]);
+  }, [incomingCallId, currentUserId, handleSignal]);
 
-  /* startCall : caller side. */
+  /* === startCall (caller side) === */
   const startCall = useCallback(
     async ({
       conversationId,
@@ -200,6 +266,7 @@ export function CallProvider({
       peerId: string;
       kind?: CallKind;
     }) => {
+      log("startCall", { conversationId, peerId, kind });
       if (!currentUserId) {
         toast.error("Tu dois être connecté.");
         return;
@@ -209,19 +276,13 @@ export function CallProvider({
         return;
       }
 
-      /* 1. Crée la session DB. */
-      const created = await createCallSession(conversationId, kind);
-      if (!created.ok) {
-        toast.error(created.error);
-        return;
-      }
-      const { callId } = created.data;
-
-      /* 2. Permission micro + WebRTC. */
+      /* 1. Permission micro. Fait en premier pour échouer vite si
+         l'user refuse — pas la peine de créer une session DB. */
       let webrtc: WebRTCClient;
       try {
         webrtc = await createWebRTCClient({
           onIceCandidate: async (candidate) => {
+            log("caller: local ICE");
             await callChannelRef.current?.send({
               type: "ice",
               candidate,
@@ -229,52 +290,68 @@ export function CallProvider({
             });
           },
           onRemoteTrack: (stream) => {
+            log("caller: remote track");
             setRemoteStream(stream);
           },
           onConnectionState: async (cs) => {
+            log("caller: connection state", cs);
             if (cs === "connected") {
-              await markCallConnected(callId);
-              setState((prev) =>
-                prev.kind === "connecting" || prev.kind === "ringing-outbound"
-                  ? {
-                      kind: "in-call",
-                      callId: prev.callId,
-                      conversationId: prev.conversationId,
-                      peerId: prev.peerId,
-                      startedAt: prev.startedAt,
-                      connectedAt: Date.now(),
-                    }
-                  : prev,
-              );
+              setState((cur) => {
+                if (cur.kind === "connecting" || cur.kind === "ringing-outbound") {
+                  void markCallConnected(cur.callId);
+                  return {
+                    kind: "in-call",
+                    callId: cur.callId,
+                    conversationId: cur.conversationId,
+                    peerId: cur.peerId,
+                    startedAt: cur.startedAt,
+                    connectedAt: Date.now(),
+                  };
+                }
+                return cur;
+              });
             } else if (cs === "failed" || cs === "disconnected") {
-              await endCurrentCall("failed", "ICE/conn failed");
+              await endCall("failed", `connection ${cs}`);
             }
           },
         });
       } catch (err) {
         console.error("[startCall:getUserMedia]", err);
-        await endCallSession(callId, "failed", "no microphone");
-        toast.error("Impossible d'accéder au micro.");
+        toast.error(
+          err instanceof Error
+            ? `Micro indisponible : ${err.message}`
+            : "Micro indisponible.",
+        );
         return;
       }
       webrtcRef.current = webrtc;
 
-      /* 3. Subscribe au channel de l'appel. */
+      /* 2. Crée la session DB → INSERT déclenche postgres_changes côté
+         callee, qui passe en ringing-inbound. */
+      const created = await createCallSession(conversationId, kind);
+      if (!created.ok) {
+        toast.error(created.error);
+        teardown();
+        return;
+      }
+      const { callId } = created.data;
+      log("startCall: created", callId);
+
+      /* 3. Subscribe au call channel + await SUBSCRIBED. */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);
       callChannelRef.current = ch;
+      try {
+        await ch.ready;
+        log("caller: channel ready");
+      } catch (err) {
+        console.error("[startCall:channel]", err);
+        toast.error("Channel Realtime indisponible.");
+        await endCall("failed", "channel error");
+        return;
+      }
 
-      /* 4. Notifie le callee via son inbox. */
-      await sendRing(peerId, {
-        callId,
-        conversationId,
-        callerId: currentUserId,
-        kind,
-      });
-
-      /* 5. Crée et envoie l'offer SDP. */
-      const offer = await webrtc.createOffer();
-      await ch.send({ type: "offer", sdp: offer, from: currentUserId });
-
+      /* 4. State → ringing-outbound. On attend "accepted" du callee
+         avant de send l'offer (handleSignal s'en charge). */
       setState({
         kind: "ringing-outbound",
         callId,
@@ -282,15 +359,17 @@ export function CallProvider({
         peerId,
         startedAt: Date.now(),
       });
+      log("caller: ringing-outbound, waiting for accept");
 
-      /* Ring timeout : si pas de réponse dans 35s → missed. On lit le
-         state via setState callback pour éviter une fermeture stale. */
+      /* 5. Timeout : si pas d'answer dans 35s → missed. */
       ringTimeoutRef.current = setTimeout(() => {
         setState((cur) => {
           if (
             cur.kind === "ringing-outbound" ||
             cur.kind === "connecting"
           ) {
+            log("caller: ring timeout, missed");
+            toast("Pas de réponse.");
             void endCallSession(cur.callId, "missed", "no answer");
             teardown();
             return { kind: "idle" };
@@ -299,17 +378,21 @@ export function CallProvider({
         });
       }, RING_TIMEOUT_MS);
     },
-    [currentUserId, state.kind, handleSignal, endCurrentCall, teardown],
+    [currentUserId, state.kind, handleSignal, endCall, teardown],
   );
 
-  /* acceptCall : callee side. */
+  /* === acceptCall (callee side) === */
   const acceptCall = useCallback(async () => {
     if (!currentUserId) return;
     if (state.kind !== "ringing-inbound") return;
+    log("acceptCall");
+    const { callId } = state;
 
+    let webrtc: WebRTCClient;
     try {
-      const webrtc = await createWebRTCClient({
+      webrtc = await createWebRTCClient({
         onIceCandidate: async (candidate) => {
+          log("callee: local ICE");
           await callChannelRef.current?.send({
             type: "ice",
             candidate,
@@ -317,62 +400,81 @@ export function CallProvider({
           });
         },
         onRemoteTrack: (stream) => {
+          log("callee: remote track");
           setRemoteStream(stream);
         },
         onConnectionState: async (cs) => {
+          log("callee: connection state", cs);
           if (cs === "connected") {
-            await markCallConnected(state.callId);
-            setState((prev) =>
-              prev.kind === "connecting" || prev.kind === "ringing-inbound"
-                ? {
-                    kind: "in-call",
-                    callId: prev.callId,
-                    conversationId: prev.conversationId,
-                    peerId: prev.peerId,
-                    startedAt: prev.startedAt,
-                    connectedAt: Date.now(),
-                  }
-                : prev,
-            );
+            setState((cur) => {
+              if (
+                cur.kind === "connecting" ||
+                cur.kind === "ringing-inbound"
+              ) {
+                void markCallConnected(cur.callId);
+                return {
+                  kind: "in-call",
+                  callId: cur.callId,
+                  conversationId: cur.conversationId,
+                  peerId: cur.peerId,
+                  startedAt: cur.startedAt,
+                  connectedAt: Date.now(),
+                };
+              }
+              return cur;
+            });
           } else if (cs === "failed" || cs === "disconnected") {
-            await endCurrentCall("failed", "ICE/conn failed");
+            await endCall("failed", `connection ${cs}`);
           }
         },
       });
-      webrtcRef.current = webrtc;
-      setState((prev) =>
-        prev.kind === "ringing-inbound"
-          ? {
-              kind: "connecting",
-              callId: prev.callId,
-              conversationId: prev.conversationId,
-              peerId: prev.peerId,
-              startedAt: prev.startedAt,
-            }
-          : prev,
-      );
     } catch (err) {
       console.error("[acceptCall:getUserMedia]", err);
-      await endCurrentCall("failed", "no microphone");
-      toast.error("Impossible d'accéder au micro.");
+      toast.error(
+        err instanceof Error
+          ? `Micro indisponible : ${err.message}`
+          : "Micro indisponible.",
+      );
+      await endCall("failed", "no microphone");
+      return;
     }
-  }, [currentUserId, state, endCurrentCall]);
+    webrtcRef.current = webrtc;
 
-  /* rejectCall : callee refuse l'incoming. */
+    /* Le channel est déjà subscribed via le useEffect ringing-inbound.
+       Envoie "accepted" → le caller crée et envoie l'offer. */
+    await callChannelRef.current?.send({
+      type: "accepted",
+      from: currentUserId,
+    });
+    log("callee: accepted sent");
+
+    setState((cur) =>
+      cur.kind === "ringing-inbound"
+        ? {
+            kind: "connecting",
+            callId: cur.callId,
+            conversationId: cur.conversationId,
+            peerId: cur.peerId,
+            startedAt: cur.startedAt,
+          }
+        : cur,
+    );
+  }, [currentUserId, state, endCall]);
+
   const rejectCall = useCallback(async () => {
-    if (!currentUserId) return;
-    if (state.kind !== "ringing-inbound") return;
+    if (!currentUserId || state.kind !== "ringing-inbound") return;
+    log("rejectCall");
     await callChannelRef.current?.send({
       type: "reject",
       from: currentUserId,
     });
-    await endCurrentCall("rejected", "user rejected");
-  }, [currentUserId, state, endCurrentCall]);
+    await endCall("rejected", "user rejected");
+  }, [currentUserId, state, endCall]);
 
-  /* hangup : termine l'appel en cours. */
   const hangup = useCallback(
     async (reason?: string) => {
       if (state.kind === "idle") return;
+      log("hangup", reason);
       if (currentUserId) {
         await callChannelRef.current?.send({
           type: "hangup",
@@ -380,9 +482,9 @@ export function CallProvider({
           from: currentUserId,
         });
       }
-      await endCurrentCall("ended", reason);
+      await endCall("ended", reason);
     },
-    [state.kind, currentUserId, endCurrentCall],
+    [state.kind, currentUserId, endCall],
   );
 
   const toggleMute = useCallback(() => {
@@ -393,7 +495,6 @@ export function CallProvider({
     });
   }, []);
 
-  /* Cleanup au unmount. */
   useEffect(() => {
     return () => {
       teardown();
@@ -417,7 +518,6 @@ export function CallProvider({
   return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
 }
 
-/* Helper pour récupérer le profil peer côté UI (lookup minimal). */
 export async function fetchPeerProfile(peerId: string): Promise<{
   full_name: string | null;
   username: string | null;

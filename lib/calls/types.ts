@@ -33,6 +33,7 @@ export type CallRow = {
 
 /* Messages échangés sur le channel de signaling. */
 export type SignalingMessage =
+  | { type: "accepted"; from: string }
   | { type: "offer"; sdp: RTCSessionDescriptionInit; from: string }
   | { type: "answer"; sdp: RTCSessionDescriptionInit; from: string }
   | { type: "ice"; candidate: RTCIceCandidateInit; from: string }
