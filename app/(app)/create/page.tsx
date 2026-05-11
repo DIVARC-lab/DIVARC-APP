@@ -24,7 +24,7 @@ export default async function CreatePage() {
   if (!user) redirect("/login");
 
   return (
-    <div className="min-h-[calc(100vh-160px)] flex flex-col">
+    <div className="min-h-[calc(100dvh-112px-env(safe-area-inset-bottom,0px))] lg:min-h-[calc(100dvh-56px)] flex flex-col">
       <div className="flex-1" aria-hidden />
       <section className="relative bg-bg rounded-t-3xl shadow-[0_-30px_80px_-20px_rgba(10,31,68,0.18)] px-5 pb-10 pt-3 sm:max-w-lg sm:mx-auto sm:rounded-3xl sm:my-10 sm:shadow-[0_24px_60px_-24px_rgba(10,31,68,0.25)] sm:border sm:border-line">
         <div

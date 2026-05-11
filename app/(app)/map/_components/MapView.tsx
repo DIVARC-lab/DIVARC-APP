@@ -287,7 +287,7 @@ export function MapView({
   );
 
   return (
-    <div className="relative h-[calc(100vh-56px-44px)] lg:h-[calc(100vh-44px)] w-full overflow-hidden">
+    <div className="relative h-[calc(100dvh-56px-56px-env(safe-area-inset-bottom,0px))] lg:h-[calc(100dvh-56px)] w-full overflow-hidden">
       {/* Top : search + filters flottants au-dessus de la carte. */}
       <div className="absolute inset-x-0 top-0 z-20 px-4 pt-4 pointer-events-none">
         <div className="mx-auto max-w-2xl pointer-events-auto space-y-2">
