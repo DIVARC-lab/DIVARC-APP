@@ -7,6 +7,7 @@ import {
   Loader2,
   Mic,
   Paperclip,
+  Plus,
   Send,
   Smile,
   X,
@@ -19,6 +20,7 @@ import type { EncryptedPayload } from "@/lib/crypto/types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
+import { ComposerExtrasSheet } from "./ComposerExtrasSheet";
 import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
@@ -79,6 +81,7 @@ export function MessageComposer({
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [extrasOpen, setExtrasOpen] = useState(false);
   /* Éclats : si toggle ON, le prochain attachment envoyé sera view-once
      (visible une seule fois). Reset après chaque envoi. */
   const [viewOnce, setViewOnce] = useState(false);
@@ -488,7 +491,7 @@ export function MessageComposer({
     !pending && !tooLong && (body.trim().length > 0 || attachment !== null);
 
   return (
-    <div className="border-t border-line bg-white px-4 py-3 sm:px-6 sm:py-4">
+    <div className="border-t border-line bg-white px-2.5 sm:px-6 py-2 sm:py-4">
       <div className="max-w-3xl mx-auto">
         {secretLabel ? (
           <div className="mb-2 px-3 py-1.5 rounded-full bg-night/5 border border-line text-[11.5px] font-semibold text-night inline-flex items-center gap-1">
@@ -589,90 +592,46 @@ export function MessageComposer({
               </div>
             ) : null}
 
-            <div className="flex items-end gap-2">
-              <div className="flex items-center gap-1 pb-1">
-                <button
-                  type="button"
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={uploading || attachment !== null}
-                  aria-label="Ajouter une image"
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
-                    attachment !== null
-                      ? "text-muted/50 cursor-not-allowed"
-                      : "text-night-muted hover:bg-night/5 hover:text-night",
-                  )}
-                >
-                  {uploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-                  ) : (
-                    <ImageIcon className="w-5 h-5" aria-hidden />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || attachment !== null}
-                  aria-label="Ajouter un fichier"
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
-                    attachment !== null
-                      ? "text-muted/50 cursor-not-allowed"
-                      : "text-night-muted hover:bg-night/5 hover:text-night",
-                  )}
-                >
-                  <Paperclip className="w-4 h-4" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecording(true)}
-                  disabled={attachment !== null}
-                  aria-label="Enregistrer un message vocal"
-                  className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
-                    attachment !== null
-                      ? "text-muted/50 cursor-not-allowed"
-                      : "text-night-muted hover:bg-night/5 hover:text-night",
-                  )}
-                >
-                  <Mic className="w-4 h-4" aria-hidden />
-                </button>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setEmojiOpen((v) => !v)}
-                    aria-label="Insérer un emoji"
-                    aria-expanded={emojiOpen}
-                    className={cn(
-                      "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
-                      emojiOpen
-                        ? "bg-night/5 text-night"
-                        : "text-night-muted hover:bg-night/5 hover:text-night",
-                    )}
-                  >
-                    <Smile className="w-5 h-5" aria-hidden />
-                  </button>
-                  {emojiOpen ? (
-                    <>
-                      <button
-                        type="button"
-                        aria-label="Fermer le sélecteur d'emojis"
-                        onClick={() => setEmojiOpen(false)}
-                        className="fixed inset-0 z-30 cursor-default"
-                      />
-                      <EmojiPicker
-                        onPick={(emoji) => {
-                          insertEmoji(emoji);
-                          notifyTyping();
-                        }}
-                        onClose={() => setEmojiOpen(false)}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              </div>
+            {/* Bar style WhatsApp : [+] [📷] [pill input avec emoji inside] [mic/send] */}
+            <div className="flex items-end gap-1.5">
+              {/* Bouton + : ouvre la sheet d'extras (fichier, localisation, etc.) */}
+              <button
+                type="button"
+                onClick={() => setExtrasOpen(true)}
+                disabled={attachment !== null}
+                aria-label="Plus d'options"
+                className={cn(
+                  "shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                  attachment !== null
+                    ? "text-muted/50 cursor-not-allowed"
+                    : "text-night-muted hover:bg-night/5 hover:text-night",
+                )}
+              >
+                <Plus className="w-5 h-5" aria-hidden />
+              </button>
 
-              <div className="flex-1 relative">
+              {/* Bouton Photo */}
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading || attachment !== null}
+                aria-label="Ajouter une photo"
+                className={cn(
+                  "shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                  attachment !== null
+                    ? "text-muted/50 cursor-not-allowed"
+                    : "text-night-muted hover:bg-night/5 hover:text-night",
+                )}
+              >
+                {uploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                ) : (
+                  <ImageIcon className="w-5 h-5" aria-hidden />
+                )}
+              </button>
+
+              {/* Pill input WhatsApp-style avec emoji intégré à droite */}
+              <div className="flex-1 min-w-0 relative flex items-end bg-bg rounded-3xl border border-line focus-within:border-night focus-within:ring-2 focus-within:ring-night/15 transition-colors">
                 <textarea
                   ref={textareaRef}
                   value={body}
@@ -686,34 +645,79 @@ export function MessageComposer({
                   rows={1}
                   maxLength={MAX_LENGTH + 100}
                   disabled={pending}
-                  className="w-full resize-none rounded-2xl border border-line bg-bg px-4 py-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15 disabled:opacity-60"
+                  /* font-size:16px (text-base) sur mobile pour éviter
+                     l'auto-zoom iOS Safari qui décale toute la page. */
+                  className="flex-1 min-w-0 resize-none bg-transparent pl-4 pr-1 py-2.5 text-base sm:text-sm text-fg placeholder:text-muted/70 focus:outline-none disabled:opacity-60"
                   aria-label="Message"
                 />
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen((v) => !v)}
+                  aria-label="Insérer un emoji"
+                  aria-expanded={emojiOpen}
+                  className={cn(
+                    "shrink-0 w-9 h-9 mr-0.5 mb-0.5 rounded-full flex items-center justify-center transition-colors",
+                    emojiOpen
+                      ? "bg-night/5 text-night"
+                      : "text-night-muted hover:bg-night/5 hover:text-night",
+                  )}
+                >
+                  <Smile className="w-5 h-5" aria-hidden />
+                </button>
+                {emojiOpen ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Fermer le sélecteur d'emojis"
+                      onClick={() => setEmojiOpen(false)}
+                      className="fixed inset-0 z-30 cursor-default"
+                    />
+                    <EmojiPicker
+                      onPick={(emoji) => {
+                        insertEmoji(emoji);
+                        notifyTyping();
+                      }}
+                      onClose={() => setEmojiOpen(false)}
+                    />
+                  </>
+                ) : null}
                 {tooLong ? (
-                  <p className="absolute -top-5 right-1 text-[10px] text-red-600">
+                  <p className="absolute -top-5 right-2 text-[10px] text-red-600 bg-white px-1 rounded">
                     {remaining}
                   </p>
                 ) : null}
               </div>
 
-              <button
-                type="submit"
-                disabled={!canSend}
-                aria-label="Envoyer"
-                className={cn(
-                  "shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200",
-                  canSend
-                    ? "bg-night text-cream hover:bg-night-soft scale-100"
-                    : "bg-night/30 text-cream scale-95",
-                  "disabled:opacity-40 disabled:cursor-not-allowed",
-                )}
-              >
-                {pending ? (
-                  <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" aria-hidden />
-                )}
-              </button>
+              {/* Mic (quand rien à envoyer) OU Send (quand texte/attachment) */}
+              {canSend ? (
+                <button
+                  type="submit"
+                  disabled={!canSend}
+                  aria-label="Envoyer"
+                  className="shrink-0 w-11 h-11 rounded-full bg-night text-cream flex items-center justify-center hover:bg-night-soft transition-colors active:scale-95"
+                >
+                  {pending ? (
+                    <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" aria-hidden />
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRecording(true)}
+                  disabled={attachment !== null}
+                  aria-label="Enregistrer un message vocal"
+                  className={cn(
+                    "shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-colors active:scale-95",
+                    attachment !== null
+                      ? "bg-night/20 text-cream/60 cursor-not-allowed"
+                      : "bg-night text-cream hover:bg-night-soft",
+                  )}
+                >
+                  <Mic className="w-4 h-4" aria-hidden />
+                </button>
+              )}
             </div>
 
             <input
@@ -729,14 +733,15 @@ export function MessageComposer({
               onChange={handleFileSelect}
               className="sr-only"
             />
-
-            <p className="mt-2 text-[10px] text-muted text-center">
-              Entrée pour envoyer · Maj+Entrée pour aller à la ligne · 10 Mo
-              (image), 25 Mo (fichier)
-            </p>
           </form>
         )}
       </div>
+
+      <ComposerExtrasSheet
+        open={extrasOpen}
+        onClose={() => setExtrasOpen(false)}
+        onPickFile={() => fileInputRef.current?.click()}
+      />
     </div>
   );
 }

@@ -73,8 +73,9 @@ export function ConversationItem({
         /* Pseudo-virtualization : content-visibility:auto laisse au
            navigateur l'option de sauter le rendu des items hors viewport.
            contain-intrinsic-size garde la place réservée pour éviter le
-           scroll-jump. */
-        className="relative [content-visibility:auto] [contain-intrinsic-size:auto_80px]"
+           scroll-jump. min-w-0 + overflow-hidden évitent que les noms
+           très longs poussent le layout horizontalement sur mobile. */
+        className="relative min-w-0 [content-visibility:auto] [contain-intrinsic-size:auto_80px]"
         {...longPressHandlers}
       >
         <Link
