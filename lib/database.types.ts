@@ -2085,6 +2085,135 @@ export type PayoutRequest = {
   processed_by: string | null;
 };
 
+/* ============================================================================
+ * MARKETPLACE — Orders (Chantier 1.4, migration 0084)
+ * ============================================================================ */
+
+export type OrderStatus =
+  | "pending_payment"
+  | "payment_processing"
+  | "paid"
+  | "awaiting_shipment"
+  | "shipped"
+  | "in_transit"
+  | "delivered"
+  | "awaiting_confirmation"
+  | "completed"
+  | "cancelled"
+  | "disputed"
+  | "refunded"
+  | "partially_refunded";
+
+export type ShippingMethod =
+  | "pickup_in_person"
+  | "mondial_relay"
+  | "colissimo"
+  | "chronopost"
+  | "international_standard"
+  | "international_express"
+  | "custom";
+
+export type Order = {
+  id: string;
+  order_number: string;
+  buyer_id: string;
+  seller_id: string;
+  listing_id: string;
+  listing_snapshot: Record<string, unknown>;
+  status: OrderStatus;
+  /* Montants en EUR (ou autre currency). */
+  item_price: number;
+  shipping_price: number;
+  service_fee: number;
+  buyer_protection_fee: number;
+  total_amount: number;
+  seller_amount: number;
+  divarc_commission: number;
+  currency: Currency;
+  /* Paiement Stripe Connect. */
+  payment_intent_id: string | null;
+  payment_method_type: string | null;
+  paid_at: string | null;
+  /* Escrow. */
+  funds_held_in_escrow: boolean;
+  escrow_released_at: string | null;
+  /* Délais. */
+  payment_deadline: string | null;
+  shipping_deadline: string | null;
+  delivery_deadline: string | null;
+  confirmation_deadline: string | null;
+  /* Documents. */
+  invoice_url: string | null;
+  /* Reviews (FK croisée — créées en Chantier 6). */
+  buyer_review_id: string | null;
+  seller_review_id: string | null;
+  /* Litige (FK ajoutée en Chantier 6). */
+  dispute_id: string | null;
+  is_disputed: boolean;
+  /* Timestamps. */
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+};
+
+export type OrderStatusChange = {
+  id: string;
+  order_id: string;
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  changed_at: string;
+  changed_by: string | null;
+  reason: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+export type OrderAddress = {
+  full_name: string;
+  street_line_1: string;
+  street_line_2?: string;
+  city: string;
+  postal_code: string;
+  country: string;
+  phone?: string;
+};
+
+export type OrderPickupPoint = {
+  id: string;
+  carrier: string;
+  name: string;
+  address: OrderAddress;
+  opening_hours?: string;
+  distance_m?: number;
+};
+
+export type OrderShippingDetails = {
+  id: string;
+  order_id: string;
+  method: ShippingMethod;
+  carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  from_address: OrderAddress | null;
+  to_address: OrderAddress | null;
+  pickup_point: OrderPickupPoint | null;
+  label_url: string | null;
+  label_purchased_at: string | null;
+  label_cost: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrderTrackingEvent = {
+  id: string;
+  order_id: string;
+  event_type: string;
+  event_at: string;
+  location: string | null;
+  description: string | null;
+  raw_payload: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export type ListingWithDetails = Listing & {
   photos: ListingPhoto[];
   seller: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location"> | null;
@@ -3674,6 +3803,72 @@ export type Database = {
         Update: Partial<
           Pick<IdentityVerificationRequest, "applicant_notes">
         >;
+        Relationships: [];
+      };
+      orders: {
+        Row: Order;
+        /* Insert : buyer_id, seller_id, listing_id, listing_snapshot,
+         * item_price, total_amount, seller_amount sont requis. order_number
+         * est généré par trigger. Tout le reste a une DEFAULT côté DB. */
+        Insert: Pick<
+          Order,
+          | "buyer_id"
+          | "seller_id"
+          | "listing_id"
+          | "listing_snapshot"
+          | "item_price"
+          | "total_amount"
+          | "seller_amount"
+        > &
+          Partial<
+            Omit<
+              Order,
+              | "id"
+              | "order_number"
+              | "buyer_id"
+              | "seller_id"
+              | "listing_id"
+              | "listing_snapshot"
+              | "item_price"
+              | "total_amount"
+              | "seller_amount"
+              | "created_at"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Omit<
+            Order,
+            | "id"
+            | "order_number"
+            | "buyer_id"
+            | "seller_id"
+            | "listing_id"
+            | "created_at"
+            | "updated_at"
+          >
+        >;
+        Relationships: [];
+      };
+      order_status_changes: {
+        Row: OrderStatusChange;
+        Insert: Pick<OrderStatusChange, "order_id" | "to_status"> &
+          Partial<Omit<OrderStatusChange, "order_id" | "to_status">>;
+        Update: never;
+        Relationships: [];
+      };
+      order_shipping_details: {
+        Row: OrderShippingDetails;
+        Insert: Pick<OrderShippingDetails, "order_id" | "method"> &
+          Partial<Omit<OrderShippingDetails, "id" | "order_id" | "method" | "created_at" | "updated_at">>;
+        Update: Partial<Omit<OrderShippingDetails, "id" | "order_id" | "created_at" | "updated_at">>;
+        Relationships: [];
+      };
+      order_tracking_events: {
+        Row: OrderTrackingEvent;
+        Insert: Pick<OrderTrackingEvent, "order_id" | "event_type" | "event_at"> &
+          Partial<Omit<OrderTrackingEvent, "id" | "order_id" | "event_type" | "event_at" | "created_at">>;
+        Update: never;
         Relationships: [];
       };
       listings: {
