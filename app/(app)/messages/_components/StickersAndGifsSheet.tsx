@@ -276,7 +276,7 @@ export function StickersAndGifsSheet({
                 <div className="text-center py-8 px-4">
                   <p className="text-sm text-red-600 mb-2">⚠️ {gifError}</p>
                   <p className="text-xs text-muted">
-                    Configure TENOR_API_KEY dans Vercel pour activer les
+                    Configure GIPHY_API_KEY dans Vercel pour activer les
                     GIFs.
                   </p>
                 </div>
