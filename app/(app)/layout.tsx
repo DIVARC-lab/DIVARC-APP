@@ -21,6 +21,7 @@ import { VideoPlayerHost } from "@/components/video/VideoPlayerHost";
 import { CryptoProvider } from "@/lib/hooks/useCrypto";
 import { CallProvider } from "@/lib/hooks/useCallSession";
 import { CallOverlay } from "@/components/calls/CallOverlay";
+import { AutoEnablePushPrompt } from "@/components/AutoEnablePushPrompt";
 
 /* Layout app refonte étape 9 — pattern Facebook adapté à DIVARC.
  *
@@ -131,6 +132,9 @@ export default async function DashboardLayout({
           {/* Overlay d'appel : visible quand un appel est actif (peu importe
               la route courante). */}
           <CallOverlay />
+          {/* Auto-enable push notifications dès que l'user arrive sur l'app
+              (déclenche la popup native du navigateur si pas encore demandé). */}
+          <AutoEnablePushPrompt />
         </div>
         </CallProvider>
         </CryptoProvider>

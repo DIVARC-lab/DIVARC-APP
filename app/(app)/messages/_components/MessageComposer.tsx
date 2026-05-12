@@ -475,24 +475,15 @@ export function MessageComposer({
           setAttachment(previousAttachment);
           requestAnimationFrame(resize);
         } else {
-          /* Push notification : log + toast pour debug. */
+          /* Push notification fire-and-forget. Erreurs loggées en
+             console uniquement (silencieux côté UX). */
           notifyNewMessage(conversationId, {
             body: trimmed.length > 0 ? trimmed : null,
             isSecret: encryptFn !== undefined && trimmed.length > 0,
             attachmentType: previousAttachment?.type ?? null,
-          })
-            .then((res) => {
-              console.log("[notifyNewMessage] result:", res);
-              if (!res.ok) {
-                toast.error(`Push : ${res.error}`, { duration: 6000 });
-              }
-            })
-            .catch((err) => {
-              console.error("[notifyNewMessage] threw on client:", err);
-              toast.error(`Push threw : ${err.message ?? err}`, {
-                duration: 6000,
-              });
-            });
+          }).catch((err) => {
+            console.error("[notifyNewMessage]", err);
+          });
         }
       } catch (err) {
         console.error("[MessageComposer:send]", err);

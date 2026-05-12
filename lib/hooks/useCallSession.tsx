@@ -444,24 +444,11 @@ export function CallProvider({
       });
 
       /* 2.6 Push notification système (Web Push VAPID). Permet au callee
-         de voir une notif native même app fermée.
-         DEBUG : log + toast pour voir le résultat. */
+         de voir une notif native même app fermée. Fire-and-forget. */
       log("startCall: triggering push notification");
-      notifyIncomingCall(peerId, conversationId)
-        .then((res) => {
-          console.log("[notifyIncomingCall] result:", res);
-          if (!res.ok) {
-            toast.error(`Push call: ${res.error}`, { duration: 6000 });
-          } else {
-            toast.success(`Push call envoyé ✓`, { duration: 2000 });
-          }
-        })
-        .catch((err) => {
-          console.error("[notifyIncomingCall] threw on client:", err);
-          toast.error(`Push call threw: ${err.message ?? err}`, {
-            duration: 6000,
-          });
-        });
+      notifyIncomingCall(peerId, conversationId).catch((err) => {
+        console.error("[notifyIncomingCall]", err);
+      });
 
       /* 3. Subscribe + ringing-outbound (overlay visible immédiat). */
       const ch = subscribeCallChannel(callId, currentUserId, handleSignal);
