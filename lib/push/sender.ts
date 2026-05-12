@@ -26,9 +26,13 @@ function urlSafeBase64(key: string): string {
 }
 
 let vapidConfigured = false;
+let vapidLastError: string | null = null;
 function ensureVapidConfigured() {
   if (vapidConfigured) return true;
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    vapidLastError = "VAPID_PUBLIC_KEY ou VAPID_PRIVATE_KEY manquante";
+    return false;
+  }
   try {
     webpush.setVapidDetails(
       VAPID_SUBJECT,
@@ -36,11 +40,22 @@ function ensureVapidConfigured() {
       urlSafeBase64(VAPID_PRIVATE_KEY),
     );
     vapidConfigured = true;
+    vapidLastError = null;
     return true;
   } catch (err) {
+    vapidLastError = err instanceof Error ? err.message : String(err);
     console.error("[VAPID] setVapidDetails failed:", err);
     return false;
   }
+}
+
+export function getVapidStatus() {
+  return {
+    configured: vapidConfigured,
+    lastError: vapidLastError,
+    hasPublicKey: !!VAPID_PUBLIC_KEY,
+    hasPrivateKey: !!VAPID_PRIVATE_KEY,
+  };
 }
 
 export type PushPayload = {
@@ -60,6 +75,14 @@ export type PushDeliveryResult = {
   delivered: number;
   failed: number;
   removedStale: number;
+  /* Debug : surfacer pourquoi delivered=0 (utilisé par /api/push/diagnostic). */
+  _debug?: {
+    vapidOk?: boolean;
+    vapidError?: string;
+    rpcError?: string;
+    subsFound?: number;
+    perEndpoint?: Array<{ status: number | string; message?: string }>;
+  };
 };
 
 /* Variante batch : envoie le même push à N users en une seule RPC pour
@@ -74,13 +97,20 @@ export async function sendPushToUsers(
   userIds: string[],
   payload: PushPayload,
 ): Promise<PushDeliveryResult> {
+  const debug: NonNullable<PushDeliveryResult["_debug"]> = {
+    perEndpoint: [],
+  };
   const result: PushDeliveryResult = {
     delivered: 0,
     failed: 0,
     removedStale: 0,
+    _debug: debug,
   };
-  if (!ensureVapidConfigured()) {
-    console.warn("[sendPushToUsers] VAPID not configured — no-op");
+  const vapidOk = ensureVapidConfigured();
+  debug.vapidOk = vapidOk;
+  if (!vapidOk) {
+    debug.vapidError = vapidLastError ?? "unknown";
+    console.warn("[sendPushToUsers] VAPID not configured:", vapidLastError);
     return result;
   }
   if (userIds.length === 0) return result;
@@ -91,6 +121,7 @@ export async function sendPushToUsers(
     { p_user_ids: userIds },
   );
   if (error) {
+    debug.rpcError = error.message;
     console.error("[sendPushToUsers] RPC failed:", error.message);
     return result;
   }
@@ -101,6 +132,7 @@ export async function sendPushToUsers(
     p256dh: string;
     auth: string;
   }>;
+  debug.subsFound = rows.length;
   if (rows.length === 0) return result;
 
   const body = JSON.stringify({
@@ -126,6 +158,7 @@ export async function sendPushToUsers(
           { TTL: 60 * 60 * 24 },
         );
         result.delivered++;
+        debug.perEndpoint?.push({ status: 201, message: "delivered" });
         await supabase
           .from("push_subscriptions")
           .update({ last_success_at: now })
@@ -135,6 +168,8 @@ export async function sendPushToUsers(
           err && typeof err === "object" && "statusCode" in err
             ? (err as { statusCode: number }).statusCode
             : null;
+        const message = err instanceof Error ? err.message : String(err);
+        debug.perEndpoint?.push({ status: status ?? "throw", message });
         if (status === 404 || status === 410) {
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           result.removedStale++;
