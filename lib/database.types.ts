@@ -5496,6 +5496,17 @@ export type Database = {
         Args: { p_call_id: string };
         Returns: void;
       };
+      /* Migration 0081 — bypass RLS pour push notifs messagerie. */
+      get_push_subs_for_users: {
+        Args: { p_user_ids: string[] };
+        Returns: Array<{
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+        }>;
+      };
       /* Chantier 3 (migration 0077) — thèmes per-conv. */
       set_conversation_theme: {
         Args: {

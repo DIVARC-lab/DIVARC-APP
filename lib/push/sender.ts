@@ -47,6 +47,93 @@ export type PushDeliveryResult = {
   removedStale: number;
 };
 
+/* Variante batch : envoie le même push à N users en une seule RPC pour
+ * récupérer leurs subs (bypass RLS via SECURITY DEFINER, cf migration
+ * 0081). Utilisée par notifyNewMessage / notifyIncomingCall où le
+ * caller ne peut pas lire les subs des destinataires en direct (RLS
+ * push_subscriptions_select_owner les restreint à self).
+ *
+ * Sécurité : c'est au caller de valider qu'il est autorisé à notifier
+ * ces user_ids (typiquement : membre de la conv concernée). */
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload,
+): Promise<PushDeliveryResult> {
+  const result: PushDeliveryResult = {
+    delivered: 0,
+    failed: 0,
+    removedStale: 0,
+  };
+  if (!ensureVapidConfigured()) {
+    console.warn("[sendPushToUsers] VAPID not configured — no-op");
+    return result;
+  }
+  if (userIds.length === 0) return result;
+
+  const supabase = await createClient();
+  const { data: subs, error } = await supabase.rpc(
+    "get_push_subs_for_users",
+    { p_user_ids: userIds },
+  );
+  if (error) {
+    console.error("[sendPushToUsers] RPC failed:", error.message);
+    return result;
+  }
+  const rows = (subs ?? []) as Array<{
+    id: string;
+    user_id: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+  }>;
+  if (rows.length === 0) return result;
+
+  const body = JSON.stringify({
+    title: payload.title,
+    body: payload.body ?? "",
+    url: payload.url ?? "/",
+    tag: payload.tag,
+    icon: payload.icon ?? "/icon-192.png",
+    badge: payload.badge ?? "/icon-192.png",
+  });
+
+  const now = new Date().toISOString();
+
+  await Promise.all(
+    rows.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          body,
+          { TTL: 60 * 60 * 24 },
+        );
+        result.delivered++;
+        await supabase
+          .from("push_subscriptions")
+          .update({ last_success_at: now })
+          .eq("id", sub.id);
+      } catch (err) {
+        const status =
+          err && typeof err === "object" && "statusCode" in err
+            ? (err as { statusCode: number }).statusCode
+            : null;
+        if (status === 404 || status === 410) {
+          await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+          result.removedStale++;
+        } else {
+          result.failed++;
+          console.error("[sendPushToUsers] push failed:", err);
+        }
+      }
+    }),
+  );
+
+  return result;
+}
+
 /* Envoie une notification push à toutes les subscriptions d'un user. Si
  * un endpoint renvoie 404/410 (gone), on supprime la subscription du store
  * (le browser/device a désinstallé l'app ou révoqué la perm).

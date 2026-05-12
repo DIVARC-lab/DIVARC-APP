@@ -7,8 +7,8 @@
  * Appelée fire-and-forget par le MessageComposer après chaque envoi. */
 
 import { z } from "zod";
-import { sendPushToUser } from "@/lib/push/sender";
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { sendPushToUsers } from "@/lib/push/sender";
+import { createClient } from "@/lib/supabase/server";
 
 const idSchema = z.string().uuid();
 
@@ -103,40 +103,18 @@ export async function notifyNewMessage(
                 ? `${senderName} a envoyé un message`
                 : "Nouveau message";
 
-    /* Use admin client to call sendPushToUser per-target sans dépendre
-       de la RLS de chaque user. Le sendPushToUser fetch les push_subs
-       via le client qu'on lui passe. */
-    let admin;
-    try {
-      admin = createAdminClient();
-    } catch {
-      /* SUPABASE_SERVICE_ROLE_KEY pas configuré → fallback sur le client
-         user, mais RLS bloquera les subs des autres. On log et continue. */
-      console.warn(
-        "[notifyNewMessage] admin client unavailable, push limited to self",
-      );
-      admin = undefined;
-    }
+    /* sendPushToUsers utilise la RPC SECURITY DEFINER pour bypass RLS
+       et récupérer les subs des destinataires. */
+    const userIds = activeTargets.map((t) => t.user_id);
+    const res = await sendPushToUsers(userIds, {
+      title,
+      body: bodyText,
+      url: `/messages/${parsed.data}`,
+      tag: `msg-${parsed.data}`, // replace les notifs précédentes de la conv
+      icon: "/icon-192.png",
+    });
 
-    let delivered = 0;
-    await Promise.all(
-      activeTargets.map(async (t) => {
-        const res = await sendPushToUser(
-          t.user_id,
-          {
-            title,
-            body: bodyText,
-            url: `/messages/${parsed.data}`,
-            tag: `msg-${parsed.data}`, // replace les précédentes notifs de la conv
-            icon: "/icon-192.png",
-          },
-          admin,
-        );
-        delivered += res.delivered;
-      }),
-    );
-
-    return { ok: true, delivered };
+    return { ok: true, delivered: res.delivered };
   } catch (err) {
     console.error("[notifyNewMessage] threw:", err);
     return {

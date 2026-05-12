@@ -7,7 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { sendPushToUser } from "@/lib/push/sender";
+import { sendPushToUsers } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 import type { CallKind, CallStatus } from "@/lib/calls/types";
 
@@ -142,9 +142,9 @@ export async function notifyIncomingCall(
       callerProfile?.username ??
       "Quelqu'un";
 
-    /* Fire-and-forget. Pas d'await sur le retour pour ne pas bloquer
-       l'UI pendant que le push se propage (FCM/APNs prend 1-3s). */
-    void sendPushToUser(parsedCallee.data, {
+    /* sendPushToUsers utilise une RPC SECURITY DEFINER (migration 0081)
+       pour bypass RLS et lire les subs du callee. Fire-and-forget. */
+    void sendPushToUsers([parsedCallee.data], {
       title: `📞 ${callerName} t'appelle`,
       body: "Touche pour décrocher",
       url: `/messages/${parsedConv.data}`,
