@@ -142,6 +142,22 @@ export async function GET(req: NextRequest) {
         "❌ Aucune push_subscription pour cet user. Active le toggle dans /settings/notifications";
     }
 
+    /* Si pas de ?conv= : liste les convs de l'user pour qu'il puisse
+       copier-coller un ID dans l'URL. */
+    if (!convId) {
+      const { data: myConvs } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", user.id)
+        .limit(20);
+      checks.your_conversations_hint =
+        "👉 Ajoute ?conv=<uuid> à l'URL pour tester une conv spécifique. Liste de tes convs :";
+      checks.your_conversations = (myConvs ?? []).map(
+        (m) =>
+          `https://divarc-app.vercel.app/api/push/diagnostic?conv=${m.conversation_id}`,
+      );
+    }
+
     /* 6. Diagnostic per-conv (si ?conv=<uuid> dans l'URL) */
     if (convId) {
       try {
