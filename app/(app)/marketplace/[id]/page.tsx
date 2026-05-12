@@ -1,4 +1,4 @@
-import { CheckCircle2, MapPin, Tag } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin, Tag } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
@@ -7,7 +7,13 @@ import { getListingById, listListings } from "@/lib/queries/listings";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { createClient } from "@/lib/supabase/server";
 import { jsonLdScriptProps, listingJsonLd } from "@/lib/seo/jsonLd";
+import {
+  getBreadcrumb,
+  getUiMode,
+  mapLegacyCategory,
+} from "@/lib/marketplace/taxonomy";
 import { ContactSellerButton } from "./_components/ContactSellerButton";
+import { ListingAttributesPanel } from "./_components/ListingAttributesPanel";
 import { ListingGallery } from "./_components/ListingGallery";
 import { ListingTopBar } from "./_components/ListingTopBar";
 import { MakeOfferDialog } from "./_components/MakeOfferDialog";
@@ -52,6 +58,22 @@ export default async function ListingPage({ params }: { params: Params }) {
   const isOwn = listing.seller_id === user.id;
   const category = CATEGORY_META[listing.category];
   const isSold = listing.status === "sold";
+
+  /* Chantier 3 — Détermine le ui_mode + breadcrumb depuis category_path.
+   * Pour les rows legacy (category_path vide), on tente de mapper la
+   * catégorie FR via LEGACY_CATEGORY_MAP pour bénéficier d'un ui_mode
+   * cohérent (sinon fallback "leboncoin"). */
+  const effectivePath =
+    listing.category_path && listing.category_path.length > 0
+      ? listing.category_path
+      : (() => {
+          const mapped = mapLegacyCategory(listing.category);
+          return mapped ? [mapped] : [];
+        })();
+  const uiMode = getUiMode(effectivePath);
+  const breadcrumb = getBreadcrumb(effectivePath);
+  const leafCategoryId =
+    effectivePath.length > 0 ? effectivePath[effectivePath.length - 1] : null;
   const sellerName =
     listing.seller?.full_name ?? listing.seller?.username ?? "Vendeur";
   const sellerHref = listing.seller?.username
@@ -114,12 +136,41 @@ export default async function ListingPage({ params }: { params: Params }) {
         {/* Header : title left + price right */}
         <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0">
-            <Link
-              href={`/marketplace?category=${listing.category}`}
-              className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep hover:text-night transition-colors"
-            >
-              · {category.label}
-            </Link>
+            {/* Chantier 3 — Breadcrumb taxonomy si category_path présent,
+                sinon fallback sur le kicker catégorie legacy. */}
+            {breadcrumb.length > 0 ? (
+              <nav
+                aria-label="Catégorie"
+                className="flex items-center gap-1 flex-wrap text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold-deep"
+              >
+                {breadcrumb.map((b, i) => (
+                  <span
+                    key={b.id}
+                    className="inline-flex items-center gap-1"
+                  >
+                    <Link
+                      href={`/marketplace?category=${listing.category}`}
+                      className="hover:text-night transition-colors"
+                    >
+                      {b.label}
+                    </Link>
+                    {i < breadcrumb.length - 1 ? (
+                      <ChevronRight
+                        className="w-3 h-3 text-night-dim/60"
+                        aria-hidden
+                      />
+                    ) : null}
+                  </span>
+                ))}
+              </nav>
+            ) : (
+              <Link
+                href={`/marketplace?category=${listing.category}`}
+                className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold-deep hover:text-night transition-colors"
+              >
+                · {category.label}
+              </Link>
+            )}
             <h1 className="mt-1.5 font-display text-[28px] sm:text-[32px] text-night leading-[1.05] font-normal tracking-[-0.01em] text-balance">
               {listing.title}
             </h1>
@@ -162,6 +213,13 @@ export default async function ListingPage({ params }: { params: Params }) {
             value={listing.photos.length.toString()}
           />
         </div>
+
+        {/* Chantier 3 — Panneau attributs adaptatif selon ui_mode */}
+        <ListingAttributesPanel
+          uiMode={uiMode}
+          categoryId={leafCategoryId}
+          attributes={listing.attributes}
+        />
 
         {/* Description */}
         {listing.description ? (
