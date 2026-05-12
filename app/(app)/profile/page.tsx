@@ -340,7 +340,7 @@ function StatsBar({
   profileViewsCount: number;
 }) {
   return (
-    <dl className="grid sm:grid-cols-4 gap-3 sm:gap-4">
+    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       <Stat
         icon={Award}
         label="Rang fondateur"

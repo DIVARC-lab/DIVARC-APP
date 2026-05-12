@@ -173,7 +173,7 @@ export function ReelsFeed({
             <div
               key={reel.id}
               data-reel-id={reel.id}
-              className="relative w-full h-screen snap-start snap-always flex items-center justify-center"
+              className="relative w-full h-[100dvh] snap-start snap-always flex items-center justify-center"
             >
               <div className="relative w-full h-full sm:w-auto sm:h-full sm:max-w-[480px] sm:aspect-[9/16] bg-black">
                 <ReelView
@@ -219,7 +219,7 @@ function TabBtn({
 
 function EmptyState({ tab }: { tab: Tab }) {
   return (
-    <div className="w-full h-screen flex items-center justify-center px-6 text-center">
+    <div className="w-full h-[100dvh] flex items-center justify-center px-6 text-center">
       <div className="max-w-md">
         <p className="font-display italic text-[28px] text-cream mb-3">
           {tab === "foryou"

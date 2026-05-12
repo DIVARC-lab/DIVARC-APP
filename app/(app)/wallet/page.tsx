@@ -98,7 +98,7 @@ export default async function WalletPage() {
             </div>
 
             <p className="mt-5 text-xs text-cream/70">Solde disponible</p>
-            <p className="mt-1 font-display italic text-5xl sm:text-6xl tracking-tight leading-none">
+            <p className="mt-1 font-display italic text-4xl sm:text-6xl tracking-tight leading-none">
               <BigBalance amount={eur.balance} currency={eur.currency} />
             </p>
             {weeklyIn > 0 ? (

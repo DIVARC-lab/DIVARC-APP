@@ -62,15 +62,15 @@ export default async function MarketplacePage({
   const showHero = !validCategory && !q && listings.length > 0;
 
   return (
-    <div className="bg-bg-soft min-h-screen pb-24">
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
       <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
         {/* Header */}
-        <header className="px-5 sm:px-8 pt-8 sm:pt-10 pb-3 flex items-end justify-between gap-3">
+        <header className="px-4 sm:px-8 pt-6 sm:pt-10 pb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div className="min-w-0">
             <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
               · Le marché
             </span>
-            <h1 className="mt-1 font-display text-[38px] sm:text-[48px] text-night leading-[1] font-normal tracking-[-0.02em] text-balance">
+            <h1 className="mt-1 font-display text-[28px] sm:text-[48px] text-night leading-[1] font-normal tracking-[-0.02em] text-balance">
               <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                 Près de toi
               </em>

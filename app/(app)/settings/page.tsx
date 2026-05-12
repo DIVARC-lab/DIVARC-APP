@@ -118,7 +118,7 @@ export default async function SettingsPage() {
           <DisplayHeading
             size="xl"
             italicAll
-            className="mt-3 !leading-[1.05] !text-[40px] sm:!text-[54px]"
+            className="mt-3 !leading-[1.05] !text-[28px] sm:!text-[54px]"
           >
             Paramètres
           </DisplayHeading>

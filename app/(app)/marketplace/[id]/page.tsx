@@ -93,7 +93,7 @@ export default async function ListingPage({ params }: { params: Params }) {
   });
 
   return (
-    <div className="bg-bg-soft min-h-screen pb-28 relative">
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-20 relative">
       <script {...jsonLdScriptProps(jsonLd)} />
       {/* Hero gallery + glass top bar */}
       <div className="relative">

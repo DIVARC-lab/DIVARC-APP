@@ -169,7 +169,7 @@ export default async function PublicProfilePage({
   }
 
   return (
-    <div className="min-h-screen bg-bg-soft">
+    <div className="min-h-[calc(100dvh-56px)] bg-bg-soft">
       {/* Bannière "Tu visualises en mode X" si view_as actif. */}
       {viewAsMode && isReallyOwn ? (
         <div className="bg-gold-deep text-white text-center py-2 px-4 text-[12.5px] font-semibold">

@@ -155,7 +155,7 @@ export default async function FeedPage({
   ).length;
 
   return (
-    <div className="relative bg-bg-soft min-h-screen pb-[86px]">
+    <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)]">
       <div className="mx-auto w-full max-w-6xl">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
           <div className="mx-auto w-full max-w-2xl lg:mx-0">
@@ -171,7 +171,7 @@ export default async function FeedPage({
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
                   · Le feed · {todayKicker}
                 </p>
-                <h1 className="mt-2.5 font-display text-[40px] sm:text-[56px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-night">
+                <h1 className="mt-2.5 font-display text-[30px] sm:text-[44px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-night">
                   Ce que tes proches{" "}
                   <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                     racontent
