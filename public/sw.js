@@ -8,7 +8,7 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v8";
+const CACHE_NAME = "divarc-v9";
 const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
@@ -153,33 +153,48 @@ self.addEventListener("push", (event) => {
 
   /* Tag commence par "call-" → notif d'appel entrant. On amplifie :
      vibration pattern (mobile), requireInteraction (la notif reste
-     tant que l'user n'a pas tap). */
+     tant que l'user n'a pas tap), boutons d'action Décrocher / Refuser
+     (Android/Chrome desktop ; iOS Safari ignore les actions). */
   const isCall =
     typeof payload.tag === "string" && payload.tag.startsWith("call-");
 
+  const options = {
+    body: payload.body ?? "",
+    icon: payload.icon ?? "/icon-192.png",
+    badge: payload.badge ?? "/icon-192.png",
+    tag: payload.tag ?? "divarc",
+    data: { url: payload.url ?? "/", isCall },
+    requireInteraction: isCall,
+    vibrate: isCall ? [300, 200, 300, 200, 300, 200, 300] : undefined,
+    silent: false,
+  };
+  if (isCall) {
+    options.actions = [
+      { action: "accept", title: "✅ Décrocher" },
+      { action: "reject", title: "❌ Refuser" },
+    ];
+  }
+
   event.waitUntil(
-    self.registration.showNotification(payload.title ?? "DIVARC", {
-      body: payload.body ?? "",
-      icon: payload.icon ?? "/icon-192.png",
-      badge: payload.badge ?? "/icon-192.png",
-      tag: payload.tag ?? "divarc",
-      data: { url: payload.url ?? "/" },
-      requireInteraction: isCall,
-      vibrate: isCall ? [300, 200, 300, 200, 300, 200, 300] : undefined,
-      silent: false,
-    }),
+    self.registration.showNotification(payload.title ?? "DIVARC", options),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url ?? "/notifications";
+  /* Pour les notifs d'appel : si l'user a tapé "Refuser", on append
+     ?call_action=reject à l'URL ; "Décrocher" → ?call_action=accept.
+     L'app détecte ces params au mount et auto-déclenche l'action sur
+     la session d'appel courante. */
+  let targetUrl = event.notification.data?.url ?? "/notifications";
+  if (event.notification.data?.isCall && event.action) {
+    const sep = targetUrl.includes("?") ? "&" : "?";
+    targetUrl = `${targetUrl}${sep}call_action=${event.action}`;
+  }
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clients) => {
-        // Cherche un tab DIVARC déjà ouvert et focus + navigate vers l'URL
-        // cible. Sinon ouvre un nouveau tab.
         for (const client of clients) {
           if ("focus" in client) {
             client.focus();
