@@ -25,6 +25,7 @@ import type { PresenceInfo } from "@/lib/database.types";
 import { useCallSession } from "@/lib/hooks/useCallSession";
 import { ConversationActionsSheet } from "./ConversationActionsSheet";
 import { ConversationThemeSheet } from "./ConversationThemeSheet";
+import { LinkBadge } from "./LinkBadge";
 
 type SecretBadge = "active" | "pending" | "off";
 
@@ -48,6 +49,10 @@ type ChatHeaderProps = {
   /* Chantier 3 : thème personnalisé courant. */
   themePreset: string | null;
   wallpaperId: string | null;
+  /* Chantier 4 : système de Liens. */
+  linkXp: number | null;
+  linkLevel: number | null;
+  linkStreakDays: number | null;
 };
 
 export function ChatHeader({
@@ -65,6 +70,9 @@ export function ChatHeader({
   secret,
   themePreset,
   wallpaperId,
+  linkXp,
+  linkLevel,
+  linkStreakDays,
 }: ChatHeaderProps) {
   const router = useRouter();
   const { startCall } = useCallSession();
@@ -158,6 +166,14 @@ export function ChatHeader({
                 <BellOff
                   className="w-3 h-3 text-night-muted shrink-0"
                   aria-label="Notifications muettes"
+                />
+              ) : null}
+              {!isGroup ? (
+                <LinkBadge
+                  linkXp={linkXp}
+                  linkLevel={linkLevel}
+                  streakDays={linkStreakDays}
+                  variant="chip"
                 />
               ) : null}
             </div>

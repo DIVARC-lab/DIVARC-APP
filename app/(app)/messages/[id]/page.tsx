@@ -107,6 +107,9 @@ export default async function ConversationPage({ params }: { params: Params }) {
         secret={secretBadge}
         themePreset={myMember?.theme_preset ?? null}
         wallpaperId={myMember?.wallpaper_id ?? null}
+        linkXp={conversation.link_xp ?? null}
+        linkLevel={conversation.link_level ?? null}
+        linkStreakDays={conversation.link_streak_days ?? null}
       />
 
       <ConversationView

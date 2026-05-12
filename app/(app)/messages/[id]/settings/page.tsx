@@ -1,10 +1,11 @@
-import { ArrowLeft, Crown, MessageSquare, Users } from "lucide-react";
+import { ArrowLeft, Crown, MessageSquare, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { getConversationDetails } from "@/lib/queries/conversations";
 import { getGroupDetails } from "@/lib/queries/groups";
 import { createClient } from "@/lib/supabase/server";
+import { LinkBadge } from "../../_components/LinkBadge";
 import { AutoDeleteSection } from "./_components/AutoDeleteSection";
 import { GroupSettingsActions } from "./_components/GroupSettingsActions";
 
@@ -81,6 +82,23 @@ export default async function ConversationSettingsPage({
             initialName={conversation.name ?? ""}
             isOwner={isOwner}
           />
+        ) : null}
+
+        {!isGroup ? (
+          <section>
+            <header className="px-1 mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-gold-deep" aria-hidden />
+              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-night-muted">
+                Votre lien
+              </h2>
+            </header>
+            <LinkBadge
+              linkXp={conversation.link_xp ?? null}
+              linkLevel={conversation.link_level ?? null}
+              streakDays={conversation.link_streak_days ?? null}
+              variant="full"
+            />
+          </section>
         ) : null}
 
         <AutoDeleteSection
