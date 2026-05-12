@@ -66,6 +66,15 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "DIVARC",
+    /* Critique pour iOS Safari : sans apple-touch-icon explicite, Safari
+       n'affiche pas le bouton "Ajouter à l'écran d'accueil" correctement
+       (ou utilise une capture d'écran générique au lieu de l'icône). */
+    startupImage: ["/apple-icon"],
+  },
+  icons: {
+    icon: "/icon",
+    apple: "/apple-icon",
+    shortcut: "/apple-icon",
   },
 };
 
