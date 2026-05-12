@@ -131,6 +131,7 @@ create trigger messages_award_xp
 -- =====================================================
 -- 5. Bootstrap : initialise link_xp/level pour les convs existantes
 --    basé sur le nombre de messages non-system non-deleted (2 XP/msg)
+--    Cast explicite vers integer car count(*) retourne bigint.
 -- =====================================================
 do $$
 begin
@@ -139,7 +140,7 @@ begin
          link_level = public.compute_link_level(sub.computed_xp)
     from (
       select conversation_id,
-             count(*) * 2 as computed_xp
+             (count(*) * 2)::integer as computed_xp
         from public.messages
        where type != 'system'
          and deleted_at is null
