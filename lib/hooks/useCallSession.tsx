@@ -292,7 +292,8 @@ export function CallProvider({
       currentUserId,
       (payload) => {
         log("inbox: incoming ring", payload);
-        toast.info(`📞 Appel entrant !`);
+        /* Pas de toast — l'overlay fullscreen + la sonnerie sont déjà
+           bien plus visibles qu'un toast. */
         setState((prev) => {
           if (prev.kind !== "idle") {
             log("inbox: already in call, ignoring");
@@ -311,16 +312,8 @@ export function CallProvider({
         });
       },
       (status) => {
+        /* Log silencieux uniquement (plus de toast à l'écran). */
         log("inbox: status", status);
-        if (status === "SUBSCRIBED") {
-          toast.success("📲 Réception d'appels active", { duration: 2000 });
-        } else if (
-          status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT" ||
-          status === "CLOSED"
-        ) {
-          toast.error(`📲 Réception d'appels : ${status}`);
-        }
       },
     );
     return unsubscribe;
@@ -356,7 +349,6 @@ export function CallProvider({
       kind?: CallKind;
     }) => {
       log("startCall", { conversationId, peerId, kind });
-      toast.info("📞 Démarrage de l'appel…");
       if (!currentUserId) {
         toast.error("Tu dois être connecté.");
         return;
@@ -405,7 +397,6 @@ export function CallProvider({
           },
         });
         log("startCall: webrtc ready");
-        toast.success("🎤 Micro OK");
       } catch (err) {
         console.error("[startCall:getUserMedia]", err);
         toast.error(
@@ -429,7 +420,6 @@ export function CallProvider({
       }
       const { callId } = created;
       log("startCall: created", callId);
-      toast.success(`✅ Session créée`);
 
       /* 2.5 Broadcast direct "ring" vers l'inbox du callee, en plus du
          postgres_changes (fire-and-forget, attendons 1s max). Comme ça
