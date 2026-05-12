@@ -119,6 +119,40 @@ export async function addMember(conversationId: string, userId: string) {
   return { ok: true };
 }
 
+export async function setGroupDescription(
+  conversationId: string,
+  description: string,
+) {
+  const trimmed = description.trim();
+  if (trimmed.length > 500) {
+    return { ok: false, error: "Description trop longue (max 500)." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { error } = await supabase.rpc("set_group_description", {
+    p_conv_id: conversationId,
+    p_description: trimmed,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.code === "42883"
+        ? "Migration 0082 non appliquée — exécute set_group_description.sql"
+        : `Échec : ${error.message}`,
+    };
+  }
+
+  revalidatePath(`/messages/${conversationId}`);
+  revalidatePath(`/messages/${conversationId}/settings`);
+  return { ok: true };
+}
+
 export async function renameGroup(conversationId: string, name: string) {
   const trimmed = name.trim();
   if (trimmed.length < 2 || trimmed.length > 80) {

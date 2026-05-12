@@ -110,6 +110,18 @@ export default async function ConversationPage({ params }: { params: Params }) {
         linkXp={conversation.link_xp ?? null}
         linkLevel={conversation.link_level ?? null}
         linkStreakDays={conversation.link_streak_days ?? null}
+        groupMembers={
+          isGroup && groupDetails
+            ? groupDetails.members
+                .filter((m) => m.profile)
+                .map((m) => ({
+                  user_id: m.user_id,
+                  full_name: m.profile!.full_name,
+                  username: m.profile!.username,
+                  avatar_url: m.profile!.avatar_url,
+                }))
+            : undefined
+        }
       />
 
       <ConversationView

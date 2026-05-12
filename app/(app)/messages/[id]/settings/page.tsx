@@ -3,11 +3,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { getConversationDetails } from "@/lib/queries/conversations";
+import { listFriendsForUser } from "@/lib/queries/friendships";
 import { getGroupDetails } from "@/lib/queries/groups";
 import { createClient } from "@/lib/supabase/server";
 import { LinkBadge } from "../../_components/LinkBadge";
+import { AddMemberSection } from "./_components/AddMemberSection";
 import { AutoDeleteSection } from "./_components/AutoDeleteSection";
 import { GroupSettingsActions } from "./_components/GroupSettingsActions";
+import { KickMemberButton } from "./_components/MemberActions";
 
 type Params = Promise<{ id: string }>;
 
@@ -42,6 +45,19 @@ export default async function ConversationSettingsPage({
   if (isGroup && (!groupDetails || !groupDetails.myRole)) notFound();
 
   const isOwner = groupDetails?.myRole === "owner";
+
+  /* Pour le bouton "Ajouter des membres" : on précharge la liste d'amis
+     pour éviter un round-trip côté client. */
+  const friends = isGroup && isOwner ? await listFriendsForUser(user.id) : [];
+  const friendsList = friends.map((f) => ({
+    id: f.other.id,
+    full_name: f.other.full_name,
+    username: f.other.username,
+    avatar_url: f.other.avatar_url,
+  }));
+  const existingMemberIds = groupDetails
+    ? groupDetails.members.map((m) => m.user_id)
+    : [];
 
   return (
     <div className="flex-1 overflow-y-auto bg-bg">
@@ -80,6 +96,7 @@ export default async function ConversationSettingsPage({
           <GroupSettingsActions
             conversationId={id}
             initialName={conversation.name ?? ""}
+            initialDescription={conversation.description ?? null}
             isOwner={isOwner}
           />
         ) : null}
@@ -157,10 +174,29 @@ export default async function ConversationSettingsPage({
                         Créateur
                       </span>
                     ) : null}
+                    {!isMe && !isCreator ? (
+                      <KickMemberButton
+                        conversationId={id}
+                        targetUserId={member.user_id}
+                        targetName={displayName}
+                        isOwner={isOwner}
+                      />
+                    ) : null}
                   </li>
                 );
               })}
             </ul>
+            {/* Bouton "Ajouter des membres" (owner uniquement). */}
+            {isOwner ? (
+              <div className="mt-3">
+                <AddMemberSection
+                  conversationId={id}
+                  isOwner={isOwner}
+                  friends={friendsList}
+                  existingMemberIds={existingMemberIds}
+                />
+              </div>
+            ) : null}
           </section>
         ) : null}
       </div>

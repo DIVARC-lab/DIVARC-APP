@@ -23,6 +23,7 @@ import { PresenceDot } from "@/components/ui/PresenceDot";
 import { PresenceLabel } from "@/components/ui/PresenceLabel";
 import type { PresenceInfo } from "@/lib/database.types";
 import { useCallSession } from "@/lib/hooks/useCallSession";
+import { AvatarCluster } from "./AvatarCluster";
 import { ConversationActionsSheet } from "./ConversationActionsSheet";
 import { ConversationThemeSheet } from "./ConversationThemeSheet";
 import { LinkBadge } from "./LinkBadge";
@@ -53,6 +54,13 @@ type ChatHeaderProps = {
   linkXp: number | null;
   linkLevel: number | null;
   linkStreakDays: number | null;
+  /* Groupes : liste des membres pour l'AvatarCluster (max 3 visibles). */
+  groupMembers?: Array<{
+    user_id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }>;
 };
 
 export function ChatHeader({
@@ -73,6 +81,7 @@ export function ChatHeader({
   linkXp,
   linkLevel,
   linkStreakDays,
+  groupMembers = [],
 }: ChatHeaderProps) {
   const router = useRouter();
   const { startCall } = useCallSession();
@@ -120,11 +129,19 @@ export function ChatHeader({
           className="flex items-center gap-3 flex-1 min-w-0 -mx-2 px-2 py-1 rounded-2xl hover:bg-night/5 transition-colors text-left"
         >
           <div className="relative shrink-0">
-            <Avatar
-              src={avatarUrl}
-              fullName={displayName}
-              size="md"
-            />
+            {isGroup && groupMembers.length > 0 ? (
+              <AvatarCluster
+                members={groupMembers}
+                max={3}
+                size="md"
+              />
+            ) : (
+              <Avatar
+                src={avatarUrl}
+                fullName={displayName}
+                size="md"
+              />
+            )}
             {!isGroup && otherPresence ? (
               <PresenceDot
                 status={otherPresence.presence_status}

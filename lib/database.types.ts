@@ -5496,6 +5496,11 @@ export type Database = {
         Args: { p_call_id: string };
         Returns: void;
       };
+      /* Migration 0082 — set description d'un groupe. */
+      set_group_description: {
+        Args: { p_conv_id: string; p_description: string };
+        Returns: void;
+      };
       /* Migration 0081 — bypass RLS pour push notifs messagerie. */
       get_push_subs_for_users: {
         Args: { p_user_ids: string[] };

@@ -7,22 +7,30 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Field, FieldHint, FieldLabel } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { leaveGroup, renameGroup } from "../../../group-actions";
+import {
+  leaveGroup,
+  renameGroup,
+  setGroupDescription,
+} from "../../../group-actions";
 
 type GroupSettingsActionsProps = {
   conversationId: string;
   initialName: string;
+  initialDescription: string | null;
   isOwner: boolean;
 };
 
 export function GroupSettingsActions({
   conversationId,
   initialName,
+  initialDescription,
   isOwner,
 }: GroupSettingsActionsProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription ?? "");
   const [renaming, startRename] = useTransition();
+  const [savingDesc, startSaveDesc] = useTransition();
   const [leaving, startLeave] = useTransition();
 
   function handleRename(event: React.FormEvent<HTMLFormElement>) {
@@ -32,6 +40,20 @@ export function GroupSettingsActions({
       const result = await renameGroup(conversationId, name);
       if (result.ok) {
         toast.success("Groupe renommé.");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Action impossible.");
+      }
+    });
+  }
+
+  function handleSaveDescription(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (description.trim() === (initialDescription ?? "")) return;
+    startSaveDesc(async () => {
+      const result = await setGroupDescription(conversationId, description);
+      if (result.ok) {
+        toast.success("Description mise à jour.");
         router.refresh();
       } else {
         toast.error(result.error ?? "Action impossible.");
@@ -82,6 +104,52 @@ export function GroupSettingsActions({
                 size="sm"
               >
                 {!renaming ? <Save className="w-4 h-4" aria-hidden /> : null}
+                Enregistrer
+              </Button>
+            </div>
+          ) : null}
+        </form>
+      </section>
+
+      <section className="rounded-3xl bg-white border border-line p-6 sm:p-7">
+        <header className="mb-5">
+          <h2 className="font-display text-xl text-night">Description</h2>
+          <p className="text-sm text-muted">
+            {isOwner
+              ? "Décris brièvement le but du groupe (visible par tous les membres)."
+              : "Description du groupe."}
+          </p>
+        </header>
+        <form onSubmit={handleSaveDescription} className="space-y-4">
+          <Field>
+            <FieldLabel htmlFor="group-desc">Description</FieldLabel>
+            <textarea
+              id="group-desc"
+              value={description}
+              onChange={(event) => setDescription(event.currentTarget.value)}
+              maxLength={500}
+              rows={3}
+              disabled={!isOwner}
+              placeholder={
+                isOwner
+                  ? "Ex : Famille DIVARC, projet X, équipe sport…"
+                  : "(Pas de description)"
+              }
+              className="w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-sm text-night placeholder:text-muted/70 focus:outline-none focus:border-night/40 disabled:bg-night/5 disabled:opacity-70"
+            />
+            <FieldHint>
+              {description.length}/500 caractères. Visible par tous les membres.
+            </FieldHint>
+          </Field>
+          {isOwner ? (
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                loading={savingDesc}
+                disabled={description.trim() === (initialDescription ?? "")}
+                size="sm"
+              >
+                {!savingDesc ? <Save className="w-4 h-4" aria-hidden /> : null}
                 Enregistrer
               </Button>
             </div>
