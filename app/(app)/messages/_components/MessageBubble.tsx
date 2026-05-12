@@ -67,6 +67,33 @@ type MessageBubbleProps = {
   };
 };
 
+/* Détecte si un body de message est un "sticker" : 1-3 emojis seuls
+ * (avec éventuels modifiers/ZWJ pour emojis composés type 👨‍👩‍👧). Si oui,
+ * on rend le message en XL sans bulle pour un effet "sticker WhatsApp/
+ * Telegram". */
+function isStickerBody(body: string | null): boolean {
+  if (!body) return false;
+  const trimmed = body.trim();
+  if (trimmed.length === 0 || trimmed.length > 30) return false;
+  /* Regex : autorise emojis (large unicode property "Emoji"), variation
+     selectors (️), ZWJ (‍), modificateurs skin tone, et
+     espaces blancs entre. Refuse tout autre char. */
+  const onlyEmojis = /^(?:\p{Emoji}|️|‍|\s)+$/u.test(trimmed);
+  if (!onlyEmojis) return false;
+  /* Compte les "emoji grapheme clusters" (= un emoji visible = un cluster). */
+  const segmenter =
+    typeof Intl !== "undefined" && "Segmenter" in Intl
+      ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+      : null;
+  if (!segmenter) return trimmed.length <= 8; // fallback raisonnable
+  let count = 0;
+  for (const seg of segmenter.segment(trimmed)) {
+    if (seg.segment.trim().length > 0) count++;
+    if (count > 3) return false;
+  }
+  return count >= 1 && count <= 3;
+}
+
 /* Extrait le sous-objet media de encryption_metadata si présent et valide. */
 function asMediaPayload(
   meta: Record<string, unknown> | null,
@@ -564,6 +591,27 @@ export function MessageBubble({
                     Enregistrer
                   </button>
                 </div>
+              </div>
+            ) : hasTextBubble &&
+              !isCipherPlaceholder &&
+              !hasImage &&
+              !hasFile &&
+              !hasAudio &&
+              isStickerBody(displayBody) ? (
+              /* Mode "sticker" : 1-3 emojis seuls → rendu XL sans bulle
+                 (style WhatsApp/Telegram). */
+              <div
+                className={cn(
+                  "select-none leading-none px-1",
+                  isOwn ? "text-right" : "text-left",
+                )}
+              >
+                <span className="text-6xl sm:text-7xl">{displayBody}</span>
+                {message.edited_at ? (
+                  <p className="text-[10px] mt-1 italic text-muted">
+                    (modifié)
+                  </p>
+                ) : null}
               </div>
             ) : hasTextBubble ? (
               <div

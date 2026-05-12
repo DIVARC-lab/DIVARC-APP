@@ -51,6 +51,7 @@ async function notifyNewMessage(
 import { ComposerExtrasSheet } from "./ComposerExtrasSheet";
 import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";
+import { StickersAndGifsSheet } from "./StickersAndGifsSheet";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 
 const MAX_LENGTH = 4000;
@@ -110,6 +111,7 @@ export function MessageComposer({
   const [recording, setRecording] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
+  const [stickersOpen, setStickersOpen] = useState(false);
   /* Éclats : si toggle ON, le prochain attachment envoyé sera view-once
      (visible une seule fois). Reset après chaque envoi. */
   const [viewOnce, setViewOnce] = useState(false);
@@ -298,6 +300,54 @@ export function MessageComposer({
       .from("chat-media")
       .remove([attachment.storagePath]);
     setAttachment(null);
+  }
+
+  /* Envoie direct d'un sticker : insert un message avec body = emoji.
+   * MessageBubble détecte 1-3 emojis seuls et rend en XL sans bulle. */
+  async function handleSendSticker(emoji: string) {
+    const supabase = createClient();
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      body: emoji,
+      reply_to_message_id: replyTo?.id ?? null,
+    });
+    if (error) {
+      toast.error("Échec de l'envoi du sticker.");
+      return;
+    }
+    onClearReply();
+    setStickersOpen(false);
+    /* Push notification fire-and-forget. */
+    void notifyNewMessage(conversationId, { body: emoji });
+  }
+
+  /* Envoie d'un GIF : on stocke l'URL Tenor comme attachment_url (pas
+   * de re-upload — Tenor CDN sert directement). */
+  async function handleSendGif(
+    gifUrl: string,
+    previewUrl: string,
+    width: number,
+    height: number,
+  ) {
+    const supabase = createClient();
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      attachment_url: gifUrl,
+      attachment_type: "image",
+      attachment_name: "gif",
+      attachment_width: width,
+      attachment_height: height,
+      reply_to_message_id: replyTo?.id ?? null,
+    });
+    if (error) {
+      toast.error("Échec de l'envoi du GIF.");
+      return;
+    }
+    onClearReply();
+    setStickersOpen(false);
+    void notifyNewMessage(conversationId, { attachmentType: "image" });
   }
 
   async function handleVoiceSend(audio: RecordedAudio) {
@@ -674,6 +724,22 @@ export function MessageComposer({
                 )}
               </button>
 
+              {/* Bouton Stickers + GIFs */}
+              <button
+                type="button"
+                onClick={() => setStickersOpen(true)}
+                disabled={attachment !== null}
+                aria-label="Stickers et GIFs"
+                className={cn(
+                  "shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-lg",
+                  attachment !== null
+                    ? "text-muted/50 cursor-not-allowed"
+                    : "text-night-muted hover:bg-night/5 hover:text-night",
+                )}
+              >
+                <span aria-hidden>😀</span>
+              </button>
+
               {/* Pill input WhatsApp-style avec emoji intégré à droite.
                   Pas de transition au focus (animation que le user trouve
                   désagréable) — juste border statique. */}
@@ -787,6 +853,14 @@ export function MessageComposer({
         open={extrasOpen}
         onClose={() => setExtrasOpen(false)}
         onPickFile={() => fileInputRef.current?.click()}
+      />
+      <StickersAndGifsSheet
+        open={stickersOpen}
+        onClose={() => setStickersOpen(false)}
+        onPickSticker={(emoji) => void handleSendSticker(emoji)}
+        onPickGif={(url, preview, w, h) =>
+          void handleSendGif(url, preview, w, h)
+        }
       />
     </div>
   );
