@@ -20,6 +20,11 @@ type ListWithDetailsOptions = {
   offset?: number;
   status?: Listing["status"];
   sellerId?: string;
+  /* Chantier 2.1 — tri :
+   *  - recent (default) : created_at desc
+   *  - trending : is_boosted desc + views_count desc + freshness
+   *  - price_asc / price_desc : tri prix */
+  sort?: "recent" | "trending" | "price_asc" | "price_desc";
 };
 
 async function attachDetails(
@@ -99,8 +104,28 @@ export async function listListings(
     .from("listings")
     .select("*")
     .eq("status", options.status ?? "active")
-    .order("created_at", { ascending: false })
     .limit(options.limit ?? 50);
+
+  /* Tri selon options.sort. Pour 'trending', boostés en premier puis
+   * vues. Pour 'recent' (default), juste created_at desc. */
+  switch (options.sort) {
+    case "trending":
+      query = query
+        .order("is_boosted", { ascending: false })
+        .order("views_count", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      break;
+    case "price_asc":
+      query = query.order("price_amount", { ascending: true });
+      break;
+    case "price_desc":
+      query = query.order("price_amount", { ascending: false });
+      break;
+    case "recent":
+    default:
+      query = query.order("created_at", { ascending: false });
+      break;
+  }
 
   if (options.category) {
     query = query.eq("category", options.category);

@@ -1,4 +1,12 @@
-import { Bookmark, Handshake, Plus, Search, Store } from "lucide-react";
+import {
+  Bookmark,
+  Flame,
+  Handshake,
+  Plus,
+  Search,
+  Sparkles,
+  Store,
+} from "lucide-react";
 import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -50,16 +58,24 @@ export default async function MarketplacePage({
       ? (category as ListingCategory)
       : undefined;
 
-  const [listings, pendingOffersCount] = await Promise.all([
+  const [listings, pendingOffersCount, trendingListings] = await Promise.all([
     listListings(user.id, {
       category: validCategory,
       query: q,
       limit: 60,
     }),
     countPendingReceivedOffers(user.id),
+    /* Tendances : pas de filtre catégorie/query → snapshot global.
+     * On masque cette section si l'user est sur une recherche/catégorie
+     * filtrée (focus sur les résultats). */
+    !validCategory && !q
+      ? listListings(user.id, { sort: "trending", limit: 10 })
+      : Promise.resolve([]),
   ]);
 
   const showHero = !validCategory && !q && listings.length > 0;
+  const showTrending =
+    !validCategory && !q && trendingListings.length >= 4;
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
@@ -195,7 +211,38 @@ export default async function MarketplacePage({
           </div>
         ) : null}
 
-        {/* Liste */}
+        {/* Section "📈 Tendances" — carrousel horizontal scroll des
+            listings les plus vus + boostés. Masquée si filtres actifs. */}
+        {showTrending ? (
+          <section className="pb-3" aria-labelledby="trending-heading">
+            <header className="px-5 sm:px-8 pb-2.5 flex items-center justify-between">
+              <h2
+                id="trending-heading"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-night"
+              >
+                <Flame className="w-4 h-4 text-gold-deep" aria-hidden />
+                Tendances
+              </h2>
+              <span className="text-[11px] text-night-dim font-semibold uppercase tracking-wider">
+                · maintenant
+              </span>
+            </header>
+            <div className="overflow-x-auto scrollbar-none">
+              <div className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+                {trendingListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    className="shrink-0 w-[150px] sm:w-[170px] snap-start"
+                  >
+                    <ListingCard listing={listing} variant="compact" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* Liste principale */}
         {listings.length === 0 ? (
           <div className="px-5 sm:px-8">
             <EmptyState
