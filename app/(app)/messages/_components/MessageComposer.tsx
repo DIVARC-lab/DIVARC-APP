@@ -449,12 +449,34 @@ export function MessageComposer({
           requestAnimationFrame(resize);
         } else {
           /* Push notification fire-and-forget aux autres membres
-             (respecte le mute par-conv côté Server Action). */
-          void notifyNewMessage(conversationId, {
+             (respecte le mute par-conv côté Server Action).
+             DEBUG : on log le résultat dans la console pour voir si
+             ça fire et ce que retourne la Server Action. */
+          console.log("[notifyNewMessage] calling...", {
+            conversationId,
+            isSecret: encryptFn !== undefined && trimmed.length > 0,
+          });
+          notifyNewMessage(conversationId, {
             body: trimmed.length > 0 ? trimmed : null,
             isSecret: encryptFn !== undefined && trimmed.length > 0,
             attachmentType: previousAttachment?.type ?? null,
-          });
+          })
+            .then((res) => {
+              console.log("[notifyNewMessage] result:", res);
+              if (!res.ok) {
+                toast.error(`Push: ${res.error}`, { duration: 6000 });
+              } else if (res.delivered === 0) {
+                toast(`Push : 0 delivered`, { duration: 4000 });
+              } else {
+                toast.success(`Push: ${res.delivered} ✓`, { duration: 2000 });
+              }
+            })
+            .catch((err) => {
+              console.error("[notifyNewMessage] threw on client:", err);
+              toast.error(`Push threw: ${err.message ?? err}`, {
+                duration: 6000,
+              });
+            });
         }
       } catch (err) {
         console.error("[MessageComposer:send]", err);
