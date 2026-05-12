@@ -377,7 +377,13 @@ export type NotificationType =
   | "reel_commented"
   | "reel_comment_replied"
   | "reel_comment_liked"
-  | "reel_mention";
+  | "reel_mention"
+  /* Migration 0090 — événements marketplace. */
+  | "marketplace_offer_received"
+  | "marketplace_offer_accepted"
+  | "marketplace_offer_declined"
+  | "marketplace_offer_countered"
+  | "marketplace_offer_withdrawn";
 
 export type PostVisibility = "public" | "friends" | "private";
 
@@ -5874,6 +5880,22 @@ export type Database = {
       /* Migration 0089 — conv dédiée à un listing marketplace. */
       get_or_create_listing_conversation: {
         Args: { p_listing_id: string };
+        Returns: string;
+      };
+      /* Migration 0090 — notification in-app sur réponse à offre. */
+      notify_marketplace_offer_event: {
+        Args: {
+          p_offer_id: string;
+          p_type:
+            | "marketplace_offer_received"
+            | "marketplace_offer_accepted"
+            | "marketplace_offer_declined"
+            | "marketplace_offer_countered"
+            | "marketplace_offer_withdrawn";
+          p_title: string;
+          p_body?: string | null;
+          p_href?: string | null;
+        };
         Returns: string;
       };
       mark_conversation_read: {

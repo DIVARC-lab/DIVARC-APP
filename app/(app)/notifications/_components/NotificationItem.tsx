@@ -4,11 +4,14 @@ import {
   AtSign,
   Bell,
   Check,
+  Handshake,
   Heart,
   MessageCircle,
   MessageSquareText,
+  Reply,
   Scale,
   Shield,
+  ShoppingBag,
   Trash2,
   UserPlus,
   Video,
@@ -59,6 +62,12 @@ const TYPE_ICONS: Record<
   reel_comment_replied: { icon: MessageCircle, color: "#B88A2A" },
   reel_comment_liked: { icon: Heart, color: "#B88A2A" },
   reel_mention: { icon: Video, color: "#B88A2A" },
+  /* Migration 0090 — événements marketplace. */
+  marketplace_offer_received: { icon: ShoppingBag, color: "#B88A2A" },
+  marketplace_offer_accepted: { icon: Check, color: "#16A34A" },
+  marketplace_offer_declined: { icon: X, color: "#DC2626" },
+  marketplace_offer_countered: { icon: Reply, color: "#0A1F44" },
+  marketplace_offer_withdrawn: { icon: Handshake, color: "#8696B0" },
 };
 
 type NotificationItemProps = {

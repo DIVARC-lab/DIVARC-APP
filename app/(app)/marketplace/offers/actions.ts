@@ -20,6 +20,38 @@ async function safePush(
   }
 }
 
+type NotifyArgs = {
+  p_offer_id: string;
+  p_type:
+    | "marketplace_offer_received"
+    | "marketplace_offer_accepted"
+    | "marketplace_offer_declined"
+    | "marketplace_offer_countered"
+    | "marketplace_offer_withdrawn";
+  p_title: string;
+  p_body?: string | null;
+  p_href?: string | null;
+};
+
+/* Notification in-app fire-and-forget. Si la migration 0090 n'est pas
+ * encore appliquée, on log et on continue. */
+async function safeNotify(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: NotifyArgs,
+) {
+  try {
+    const { error } = await supabase.rpc(
+      "notify_marketplace_offer_event",
+      args,
+    );
+    if (error) {
+      console.warn("[divarc] in-app notification rpc error:", error.message);
+    }
+  } catch (err) {
+    console.warn("[divarc] in-app notification failed:", err);
+  }
+}
+
 const sendOfferSchema = z.object({
   listing_id: z.string().uuid(),
   amount: z.coerce.number().int().min(1).max(10_000_000),
@@ -134,13 +166,23 @@ export async function sendOffer(formData: FormData): Promise<OfferActionResult> 
   ]);
   const buyerName =
     buyerProfile?.full_name ?? buyerProfile?.username ?? "Un acheteur";
+  const offerTitle = `Nouvelle offre de ${buyerName}`;
+  const offerBody = `${formatPrice(parsed.data.amount, listing.price_currency)} sur ${
+    listingDetails?.title ?? "ton annonce"
+  }`;
   void safePush(listing.seller_id, {
-    title: `Nouvelle offre de ${buyerName}`,
-    body: `${formatPrice(parsed.data.amount, listing.price_currency)} sur ${
-      listingDetails?.title ?? "ton annonce"
-    }`,
+    title: offerTitle,
+    body: offerBody,
     url: "/marketplace/offers",
     tag: `offer-${parsed.data.listing_id}`,
+  });
+  /* Notification in-app (visible dans /notifications). */
+  void safeNotify(supabase, {
+    p_offer_id: created.id,
+    p_type: "marketplace_offer_received",
+    p_title: offerTitle,
+    p_body: offerBody,
+    p_href: "/marketplace/offers",
   });
 
   revalidatePath(`/marketplace/${parsed.data.listing_id}`);
@@ -225,18 +267,43 @@ async function respondToOfferImpl(
       .update({ status: "withdrawn", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
     if (error) return { ok: false, error: error.message };
+    /* Notif au seller que l'offre a été retirée. */
+    const withdrawTitle = "Offre retirée";
+    const withdrawBody = `L'acheteur a retiré son offre de ${formatPrice(offer.amount, offer.currency)}.`;
+    void safePush(offer.to_user, {
+      title: withdrawTitle,
+      body: withdrawBody,
+      url: "/marketplace/offers",
+      tag: `offer-resp-${offer.id}`,
+    });
+    void safeNotify(supabase, {
+      p_offer_id: offer.id,
+      p_type: "marketplace_offer_withdrawn",
+      p_title: withdrawTitle,
+      p_body: withdrawBody,
+      p_href: "/marketplace/offers",
+    });
   } else if (decision === "decline") {
     const { error } = await supabase
       .from("listing_offers")
       .update({ status: "declined", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
     if (error) return { ok: false, error: error.message };
-    /* Push au buyer (informatif). */
+    /* Push + notif in-app au buyer (informatif). */
+    const declineTitle = "Offre refusée";
+    const declineBody = `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été refusée.`;
     void safePush(offer.from_user, {
-      title: "Offre refusée",
-      body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été refusée.`,
+      title: declineTitle,
+      body: declineBody,
       url: "/marketplace/offers?tab=sent",
       tag: `offer-resp-${offer.id}`,
+    });
+    void safeNotify(supabase, {
+      p_offer_id: offer.id,
+      p_type: "marketplace_offer_declined",
+      p_title: declineTitle,
+      p_body: declineBody,
+      p_href: "/marketplace/offers?tab=sent",
     });
   } else if (decision === "accept") {
     /* On marque l'offre acceptée + le listing vendu en transaction. La
@@ -245,12 +312,21 @@ async function respondToOfferImpl(
       offer_id: offer.id,
     });
     if (error) return { ok: false, error: error.message };
-    /* Push au buyer pour célébrer. */
+    /* Push + notif in-app au buyer pour célébrer. */
+    const acceptTitle = "🎉 Offre acceptée !";
+    const acceptBody = `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été acceptée. Contacte le vendeur.`;
     void safePush(offer.from_user, {
-      title: "🎉 Offre acceptée !",
-      body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été acceptée. Contacte le vendeur.`,
+      title: acceptTitle,
+      body: acceptBody,
       url: "/marketplace/offers?tab=sent",
       tag: `offer-resp-${offer.id}`,
+    });
+    void safeNotify(supabase, {
+      p_offer_id: offer.id,
+      p_type: "marketplace_offer_accepted",
+      p_title: acceptTitle,
+      p_body: acceptBody,
+      p_href: "/marketplace/offers?tab=sent",
     });
   } else if (decision === "counter") {
     if (!parsed.data.counter_amount) {
@@ -282,12 +358,23 @@ async function respondToOfferImpl(
         error: insertError?.message ?? "Contre-offre impossible.",
       };
     }
-    /* Push au buyer pour la contre-offre. */
+    /* Push + notif in-app au buyer pour la contre-offre. La notif pointe
+     * sur la NOUVELLE offre (la contre-offre) — c'est elle qui doit être
+     * répondue, pas l'ancienne. */
+    const counterTitle = "Contre-offre reçue";
+    const counterBody = `Le vendeur propose ${formatPrice(parsed.data.counter_amount, offer.currency)}.`;
     void safePush(offer.from_user, {
-      title: "Contre-offre reçue",
-      body: `Le vendeur propose ${formatPrice(parsed.data.counter_amount, offer.currency)}.`,
+      title: counterTitle,
+      body: counterBody,
       url: "/marketplace/offers?tab=sent",
       tag: `offer-resp-${offer.id}`,
+    });
+    void safeNotify(supabase, {
+      p_offer_id: counter.id,
+      p_type: "marketplace_offer_countered",
+      p_title: counterTitle,
+      p_body: counterBody,
+      p_href: "/marketplace/offers?tab=sent",
     });
     revalidatePath(`/marketplace/${offer.listing_id}`);
     revalidatePath("/marketplace/offers");
