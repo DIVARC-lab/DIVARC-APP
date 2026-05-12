@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, ExternalLink, Wallet2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ExternalLink, FileText, Wallet2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -114,6 +114,13 @@ export default async function SellerOnboardingPage() {
               Publier une annonce
             </Link>
           ) : null}
+          <Link
+            href="/wallet/seller/dac7"
+            className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-white border border-line text-night text-[13px] font-bold hover:border-gold/40 transition-colors"
+          >
+            <FileText className="w-4 h-4" aria-hidden />
+            Déclaration fiscale DAC7
+          </Link>
         </div>
 
         {/* Info commission */}

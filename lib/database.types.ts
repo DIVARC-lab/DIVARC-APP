@@ -2240,6 +2240,66 @@ export type OrderTrackingEvent = {
   created_at: string;
 };
 
+/* ============================================================================
+ * MARKETPLACE — Reviews & Disputes (Chantier 6, migration 0088)
+ * ============================================================================ */
+
+export type MarketplaceReview = {
+  id: string;
+  order_id: string;
+  reviewer_id: string;
+  reviewee_id: string;
+  reviewer_role: "buyer" | "seller";
+  rating: number;
+  body: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DisputeReason =
+  | "item_not_received"
+  | "item_not_as_described"
+  | "item_damaged"
+  | "counterfeit"
+  | "buyer_no_payment"
+  | "buyer_abusive"
+  | "other";
+
+export type DisputeStatus =
+  | "open"
+  | "awaiting_response"
+  | "in_review"
+  | "resolved_buyer"
+  | "resolved_seller"
+  | "resolved_split"
+  | "escalated_to_stripe"
+  | "cancelled";
+
+export type MarketplaceDispute = {
+  id: string;
+  order_id: string;
+  opened_by: string;
+  opened_by_role: "buyer" | "seller";
+  reason: DisputeReason;
+  body: string | null;
+  status: DisputeStatus;
+  responder_body: string | null;
+  responded_at: string | null;
+  resolved_at: string | null;
+  resolution_note: string | null;
+  refund_amount: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Dac7YearlyRevenue = {
+  seller_id: string;
+  year: number;
+  total_orders: number;
+  total_revenue_eur: number;
+  has_dac7_threshold: boolean;
+};
+
 export type ListingWithDetails = Listing & {
   photos: ListingPhoto[];
   seller: Pick<Profile, "id" | "full_name" | "username" | "avatar_url" | "location"> | null;
@@ -3895,6 +3955,49 @@ export type Database = {
         Insert: Pick<OrderTrackingEvent, "order_id" | "event_type" | "event_at"> &
           Partial<Omit<OrderTrackingEvent, "id" | "order_id" | "event_type" | "event_at" | "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      /* Chantier 6 (migration 0088) — Reviews & Disputes. */
+      marketplace_reviews: {
+        Row: MarketplaceReview;
+        Insert: Pick<
+          MarketplaceReview,
+          "order_id" | "reviewer_id" | "reviewee_id" | "reviewer_role" | "rating"
+        > &
+          Partial<
+            Pick<MarketplaceReview, "id" | "body" | "created_at" | "updated_at">
+          >;
+        Update: Partial<Pick<MarketplaceReview, "rating" | "body">>;
+        Relationships: [];
+      };
+      marketplace_disputes: {
+        Row: MarketplaceDispute;
+        Insert: Pick<
+          MarketplaceDispute,
+          "order_id" | "opened_by" | "opened_by_role" | "reason"
+        > &
+          Partial<
+            Omit<
+              MarketplaceDispute,
+              | "order_id"
+              | "opened_by"
+              | "opened_by_role"
+              | "reason"
+              | "created_at"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            MarketplaceDispute,
+            | "status"
+            | "responder_body"
+            | "responded_at"
+            | "resolved_at"
+            | "resolution_note"
+            | "refund_amount"
+          >
+        >;
         Relationships: [];
       };
       listings: {
@@ -5581,6 +5684,17 @@ export type Database = {
         };
         Relationships: [];
       };
+      /* Chantier 6 (migration 0088) — Agrégat DAC7 par seller/année. */
+      dac7_seller_yearly_revenue: {
+        Row: {
+          seller_id: string;
+          year: number;
+          total_orders: number;
+          total_revenue_eur: number;
+          has_dac7_threshold: boolean;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       accept_listing_offer: {
@@ -6038,6 +6152,15 @@ export type Database = {
       recommended_listings_for_user: {
         Args: { p_user_id: string; p_limit?: number };
         Returns: Array<{ id: string; score: number }>;
+      };
+      /* Chantier 6 — Soumission de review post-transaction. */
+      submit_marketplace_review: {
+        Args: {
+          p_order_id: string;
+          p_rating: number;
+          p_body?: string | null;
+        };
+        Returns: string;
       };
     };
     Enums: Record<string, never>;

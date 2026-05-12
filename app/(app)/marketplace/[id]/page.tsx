@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { CATEGORY_META, CONDITION_META } from "@/lib/utils/categories";
 import { getListingById, listListings } from "@/lib/queries/listings";
+import { getSellerRatingSummary } from "@/lib/queries/marketplaceReviews";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { createClient } from "@/lib/supabase/server";
 import { jsonLdScriptProps, listingJsonLd } from "@/lib/seo/jsonLd";
@@ -100,6 +101,9 @@ export default async function ListingPage({ params }: { params: Params }) {
     !isOwn &&
     !isSold &&
     sellerStripe?.stripe_connect_status === "enabled";
+
+  /* Chantier 6 — Rating moyen du vendeur (agrégat marketplace_reviews). */
+  const sellerRating = await getSellerRatingSummary(listing.seller_id);
 
   const priceFormatted = formatPrice(
     Number(listing.price_amount),
@@ -276,9 +280,11 @@ export default async function ListingPage({ params }: { params: Params }) {
                 {listing.seller.location
                   ? `${listing.seller.location} · `
                   : ""}
-                {listing.favorites_count > 0
-                  ? `${listing.favorites_count} favori${listing.favorites_count > 1 ? "s" : ""}`
-                  : "Membre DIVARC"}
+                {sellerRating.totalCount > 0
+                  ? `★ ${sellerRating.averageRating.toFixed(1)} · ${sellerRating.totalCount} avis`
+                  : listing.favorites_count > 0
+                    ? `${listing.favorites_count} favori${listing.favorites_count > 1 ? "s" : ""}`
+                    : "Membre DIVARC"}
               </p>
             </div>
             <span
