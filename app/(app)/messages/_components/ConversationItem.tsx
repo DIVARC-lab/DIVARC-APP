@@ -1,6 +1,6 @@
 "use client";
 
-import { BellOff, Lock, Pin } from "lucide-react";
+import { BellOff, Lock, PhoneMissed, Pin } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
@@ -12,6 +12,9 @@ type ConversationItemProps = {
   conversation: ConversationListItem;
   currentUserId: string;
   presence: PresenceInfo | null;
+  /* Chantier 2 polish : signale qu'il y a un appel manqué récent dans
+     cette conv (callee=me, status=missed, < 7 jours). */
+  hasMissedCall?: boolean;
 };
 
 /* Item de la liste des conversations. Card simple, click → ouvre la conv.
@@ -21,6 +24,7 @@ export function ConversationItem({
   conversation,
   currentUserId,
   presence,
+  hasMissedCall = false,
 }: ConversationItemProps) {
   const pathname = usePathname();
   const active = pathname === `/messages/${conversation.id}`;
@@ -129,20 +133,28 @@ export function ConversationItem({
               {formatRelative(conversation.last_message_at)}
             </span>
           </div>
-          {/* Row 2 : aperçu du dernier message à gauche, badge unread à droite. */}
+          {/* Row 2 : aperçu du dernier message à gauche, badge unread à droite.
+              Si appel manqué récent, on remplace l'aperçu par "Appel manqué" rouge. */}
           <div className="grid grid-cols-[1fr_auto] gap-2 items-center mt-0.5">
-            <p
-              className={`min-w-0 text-xs truncate ${
-                active
-                  ? "text-cream/80"
-                  : conversation.unread_count > 0 && !conversation.is_muted
-                    ? "text-night font-medium"
-                    : "text-muted"
-              }`}
-            >
-              {isOwnLastMessage ? "Toi : " : ""}
-              {lastBody}
-            </p>
+            {hasMissedCall && !active ? (
+              <p className="min-w-0 text-xs truncate font-semibold text-red-600 inline-flex items-center gap-1">
+                <PhoneMissed className="w-3 h-3 shrink-0" aria-hidden />
+                Appel manqué
+              </p>
+            ) : (
+              <p
+                className={`min-w-0 text-xs truncate ${
+                  active
+                    ? "text-cream/80"
+                    : conversation.unread_count > 0 && !conversation.is_muted
+                      ? "text-night font-medium"
+                      : "text-muted"
+                }`}
+              >
+                {isOwnLastMessage ? "Toi : " : ""}
+                {lastBody}
+              </p>
+            )}
             {!active && conversation.unread_count > 0 ? (
               <span
                 aria-label={`${conversation.unread_count} message non lu`}

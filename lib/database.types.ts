@@ -3147,6 +3147,51 @@ export type Database = {
         Update: Partial<ConversationMember>;
         Relationships: [];
       };
+      /* Chantier 2 (migration 0076) — appels. */
+      call_sessions: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          caller_id: string;
+          callee_id: string;
+          kind: "audio" | "video";
+          status:
+            | "ringing"
+            | "connecting"
+            | "in_progress"
+            | "ended"
+            | "missed"
+            | "rejected"
+            | "failed";
+          started_at: string;
+          connected_at: string | null;
+          ended_at: string | null;
+          duration_ms: number | null;
+          end_reason: string | null;
+        };
+        Insert: {
+          conversation_id: string;
+          caller_id: string;
+          callee_id: string;
+          kind?: "audio" | "video";
+          status?: string;
+        };
+        Update: Partial<{
+          status:
+            | "ringing"
+            | "connecting"
+            | "in_progress"
+            | "ended"
+            | "missed"
+            | "rejected"
+            | "failed";
+          connected_at: string | null;
+          ended_at: string | null;
+          duration_ms: number | null;
+          end_reason: string | null;
+        }>;
+        Relationships: [];
+      };
       messages: {
         Row: Message;
         Insert: Pick<Message, "conversation_id" | "sender_id"> &

@@ -80,3 +80,39 @@ export const STUN_SERVERS: RTCIceServer[] = [
 
 /* Délai au-delà duquel un appel non décroché passe en "missed". */
 export const RING_TIMEOUT_MS = 35_000;
+
+/* Formatte une durée ms en chaîne mm:ss ou h:mm:ss (client-safe). */
+export function formatCallDuration(ms: number | null): string {
+  if (!ms || ms <= 0) return "0:00";
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/* Label court pour le statut d'un appel (badges UI). */
+export function callStatusLabel(
+  status: CallStatus,
+  isOutgoing: boolean,
+): string {
+  switch (status) {
+    case "ringing":
+      return isOutgoing ? "En cours…" : "Entrant";
+    case "connecting":
+      return "Connexion…";
+    case "in_progress":
+      return "En appel";
+    case "ended":
+      return "Terminé";
+    case "missed":
+      return isOutgoing ? "Sans réponse" : "Manqué";
+    case "rejected":
+      return isOutgoing ? "Refusé" : "Refusé";
+    case "failed":
+      return "Échec";
+  }
+}

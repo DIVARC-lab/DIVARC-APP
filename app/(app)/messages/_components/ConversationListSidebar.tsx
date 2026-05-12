@@ -4,6 +4,7 @@ import {
   Archive,
   Lock,
   MessageSquarePlus,
+  Phone,
   Pin,
   Search,
   Users,
@@ -13,6 +14,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { cn } from "@/lib/utils/cn";
+import type { CallListItem } from "@/lib/queries/calls";
+import { CallsList } from "./CallsList";
 import { ConversationItem } from "./ConversationItem";
 import type { ConversationListItem, PresenceInfo } from "@/lib/database.types";
 
@@ -20,6 +23,8 @@ type ConversationListSidebarProps = {
   conversations: ConversationListItem[];
   currentUserId: string;
   presenceMap: Record<string, PresenceInfo>;
+  recentCalls?: CallListItem[];
+  missedCallsCount?: number;
 };
 
 type FilterId = "all" | "unread" | "groups" | "secret" | "archived";
@@ -32,11 +37,16 @@ const FILTERS: { id: FilterId; label: string; icon?: typeof Pin }[] = [
   { id: "archived", label: "Archivés", icon: Archive },
 ];
 
+type View = "discussions" | "calls";
+
 export function ConversationListSidebar({
   conversations,
   currentUserId,
   presenceMap,
+  recentCalls = [],
+  missedCallsCount = 0,
 }: ConversationListSidebarProps) {
+  const [view, setView] = useState<View>("discussions");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
 
@@ -90,6 +100,22 @@ export function ConversationListSidebar({
     return { pinned: p, rest: r };
   }, [filtered, filter]);
 
+  /* Set des conv_ids avec appel manqué récent (entrant, < 7 jours). */
+  const convsWithMissedCall = useMemo(() => {
+    const set = new Set<string>();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    for (const c of recentCalls) {
+      if (
+        c.is_missed &&
+        !c.is_outgoing &&
+        new Date(c.started_at).getTime() > sevenDaysAgo
+      ) {
+        set.add(c.conversation_id);
+      }
+    }
+    return set;
+  }, [recentCalls]);
+
   /* Compteurs pour chaque chip (sur la liste non-archivée pour "tous /
      non lus / groupes / secret", sur archivés uniquement pour le chip
      archived). */
@@ -134,31 +160,70 @@ export function ConversationListSidebar({
           </div>
         </div>
 
-        <div className="relative">
-          <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.currentTarget.value)}
-            placeholder="Rechercher une discussion…"
-            aria-label="Rechercher dans les discussions"
-            className="w-full h-10 rounded-full border border-line bg-white pl-10 pr-9 text-sm text-night placeholder:text-muted/70 focus:outline-none focus:border-gold/40 focus:ring-2 focus:ring-gold/20"
-          />
-          {query.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setQuery("")}
-              aria-label="Effacer la recherche"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full text-muted hover:text-night hover:bg-night/5 flex items-center justify-center transition-colors"
-            >
-              <X className="w-3.5 h-3.5" aria-hidden />
-            </button>
-          ) : null}
+        {/* Toggle Discussions / Appels (style segmented control). */}
+        <div className="mb-3 flex gap-1 p-1 rounded-full bg-night/5 border border-line">
+          <button
+            type="button"
+            onClick={() => setView("discussions")}
+            aria-pressed={view === "discussions"}
+            className={cn(
+              "flex-1 h-8 rounded-full text-[12px] font-bold transition-colors",
+              view === "discussions"
+                ? "bg-white text-night shadow-sm"
+                : "text-night-muted hover:text-night",
+            )}
+          >
+            Discussions
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("calls")}
+            aria-pressed={view === "calls"}
+            className={cn(
+              "flex-1 h-8 rounded-full text-[12px] font-bold inline-flex items-center justify-center gap-1.5 transition-colors",
+              view === "calls"
+                ? "bg-white text-night shadow-sm"
+                : "text-night-muted hover:text-night",
+            )}
+          >
+            <Phone className="w-3 h-3" aria-hidden />
+            Appels
+            {missedCallsCount > 0 ? (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center">
+                {missedCallsCount}
+              </span>
+            ) : null}
+          </button>
         </div>
 
+        {view === "discussions" ? (
+          <div className="relative">
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.currentTarget.value)}
+              placeholder="Rechercher une discussion…"
+              aria-label="Rechercher dans les discussions"
+              className="w-full h-10 rounded-full border border-line bg-white pl-10 pr-9 text-sm text-night placeholder:text-muted/70 focus:outline-none focus:border-gold/40 focus:ring-2 focus:ring-gold/20"
+            />
+            {query.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full text-muted hover:text-night hover:bg-night/5 flex items-center justify-center transition-colors"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {view === "discussions" ? (
         <nav
           aria-label="Filtres discussions"
           className="mt-3 flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1"
@@ -199,10 +264,13 @@ export function ConversationListSidebar({
             );
           })}
         </nav>
+        ) : null}
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-0">
-        {filtered.length === 0 ? (
+        {view === "calls" ? (
+          <CallsList calls={recentCalls} />
+        ) : filtered.length === 0 ? (
           query.trim().length > 0 || filter !== "all" ? (
             <NoResults
               query={query}
@@ -229,6 +297,7 @@ export function ConversationListSidebar({
                   conversation={conversation}
                   currentUserId={currentUserId}
                   presence={presence}
+                  hasMissedCall={convsWithMissedCall.has(conversation.id)}
                 />
               );
             })}
@@ -244,6 +313,7 @@ export function ConversationListSidebar({
                   conversation={conversation}
                   currentUserId={currentUserId}
                   presence={presence}
+                  hasMissedCall={convsWithMissedCall.has(conversation.id)}
                 />
               );
             })}
