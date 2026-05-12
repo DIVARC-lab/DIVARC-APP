@@ -12,6 +12,7 @@ import {
   getUiMode,
   mapLegacyCategory,
 } from "@/lib/marketplace/taxonomy";
+import { BuyNowButton } from "./_components/BuyNowButton";
 import { ContactSellerButton } from "./_components/ContactSellerButton";
 import { ListingAttributesPanel } from "./_components/ListingAttributesPanel";
 import { ListingGallery } from "./_components/ListingGallery";
@@ -86,6 +87,19 @@ export default async function ListingPage({ params }: { params: Params }) {
     limit: 8,
   });
   const similar = allSameCat.filter((l) => l.id !== listing.id).slice(0, 6);
+
+  /* Chantier 5 — Vérifie si le vendeur peut recevoir des paiements en
+   * ligne. Si non, on cache le bouton "Acheter via DIVARC" et l'acheteur
+   * doit passer par la messagerie. */
+  const { data: sellerStripe } = await supabase
+    .from("profiles")
+    .select("stripe_connect_status")
+    .eq("id", listing.seller_id)
+    .maybeSingle();
+  const canBuyOnline =
+    !isOwn &&
+    !isSold &&
+    sellerStripe?.stripe_connect_status === "enabled";
 
   const priceFormatted = formatPrice(
     Number(listing.price_amount),
@@ -349,6 +363,18 @@ export default async function ListingPage({ params }: { params: Params }) {
             >
               Gérer mon annonce
             </Link>
+          ) : canBuyOnline ? (
+            /* Vendeur Stripe Connect enabled → Acheter via DIVARC en pole
+               position + offre/contact en secondaires. */
+            <>
+              <BuyNowButton listingId={listing.id} />
+              <MakeOfferDialog
+                listingId={listing.id}
+                listingTitle={listing.title}
+                askingAmount={listing.price_amount}
+                currency={listing.price_currency}
+              />
+            </>
           ) : (
             <>
               <MakeOfferDialog

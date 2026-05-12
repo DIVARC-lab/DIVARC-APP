@@ -37,6 +37,13 @@ const PROFILE_DEFAULTS: Omit<
   | "cover_gradient"
   | "website"
   | "sections_order"
+  /* Stripe Connect (migration 0087) — defaults gérés côté DB. */
+  | "stripe_connect_account_id"
+  | "stripe_connect_status"
+  | "stripe_charges_enabled"
+  | "stripe_payouts_enabled"
+  | "stripe_details_submitted"
+  | "stripe_connect_updated_at"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -215,6 +222,25 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     trust_score_updated_at:
       (data as { trust_score_updated_at?: string | null })
         .trust_score_updated_at ?? null,
+    /* Stripe Connect (migration 0087) — defaults tolérants. */
+    stripe_connect_account_id:
+      (data as { stripe_connect_account_id?: string | null })
+        .stripe_connect_account_id ?? null,
+    stripe_connect_status:
+      (data as { stripe_connect_status?: Profile["stripe_connect_status"] })
+        .stripe_connect_status ?? "not_started",
+    stripe_charges_enabled:
+      (data as { stripe_charges_enabled?: boolean }).stripe_charges_enabled ??
+      false,
+    stripe_payouts_enabled:
+      (data as { stripe_payouts_enabled?: boolean }).stripe_payouts_enabled ??
+      false,
+    stripe_details_submitted:
+      (data as { stripe_details_submitted?: boolean }).stripe_details_submitted ??
+      false,
+    stripe_connect_updated_at:
+      (data as { stripe_connect_updated_at?: string | null })
+        .stripe_connect_updated_at ?? null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

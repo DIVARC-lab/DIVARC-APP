@@ -131,6 +131,18 @@ export type Profile = {
   timeouts_received: number;
   trust_score: number;
   trust_score_updated_at: string | null;
+  /* Chantier 5 (migration 0087) — Stripe Connect Express. */
+  stripe_connect_account_id: string | null;
+  stripe_connect_status:
+    | "not_started"
+    | "onboarding"
+    | "restricted"
+    | "enabled"
+    | "disabled";
+  stripe_charges_enabled: boolean;
+  stripe_payouts_enabled: boolean;
+  stripe_details_submitted: boolean;
+  stripe_connect_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -204,9 +216,23 @@ export type ProfileTrustUpdate = Partial<
   >
 >;
 
+/* Chantier 5 — Stripe Connect update partial. */
+export type ProfileStripeUpdate = Partial<
+  Pick<
+    Profile,
+    | "stripe_connect_account_id"
+    | "stripe_connect_status"
+    | "stripe_charges_enabled"
+    | "stripe_payouts_enabled"
+    | "stripe_details_submitted"
+    | "stripe_connect_updated_at"
+  >
+>;
+
 export type ProfileUpdate = ProfileIdentityUpdate &
   ProfilePreferencesUpdate &
-  ProfileTrustUpdate;
+  ProfileTrustUpdate &
+  ProfileStripeUpdate;
 
 /* Migration 0003 (base) + 0073 (étendu Chantier 1). */
 export type ConversationType =
