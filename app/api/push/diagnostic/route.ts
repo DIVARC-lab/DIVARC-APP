@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getVapidStatus, sendPushToUsers } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 
 /* /api/push/diagnostic — endpoint de debug qui retourne en JSON l'état
  * de chaque maillon de la chaîne Web Push. */
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const checks: Record<string, unknown> = {};
+  const convId = req.nextUrl.searchParams.get("conv");
 
   try {
     /* 1. VAPID env vars */
@@ -139,6 +140,77 @@ export async function GET() {
     } else {
       checks.summary =
         "❌ Aucune push_subscription pour cet user. Active le toggle dans /settings/notifications";
+    }
+
+    /* 6. Diagnostic per-conv (si ?conv=<uuid> dans l'URL) */
+    if (convId) {
+      try {
+        /* Liste des autres membres + leurs subs via RPC. */
+        const { data: members } = await supabase
+          .from("conversation_members")
+          .select("user_id, is_muted, mute_until")
+          .eq("conversation_id", convId)
+          .neq("user_id", user.id);
+
+        if (!members || members.length === 0) {
+          checks.conv = {
+            id: convId,
+            status: "❌ Pas d'autres membres dans cette conv",
+          };
+        } else {
+          const now = Date.now();
+          const activeTargets = members.filter((t) => {
+            if (!t.is_muted) return true;
+            if (!t.mute_until) return false;
+            return new Date(t.mute_until).getTime() <= now;
+          });
+          const targetIds = activeTargets.map((t) => t.user_id);
+
+          /* Pour chaque target, check s'il a des push_subs via la RPC. */
+          const { data: targetSubs } = await supabase.rpc(
+            "get_push_subs_for_users",
+            { p_user_ids: targetIds },
+          );
+          const subsByUser = new Map<string, number>();
+          for (const s of (targetSubs ?? []) as Array<{ user_id: string }>) {
+            subsByUser.set(s.user_id, (subsByUser.get(s.user_id) ?? 0) + 1);
+          }
+
+          /* Tentative d'envoi de test push à tous les targets. */
+          const send = await sendPushToUsers(targetIds, {
+            title: "🧪 Test conv DIVARC",
+            body: "Test ciblé sur cette conversation",
+            url: `/messages/${convId}`,
+            tag: `diag-${convId}`,
+          });
+
+          checks.conv = {
+            id: convId,
+            total_members: members.length + 1,
+            other_members: members.length,
+            muted: members.length - activeTargets.length,
+            active_targets: targetIds.length,
+            targets_with_subs: members.map((m) => ({
+              user_id: m.user_id,
+              is_muted: m.is_muted,
+              push_subs: subsByUser.get(m.user_id) ?? 0,
+            })),
+            send_result: send,
+            summary:
+              targetIds.length === 0
+                ? "❌ Tous les autres membres ont muté la conv"
+                : send.delivered > 0
+                  ? `✅ ${send.delivered} push délivré(s) — vérifie les iPhone(s)`
+                  : (send._debug?.subsFound ?? 0) === 0
+                    ? "❌ Aucun autre membre n'a de push_subscription enregistrée. Demande-lui d'installer la PWA + activer le toggle Notifications"
+                    : "⚠️ Subs trouvées mais 0 délivrées — voir _debug.perEndpoint",
+          };
+        }
+      } catch (err) {
+        checks.conv = {
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     }
 
     return NextResponse.json(checks);
