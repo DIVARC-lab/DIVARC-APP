@@ -535,7 +535,7 @@ export function MessageComposer({
     !pending && !tooLong && (body.trim().length > 0 || attachment !== null);
 
   return (
-    <div className="border-t border-line bg-white px-2.5 sm:px-6 py-2 sm:py-4">
+    <div className="border-t border-line bg-white px-2.5 sm:px-6 pt-2 sm:pt-4 pb-[max(env(safe-area-inset-bottom,0px),8px)] sm:pb-4">
       <div className="max-w-3xl mx-auto">
         {secretLabel ? (
           <div className="mb-2 px-3 py-1.5 rounded-full bg-night/5 border border-line text-[11.5px] font-semibold text-night inline-flex items-center gap-1">

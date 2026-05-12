@@ -112,7 +112,11 @@ export function MobileBottomNav({
     <>
       <nav
         aria-label="Navigation principale"
-        className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-bg border-t border-line shadow-[0_-2px_8px_rgba(10,31,68,0.04)] pb-[env(safe-area-inset-bottom,0px)]"
+        /* Clamp la safe-area à max 12px : sur iPhone Pro avec 34px de
+           home indicator zone, le menu paraissait flotter trop haut
+           (UX peu pro). 12px suffit à éviter le conflit avec le
+           gesture du home indicator sans laisser de zone vide. */
+        className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-bg border-t border-line shadow-[0_-2px_8px_rgba(10,31,68,0.04)] pb-[min(env(safe-area-inset-bottom,0px),12px)]"
       >
         <div className="flex h-14">
           {ITEMS.map((item, index) => {
