@@ -6,6 +6,20 @@ import { sendPushToUser } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/currency";
 
+/* Push notification fire-and-forget safe : on swallow toute exception pour
+ * que l'action principale ne casse pas si la conf VAPID/push_subscriptions
+ * n'est pas en place. */
+async function safePush(
+  userId: string,
+  payload: Parameters<typeof sendPushToUser>[1],
+) {
+  try {
+    await sendPushToUser(userId, payload);
+  } catch (err) {
+    console.warn("[divarc] push notification failed (non-fatal):", err);
+  }
+}
+
 const sendOfferSchema = z.object({
   listing_id: z.string().uuid(),
   amount: z.coerce.number().int().min(1).max(10_000_000),
@@ -120,7 +134,7 @@ export async function sendOffer(formData: FormData): Promise<OfferActionResult> 
   ]);
   const buyerName =
     buyerProfile?.full_name ?? buyerProfile?.username ?? "Un acheteur";
-  void sendPushToUser(listing.seller_id, {
+  void safePush(listing.seller_id, {
     title: `Nouvelle offre de ${buyerName}`,
     body: `${formatPrice(parsed.data.amount, listing.price_currency)} sur ${
       listingDetails?.title ?? "ton annonce"
@@ -143,6 +157,21 @@ export async function sendOffer(formData: FormData): Promise<OfferActionResult> 
 export async function respondToOffer(
   formData: FormData,
 ): Promise<OfferActionResult> {
+  try {
+    return await respondToOfferImpl(formData);
+  } catch (err) {
+    /* Garde-fou : toute exception non gérée (RPC fail, push, RLS, etc.)
+     * remonte comme un message lisible plutôt qu'un 500 brut côté client. */
+    const message =
+      err instanceof Error ? err.message : "Action impossible. Réessaie.";
+    console.error("[divarc:respondToOffer] unexpected:", err);
+    return { ok: false, error: message };
+  }
+}
+
+async function respondToOfferImpl(
+  formData: FormData,
+): Promise<OfferActionResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -162,11 +191,14 @@ export async function respondToOffer(
     };
   }
 
-  const { data: offer } = await supabase
+  const { data: offer, error: offerError } = await supabase
     .from("listing_offers")
     .select("*")
     .eq("id", parsed.data.offer_id)
     .maybeSingle();
+  if (offerError) {
+    return { ok: false, error: offerError.message };
+  }
   if (!offer) return { ok: false, error: "Offre introuvable." };
   if (offer.status !== "pending") {
     return { ok: false, error: "Offre déjà traitée." };
@@ -192,15 +224,15 @@ export async function respondToOffer(
       .from("listing_offers")
       .update({ status: "withdrawn", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
-    if (error) return { ok: false, error: "Retrait impossible." };
+    if (error) return { ok: false, error: error.message };
   } else if (decision === "decline") {
     const { error } = await supabase
       .from("listing_offers")
       .update({ status: "declined", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
-    if (error) return { ok: false, error: "Refus impossible." };
+    if (error) return { ok: false, error: error.message };
     /* Push au buyer (informatif). */
-    void sendPushToUser(offer.from_user, {
+    void safePush(offer.from_user, {
       title: "Offre refusée",
       body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été refusée.`,
       url: "/marketplace/offers?tab=sent",
@@ -212,9 +244,9 @@ export async function respondToOffer(
     const { error } = await supabase.rpc("accept_listing_offer", {
       offer_id: offer.id,
     });
-    if (error) return { ok: false, error: "Acceptation impossible." };
+    if (error) return { ok: false, error: error.message };
     /* Push au buyer pour célébrer. */
-    void sendPushToUser(offer.from_user, {
+    void safePush(offer.from_user, {
       title: "🎉 Offre acceptée !",
       body: `Ton offre de ${formatPrice(offer.amount, offer.currency)} a été acceptée. Contacte le vendeur.`,
       url: "/marketplace/offers?tab=sent",
@@ -229,7 +261,7 @@ export async function respondToOffer(
       .from("listing_offers")
       .update({ status: "countered", responded_at: new Date().toISOString() })
       .eq("id", offer.id);
-    if (updateError) return { ok: false, error: "Contre-offre impossible." };
+    if (updateError) return { ok: false, error: updateError.message };
 
     const { data: counter, error: insertError } = await supabase
       .from("listing_offers")
@@ -245,10 +277,13 @@ export async function respondToOffer(
       .select("id")
       .single();
     if (insertError || !counter) {
-      return { ok: false, error: "Contre-offre impossible." };
+      return {
+        ok: false,
+        error: insertError?.message ?? "Contre-offre impossible.",
+      };
     }
     /* Push au buyer pour la contre-offre. */
-    void sendPushToUser(offer.from_user, {
+    void safePush(offer.from_user, {
       title: "Contre-offre reçue",
       body: `Le vendeur propose ${formatPrice(parsed.data.counter_amount, offer.currency)}.`,
       url: "/marketplace/offers?tab=sent",

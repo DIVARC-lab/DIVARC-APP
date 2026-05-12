@@ -43,6 +43,8 @@ const STATUS_LABEL: Record<string, string> = {
   expired: "Expirée",
 };
 
+type Decision = "accept" | "decline" | "counter" | "withdraw";
+
 export function OfferCard({
   offer,
   currentUserId,
@@ -52,13 +54,15 @@ export function OfferCard({
   const [counterAmount, setCounterAmount] = useState("");
   const [counterMessage, setCounterMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  /* Quelle action est en cours — pour afficher le loader sur le bon bouton. */
+  const [activeDecision, setActiveDecision] = useState<Decision | null>(null);
 
   const isReceived = direction === "received";
   const canRespond = offer.status === "pending" && isReceived;
   const canWithdraw =
     offer.status === "pending" && offer.from_user === currentUserId;
 
-  function dispatch(decision: "accept" | "decline" | "counter" | "withdraw") {
+  function dispatch(decision: Decision) {
     if (decision === "counter" && !counterMode) {
       setCounterAmount(String(offer.amount + Math.round(offer.amount * 0.1)));
       setCounterMode(true);
@@ -72,6 +76,7 @@ export function OfferCard({
       }
     }
 
+    setActiveDecision(decision);
     startTransition(async () => {
       const formData = new FormData();
       formData.set("offer_id", offer.id);
@@ -91,6 +96,7 @@ export function OfferCard({
                 : "Offre retirée.",
       });
       if (result?.ok) setCounterMode(false);
+      setActiveDecision(null);
     });
   }
 
@@ -209,9 +215,9 @@ export function OfferCard({
               type="button"
               onClick={() => dispatch("counter")}
               disabled={pending}
-              className="h-11 px-4 rounded-full bg-night text-cream text-xs font-bold inline-flex items-center gap-1.5"
+              className="h-11 px-4 rounded-full bg-night text-cream text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-50"
             >
-              {pending ? (
+              {activeDecision === "counter" ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
               ) : (
                 <Reply className="w-3.5 h-3.5" aria-hidden />
@@ -228,16 +234,20 @@ export function OfferCard({
                 type="button"
                 onClick={() => dispatch("decline")}
                 disabled={pending}
-                className="h-11 px-4 rounded-full text-xs font-bold text-red-600 hover:bg-red-50 inline-flex items-center gap-1.5"
+                className="h-11 px-4 rounded-full text-xs font-bold text-red-600 hover:bg-red-50 inline-flex items-center gap-1.5 disabled:opacity-50"
               >
-                <X className="w-3.5 h-3.5" aria-hidden />
+                {activeDecision === "decline" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <X className="w-3.5 h-3.5" aria-hidden />
+                )}
                 Refuser
               </button>
               <button
                 type="button"
                 onClick={() => dispatch("counter")}
                 disabled={pending}
-                className="h-11 px-4 rounded-full bg-white border border-line text-night text-xs font-bold inline-flex items-center gap-1.5 hover:border-night/30"
+                className="h-11 px-4 rounded-full bg-white border border-line text-night text-xs font-bold inline-flex items-center gap-1.5 hover:border-night/30 disabled:opacity-50"
               >
                 <Reply className="w-3.5 h-3.5" aria-hidden />
                 Contre-offrir
@@ -246,9 +256,9 @@ export function OfferCard({
                 type="button"
                 onClick={() => dispatch("accept")}
                 disabled={pending}
-                className="h-11 px-4 rounded-full bg-night text-cream text-xs font-bold inline-flex items-center gap-1.5 hover:bg-night-soft"
+                className="h-11 px-4 rounded-full bg-night text-cream text-xs font-bold inline-flex items-center gap-1.5 hover:bg-night-soft disabled:opacity-50"
               >
-                {pending ? (
+                {activeDecision === "accept" ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
                 ) : (
                   <Check className="w-3.5 h-3.5" aria-hidden />
@@ -261,9 +271,9 @@ export function OfferCard({
               type="button"
               onClick={() => dispatch("withdraw")}
               disabled={pending}
-              className="h-11 px-4 rounded-full text-xs font-bold text-night-muted hover:text-red-600 inline-flex items-center gap-1.5"
+              className="h-11 px-4 rounded-full text-xs font-bold text-night-muted hover:text-red-600 inline-flex items-center gap-1.5 disabled:opacity-50"
             >
-              {pending ? (
+              {activeDecision === "withdraw" ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
               ) : (
                 <X className="w-3.5 h-3.5" aria-hidden />
