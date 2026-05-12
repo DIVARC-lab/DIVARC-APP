@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
  * listings. Pendant le SSR (queries listings + offers count). */
 export default function MarketplaceLoading() {
   return (
-    <div className="bg-bg-soft min-h-screen pb-24" aria-busy>
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-24" aria-busy>
       <div className="mx-auto w-full max-w-6xl">
         {/* Hero */}
         <header className="bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-7">

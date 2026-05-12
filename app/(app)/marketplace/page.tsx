@@ -261,8 +261,8 @@ export default async function MarketplacePage({
                 · maintenant
               </span>
             </header>
-            <div className="overflow-x-auto scrollbar-none">
-              <div className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+            <div className="overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+              <div className="flex gap-2.5 px-4 sm:px-7 pb-3 snap-x snap-mandatory">
                 {trendingListings.map((listing) => (
                   <div
                     key={listing.id}
@@ -297,8 +297,8 @@ export default async function MarketplacePage({
                 · sur mesure
               </span>
             </header>
-            <div className="overflow-x-auto scrollbar-none">
-              <div className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+            <div className="overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+              <div className="flex gap-2.5 px-4 sm:px-7 pb-3 snap-x snap-mandatory">
                 {recommendedListings.map((listing) => (
                   <div
                     key={listing.id}

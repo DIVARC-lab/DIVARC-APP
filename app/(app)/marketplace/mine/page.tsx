@@ -24,7 +24,7 @@ export default async function MyListingsPage() {
   const sold = listings.filter((l) => l.status === "sold");
 
   return (
-    <div className="bg-bg-soft min-h-screen pb-24">
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-24">
       <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
         {/* Hero header — grammaire Bold cohérente avec /marketplace */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-7">
