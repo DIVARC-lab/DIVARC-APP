@@ -133,7 +133,7 @@ export default async function ListingPage({ params }: { params: Params }) {
   });
 
   return (
-    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-[calc(96px+env(safe-area-inset-bottom,0px))] relative">
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-[calc(96px+3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-[calc(96px+env(safe-area-inset-bottom,0px))] relative">
       <script {...jsonLdScriptProps(jsonLd)} />
       {/* Hero gallery + glass top bar */}
       <div className="relative">
@@ -348,16 +348,13 @@ export default async function ListingPage({ params }: { params: Params }) {
       </div>
 
       {/* Sticky CTA bottom — refonte :
-            - Padding propre (1 seule source de vérité pour safe-area)
-            - Layout adaptatif : 2 lignes sur mobile si tous les CTAs (acheter
-              + offre + discuter), 1 ligne sur tablet/desktop
-            - Bouton "Tag → /messages perso" supprimé (confusant)
-            - "Discuter" envoie maintenant vers /marketplace/messages (séparé) */}
+            - Sur mobile : remonté de h-14 (56px) pour passer AU-DESSUS de
+              MobileBottomNav qui occupe le bas. Sur desktop (lg+) la nav
+              mobile est masquée, donc bottom-0 direct.
+            - safe-area-inset-bottom géré seulement sur desktop (sur mobile,
+              c'est la nav qui l'absorbe). */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 bg-[rgba(248,249,251,0.96)] backdrop-blur-md border-t border-line"
-        style={{
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
+        className="fixed inset-x-0 z-40 bottom-[calc(3.5rem+min(env(safe-area-inset-bottom,0px),12px))] lg:bottom-0 lg:pb-[env(safe-area-inset-bottom,0px)] bg-[rgba(248,249,251,0.96)] backdrop-blur-md border-t border-line"
       >
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
           {isOwn ? (

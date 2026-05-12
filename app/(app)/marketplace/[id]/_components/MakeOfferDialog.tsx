@@ -81,13 +81,13 @@ export function MakeOfferDialog({
           role="dialog"
           aria-modal="true"
           aria-label="Faire une offre"
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-night/40 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-night/50 backdrop-blur-sm sm:p-4 overflow-y-auto"
           onClick={() => setOpen(false)}
         >
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md bg-bg border-t sm:border border-line rounded-t-3xl sm:rounded-3xl shadow-[0_40px_100px_-30px_rgba(10,31,68,0.55)]"
+            className="w-full sm:max-w-lg bg-white border-t sm:border border-line rounded-t-3xl sm:rounded-3xl shadow-[0_40px_100px_-30px_rgba(10,31,68,0.55)] sm:my-auto max-h-[92dvh] overflow-y-auto"
           >
             <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-line">
               <div className="min-w-0 flex-1">
