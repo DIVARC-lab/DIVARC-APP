@@ -107,6 +107,65 @@ export async function listListings(
 ): Promise<ListingWithDetails[]> {
   const supabase = await createClient();
 
+  const trimmedQuery = options.query?.trim();
+  const hasTextQuery = !!trimmedQuery && trimmedQuery.length > 0;
+
+  /* Chantier 2.4 — si une query texte est présente, on délègue au RPC
+   * search_listings_fts (GIN sur tsvector pondéré). Le RPC retourne les
+   * IDs rankés ; on hydrate ensuite les rows complètes via .in(). Les
+   * filtres prix/cat/état sont appliqués dans le RPC pour ne pas casser
+   * l'ordre du ranking. */
+  if (hasTextQuery) {
+    const sanitized = trimmedQuery.slice(0, 80);
+    const categoriesArg =
+      options.categories && options.categories.length > 0
+        ? options.categories
+        : options.category
+          ? [options.category]
+          : null;
+
+    const { data: ranked, error: rpcError } = await supabase.rpc(
+      "search_listings_fts",
+      {
+        p_query: sanitized,
+        p_categories: categoriesArg,
+        p_conditions:
+          options.conditions && options.conditions.length > 0
+            ? options.conditions
+            : null,
+        p_price_min:
+          typeof options.priceMin === "number" && options.priceMin > 0
+            ? options.priceMin
+            : null,
+        p_price_max:
+          typeof options.priceMax === "number" && options.priceMax > 0
+            ? options.priceMax
+            : null,
+        p_status: options.status ?? "active",
+        p_limit: options.limit ?? 50,
+        p_offset: options.offset ?? 0,
+      },
+    );
+
+    if (rpcError || !ranked || ranked.length === 0) return [];
+
+    const orderedIds = (ranked as { id: string }[]).map((r) => r.id);
+    const { data: rows } = await supabase
+      .from("listings")
+      .select("*")
+      .in("id", orderedIds);
+
+    if (!rows) return [];
+
+    /* Re-ordonner selon le ranking du RPC (perdu par le `.in()`). */
+    const indexById = new Map(orderedIds.map((id, i) => [id, i]));
+    const sortedRows = [...rows].sort(
+      (a, b) =>
+        (indexById.get(a.id) ?? Infinity) - (indexById.get(b.id) ?? Infinity),
+    );
+    return attachDetails(sortedRows, currentUserId);
+  }
+
   let query = supabase
     .from("listings")
     .select("*")
@@ -142,12 +201,6 @@ export async function listListings(
   }
   if (options.sellerId) {
     query = query.eq("seller_id", options.sellerId);
-  }
-  if (options.query && options.query.trim().length > 0) {
-    const sanitized = options.query.trim().replace(/[%,]/g, "").slice(0, 80);
-    query = query.or(
-      `title.ilike.%${sanitized}%,description.ilike.%${sanitized}%`,
-    );
   }
   /* Chantier 2.2 — filtres prix + état. price_amount est un numeric(12,2)
    * stocké directement en unité monétaire (cf. migration 0006). */

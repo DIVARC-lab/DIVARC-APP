@@ -5994,6 +5994,20 @@ export type Database = {
         };
         Returns: string;
       };
+      /* Chantier 2.4 — Postgres FTS sur listings. */
+      search_listings_fts: {
+        Args: {
+          p_query: string;
+          p_categories?: string[] | null;
+          p_conditions?: string[] | null;
+          p_price_min?: number | null;
+          p_price_max?: number | null;
+          p_status?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{ id: string; rank: number }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
