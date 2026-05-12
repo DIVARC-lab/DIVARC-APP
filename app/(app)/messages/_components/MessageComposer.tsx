@@ -20,7 +20,34 @@ import type { EncryptedPayload } from "@/lib/crypto/types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
-import { notifyNewMessage } from "../notify-actions";
+/* notifyNewMessage : Route Handler /api/messages/notify
+   (remplace l'ancienne Server Action qui wrappait les erreurs Next.js). */
+async function notifyNewMessage(
+  conversationId: string,
+  preview: {
+    body?: string | null;
+    isSecret?: boolean;
+    attachmentType?: string | null;
+  } = {},
+): Promise<{ ok: true; delivered: number } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("/api/messages/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId, ...preview }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: json.error ?? `HTTP ${res.status}` };
+    }
+    return { ok: true, delivered: json.delivered ?? 0 };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
+  }
+}
 import { ComposerExtrasSheet } from "./ComposerExtrasSheet";
 import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";

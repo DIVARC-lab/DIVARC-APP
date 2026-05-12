@@ -29,7 +29,30 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { notifyIncomingCall } from "@/app/(app)/messages/call-actions";
+/* notifyIncomingCall : Route Handler /api/messages/notify-call
+   (remplace l'ancienne Server Action qui wrappait les erreurs Next.js). */
+async function notifyIncomingCall(
+  calleeUserId: string,
+  conversationId: string,
+): Promise<{ ok: true; delivered: number } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("/api/messages/notify-call", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ calleeUserId, conversationId }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return { ok: false, error: json.error ?? `HTTP ${res.status}` };
+    }
+    return { ok: true, delivered: json.delivered ?? 0 };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
+  }
+}
 import { createClient } from "@/lib/supabase/client";
 import {
   sendRingBroadcast,
