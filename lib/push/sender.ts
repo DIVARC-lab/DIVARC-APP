@@ -19,13 +19,28 @@ const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT ?? "mailto:contact@divarc.app";
 
+/* Normalise une clé base64 vers URL-safe base64 sans padding (format
+ * exigé par web-push). Strip "=" en fin + remplace "+"/"/" par "-"/"_". */
+function urlSafeBase64(key: string): string {
+  return key.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
 let vapidConfigured = false;
 function ensureVapidConfigured() {
   if (vapidConfigured) return true;
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-  vapidConfigured = true;
-  return true;
+  try {
+    webpush.setVapidDetails(
+      VAPID_SUBJECT,
+      urlSafeBase64(VAPID_PUBLIC_KEY),
+      urlSafeBase64(VAPID_PRIVATE_KEY),
+    );
+    vapidConfigured = true;
+    return true;
+  } catch (err) {
+    console.error("[VAPID] setVapidDetails failed:", err);
+    return false;
+  }
 }
 
 export type PushPayload = {
