@@ -1744,7 +1744,70 @@ export type CircleColor =
   | "violet"
   | "cream";
 
-export type CircleRole = "admin" | "mod" | "member";
+/* Migration 0091 — accès granulaire (remplace is_private legacy). */
+export type CircleType = "open" | "semi_open" | "private" | "hidden";
+export type CircleJoinPolicy =
+  | "instant"
+  | "request"
+  | "invite_only"
+  | "paid"
+  | "quiz";
+export type CircleVisibility = "public" | "unlisted" | "invite_only";
+
+/* Modules activables par le créateur (modules JSONB sur circles). */
+export type CircleModules = {
+  social_feed: boolean;
+  marketplace: boolean;
+  jobs: boolean;
+  library: boolean;
+  events: boolean;
+  live_audio: boolean;
+  polls: boolean;
+  wiki: boolean;
+  challenges: boolean;
+  mentorship: boolean;
+};
+
+/* Migration 0092 — rôles étendus. 'mod' est conservé comme alias legacy
+ * de 'moderator' (rows existantes). Le mapping côté code unifie. */
+export type CircleRole =
+  | "owner"
+  | "admin"
+  | "moderator"
+  | "mod"
+  | "ambassador"
+  | "contributor"
+  | "member";
+
+export type CircleMembershipStatus =
+  | "active"
+  | "pending_approval"
+  | "pending_invite"
+  | "left"
+  | "banned";
+
+/* Préférences notifications par cercle (jsonb sur circle_members). */
+export type CircleNotificationPreferences = {
+  new_posts: "all" | "highlights" | "mentions_only" | "off";
+  new_marketplace: "all" | "matching_interests" | "off";
+  new_jobs: "all" | "matching_profile" | "off";
+  new_events: "all" | "rsvp_only" | "off";
+  mentions: boolean;
+  direct_replies: boolean;
+  moderator_messages: boolean;
+  weekly_digest: boolean;
+};
+
+/* Configuration monétisation (jsonb sur circles, V2). */
+export type CircleMonetization = {
+  is_paid: boolean;
+  pricing_model: "free" | "one_time" | "subscription_monthly" | "subscription_yearly";
+  price_amount: number | null;
+  currency: string;
+  free_trial_days: number;
+  revenue_split_creator: number; // 0.85 par défaut
+  revenue_split_divarc: number; // 0.15 par défaut
+};
 
 export type Circle = {
   id: string;
@@ -1757,6 +1820,44 @@ export type Circle = {
   owner_id: string;
   members_count: number;
   created_at: string;
+  /* Migration 0091 — identité étendue. */
+  tagline: string | null;
+  cover_url: string | null;
+  cover_video_url: string | null;
+  color_accent: string;
+  /* Catégorisation. */
+  primary_category: string | null;
+  secondary_categories: string[];
+  tags: string[];
+  language: string;
+  /* Localisation. */
+  is_local: boolean;
+  location_city: string | null;
+  location_country: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_radius_km: number | null;
+  /* Accès. */
+  type: CircleType;
+  join_policy: CircleJoinPolicy;
+  visibility: CircleVisibility;
+  /* Modules. */
+  modules: CircleModules;
+  /* Bienvenue. */
+  welcome_message: string | null;
+  /* Stats counters. */
+  active_members_count_7d: number;
+  posts_count_total: number;
+  posts_count_7d: number;
+  new_members_count_7d: number;
+  new_members_count_30d: number;
+  engagement_rate: number;
+  vitality_score: number;
+  /* Monétisation. */
+  monetization: CircleMonetization | null;
+  /* Lifecycle. */
+  archived_at: string | null;
+  updated_at: string;
 };
 
 export type CircleMember = {
@@ -1764,11 +1865,63 @@ export type CircleMember = {
   user_id: string;
   role: CircleRole;
   joined_at: string;
+  /* Migration 0092 — extensions. */
+  status: CircleMembershipStatus;
+  last_active_at: string;
+  posts_count: number;
+  comments_count: number;
+  reactions_given_count: number;
+  nickname: string | null;
+  badge: string | null;
+  custom_role_color: string | null;
+  notifications: CircleNotificationPreferences;
+  subscription_status: "active" | "cancelled" | "expired" | null;
+  subscription_started_at: string | null;
+  subscription_renews_at: string | null;
+  is_muted: boolean;
+  muted_until: string | null;
+  warnings_count: number;
+  is_banned: boolean;
+  banned_at: string | null;
+  ban_reason: string | null;
 };
 
 export type CircleWithMembership = Circle & {
   is_member: boolean;
   my_role: CircleRole | null;
+};
+
+/* Migration 0093 — règles affichées dans l'onglet À propos. */
+export type CircleRule = {
+  id: string;
+  circle_id: string;
+  position: number;
+  title: string;
+  description: string | null;
+  icon: string | null;
+  is_critical: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/* Migration 0093 — flairs (tags configurables par cercle pour les posts). */
+export type CircleFlair = {
+  id: string;
+  circle_id: string;
+  slug: string;
+  label: string;
+  color: string;
+  position: number;
+  created_at: string;
+};
+
+/* Migration 0093 — votes sur posts de cercle. */
+export type CirclePostVoteType = "upvote" | "downvote" | "helpful";
+export type CirclePostVote = {
+  user_id: string;
+  post_id: string;
+  vote_type: CirclePostVoteType;
+  created_at: string;
 };
 
 export type CircleMemberWithProfile = CircleMember & {
@@ -4710,32 +4863,59 @@ export type Database = {
       };
       circles: {
         Row: Circle;
+        /* Insert : slug + name + owner_id requis. Tout le reste a un DEFAULT
+         * côté DB (migrations 0028 + 0091) → optional côté TS. */
         Insert: Pick<Circle, "slug" | "name" | "owner_id"> &
-          Partial<
-            Pick<
-              Circle,
-              | "id"
-              | "description"
-              | "emoji"
-              | "color"
-              | "is_private"
-              | "members_count"
-              | "created_at"
-            >
-          >;
-        Update: Partial<
-          Pick<
-            Circle,
-            "name" | "description" | "emoji" | "color" | "is_private"
-          >
-        >;
+          Partial<Omit<Circle, "slug" | "name" | "owner_id">>;
+        Update: Partial<Omit<Circle, "id" | "owner_id" | "created_at">>;
         Relationships: [];
       };
       circle_members: {
         Row: CircleMember;
         Insert: Pick<CircleMember, "circle_id" | "user_id"> &
-          Partial<Pick<CircleMember, "role" | "joined_at">>;
-        Update: Partial<Pick<CircleMember, "role">>;
+          Partial<Omit<CircleMember, "circle_id" | "user_id">>;
+        Update: Partial<
+          Omit<CircleMember, "circle_id" | "user_id" | "joined_at">
+        >;
+        Relationships: [];
+      };
+      /* Migration 0093 — règles, flairs, votes. */
+      circle_rules: {
+        Row: CircleRule;
+        Insert: Pick<CircleRule, "circle_id" | "position" | "title"> &
+          Partial<
+            Pick<
+              CircleRule,
+              "id" | "description" | "icon" | "is_critical" | "created_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            CircleRule,
+            "position" | "title" | "description" | "icon" | "is_critical"
+          >
+        >;
+        Relationships: [];
+      };
+      circle_flairs: {
+        Row: CircleFlair;
+        Insert: Pick<CircleFlair, "circle_id" | "slug" | "label"> &
+          Partial<
+            Pick<CircleFlair, "id" | "color" | "position" | "created_at">
+          >;
+        Update: Partial<
+          Pick<CircleFlair, "slug" | "label" | "color" | "position">
+        >;
+        Relationships: [];
+      };
+      circle_post_votes: {
+        Row: CirclePostVote;
+        Insert: Pick<
+          CirclePostVote,
+          "user_id" | "post_id" | "vote_type"
+        > &
+          Partial<Pick<CirclePostVote, "created_at">>;
+        Update: never;
         Relationships: [];
       };
       circle_events: {
@@ -5881,6 +6061,15 @@ export type Database = {
       get_or_create_listing_conversation: {
         Args: { p_listing_id: string };
         Returns: string;
+      };
+      /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
+       * Retourne true si vote ajouté, false si vote retiré. */
+      toggle_circle_post_vote: {
+        Args: {
+          p_post_id: string;
+          p_vote_type: "upvote" | "downvote" | "helpful";
+        };
+        Returns: boolean;
       };
       /* Migration 0090 — notification in-app sur réponse à offre. */
       notify_marketplace_offer_event: {
