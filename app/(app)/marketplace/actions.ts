@@ -441,25 +441,20 @@ export async function contactSeller(listingId: string) {
     return { error: "Tu ne peux pas te contacter toi-même." };
   }
 
-  // Try to open existing conversation
+  /* Messagerie marketplace dédiée : on crée une conv de type 'listing_chat'
+   * liée au listing, indépendamment de la messagerie personnelle.
+   * Pas besoin d'amitié préalable (différence avec direct conv). */
   const { data: convId, error: convError } = await supabase.rpc(
-    "get_or_create_direct_conversation",
-    { other_user_id: listing.seller_id },
+    "get_or_create_listing_conversation",
+    { p_listing_id: listingId },
   );
 
   if (convError || !convId) {
-    // Need friendship — send friend request first
-    const { error: friendError } = await supabase.rpc("send_friend_request", {
-      recipient_user_id: listing.seller_id,
-      intro: `Bonjour ! Je suis intéressé(e) par ton annonce.`,
-    });
-
-    if (friendError) {
-      return { error: "Impossible de contacter le vendeur." };
-    }
-
-    return { friendRequest: true };
+    return {
+      error:
+        convError?.message ?? "Impossible d'ouvrir la discussion. Réessaie.",
+    };
   }
 
-  redirect(`/messages/${convId}`);
+  redirect(`/marketplace/messages/${convId}`);
 }

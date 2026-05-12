@@ -51,6 +51,10 @@ export async function listConversationsForUser(
     .from("conversations")
     .select("*")
     .in("id", conversationIds)
+    /* Migration 0089 — exclure les conversations marketplace : elles ont
+     * leur propre UI (/marketplace/messages) et ne doivent pas polluer
+     * la messagerie personnelle. */
+    .neq("type", "listing_chat")
     .order("last_message_at", { ascending: false });
 
   if (convError || !conversations) return [];

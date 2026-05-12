@@ -2,6 +2,7 @@ import {
   Bookmark,
   Flame,
   Handshake,
+  MessageCircle,
   Plus,
   Search,
   SlidersHorizontal,
@@ -107,6 +108,13 @@ export default async function MarketplacePage({
             </h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/marketplace/messages"
+              aria-label="Messages marketplace"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-line text-night hover:border-gold/40 transition-colors"
+            >
+              <MessageCircle className="w-[15px] h-[15px]" aria-hidden />
+            </Link>
             <Link
               href="/marketplace/offers"
               aria-label={

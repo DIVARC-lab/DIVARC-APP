@@ -234,13 +234,14 @@ export type ProfileUpdate = ProfileIdentityUpdate &
   ProfileTrustUpdate &
   ProfileStripeUpdate;
 
-/* Migration 0003 (base) + 0073 (étendu Chantier 1). */
+/* Migration 0003 (base) + 0073 (étendu Chantier 1) + 0089 (listing_chat). */
 export type ConversationType =
   | "direct"
   | "group"
   | "self"
   | "broadcast"
-  | "channel";
+  | "channel"
+  | "listing_chat";
 
 export type MemberRole = "owner" | "admin" | "member";
 
@@ -2377,6 +2378,8 @@ export type Conversation = {
   last_meaningful_exchange_at: string | null;
   /* Disparition auto au niveau de la conv (Éclats globaux). */
   auto_delete_after_days: 1 | 7 | 30 | null;
+  /* Migration 0089 — lien vers listing si type='listing_chat'. */
+  listing_id: string | null;
 };
 
 export type ConversationMember = {
@@ -5866,6 +5869,11 @@ export type Database = {
       };
       get_or_create_direct_conversation: {
         Args: { other_user_id: string };
+        Returns: string;
+      };
+      /* Migration 0089 — conv dédiée à un listing marketplace. */
+      get_or_create_listing_conversation: {
+        Args: { p_listing_id: string };
         Returns: string;
       };
       mark_conversation_read: {

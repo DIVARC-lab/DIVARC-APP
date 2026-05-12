@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, MapPin, Tag } from "lucide-react";
+import { CheckCircle2, ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
@@ -133,7 +133,7 @@ export default async function ListingPage({ params }: { params: Params }) {
   });
 
   return (
-    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-20 relative">
+    <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-[calc(96px+env(safe-area-inset-bottom,0px))] relative">
       <script {...jsonLdScriptProps(jsonLd)} />
       {/* Hero gallery + glass top bar */}
       <div className="relative">
@@ -347,21 +347,19 @@ export default async function ListingPage({ params }: { params: Params }) {
         ) : null}
       </div>
 
-      {/* Sticky CTA bottom */}
+      {/* Sticky CTA bottom — refonte :
+            - Padding propre (1 seule source de vérité pour safe-area)
+            - Layout adaptatif : 2 lignes sur mobile si tous les CTAs (acheter
+              + offre + discuter), 1 ligne sur tablet/desktop
+            - Bouton "Tag → /messages perso" supprimé (confusant)
+            - "Discuter" envoie maintenant vers /marketplace/messages (séparé) */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom,0px),16px)] bg-[rgba(248,249,251,0.92)] backdrop-blur-md border-t border-line"
+        className="fixed inset-x-0 bottom-0 z-30 bg-[rgba(248,249,251,0.96)] backdrop-blur-md border-t border-line"
         style={{
-          paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
-        <div className="max-w-2xl mx-auto flex items-center gap-2.5">
-          <Link
-            href="/messages"
-            aria-label="Mes messages"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-line text-night hover:border-gold/40 transition-colors shrink-0"
-          >
-            <Tag className="w-[18px] h-[18px]" aria-hidden />
-          </Link>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
           {isOwn ? (
             <Link
               href="/marketplace/mine"
@@ -370,19 +368,11 @@ export default async function ListingPage({ params }: { params: Params }) {
               Gérer mon annonce
             </Link>
           ) : canBuyOnline ? (
-            /* Vendeur Stripe Connect enabled → Acheter via DIVARC en pole
-               position + offre/contact en secondaires. */
+            /* Vendeur Stripe enabled : Acheter (pole) + Offre (icône) +
+               Discuter (icône). 3 boutons mais 1 large + 2 icônes — tient
+               sans wrapping même sur 320px. */
             <>
               <BuyNowButton listingId={listing.id} />
-              <MakeOfferDialog
-                listingId={listing.id}
-                listingTitle={listing.title}
-                askingAmount={listing.price_amount}
-                currency={listing.price_currency}
-              />
-            </>
-          ) : (
-            <>
               <MakeOfferDialog
                 listingId={listing.id}
                 listingTitle={listing.title}
@@ -392,6 +382,22 @@ export default async function ListingPage({ params }: { params: Params }) {
               <ContactSellerButton
                 listingId={listing.id}
                 sellerName={sellerName}
+                iconOnly
+              />
+            </>
+          ) : (
+            /* Vendeur sans Stripe : Discuter (pole) + Offre (icône).
+               Plus de canal de paiement online possible. */
+            <>
+              <ContactSellerButton
+                listingId={listing.id}
+                sellerName={sellerName}
+              />
+              <MakeOfferDialog
+                listingId={listing.id}
+                listingTitle={listing.title}
+                askingAmount={listing.price_amount}
+                currency={listing.price_currency}
               />
             </>
           )}

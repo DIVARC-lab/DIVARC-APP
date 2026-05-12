@@ -1,21 +1,23 @@
 "use client";
 
-import { Loader2, Send } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { contactSeller } from "../../actions";
+import { cn } from "@/lib/utils/cn";
 
 type ContactSellerButtonProps = {
   listingId: string;
   sellerName: string;
+  /* iconOnly : bouton rond compact (utile quand "Acheter" prend la place
+   * de pole sur le sticky CTA). */
+  iconOnly?: boolean;
 };
 
-/* Refonte audit /marketplace/[id] (handoff L205-207) :
-   pill h-12 r-full bg gradient gold→#B88A2A weight 800 size 14 + Send icon 15
-   shadow [0_12px_24px_-10px_rgba(244,185,66,0.6)]. Texte "Contacter {sellerName}". */
 export function ContactSellerButton({
   listingId,
   sellerName,
+  iconOnly = false,
 }: ContactSellerButtonProps) {
   const [pending, startTransition] = useTransition();
 
@@ -24,14 +26,27 @@ export function ContactSellerButton({
       const result = await contactSeller(listingId);
       if (result?.error) {
         toast.error(result.error);
-        return;
       }
-      if (result?.friendRequest) {
-        toast.success(
-          "Demande d'ami envoyée. Tu pourras discuter dès l'acceptation.",
-        );
-      }
+      /* Si succès, l'action redirige vers /marketplace/messages/[id]. */
     });
+  }
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={handle}
+        disabled={pending}
+        aria-label={`Discuter avec ${sellerName}`}
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-line text-night hover:border-gold/40 transition-colors shrink-0 disabled:opacity-60"
+      >
+        {pending ? (
+          <Loader2 className="w-[18px] h-[18px] animate-spin" aria-hidden />
+        ) : (
+          <MessageCircle className="w-[18px] h-[18px]" aria-hidden />
+        )}
+      </button>
+    );
   }
 
   return (
@@ -39,14 +54,18 @@ export function ContactSellerButton({
       type="button"
       onClick={handle}
       disabled={pending}
-      className="flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full bg-gradient-to-br from-gold to-gold-deep text-night font-extrabold text-[14px] shadow-[0_12px_24px_-10px_rgba(244,185,66,0.6)] hover:opacity-95 transition-opacity disabled:opacity-60"
+      className={cn(
+        "flex-1 inline-flex items-center justify-center gap-2 h-12 px-5 rounded-full",
+        "bg-gradient-to-br from-gold to-gold-deep text-night font-extrabold text-[14px]",
+        "shadow-[0_12px_24px_-10px_rgba(244,185,66,0.6)] hover:opacity-95 transition-opacity disabled:opacity-60",
+      )}
     >
       {pending ? (
         <Loader2 className="w-[15px] h-[15px] animate-spin" aria-hidden />
       ) : (
-        <Send className="w-[15px] h-[15px]" aria-hidden />
+        <MessageCircle className="w-[15px] h-[15px]" aria-hidden />
       )}
-      Contacter{sellerName ? ` ${sellerName.split(" ")[0]}` : ""}
+      Discuter{sellerName ? ` avec ${sellerName.split(" ")[0]}` : ""}
     </button>
   );
 }
