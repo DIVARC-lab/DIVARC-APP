@@ -9,7 +9,6 @@ import {
   Paperclip,
   Plus,
   Send,
-  Smile,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -49,7 +48,6 @@ async function notifyNewMessage(
   }
 }
 import { ComposerExtrasSheet } from "./ComposerExtrasSheet";
-import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";
 import { StickersAndGifsSheet } from "./StickersAndGifsSheet";
 import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
@@ -109,9 +107,11 @@ export function MessageComposer({
   const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [uploading, setUploading] = useState(false);
   const [recording, setRecording] = useState(false);
-  const [emojiOpen, setEmojiOpen] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [stickersOpen, setStickersOpen] = useState(false);
+  const [stickersInitialTab, setStickersInitialTab] = useState<
+    "stickers" | "gifs"
+  >("stickers");
   /* Éclats : si toggle ON, le prochain attachment envoyé sera view-once
      (visible une seule fois). Reset après chaque envoi. */
   const [viewOnce, setViewOnce] = useState(false);
@@ -555,30 +555,6 @@ export function MessageComposer({
     }
   }
 
-  /* Insert l'emoji à la position du curseur (préserve les selections,
-     déplace le caret après l'emoji inséré). Si pas de focus, append à
-     la fin. */
-  function insertEmoji(emoji: string) {
-    const ta = textareaRef.current;
-    if (!ta) {
-      setBody((prev) => prev + emoji);
-      return;
-    }
-    const start = ta.selectionStart ?? body.length;
-    const end = ta.selectionEnd ?? body.length;
-    const next = body.slice(0, start) + emoji + body.slice(end);
-    setBody(next);
-    /* Réapplique le caret après le render. */
-    requestAnimationFrame(() => {
-      const node = textareaRef.current;
-      if (!node) return;
-      const caret = start + emoji.length;
-      node.focus();
-      node.setSelectionRange(caret, caret);
-      resize();
-    });
-  }
-
   const remaining = MAX_LENGTH - body.length;
   const tooLong = remaining < 0;
   const canSend =
@@ -724,23 +700,7 @@ export function MessageComposer({
                 )}
               </button>
 
-              {/* Bouton Stickers + GIFs */}
-              <button
-                type="button"
-                onClick={() => setStickersOpen(true)}
-                disabled={attachment !== null}
-                aria-label="Stickers et GIFs"
-                className={cn(
-                  "shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors text-lg",
-                  attachment !== null
-                    ? "text-muted/50 cursor-not-allowed"
-                    : "text-night-muted hover:bg-night/5 hover:text-night",
-                )}
-              >
-                <span aria-hidden>😀</span>
-              </button>
-
-              {/* Pill input WhatsApp-style avec emoji intégré à droite.
+              {/* Pill input WhatsApp-style.
                   Pas de transition au focus (animation que le user trouve
                   désagréable) — juste border statique. */}
               <div className="flex-1 min-w-0 relative flex items-end bg-bg rounded-3xl border border-line focus-within:border-night/40">
@@ -758,41 +718,12 @@ export function MessageComposer({
                   maxLength={MAX_LENGTH + 100}
                   disabled={pending}
                   /* font-size:16px (text-base) sur mobile pour éviter
-                     l'auto-zoom iOS Safari qui décale toute la page. */
-                  className="flex-1 min-w-0 resize-none bg-transparent pl-4 pr-1 py-2.5 text-base sm:text-sm text-fg placeholder:text-muted/70 focus:outline-none disabled:opacity-60"
+                     l'auto-zoom iOS Safari qui décale toute la page.
+                     pr-4 (au lieu de pr-1) car le bouton emoji a été
+                     supprimé — le clavier emoji système du device suffit. */
+                  className="flex-1 min-w-0 resize-none bg-transparent px-4 py-2.5 text-base sm:text-sm text-fg placeholder:text-muted/70 focus:outline-none disabled:opacity-60"
                   aria-label="Message"
                 />
-                <button
-                  type="button"
-                  onClick={() => setEmojiOpen((v) => !v)}
-                  aria-label="Insérer un emoji"
-                  aria-expanded={emojiOpen}
-                  className={cn(
-                    "shrink-0 w-9 h-9 mr-0.5 mb-0.5 rounded-full flex items-center justify-center transition-colors",
-                    emojiOpen
-                      ? "bg-night/5 text-night"
-                      : "text-night-muted hover:bg-night/5 hover:text-night",
-                  )}
-                >
-                  <Smile className="w-5 h-5" aria-hidden />
-                </button>
-                {emojiOpen ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="Fermer le sélecteur d'emojis"
-                      onClick={() => setEmojiOpen(false)}
-                      className="fixed inset-0 z-30 cursor-default"
-                    />
-                    <EmojiPicker
-                      onPick={(emoji) => {
-                        insertEmoji(emoji);
-                        notifyTyping();
-                      }}
-                      onClose={() => setEmojiOpen(false)}
-                    />
-                  </>
-                ) : null}
                 {tooLong ? (
                   <p className="absolute -top-5 right-2 text-[10px] text-red-600 bg-white px-1 rounded">
                     {remaining}
@@ -853,6 +784,14 @@ export function MessageComposer({
         open={extrasOpen}
         onClose={() => setExtrasOpen(false)}
         onPickFile={() => fileInputRef.current?.click()}
+        onOpenStickers={() => {
+          setStickersInitialTab("stickers");
+          setStickersOpen(true);
+        }}
+        onOpenGifs={() => {
+          setStickersInitialTab("gifs");
+          setStickersOpen(true);
+        }}
       />
       <StickersAndGifsSheet
         open={stickersOpen}
@@ -861,6 +800,7 @@ export function MessageComposer({
         onPickGif={(url, preview, w, h) =>
           void handleSendGif(url, preview, w, h)
         }
+        initialTab={stickersInitialTab}
       />
     </div>
   );

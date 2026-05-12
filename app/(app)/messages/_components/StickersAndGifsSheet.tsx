@@ -10,6 +10,7 @@ type StickersAndGifsSheetProps = {
   onClose: () => void;
   onPickSticker: (emoji: string) => void;
   onPickGif: (gifUrl: string, previewUrl: string, width: number, height: number) => void;
+  initialTab?: Tab;
 };
 
 /* Palette de "stickers" = emojis géants curated par thèmes. Sticker
@@ -93,11 +94,17 @@ export function StickersAndGifsSheet({
   onClose,
   onPickSticker,
   onPickGif,
+  initialTab = "stickers",
 }: StickersAndGifsSheetProps) {
-  const [tab, setTab] = useState<Tab>("stickers");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [activeCategory, setActiveCategory] = useState<string>(
     STICKER_CATEGORIES[0]!.id,
   );
+
+  /* Reset le tab à l'ouverture pour respecter initialTab. */
+  useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
   const [gifQuery, setGifQuery] = useState("");
   const [gifResults, setGifResults] = useState<TenorGif[]>([]);
   const [gifLoading, setGifLoading] = useState(false);

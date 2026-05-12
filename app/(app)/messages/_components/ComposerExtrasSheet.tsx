@@ -6,8 +6,10 @@
 
 import {
   FileText,
+  ImageIcon,
   MapPin,
   Music,
+  Smile,
   Vote,
   X,
 } from "lucide-react";
@@ -18,12 +20,16 @@ type ComposerExtrasSheetProps = {
   open: boolean;
   onClose: () => void;
   onPickFile: () => void;
+  onOpenStickers: () => void;
+  onOpenGifs: () => void;
 };
 
 export function ComposerExtrasSheet({
   open,
   onClose,
   onPickFile,
+  onOpenStickers,
+  onOpenGifs,
 }: ComposerExtrasSheetProps) {
   useEffect(() => {
     if (!open) return;
@@ -49,6 +55,26 @@ export function ComposerExtrasSheet({
     color: string;
   }> = [
     {
+      icon: Smile,
+      label: "Stickers",
+      sub: "Emojis géants",
+      onClick: () => {
+        onClose();
+        onOpenStickers();
+      },
+      color: "bg-gold/20 text-gold-deep",
+    },
+    {
+      icon: ImageIcon,
+      label: "GIFs",
+      sub: "Recherche Giphy",
+      onClick: () => {
+        onClose();
+        onOpenGifs();
+      },
+      color: "bg-violet-50 text-violet-600",
+    },
+    {
       icon: FileText,
       label: "Fichier",
       sub: "PDF, doc, archive…",
@@ -70,11 +96,11 @@ export function ComposerExtrasSheet({
       label: "Sondage",
       sub: "Crée un vote rapide",
       onClick: () => handleNotReady("Sondage"),
-      color: "bg-violet-50 text-violet-600",
+      color: "bg-rose-50 text-rose-600",
     },
     {
       icon: Music,
-      label: "Audio (musique)",
+      label: "Audio",
       sub: "Partage un son",
       onClick: () => handleNotReady("Audio musique"),
       color: "bg-pink-50 text-pink-600",
