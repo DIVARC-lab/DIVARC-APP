@@ -253,6 +253,36 @@ export async function listMyListings(
   return attachDetails(data, userId);
 }
 
+/* Chantier 2.5 — Recommandations personnalisées.
+ * Délègue au RPC recommended_listings_for_user (migration 0086) qui calcule
+ * un score basé sur catégories favorites + popularité + fraicheur, en
+ * excluant les listings propres + déjà favorités. */
+export async function listRecommendedListings(
+  userId: string,
+  limit = 12,
+): Promise<ListingWithDetails[]> {
+  const supabase = await createClient();
+  const { data: ranked, error } = await supabase.rpc(
+    "recommended_listings_for_user",
+    { p_user_id: userId, p_limit: limit },
+  );
+  if (error || !ranked || ranked.length === 0) return [];
+
+  const orderedIds = (ranked as { id: string }[]).map((r) => r.id);
+  const { data: rows } = await supabase
+    .from("listings")
+    .select("*")
+    .in("id", orderedIds);
+  if (!rows) return [];
+
+  const indexById = new Map(orderedIds.map((id, i) => [id, i]));
+  const sortedRows = [...rows].sort(
+    (a, b) =>
+      (indexById.get(a.id) ?? Infinity) - (indexById.get(b.id) ?? Infinity),
+  );
+  return attachDetails(sortedRows, userId);
+}
+
 export async function listFavoriteListings(
   userId: string,
 ): Promise<ListingWithDetails[]> {

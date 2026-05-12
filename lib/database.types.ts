@@ -6008,6 +6008,11 @@ export type Database = {
         };
         Returns: Array<{ id: string; rank: number }>;
       };
+      /* Chantier 2.5 — Recommandations personnalisées marketplace. */
+      recommended_listings_for_user: {
+        Args: { p_user_id: string; p_limit?: number };
+        Returns: Array<{ id: string; score: number }>;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

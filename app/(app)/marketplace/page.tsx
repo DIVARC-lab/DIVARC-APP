@@ -5,6 +5,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Store,
 } from "lucide-react";
 import { Fragment } from "react";
@@ -15,7 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { CategoryChips } from "@/components/marketplace/CategoryChips";
 import { AdSlot } from "@/components/ads/AdSlot";
-import { listListings } from "@/lib/queries/listings";
+import { listListings, listRecommendedListings } from "@/lib/queries/listings";
 import { countPendingReceivedOffers } from "@/lib/queries/listingOffers";
 import { CATEGORY_META } from "@/lib/utils/categories";
 import { createClient } from "@/lib/supabase/server";
@@ -58,7 +59,12 @@ export default async function MarketplacePage({
       ? (category as ListingCategory)
       : undefined;
 
-  const [listings, pendingOffersCount, trendingListings] = await Promise.all([
+  const [
+    listings,
+    pendingOffersCount,
+    trendingListings,
+    recommendedListings,
+  ] = await Promise.all([
     listListings(user.id, {
       category: validCategory,
       query: q,
@@ -71,11 +77,18 @@ export default async function MarketplacePage({
     !validCategory && !q
       ? listListings(user.id, { sort: "trending", limit: 10 })
       : Promise.resolve([]),
+    /* Chantier 2.5 — Recos perso : RPC server-side qui croise favoris
+     * × catégories × popularité. Masqué si filtres actifs. */
+    !validCategory && !q
+      ? listRecommendedListings(user.id, 12)
+      : Promise.resolve([]),
   ]);
 
   const showHero = !validCategory && !q && listings.length > 0;
   const showTrending =
     !validCategory && !q && trendingListings.length >= 4;
+  const showRecommended =
+    !validCategory && !q && recommendedListings.length >= 4;
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
@@ -243,6 +256,42 @@ export default async function MarketplacePage({
             <div className="overflow-x-auto scrollbar-none">
               <div className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
                 {trendingListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    className="shrink-0 w-[150px] sm:w-[170px] snap-start"
+                  >
+                    <ListingCard listing={listing} variant="compact" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {/* Section "✨ Pour toi" — recos basées sur les catégories des
+            favoris user. Cold-start (pas de favoris) : poids 0 → ranking
+            fallback popularité + récence. Masqué si <4 résultats ou
+            filtres actifs (focus sur la grille principale). */}
+        {showRecommended ? (
+          <section
+            className="pb-3"
+            aria-labelledby="recommended-heading"
+          >
+            <header className="px-5 sm:px-8 pb-2.5 flex items-center justify-between">
+              <h2
+                id="recommended-heading"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-night"
+              >
+                <Sparkles className="w-4 h-4 text-gold-deep" aria-hidden />
+                Pour toi
+              </h2>
+              <span className="text-[11px] text-night-dim font-semibold uppercase tracking-wider">
+                · sur mesure
+              </span>
+            </header>
+            <div className="overflow-x-auto scrollbar-none">
+              <div className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+                {recommendedListings.map((listing) => (
                   <div
                     key={listing.id}
                     className="shrink-0 w-[150px] sm:w-[170px] snap-start"
