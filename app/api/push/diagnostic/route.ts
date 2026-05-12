@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendPushToUsers } from "@/lib/push/sender";
+import { getVapidStatus, sendPushToUsers } from "@/lib/push/sender";
 import { createClient } from "@/lib/supabase/server";
 
 /* /api/push/diagnostic — endpoint de debug qui retourne en JSON l'état
@@ -18,6 +18,7 @@ export async function GET() {
       VAPID_SUBJECT:
         process.env.VAPID_SUBJECT ??
         "(default mailto:contact@divarc.app)",
+      ...getVapidStatus(),
     };
     if (!hasPublic || !hasPrivate) {
       checks.summary =

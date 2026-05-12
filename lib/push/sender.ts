@@ -20,9 +20,18 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT ?? "mailto:contact@divarc.app";
 
 /* Normalise une clé base64 vers URL-safe base64 sans padding (format
- * exigé par web-push). Strip "=" en fin + remplace "+"/"/" par "-"/"_". */
+ * exigé par web-push). Paranoia mode :
+ *  - trim() : enlève whitespace / newlines (paste accidentel dans Vercel)
+ *  - strip ALL "=" (pas juste en fin — au cas où le user en a mis au milieu)
+ *  - remplace "+"/"/" par "-"/"_"
+ *  - strip tout caractère qui n'est pas URL-safe-base64 valid */
 function urlSafeBase64(key: string): string {
-  return key.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return key
+    .trim()
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/[^A-Za-z0-9\-_]/g, "");
 }
 
 let vapidConfigured = false;
@@ -50,11 +59,18 @@ function ensureVapidConfigured() {
 }
 
 export function getVapidStatus() {
+  const sanitized = VAPID_PUBLIC_KEY ? urlSafeBase64(VAPID_PUBLIC_KEY) : null;
   return {
     configured: vapidConfigured,
     lastError: vapidLastError,
     hasPublicKey: !!VAPID_PUBLIC_KEY,
     hasPrivateKey: !!VAPID_PRIVATE_KEY,
+    publicKeyRaw: VAPID_PUBLIC_KEY
+      ? `${VAPID_PUBLIC_KEY.slice(0, 8)}...${VAPID_PUBLIC_KEY.slice(-8)} (len=${VAPID_PUBLIC_KEY.length}, contient '=': ${VAPID_PUBLIC_KEY.includes("=")})`
+      : null,
+    publicKeySanitized: sanitized
+      ? `${sanitized.slice(0, 8)}...${sanitized.slice(-8)} (len=${sanitized.length}, contient '=': ${sanitized.includes("=")})`
+      : null,
   };
 }
 
