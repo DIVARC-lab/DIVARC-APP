@@ -751,3 +751,23 @@ export const LEGACY_CATEGORY_MAP: Record<string, string> = {
 export function mapLegacyCategory(legacy: string): string | null {
   return LEGACY_CATEGORY_MAP[legacy] ?? null;
 }
+
+/* Reverse map : pour une top-category v2 (ex: "fashion"), retourne la
+ * catégorie legacy FR correspondante (ex: "mode"). Utilisé par le wizard
+ * de création pour remplir la colonne `listings.category` qui reste la
+ * source de vérité legacy (cf. RLS et code antérieur).
+ *
+ * On itère sur LEGACY_CATEGORY_MAP (sens FR→v2) pour trouver le FR qui
+ * pointe vers le top. Si plusieurs FR pointent vers la même top, on
+ * privilégie celui qui correspond exactement (pas une sous-catégorie). */
+export function getLegacyForTop(topId: string): string | null {
+  // Cherche d'abord un match exact (la value du map est égale au topId)
+  for (const [legacy, mapped] of Object.entries(LEGACY_CATEGORY_MAP)) {
+    if (mapped === topId) return legacy;
+  }
+  // Fallback : match préfixe (ex: "hobbies.books" → top "hobbies")
+  for (const [legacy, mapped] of Object.entries(LEGACY_CATEGORY_MAP)) {
+    if (mapped.split(".")[0] === topId) return legacy;
+  }
+  return null;
+}
