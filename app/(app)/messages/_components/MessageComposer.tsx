@@ -20,6 +20,7 @@ import type { EncryptedPayload } from "@/lib/crypto/types";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import { useTypingChannel } from "@/lib/hooks/useTypingChannel";
+import { notifyNewMessage } from "../notify-actions";
 import { ComposerExtrasSheet } from "./ComposerExtrasSheet";
 import { EmojiPicker } from "./EmojiPicker";
 import { ReplyPreview } from "./ReplyPreview";
@@ -351,6 +352,12 @@ export function MessageComposer({
       throw error;
     }
 
+    /* Push notification fire-and-forget pour le message vocal. */
+    void notifyNewMessage(conversationId, {
+      isSecret: mediaMetadata !== null,
+      attachmentType: "audio",
+    });
+
     setRecording(false);
     onClearReply();
   }
@@ -440,6 +447,14 @@ export function MessageComposer({
           setBody(previousBody);
           setAttachment(previousAttachment);
           requestAnimationFrame(resize);
+        } else {
+          /* Push notification fire-and-forget aux autres membres
+             (respecte le mute par-conv côté Server Action). */
+          void notifyNewMessage(conversationId, {
+            body: trimmed.length > 0 ? trimmed : null,
+            isSecret: encryptFn !== undefined && trimmed.length > 0,
+            attachmentType: previousAttachment?.type ?? null,
+          });
         }
       } catch (err) {
         console.error("[MessageComposer:send]", err);
