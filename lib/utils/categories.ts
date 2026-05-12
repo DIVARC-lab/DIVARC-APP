@@ -76,8 +76,16 @@ export const CATEGORY_LIST = Object.entries(CATEGORY_META).map(
 );
 
 export const CONDITION_META: Record<ListingCondition, string> = {
+  /* Legacy FR values (rows existantes). */
   new: "Neuf",
   like_new: "Comme neuf",
   used: "Bon état",
   fair: "État correct",
+  /* Nouvelles valeurs Vinted-style (Chantier 1.1). */
+  new_with_tags: "Neuf avec étiquettes",
+  new_without_tags: "Neuf sans étiquettes",
+  very_good: "Très bon état",
+  good: "Bon état",
+  satisfactory: "État satisfaisant",
+  damaged: "Abîmé / pour pièces",
 };

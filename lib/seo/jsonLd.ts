@@ -122,8 +122,10 @@ type ListingJsonLdInput = {
   description: string | null;
   priceAmount: number;
   priceCurrency: string;
-  condition: "new" | "like_new" | "used" | "fair";
-  status: "active" | "sold" | "draft" | "archived";
+  /* Accepte les anciennes valeurs FR (new/like_new/used/fair) ET les
+     nouvelles Vinted-style (Chantier 1.1, migration 0083). */
+  condition: string;
+  status: string;
   category: string;
   photoUrl: string | null;
   sellerName: string | null;
@@ -134,10 +136,18 @@ type ListingJsonLdInput = {
  * pour le rich snippet "produit" dans Google Search + AI Overviews. */
 export function listingJsonLd(l: ListingJsonLdInput) {
   const conditionMap: Record<string, string> = {
+    /* Anciennes valeurs FR (compat). */
     new: "https://schema.org/NewCondition",
     like_new: "https://schema.org/RefurbishedCondition",
     used: "https://schema.org/UsedCondition",
     fair: "https://schema.org/UsedCondition",
+    /* Nouvelles valeurs Vinted-style (Chantier 1.1). */
+    new_with_tags: "https://schema.org/NewCondition",
+    new_without_tags: "https://schema.org/NewCondition",
+    very_good: "https://schema.org/RefurbishedCondition",
+    good: "https://schema.org/UsedCondition",
+    satisfactory: "https://schema.org/UsedCondition",
+    damaged: "https://schema.org/DamagedCondition",
   };
 
   const availability =

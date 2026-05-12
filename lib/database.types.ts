@@ -1801,8 +1801,37 @@ export type CircleInvitationPreview = {
   expires_at: string | null;
 };
 
-export type ListingStatus = "draft" | "active" | "sold" | "archived";
-export type ListingCondition = "new" | "like_new" | "used" | "fair";
+/* Status étendu Chantier 1.1 — ajout pending_review, paused, reserved,
+   expired, removed_violation, removed_user (compat avec valeurs legacy). */
+export type ListingStatus =
+  | "draft"
+  | "pending_review"
+  | "active"
+  | "paused"
+  | "reserved"
+  | "sold"
+  | "expired"
+  | "archived"
+  | "removed_violation"
+  | "removed_user";
+
+/* Condition étendue Chantier 1.1 — accepte les anciennes valeurs FR
+   (new/like_new/used/fair) ET les nouvelles Vinted-style. */
+export type ListingCondition =
+  | "new"
+  | "like_new"
+  | "used"
+  | "fair"
+  | "new_with_tags"
+  | "new_without_tags"
+  | "very_good"
+  | "good"
+  | "satisfactory"
+  | "damaged";
+
+/* Catégorie legacy (texte libre) — V1.1 introduira la taxonomie complète
+   via lib/marketplace/taxonomy.ts. Pour V1 on garde les valeurs FR
+   actuelles pour la compat des rows existantes. */
 export type ListingCategory =
   | "mode"
   | "mobilier"
@@ -1818,6 +1847,41 @@ export type ListingCategory =
   | "services"
   | "autre";
 
+export type ListingType =
+  | "goods"
+  | "service"
+  | "real_estate"
+  | "vehicle"
+  | "event_ticket"
+  | "digital"
+  | "job"
+  | "housing_rental";
+
+export type ListingModerationStatus =
+  | "approved"
+  | "pending"
+  | "flagged"
+  | "rejected";
+
+export type ListingBoostType = "standard" | "premium" | "top";
+
+/* Option de livraison stockée en JSONB côté DB. */
+export type ListingShippingOption = {
+  type:
+    | "pickup_in_person"
+    | "mondial_relay"
+    | "colissimo"
+    | "chronopost"
+    | "international_standard"
+    | "international_express"
+    | "custom";
+  price: number;
+  estimated_days_min: number;
+  estimated_days_max: number;
+  carrier?: string | null;
+  requires_signature?: boolean;
+};
+
 export type Listing = {
   id: string;
   seller_id: string;
@@ -1832,6 +1896,39 @@ export type Listing = {
   created_at: string;
   updated_at: string;
   sold_at: string | null;
+  /* Chantier 1.1 — extensions schéma v2 (migration 0083). */
+  listing_type: ListingType;
+  category_path: string[];
+  primary_category: string | null;
+  attributes: Record<string, unknown>;
+  original_price: number | null;
+  is_negotiable: boolean;
+  minimum_offer: number | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  show_exact_location: boolean;
+  shipping_options: ListingShippingOption[];
+  accepts_pickup: boolean;
+  pickup_locations: Array<Record<string, unknown>>;
+  quantity_available: number;
+  is_made_to_order: boolean;
+  handmade: boolean;
+  extended_data: Record<string, unknown> | null;
+  views_count: number;
+  favorites_count_cached: number;
+  shares_count: number;
+  messages_count: number;
+  is_boosted: boolean;
+  boost_expires_at: string | null;
+  boost_type: ListingBoostType | null;
+  moderation_status: ListingModerationStatus;
+  moderation_flags: string[];
+  seo_slug: string | null;
+  published_at: string | null;
+  expires_at: string | null;
+  sold_to: string | null;
+  sold_price: number | null;
+  seller_response_rate: number | null;
 };
 
 export type ListingPhoto = {
@@ -1843,6 +1940,11 @@ export type ListingPhoto = {
   aspect_ratio: string | null;
   width: number | null;
   height: number | null;
+  /* Chantier 1.1 — extension (migration 0083). */
+  is_primary: boolean;
+  blurhash: string | null;
+  ai_tags: string[];
+  has_nsfw_content: boolean;
 };
 
 export type Favorite = {
@@ -3576,22 +3678,16 @@ export type Database = {
       };
       listings: {
         Row: Listing;
-        Insert: Omit<Listing, "id" | "created_at" | "updated_at" | "sold_at"> &
-          Partial<Pick<Listing, "id" | "status" | "sold_at">>;
-        Update: Partial<
-          Pick<
-            Listing,
-            | "title"
-            | "description"
-            | "price_amount"
-            | "price_currency"
-            | "category"
-            | "condition"
-            | "location"
-            | "status"
-            | "sold_at"
-          >
-        >;
+        /* Insert : seller_id + title + price_amount + price_currency + category
+         * sont requis. Tout le reste a une DEFAULT côté DB → optional côté TS. */
+        Insert: Pick<
+          Listing,
+          "seller_id" | "title" | "price_amount" | "price_currency" | "category"
+        > &
+          Partial<
+            Omit<Listing, "seller_id" | "title" | "price_amount" | "price_currency" | "category">
+          >;
+        Update: Partial<Omit<Listing, "id" | "seller_id" | "created_at" | "updated_at">>;
         Relationships: [];
       };
       listing_photos: {
