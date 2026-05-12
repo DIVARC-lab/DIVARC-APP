@@ -4,7 +4,7 @@ import {
   Handshake,
   Plus,
   Search,
-  Sparkles,
+  SlidersHorizontal,
   Store,
 } from "lucide-react";
 import { Fragment } from "react";
@@ -139,43 +139,56 @@ export default async function MarketplacePage({
 
         {/* Search bar fonctionnelle — submit GET sur la même page, le `q`
             arrive dans searchParams et est bookmarkable / shareable.
-            Le filtre catégorie est préservé via hidden input. */}
-        <form
-          action="/marketplace"
-          method="GET"
-          className="px-5 sm:px-8 pt-1 pb-3.5"
-        >
-          {validCategory ? (
-            <input type="hidden" name="category" value={validCategory} />
-          ) : null}
-          <label className="flex h-[42px] items-center gap-2.5 rounded-[21px] bg-white border border-line px-3.5 focus-within:border-gold/40 transition-colors">
-            <Search className="w-[15px] h-[15px] text-night-dim" aria-hidden />
-            <input
-              type="search"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Rechercher dans le marché…"
-              className="flex-1 bg-transparent text-[13px] text-night placeholder:text-night-dim focus:outline-none"
-            />
-            {q ? (
-              <Link
-                href={
-                  validCategory
-                    ? `/marketplace?category=${validCategory}`
-                    : "/marketplace"
-                }
-                aria-label="Effacer la recherche"
-                className="text-night-dim hover:text-night text-xs font-bold"
-              >
-                ×
-              </Link>
-            ) : (
-              <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-md bg-bg-deep text-[10px] font-bold text-night-dim">
-                5 km
-              </span>
-            )}
-          </label>
-        </form>
+            Le filtre catégorie est préservé via hidden input.
+            Bouton "filtres avancés" → /marketplace/search (Chantier 2.2). */}
+        <div className="px-5 sm:px-8 pt-1 pb-3.5 flex items-center gap-2">
+          <form action="/marketplace" method="GET" className="flex-1 min-w-0">
+            {validCategory ? (
+              <input type="hidden" name="category" value={validCategory} />
+            ) : null}
+            <label className="flex h-[42px] items-center gap-2.5 rounded-[21px] bg-white border border-line px-3.5 focus-within:border-gold/40 transition-colors">
+              <Search
+                className="w-[15px] h-[15px] text-night-dim"
+                aria-hidden
+              />
+              <input
+                type="search"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Rechercher dans le marché…"
+                className="flex-1 bg-transparent text-[13px] text-night placeholder:text-night-dim focus:outline-none"
+              />
+              {q ? (
+                <Link
+                  href={
+                    validCategory
+                      ? `/marketplace?category=${validCategory}`
+                      : "/marketplace"
+                  }
+                  aria-label="Effacer la recherche"
+                  className="text-night-dim hover:text-night text-xs font-bold"
+                >
+                  ×
+                </Link>
+              ) : (
+                <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-md bg-bg-deep text-[10px] font-bold text-night-dim">
+                  5 km
+                </span>
+              )}
+            </label>
+          </form>
+          <Link
+            href={
+              q
+                ? `/marketplace/search?q=${encodeURIComponent(q)}`
+                : "/marketplace/search"
+            }
+            aria-label="Recherche avancée"
+            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[21px] bg-white border border-line text-night hover:border-gold/40 transition-colors"
+          >
+            <SlidersHorizontal className="w-4 h-4" aria-hidden />
+          </Link>
+        </div>
 
         {/* Categories chips */}
         <div className="px-4 sm:px-7 pb-3.5">

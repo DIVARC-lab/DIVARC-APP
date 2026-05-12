@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   Listing,
   ListingCategory,
+  ListingCondition,
   ListingPhoto,
   ListingWithDetails,
   Profile,
@@ -15,11 +16,17 @@ type SellerProfile = Pick<
 
 type ListWithDetailsOptions = {
   category?: ListingCategory;
+  /* Chantier 2.2 — filtres multi : si fourni, prend le pas sur `category` */
+  categories?: ListingCategory[];
   query?: string;
   limit?: number;
   offset?: number;
   status?: Listing["status"];
   sellerId?: string;
+  /* Chantier 2.2 — recherche avancée */
+  priceMin?: number;
+  priceMax?: number;
+  conditions?: ListingCondition[];
   /* Chantier 2.1 — tri :
    *  - recent (default) : created_at desc
    *  - trending : is_boosted desc + views_count desc + freshness
@@ -127,7 +134,10 @@ export async function listListings(
       break;
   }
 
-  if (options.category) {
+  /* Chantier 2.2 — multi-catégories prend le pas sur le filtre single. */
+  if (options.categories && options.categories.length > 0) {
+    query = query.in("category", options.categories);
+  } else if (options.category) {
     query = query.eq("category", options.category);
   }
   if (options.sellerId) {
@@ -138,6 +148,17 @@ export async function listListings(
     query = query.or(
       `title.ilike.%${sanitized}%,description.ilike.%${sanitized}%`,
     );
+  }
+  /* Chantier 2.2 — filtres prix + état. price_amount est un numeric(12,2)
+   * stocké directement en unité monétaire (cf. migration 0006). */
+  if (typeof options.priceMin === "number" && options.priceMin > 0) {
+    query = query.gte("price_amount", options.priceMin);
+  }
+  if (typeof options.priceMax === "number" && options.priceMax > 0) {
+    query = query.lte("price_amount", options.priceMax);
+  }
+  if (options.conditions && options.conditions.length > 0) {
+    query = query.in("condition", options.conditions);
   }
   if (options.offset && options.offset > 0) {
     query = query.range(options.offset, options.offset + (options.limit ?? 50) - 1);
