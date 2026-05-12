@@ -66,8 +66,14 @@ const sendOfferSchema = z.object({
 const respondSchema = z.object({
   offer_id: z.string().uuid(),
   decision: z.enum(["accept", "decline", "counter", "withdraw"]),
-  /* counter_amount + counter_message uniquement pour la branche counter. */
-  counter_amount: z.coerce.number().int().min(1).max(10_000_000).optional(),
+  /* counter_amount + counter_message uniquement pour la branche counter.
+   * preprocess pour normaliser null/"" en undefined : sinon z.coerce.number()
+   * transforme null en 0 et fait échouer .min(1) même quand decision n'est
+   * pas "counter". */
+  counter_amount: z.preprocess(
+    (v) => (v == null || v === "" ? undefined : v),
+    z.coerce.number().int().min(1).max(10_000_000).optional(),
+  ),
   counter_message: z
     .string()
     .trim()
