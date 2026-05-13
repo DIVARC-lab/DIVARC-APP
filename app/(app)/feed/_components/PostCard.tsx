@@ -17,6 +17,7 @@
  */
 import { Globe, Lock, MapPin, MessageCircle, Quote, Send, Users } from "lucide-react";
 import Link from "next/link";
+import { memo } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
 import { getPalette } from "@/lib/posts/backgroundColors";
@@ -54,7 +55,7 @@ type PostCardProps = {
   rankingSignals?: RankingSignalDisplay[];
 };
 
-export function PostCard({
+function PostCardInner({
   post,
   currentUserId,
   showActions = true,
@@ -434,6 +435,28 @@ export function PostCard({
     </article>
   );
 }
+
+/* Chantier Feed 6.2 — memoization PostCard.
+ * Comparaison fine sur les champs qui changent visiblement. */
+export const PostCard = memo(PostCardInner, (prev, next) => {
+  if (prev.currentUserId !== next.currentUserId) return false;
+  if (prev.hero !== next.hero) return false;
+  if (prev.showActions !== next.showActions) return false;
+  const a = prev.post;
+  const b = next.post;
+  return (
+    a.id === b.id &&
+    a.updated_at === b.updated_at &&
+    a.edited_at === b.edited_at &&
+    a.deleted_at === b.deleted_at &&
+    a.likes_count === b.likes_count &&
+    a.comments_count === b.comments_count &&
+    a.total_reactions === b.total_reactions &&
+    a.is_liked === b.is_liked &&
+    a.is_bookmarked === b.is_bookmarked &&
+    a.quoted_post_id === b.quoted_post_id
+  );
+});
 
 function hostnameOf(url: string): string {
   try {

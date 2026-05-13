@@ -28,6 +28,7 @@ import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
 import { AdSlot } from "@/components/ads/AdSlot";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
+import { AntiDoomscrollPause } from "./_components/AntiDoomscrollPause";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
 import { FeedReasonChip } from "./_components/FeedReasonChip";
 
@@ -276,6 +277,15 @@ export default async function FeedPage({
                         <AdSlot
                           surface="feed_home"
                           slotIndex={Math.floor((index + 1) / 6)}
+                        />
+                      </li>
+                    ) : null}
+                    {/* Chantier Feed 6.1 — pause anti-doomscroll toutes les
+                        20 positions. Affichée APRÈS l'item index 19, 39, ... */}
+                    {index > 0 && (index + 1) % 20 === 0 ? (
+                      <li>
+                        <AntiDoomscrollPause
+                          pauseIndex={Math.floor((index + 1) / 20)}
                         />
                       </li>
                     ) : null}

@@ -80,6 +80,14 @@ export default async function DashboardLayout({
         <CryptoProvider>
         <CallProvider currentUserId={user.id}>
         <div className="min-h-screen bg-bg">
+          {/* Chantier Feed 6.3 — skip-link a11y. Visible au focus clavier
+              (Tab depuis l'URL bar) pour bypass nav et atteindre le contenu. */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-night focus:text-cream focus:px-4 focus:py-2 focus:rounded-md focus:text-[13px] focus:font-extrabold focus:outline focus:outline-2 focus:outline-gold"
+          >
+            Aller au contenu principal
+          </a>
           <TopBar
             userId={user.id}
             fullName={fullName}
@@ -109,7 +117,11 @@ export default async function DashboardLayout({
                 Le main prend toute la largeur restante et CHAQUE page définit
                 sa max-width interne (cf. Partie 7 du brief : 680px feed,
                 1200px marketplace, etc.). */}
-            <main className="xl:ml-80 min-h-[calc(100vh-56px)]">
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="xl:ml-80 min-h-[calc(100vh-56px)] focus:outline-none"
+            >
               {children}
             </main>
           </div>

@@ -2529,6 +2529,11 @@ export type UserAlgorithmSettings = {
   hidden_topics: string[];
   hidden_users: string[];
   manual_topics: string[];
+  /* Chantier Feed v2.6 — garde-fous Feed v2 (migration 0117). */
+  anti_doomscroll_enabled: boolean;
+  author_diversity_enabled: boolean;
+  signal_filter_enabled: boolean;
+  default_feed_mode: FeedMode;
   updated_at: string;
 };
 
@@ -4584,6 +4589,10 @@ export type Database = {
               | "hidden_topics"
               | "hidden_users"
               | "manual_topics"
+              | "anti_doomscroll_enabled"
+              | "author_diversity_enabled"
+              | "signal_filter_enabled"
+              | "default_feed_mode"
               | "updated_at"
             >
           >;
@@ -4599,6 +4608,10 @@ export type Database = {
             | "hidden_topics"
             | "hidden_users"
             | "manual_topics"
+            | "anti_doomscroll_enabled"
+            | "author_diversity_enabled"
+            | "signal_filter_enabled"
+            | "default_feed_mode"
             | "updated_at"
           >
         >;

@@ -149,6 +149,11 @@ export default async function AlgorithmSettingsPage() {
               hidden_topics: [],
               hidden_users: [],
               manual_topics: [],
+              /* Chantier Feed v2.6 — defaults pour garde-fous + mode. */
+              anti_doomscroll_enabled: true,
+              author_diversity_enabled: true,
+              signal_filter_enabled: true,
+              default_feed_mode: "fresh",
               updated_at: new Date().toISOString(),
             }
           }
