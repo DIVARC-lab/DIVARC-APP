@@ -1896,6 +1896,8 @@ export type CircleMember = {
   is_banned: boolean;
   banned_at: string | null;
   ban_reason: string | null;
+  /* Migration 0103 — onboarding modal vu/dismissé. */
+  onboarding_completed_at: string | null;
 };
 
 export type CircleWithMembership = Circle & {

@@ -1505,6 +1505,35 @@ export async function liftCircleSanction(
 }
 
 /* ============================================================================
+ * Chantier 5.1 — Onboarding nouveau membre
+ * ============================================================================ */
+
+export async function dismissCircleOnboarding(
+  circleId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { error } = await supabase
+    .from("circle_members")
+    .update({ onboarding_completed_at: new Date().toISOString() })
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  return { ok: true };
+}
+
+/* ============================================================================
  * Chantier 4.5 — AutoMod
  * ============================================================================ */
 

@@ -11,6 +11,7 @@ import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
+import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
 import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
@@ -86,18 +87,33 @@ export default async function CirclePostsTab({
       null;
   }
 
-  const [profile, posts, pinnedPosts, flairs] = await Promise.all([
-    getCurrentProfile(),
-    circle.is_member
-      ? listCirclePosts(circle.id, user.id, 30, sort, unreadSince)
-      : Promise.resolve([]),
-    circle.is_member
-      ? listCirclePinnedPosts(circle.id, user.id, 5)
-      : Promise.resolve([]),
-    circle.is_member ? listCircleFlairs(circle.id) : Promise.resolve([]),
-  ]);
+  const [profile, posts, pinnedPosts, flairs, ownMembership] =
+    await Promise.all([
+      getCurrentProfile(),
+      circle.is_member
+        ? listCirclePosts(circle.id, user.id, 30, sort, unreadSince)
+        : Promise.resolve([]),
+      circle.is_member
+        ? listCirclePinnedPosts(circle.id, user.id, 5)
+        : Promise.resolve([]),
+      circle.is_member ? listCircleFlairs(circle.id) : Promise.resolve([]),
+      /* Chantier 5.1 — récupère onboarding_completed_at pour décider du modal. */
+      circle.is_member
+        ? supabase
+            .from("circle_members")
+            .select("onboarding_completed_at")
+            .eq("circle_id", circle.id)
+            .eq("user_id", user.id)
+            .maybeSingle()
+            .then((r) => r.data)
+        : Promise.resolve(null),
+    ]);
 
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
+  const showWelcome =
+    circle.is_member &&
+    !(ownMembership as { onboarding_completed_at?: string | null } | null)
+      ?.onboarding_completed_at;
 
   if (!circle.is_member) {
     return (
@@ -120,6 +136,17 @@ export default async function CirclePostsTab({
 
   return (
     <section className="px-5 sm:px-8" aria-label="Discussions">
+      {showWelcome ? (
+        <CircleWelcomeModal
+          circleId={circle.id}
+          circleSlug={slug}
+          circleName={circle.name}
+          emoji={circle.emoji}
+          colorAccent={circle.color_accent}
+          welcomeMessage={circle.welcome_message}
+          hasPinnedPost={pinnedPosts.length > 0}
+        />
+      ) : null}
       <div className="flex items-center gap-2 mb-3">
         <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
         <KickerLabel>Discussions</KickerLabel>
