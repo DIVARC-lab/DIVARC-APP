@@ -162,13 +162,26 @@ export default async function CircleModerationPage({
     for (const p of profiles ?? []) profileMap.set(p.id, p);
   }
 
+  const canManageAutomod = circle.owner_id === user.id || circle.my_role === "admin";
+
   return (
     <div className="px-5 sm:px-8 pb-10 space-y-6">
-      <header className="flex items-center gap-2 mb-2">
-        <Shield className="w-4 h-4 text-gold-deep" aria-hidden />
-        <h1 className="text-[15px] sm:text-[17px] font-bold text-night">
-          Modération du cercle
-        </h1>
+      <header className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Shield className="w-4 h-4 text-gold-deep" aria-hidden />
+          <h1 className="text-[15px] sm:text-[17px] font-bold text-night">
+            Modération du cercle
+          </h1>
+        </div>
+        {canManageAutomod ? (
+          <a
+            href={`/circles/${slug}/moderation/automod`}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white border border-line text-night text-[11px] font-bold hover:border-gold/40 transition-colors"
+          >
+            <Gavel className="w-3 h-3" aria-hidden />
+            AutoMod
+          </a>
+        ) : null}
       </header>
 
       {/* Posts à approuver */}

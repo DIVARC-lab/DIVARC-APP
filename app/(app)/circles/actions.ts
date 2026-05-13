@@ -1503,3 +1503,171 @@ export async function liftCircleSanction(
   }
   return { ok: true };
 }
+
+/* ============================================================================
+ * Chantier 4.5 — AutoMod
+ * ============================================================================ */
+
+const automodRuleSchema = z.object({
+  rule_type: z.enum([
+    "slow_mode",
+    "word_filter",
+    "report_threshold",
+    "link_filter",
+  ]),
+  config: z.record(z.string(), z.unknown()).default({}),
+  on_match_action: z
+    .enum(["flag", "hide", "require_approval"])
+    .default("flag"),
+  enabled: z.boolean().default(true),
+});
+
+export async function createAutomodRule(
+  circleId: string,
+  payload: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Owner/admin uniquement (RLS double-check). */
+  const { data: m } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const role = (m as { role?: string } | null)?.role;
+  if (!role || !["owner", "admin"].includes(role)) {
+    return {
+      ok: false,
+      error: "Seuls le fondateur et les admins peuvent gérer l'AutoMod.",
+    };
+  }
+
+  const parsed = automodRuleSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Règle invalide.",
+    };
+  }
+
+  const { error } = await supabase.from("circle_automod_rules").insert({
+    circle_id: circleId,
+    created_by: user.id,
+    rule_type: parsed.data.rule_type,
+    config: parsed.data.config,
+    on_match_action: parsed.data.on_match_action,
+    enabled: parsed.data.enabled,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}/moderation/automod`);
+  }
+  return { ok: true };
+}
+
+export async function toggleAutomodRule(
+  ruleId: string,
+): Promise<{ ok: boolean; error?: string; enabled?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: rule } = await supabase
+    .from("circle_automod_rules")
+    .select("circle_id, enabled")
+    .eq("id", ruleId)
+    .maybeSingle();
+  if (!rule) return { ok: false, error: "Règle introuvable." };
+
+  /* Check role. */
+  const { data: m } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", rule.circle_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const role = (m as { role?: string } | null)?.role;
+  if (!role || !["owner", "admin"].includes(role)) {
+    return {
+      ok: false,
+      error: "Seuls le fondateur et les admins peuvent gérer l'AutoMod.",
+    };
+  }
+
+  const nextEnabled = !rule.enabled;
+  const { error } = await supabase
+    .from("circle_automod_rules")
+    .update({ enabled: nextEnabled })
+    .eq("id", ruleId);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", rule.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}/moderation/automod`);
+  }
+  return { ok: true, enabled: nextEnabled };
+}
+
+export async function deleteAutomodRule(
+  ruleId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: rule } = await supabase
+    .from("circle_automod_rules")
+    .select("circle_id")
+    .eq("id", ruleId)
+    .maybeSingle();
+  if (!rule) return { ok: false, error: "Règle introuvable." };
+
+  const { data: m } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", rule.circle_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const role = (m as { role?: string } | null)?.role;
+  if (!role || !["owner", "admin"].includes(role)) {
+    return {
+      ok: false,
+      error: "Seuls le fondateur et les admins peuvent gérer l'AutoMod.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("circle_automod_rules")
+    .delete()
+    .eq("id", ruleId);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", rule.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}/moderation/automod`);
+  }
+  return { ok: true };
+}

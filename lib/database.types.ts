@@ -1936,6 +1936,29 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Chantier 4.5 (migration 0102) — règles AutoMod par cercle. */
+export type CircleAutomodRuleType =
+  | "slow_mode"
+  | "word_filter"
+  | "report_threshold"
+  | "link_filter";
+
+export type CircleAutomodAction = "flag" | "hide" | "require_approval";
+
+export type CircleAutomodRule = {
+  id: string;
+  circle_id: string;
+  created_by: string;
+  rule_type: CircleAutomodRuleType;
+  config: Record<string, unknown>;
+  on_match_action: CircleAutomodAction;
+  enabled: boolean;
+  match_count: number;
+  last_matched_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 /* Chantier 4.4 (migration 0101) — sanctions progressives par cercle. */
 export type CircleSanctionAction =
   | "warning"
@@ -5064,6 +5087,36 @@ export type Database = {
         > &
           Partial<Pick<CirclePostVote, "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      /* Chantier 4.5 (migration 0102) — règles AutoMod. */
+      circle_automod_rules: {
+        Row: CircleAutomodRule;
+        Insert: Pick<
+          CircleAutomodRule,
+          "circle_id" | "created_by" | "rule_type"
+        > &
+          Partial<
+            Omit<
+              CircleAutomodRule,
+              | "circle_id"
+              | "created_by"
+              | "rule_type"
+              | "id"
+              | "created_at"
+              | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            CircleAutomodRule,
+            | "config"
+            | "on_match_action"
+            | "enabled"
+            | "match_count"
+            | "last_matched_at"
+          >
+        >;
         Relationships: [];
       };
       /* Chantier 4.4 (migration 0101) — sanctions progressives. */
