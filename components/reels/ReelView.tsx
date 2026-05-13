@@ -18,6 +18,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
+import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
+import { useVideoTracking } from "@/lib/hooks/useVideoTracking";
 import { cn } from "@/lib/utils/cn";
 import { linkifyMentions } from "@/lib/utils/linkifyMentions";
 import {
@@ -32,7 +34,7 @@ import {
   type Sticker,
 } from "@/lib/reels/stickers";
 import { combineFilters } from "@/lib/reels/effects";
-import type { ReelWithDetails } from "@/lib/database.types";
+import type { EventSurface, ReelWithDetails } from "@/lib/database.types";
 
 /* ReelView — un reel individuel dans le feed Reels.
  *
@@ -53,9 +55,19 @@ type Props = {
   reel: ReelWithDetails;
   isActive: boolean;
   currentUserId: string;
+  /** Chantier Reels Recsys 3 — surface tracking (default reels). */
+  surface?: EventSurface;
+  /** Position dans le feed Reels (rang 0-indexed). */
+  position?: number;
 };
 
-export function ReelView({ reel, isActive, currentUserId }: Props) {
+export function ReelView({
+  reel,
+  isActive,
+  currentUserId,
+  surface = "reels",
+  position,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const voiceoverRef = useRef<HTMLAudioElement>(null);
   const duetSourceVideoRef = useRef<HTMLVideoElement>(null);
@@ -70,6 +82,11 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
   const [currentTime, setCurrentTime] = useState(0);
   const watchStartRef = useRef<number | null>(null);
   const totalWatchMsRef = useRef(0);
+
+  /* Chantier Reels Recsys 3 — tracking video TikTok-style + impression
+   * (les events legacy reel_views restent intacts via watchStartRef). */
+  useVideoTracking(videoRef, reel.id, { surface, position });
+  const impressionRef = useTrackImpression(reel.id, { surface, position });
 
   /* Text overlays — parsés une fois (memoized) puis filtrés par
      currentTime à chaque tick. parseOverlays() tolère les schemas
@@ -317,7 +334,10 @@ export function ReelView({ reel, isActive, currentUserId }: Props) {
     : { display: "none" };
 
   return (
-    <div className="relative w-full h-full bg-black">
+    <div
+      ref={impressionRef as React.RefObject<HTMLDivElement>}
+      className="relative w-full h-full bg-black"
+    >
       {/* V3.8 — vidéo source du duet (toujours muted). */}
       {reel.duet_source ? (
         <video

@@ -169,7 +169,7 @@ export function ReelsFeed({
         {reels.length === 0 ? (
           <EmptyState tab={tab} />
         ) : (
-          reels.map((reel) => (
+          reels.map((reel, index) => (
             <div
               key={reel.id}
               data-reel-id={reel.id}
@@ -180,6 +180,8 @@ export function ReelsFeed({
                   reel={reel}
                   isActive={activeReelId === reel.id}
                   currentUserId={currentUserId}
+                  surface={tab === "foryou" ? "reels_foryou" : "reels_following"}
+                  position={index}
                 />
               </div>
             </div>

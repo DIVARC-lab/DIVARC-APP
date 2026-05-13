@@ -17,6 +17,8 @@ const SURFACES: EventSurface[] = [
   "feed_home",
   "feed_circle",
   "reels",
+  "reels_foryou",
+  "reels_following",
   "discover",
   "marketplace",
   "jobs",
