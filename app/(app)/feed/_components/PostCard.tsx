@@ -365,10 +365,7 @@ function PostCardInner({
           className="block mx-[18px] mb-3.5 rounded-xl overflow-hidden border border-line bg-bg-soft hover:bg-bg-soft/70 transition-colors"
         >
           {post.link_preview.image_url ? (
-            <div
-              className="relative w-full bg-night/5"
-              style={{ aspectRatio: "16 / 9" }}
-            >
+            <div className="relative w-full aspect-[16/9] bg-night/5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={post.link_preview.image_url}

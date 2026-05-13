@@ -111,8 +111,8 @@ export function PostVideoPlayer({
   if (isActive) {
     return (
       <div
-        className="relative bg-night overflow-hidden mx-auto flex items-center justify-center"
-        style={{ aspectRatio: aspect, maxHeight: "640px", maxWidth: "100%" }}
+        className="relative bg-night overflow-hidden mx-auto flex items-center justify-center max-h-[640px] max-w-full"
+        style={{ aspectRatio: aspect }}
       >
         {thumbnailUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -131,12 +131,8 @@ export function PostVideoPlayer({
 
   return (
     <div
-      className="relative bg-night overflow-hidden mx-auto"
-      style={{
-        aspectRatio: aspect,
-        maxHeight: "640px",
-        maxWidth: "100%",
-      }}
+      className="relative bg-night overflow-hidden mx-auto max-h-[640px] max-w-full"
+      style={{ aspectRatio: aspect }}
     >
       <video
         ref={videoRef}

@@ -56,7 +56,7 @@ const REACTIONS: ReactionDef[] = [
     label: "Wow",
     color: "text-sky-600",
   },
-  { type: "sad", emoji: "😢", label: "Triste", color: "text-blue-700" },
+  { type: "sad", emoji: "😢", label: "Triste", color: "text-night-soft" },
   { type: "laugh", emoji: "😂", label: "Drôle", color: "text-emerald-600" },
 ];
 
