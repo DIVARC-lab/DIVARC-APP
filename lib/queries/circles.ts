@@ -190,19 +190,91 @@ export type DiscoverFilters = {
   limit?: number;
 };
 
+/* Chantier 2.4 — Breakdown du score d'activité retourné par discover_circles_v2.
+ * Affiché côté UI dans le tooltip "Comment ce cercle est-il classé ?". */
+export type DiscoverScoreBreakdown = {
+  sort: DiscoverSort;
+  posts_7d: number;
+  engagement_7d: number;
+  new_members_7d: number;
+  unique_posters_7d: number;
+  members_count: number;
+  pts_posts: number;
+  pts_engagement: number;
+  pts_new_members: number;
+  pts_diversity: number;
+  weights: { posts: number; engagement: number; new_members: number; diversity: number };
+  caps: { posts: number; engagement: number; new_members: number; diversity: number };
+};
+
+export type CircleDiscoverResult = CircleWithMembership & {
+  score: number;
+  breakdown: DiscoverScoreBreakdown | null;
+};
+
 export async function discoverCircles(
   currentUserId: string,
   filters: DiscoverFilters = {},
-): Promise<CircleWithMembership[]> {
+): Promise<CircleDiscoverResult[]> {
   const supabase = await createClient();
   const limit = filters.limit ?? 24;
   const sort: DiscoverSort = filters.sort ?? "active";
 
+  /* Chantier 2.4 — Tentative via RPC discover_circles_v2 (formule transparente
+   * pondérée). Si la migration 0094 n'est pas encore appliquée ou que le RPC
+   * échoue, on fallback sur la query directe sans score. */
+  const sortForRpc: DiscoverSort = sort === "recommended" ? "active" : sort;
+  const { data: ranked, error: rpcError } = await supabase.rpc(
+    "discover_circles_v2",
+    {
+      p_category: filters.category ?? null,
+      p_query: filters.query?.trim() || null,
+      p_country:
+        sort === "nearby" ? filters.nearbyCountry ?? null : null,
+      p_sort: sortForRpc,
+      p_limit: limit * 2,
+      p_offset: 0,
+    },
+  );
+
+  if (!rpcError && ranked && ranked.length > 0) {
+    const rankedRows = ranked as Array<{
+      id: string;
+      score: number;
+      breakdown: DiscoverScoreBreakdown;
+    }>;
+    const orderedIds = rankedRows.map((r) => r.id);
+    const { data: rows } = await supabase
+      .from("circles")
+      .select("*")
+      .in("id", orderedIds);
+
+    if (!rows) return [];
+    const enriched = await attachMembership(rows, currentUserId);
+    const scoreById = new Map(
+      rankedRows.map((r) => [r.id, { score: r.score, breakdown: r.breakdown }]),
+    );
+    const indexById = new Map(orderedIds.map((id, i) => [id, i]));
+
+    return enriched
+      .filter((c) => !c.is_member)
+      .sort(
+        (a, b) =>
+          (indexById.get(a.id) ?? Infinity) -
+          (indexById.get(b.id) ?? Infinity),
+      )
+      .slice(0, limit)
+      .map((c) => ({
+        ...c,
+        score: scoreById.get(c.id)?.score ?? 0,
+        breakdown: scoreById.get(c.id)?.breakdown ?? null,
+      }));
+  }
+
+  /* Fallback (migration 0094 pas encore appliquée) : query directe sans score. */
   let query = supabase
     .from("circles")
     .select("*")
-    /* Visibilité publique uniquement (migration 0091). On accepte aussi
-     * is_private=false pour les cercles V1 pré-migration. */
     .or("visibility.eq.public,is_private.eq.false")
     .is("archived_at", null);
 
@@ -224,35 +296,26 @@ export async function discoverCircles(
       query = query.order("created_at", { ascending: false });
       break;
     case "largest":
+    case "nearby":
       query = query.order("members_count", { ascending: false });
       break;
-    case "nearby":
-      query = query
-        .eq("is_local", true)
-        .order("members_count", { ascending: false });
-      break;
-    case "recommended":
-      /* V1 fallback (2.5 fera le vrai matching avec reasons[]). */
-      query = query
-        .order("vitality_score", { ascending: false })
-        .order("members_count", { ascending: false });
-      break;
     case "active":
+    case "recommended":
     default:
       query = query
         .order("vitality_score", { ascending: false })
-        .order("posts_count_7d", { ascending: false, nullsFirst: false })
         .order("members_count", { ascending: false });
       break;
   }
 
-  /* On élargit le fetch pour pouvoir filtrer côté JS les cercles dont
-   * l'user est déjà membre. */
   const { data } = await query.limit(limit * 2);
   if (!data) return [];
 
   const enriched = await attachMembership(data, currentUserId);
-  return enriched.filter((c) => !c.is_member).slice(0, limit);
+  return enriched
+    .filter((c) => !c.is_member)
+    .slice(0, limit)
+    .map((c) => ({ ...c, score: 0, breakdown: null }));
 }
 
 export async function getCircleBySlug(

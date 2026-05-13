@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
-import type { CircleColor, CircleWithMembership } from "@/lib/database.types";
+import type { CircleColor } from "@/lib/database.types";
+import type { CircleDiscoverResult } from "@/lib/queries/circles";
 import { getCircleCategory } from "@/lib/circles/categories";
 import { cn } from "@/lib/utils/cn";
+import { CircleScoreBadge } from "./CircleScoreBadge";
 
 const COLOR_BG: Record<CircleColor, string> = {
   gold: "bg-gradient-to-br from-gold via-gold-soft to-gold-deep text-night",
@@ -25,7 +27,7 @@ const COLOR_BG: Record<CircleColor, string> = {
 };
 
 type Props = {
-  circle: CircleWithMembership;
+  circle: CircleDiscoverResult;
 };
 
 /* Carte enrichie pour la section "Découvrir" — affiche cover/avatar, stats
@@ -74,14 +76,22 @@ export function CircleDiscoverCard({ circle }: Props) {
 
         {/* Badges contextuels */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-2">
-          {circle.is_local && circle.location_city ? (
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/90 backdrop-blur-sm text-night text-[10px] font-bold">
-              <MapPin className="w-3 h-3" aria-hidden />
-              {circle.location_city}
-            </span>
-          ) : (
-            <span />
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {circle.is_local && circle.location_city ? (
+              <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-white/90 backdrop-blur-sm text-night text-[10px] font-bold">
+                <MapPin className="w-3 h-3" aria-hidden />
+                {circle.location_city}
+              </span>
+            ) : null}
+            {circle.score > 0 && circle.breakdown ? (
+              <span className="bg-white/90 backdrop-blur-sm rounded-full">
+                <CircleScoreBadge
+                  score={circle.score}
+                  breakdown={circle.breakdown}
+                />
+              </span>
+            ) : null}
+          </div>
           {circle.is_private || circle.type === "private" ? (
             <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-night/85 text-cream text-[10px] font-bold">
               <Lock className="w-3 h-3" aria-hidden />

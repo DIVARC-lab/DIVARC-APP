@@ -6071,6 +6071,22 @@ export type Database = {
         };
         Returns: boolean;
       };
+      /* Migration 0094 — discovery cercles avec score transparent. */
+      discover_circles_v2: {
+        Args: {
+          p_category?: string | null;
+          p_query?: string | null;
+          p_country?: string | null;
+          p_sort?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          id: string;
+          score: number;
+          breakdown: Record<string, unknown>;
+        }>;
+      };
       /* Migration 0090 — notification in-app sur réponse à offre. */
       notify_marketplace_offer_event: {
         Args: {
