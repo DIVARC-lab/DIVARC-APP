@@ -66,7 +66,7 @@ export function CircleWelcomeModal({
     {
       icon: Bell,
       label: "Personnaliser tes notifications",
-      href: `/circles/${circleSlug}/about#notifications`,
+      href: `/circles/${circleSlug}/notifications`,
     },
   ];
 

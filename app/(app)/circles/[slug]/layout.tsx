@@ -60,7 +60,7 @@ export default async function CircleLayout({
             {circle.is_member ? (
               <>
                 <Link
-                  href={`/circles/${slug}/about#notifications`}
+                  href={`/circles/${slug}/notifications`}
                   aria-label="Notifications du cercle"
                   className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-line text-night-dim hover:text-night hover:border-night/30 transition-colors"
                 >

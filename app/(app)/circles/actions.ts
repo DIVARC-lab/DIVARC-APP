@@ -1505,6 +1505,72 @@ export async function liftCircleSanction(
 }
 
 /* ============================================================================
+ * Chantier 5.2 — Préférences notifications granulaires par cercle
+ * ============================================================================ */
+
+const notifPrefsSchema = z.object({
+  new_posts: z.enum(["all", "highlights", "mentions_only", "off"]).optional(),
+  new_marketplace: z
+    .enum(["all", "matching_interests", "off"])
+    .optional(),
+  new_jobs: z.enum(["all", "matching_profile", "off"]).optional(),
+  new_events: z.enum(["all", "rsvp_only", "off"]).optional(),
+  mentions: z.boolean().optional(),
+  direct_replies: z.boolean().optional(),
+  moderator_messages: z.boolean().optional(),
+  weekly_digest: z.boolean().optional(),
+});
+
+export async function updateCircleNotificationPrefs(
+  circleId: string,
+  patch: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const parsed = notifPrefsSchema.safeParse(patch);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Préférences invalides.",
+    };
+  }
+
+  /* Merge avec les préférences actuelles (pas écrasement total). */
+  const { data: current } = await supabase
+    .from("circle_members")
+    .select("notifications")
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const currentPrefs =
+    (current as { notifications?: Record<string, unknown> } | null)
+      ?.notifications ?? {};
+  const next = { ...currentPrefs, ...parsed.data };
+
+  const { error } = await supabase
+    .from("circle_members")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ notifications: next } as any)
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}/notifications`);
+  }
+  return { ok: true };
+}
+
+/* ============================================================================
  * Chantier 5.1 — Onboarding nouveau membre
  * ============================================================================ */
 
