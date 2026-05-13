@@ -155,6 +155,19 @@ export async function createReel(
     return { ok: false, error: "Création du reel échouée." };
   }
 
+  /* Chantier Reels Recsys 5 — indexation embedding fire-and-forget. */
+  if (status === "published") {
+    void (async () => {
+      const { indexReelEmbedding } = await import("@/lib/recsys/indexers");
+      await indexReelEmbedding(
+        supabase,
+        reel.id,
+        data.description ?? null,
+        data.hashtags ?? null,
+      );
+    })();
+  }
+
   revalidatePath("/reels");
   return { ok: true, reel_id: reel.id };
 }

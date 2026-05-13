@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/circles-digest",
       "schedule": "0 9 * * 0"
+    },
+    {
+      "path": "/api/cron/embeddings-backfill",
+      "schedule": "0 * * * *"
     }
   ]
 }
