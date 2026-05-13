@@ -1,10 +1,9 @@
 "use server";
 
-/* foryou-actions — Chantier Reels Recsys étape 14.
+/* foryou-actions — Chantier Reels Recsys étapes 14 et 18.
  *
- * Server action loadMoreForYouReels pour le préchargement client-side
- * de ReelsFeed. Wrappe le pipeline V3 + hydrate les reels en
- * ReelWithDetails[] prêts à rendre.
+ * - loadMoreForYouReels : préchargement client-side du ReelsFeed (étape 14).
+ * - completeColdStart   : sauve les 5 topics choisis au cold start (étape 18).
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -29,4 +28,37 @@ export async function loadMoreForYouReels(
   const filtered = reels.filter((r) => !excludeSet.has(r.id)).slice(0, limit);
 
   return { ok: true, reels: filtered };
+}
+
+/* completeColdStart — Chantier Reels Recsys 18.
+ *
+ * Sauve les topics choisis par l'user au premier accès Reels. Cohérent
+ * avec la migration 0122 (cold_start_topics + cold_start_completed_at).
+ * Upsert le user_interest_profile pour ne pas écraser un profil existant. */
+export async function completeColdStart(
+  topics: string[],
+): Promise<{ ok: boolean }> {
+  if (!Array.isArray(topics) || topics.length < 1) return { ok: false };
+  const safe = topics.slice(0, 10).filter((t) => typeof t === "string");
+  if (safe.length < 1) return { ok: false };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const { error } = await supabase
+    .from("user_interest_profiles")
+    .upsert(
+      {
+        user_id: user.id,
+        cold_start_topics: safe,
+        cold_start_completed_at: new Date().toISOString(),
+        last_updated: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
+
+  return { ok: !error };
 }

@@ -11,9 +11,13 @@ import {
   useTransition,
 } from "react";
 import { ReelView } from "./ReelView";
+import { ColdStartOnboarding } from "./ColdStartOnboarding";
 import { cn } from "@/lib/utils/cn";
 import type { ReelWithDetails } from "@/lib/database.types";
-import { loadMoreForYouReels } from "@/app/(app)/reels/foryou-actions";
+import {
+  completeColdStart,
+  loadMoreForYouReels,
+} from "@/app/(app)/reels/foryou-actions";
 
 /* ReelsFeed — feed vertical fullscreen avec snap-scroll.
  *
@@ -34,6 +38,9 @@ type Props = {
   initialTab: Tab;
   foryouReels: ReelWithDetails[];
   followingReels: ReelWithDetails[];
+  /* Chantier Reels Recsys 18 — true si user n'a pas encore complété
+   * le cold start onboarding (cold_start_completed_at IS NULL). */
+  needsColdStart?: boolean;
 };
 
 export function ReelsFeed({
@@ -41,6 +48,7 @@ export function ReelsFeed({
   initialTab,
   foryouReels,
   followingReels,
+  needsColdStart = false,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -59,6 +67,11 @@ export function ReelsFeed({
 
   const foryouAll = [...foryouReels, ...prefetchedForyou];
   const reels = tab === "foryou" ? foryouAll : followingReels;
+
+  /* Cold start modal — affichée tant que not completed. Une fois soumise,
+   * on la masque localement et l'user voit ses reels (le seed des topics
+   * sera utilisé par le prochain run profile-updater /5min). */
+  const [coldStartOpen, setColdStartOpen] = useState(needsColdStart);
 
   /* IntersectionObserver pour détecter le reel actif (≥50% visible). */
   useEffect(() => {
@@ -168,6 +181,13 @@ export function ReelsFeed({
 
   return (
     <div className="relative w-full h-full">
+      <ColdStartOnboarding
+        open={coldStartOpen}
+        onComplete={async (topics) => {
+          await completeColdStart(topics);
+          setColdStartOpen(false);
+        }}
+      />
       {/* Top overlay : bouton retour + onglets. */}
       <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between gap-3 px-4 py-3 bg-gradient-to-b from-black/60 to-transparent">
         <Link
