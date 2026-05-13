@@ -533,6 +533,8 @@ export type PostPoll = {
   ends_at: string | null;
   total_votes: number;
   created_at: string;
+  /* Chantier Feed v2 — migration 0113. */
+  is_closed: boolean;
 };
 
 export type PostPollOption = {
@@ -542,6 +544,8 @@ export type PostPollOption = {
   label: string;
   votes_count: number;
   created_at: string;
+  /* Chantier Feed v2 — migration 0113. */
+  emoji: string | null;
 };
 
 export type PostPollVote = {
@@ -4781,18 +4785,21 @@ export type Database = {
               | "ends_at"
               | "total_votes"
               | "created_at"
+              | "is_closed"
             >
           >;
         Update: Partial<
-          Pick<PostPoll, "question" | "ends_at" | "is_anonymous">
+          Pick<PostPoll, "question" | "ends_at" | "is_anonymous" | "is_closed">
         >;
         Relationships: [];
       };
       post_poll_options: {
         Row: PostPollOption;
         Insert: Pick<PostPollOption, "poll_id" | "position" | "label"> &
-          Partial<Pick<PostPollOption, "id" | "votes_count" | "created_at">>;
-        Update: Partial<Pick<PostPollOption, "label" | "position">>;
+          Partial<
+            Pick<PostPollOption, "id" | "votes_count" | "created_at" | "emoji">
+          >;
+        Update: Partial<Pick<PostPollOption, "label" | "position" | "emoji">>;
         Relationships: [];
       };
       post_poll_votes: {
@@ -6593,6 +6600,19 @@ export type Database = {
       };
       touch_bookmark: {
         Args: { p_post_id: string };
+        Returns: void;
+      };
+      /* Migration 0113 — Polls v2 : upsert atomique + fermeture. */
+      vote_poll: {
+        Args: { p_poll_id: string; p_option_ids: string[] };
+        Returns: string[];
+      };
+      close_poll: {
+        Args: { p_poll_id: string };
+        Returns: void;
+      };
+      recompute_poll_counts: {
+        Args: { p_poll_id: string };
         Returns: void;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).

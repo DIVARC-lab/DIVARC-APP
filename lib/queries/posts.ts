@@ -214,6 +214,8 @@ async function attachDetails(
     ends_at: string | null;
     total_votes: number;
     created_at: string;
+    /* Chantier Feed v2 — migration 0113. */
+    is_closed: boolean;
   };
   type PollOptionRow = {
     id: string;
@@ -222,6 +224,8 @@ async function attachDetails(
     label: string;
     votes_count: number;
     created_at: string;
+    /* Chantier Feed v2 — migration 0113. */
+    emoji: string | null;
   };
 
   const pollByPost = new Map<string, PollRow>();
