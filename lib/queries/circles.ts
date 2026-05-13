@@ -168,6 +168,93 @@ export async function listDiscoverableCircles(
   return enriched.filter((c) => !c.is_member).slice(0, limit);
 }
 
+/* Chantier 2.3 — Discovery avec filtres catégorie + tri transparent.
+ *
+ * sort='active' : fallback (vitality_score desc, members desc) tant que le
+ * cron Chantier 5.5 n'alimente pas vitality_score. La formule pondérée
+ * complète arrive en Chantier 2.4 via RPC discover_circles_v2.
+ */
+export type DiscoverSort =
+  | "active"
+  | "recent"
+  | "largest"
+  | "nearby"
+  | "recommended";
+
+export type DiscoverFilters = {
+  sort?: DiscoverSort;
+  category?: string;
+  /* Pour 'nearby' — country code 2 chars (FR/US/...) déduit du profil. */
+  nearbyCountry?: string | null;
+  query?: string;
+  limit?: number;
+};
+
+export async function discoverCircles(
+  currentUserId: string,
+  filters: DiscoverFilters = {},
+): Promise<CircleWithMembership[]> {
+  const supabase = await createClient();
+  const limit = filters.limit ?? 24;
+  const sort: DiscoverSort = filters.sort ?? "active";
+
+  let query = supabase
+    .from("circles")
+    .select("*")
+    /* Visibilité publique uniquement (migration 0091). On accepte aussi
+     * is_private=false pour les cercles V1 pré-migration. */
+    .or("visibility.eq.public,is_private.eq.false")
+    .is("archived_at", null);
+
+  if (filters.category) {
+    query = query.eq("primary_category", filters.category);
+  }
+  if (filters.query && filters.query.trim().length > 0) {
+    const sanitized = filters.query.trim().replace(/[%,]/g, "").slice(0, 60);
+    query = query.or(
+      `name.ilike.%${sanitized}%,description.ilike.%${sanitized}%,tagline.ilike.%${sanitized}%`,
+    );
+  }
+  if (sort === "nearby" && filters.nearbyCountry) {
+    query = query.eq("location_country", filters.nearbyCountry);
+  }
+
+  switch (sort) {
+    case "recent":
+      query = query.order("created_at", { ascending: false });
+      break;
+    case "largest":
+      query = query.order("members_count", { ascending: false });
+      break;
+    case "nearby":
+      query = query
+        .eq("is_local", true)
+        .order("members_count", { ascending: false });
+      break;
+    case "recommended":
+      /* V1 fallback (2.5 fera le vrai matching avec reasons[]). */
+      query = query
+        .order("vitality_score", { ascending: false })
+        .order("members_count", { ascending: false });
+      break;
+    case "active":
+    default:
+      query = query
+        .order("vitality_score", { ascending: false })
+        .order("posts_count_7d", { ascending: false, nullsFirst: false })
+        .order("members_count", { ascending: false });
+      break;
+  }
+
+  /* On élargit le fetch pour pouvoir filtrer côté JS les cercles dont
+   * l'user est déjà membre. */
+  const { data } = await query.limit(limit * 2);
+  if (!data) return [];
+
+  const enriched = await attachMembership(data, currentUserId);
+  return enriched.filter((c) => !c.is_member).slice(0, limit);
+}
+
 export async function getCircleBySlug(
   slug: string,
   currentUserId: string,

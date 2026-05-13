@@ -1,16 +1,19 @@
-import { Eye, Lock, Plus, Search, Sparkles } from "lucide-react";
+import { Compass, Eye, Lock, Plus, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
-  listDiscoverableCircles,
+  discoverCircles,
   listMyCirclesWithUnread,
+  type DiscoverSort,
   type MyCircleSummary,
 } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
 import type { CircleColor, CircleWithMembership } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
+import { CircleDiscoverCard } from "./_components/CircleDiscoverCard";
+import { CircleDiscoverFilters } from "./_components/CircleDiscoverFilters";
 
 export const metadata = {
   title: "Cercles — Trouve ta tribu",
@@ -29,16 +32,57 @@ export const metadata = {
  * - Discover banner gradient navy + ArcDeco gold + button "Explorer →" gold
  * - Bouton "+" en header right (gold gradient) au lieu de FAB (le bottom nav
  *   floating prend déjà cet espace) */
-export default async function CirclesPage() {
+type SearchParamsP = Promise<{
+  cat?: string;
+  sort?: string;
+  q?: string;
+}>;
+
+const VALID_SORTS = new Set<DiscoverSort>([
+  "active",
+  "recent",
+  "largest",
+  "nearby",
+  "recommended",
+]);
+
+export default async function CirclesPage({
+  searchParams,
+}: {
+  searchParams: SearchParamsP;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const sp = await searchParams;
+  const category = sp.cat ?? null;
+  const sort: DiscoverSort = VALID_SORTS.has(sp.sort as DiscoverSort)
+    ? (sp.sort as DiscoverSort)
+    : "active";
+  const query = sp.q?.trim() || undefined;
+
+  /* Pour le tri 'nearby', on lit le pays de l'user. */
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("location")
+    .eq("id", user.id)
+    .maybeSingle();
+  /* TODO migration profile country code — pour V1 on accepte que location_country
+   * dans circles soit FR par défaut. */
+  const nearbyCountry = profile?.location ? "FR" : null;
+
   const [mine, discoverable] = await Promise.all([
     listMyCirclesWithUnread(user.id),
-    listDiscoverableCircles(user.id, 14),
+    discoverCircles(user.id, {
+      sort,
+      category: category ?? undefined,
+      nearbyCountry,
+      query,
+      limit: 24,
+    }),
   ]);
 
   return (
@@ -157,33 +201,50 @@ export default async function CirclesPage() {
           </section>
         )}
 
-        {/* Discover banner */}
-        {discoverable.length > 0 ? (
-          <div className="mx-4 sm:mx-6">
-            <Link
-              href="/explore"
-              className="relative block rounded-[14px] bg-gradient-to-br from-night to-[#1F3563] text-cream p-4 overflow-hidden hover:opacity-95 transition-opacity"
+        {/* SECTION "DÉCOUVRIR" V2 — filtres catégorie + sort transparent +
+            grille riche. URL-driven (bookmarkable). */}
+        <section className="px-5 sm:px-8 pt-2 pb-8" aria-labelledby="discover-heading">
+          <header className="pb-3">
+            <h2
+              id="discover-heading"
+              className="inline-flex items-center gap-2 text-[15px] sm:text-[17px] font-bold text-night"
             >
-              <div
-                aria-hidden
-                className="absolute -right-10 -bottom-10 opacity-25 pointer-events-none"
-              >
-                <ArcDeco size={200} tone="gold" opacity={1} stroke={1.25} />
-              </div>
-              <div className="relative">
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-gold">
-                  · Découvrir
-                </span>
-                <p className="mt-1 font-display italic text-[22px] leading-tight">
-                  {discoverable.length} cercles près de chez toi
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1.5 px-3.5 h-[30px] rounded-full bg-gold text-night text-[12.5px] font-extrabold">
-                  Explorer →
-                </span>
-              </div>
-            </Link>
-          </div>
-        ) : null}
+              <Compass className="w-4 h-4 text-gold-deep" aria-hidden />
+              Découvrir
+            </h2>
+            <p className="mt-1 text-[12px] text-night-dim max-w-prose">
+              {discoverable.length > 0
+                ? `${discoverable.length} cercle${discoverable.length > 1 ? "s" : ""} qui pourraient te plaire. Tu choisis comment trier.`
+                : "Aucun cercle ne correspond à ces filtres. Élargis ta recherche."}
+            </p>
+          </header>
+
+          <CircleDiscoverFilters
+            initialCategory={category}
+            initialSort={sort}
+          />
+
+          {/* Grille */}
+          {discoverable.length > 0 ? (
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {discoverable.map((circle) => (
+                <CircleDiscoverCard key={circle.id} circle={circle} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6">
+              <EmptyState
+                emoji="🔭"
+                kicker="Pas de résultat"
+                title="Aucun cercle ne correspond"
+                body="Essaie d'élargir tes filtres ou crée ton propre cercle."
+                ctaHref="/circles/new"
+                ctaLabel="Créer un cercle"
+                size="lg"
+              />
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
