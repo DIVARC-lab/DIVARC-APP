@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 type SwitchProps = {
@@ -9,6 +9,8 @@ type SwitchProps = {
   label: string;
   description?: string;
   disabled?: boolean;
+  /** Icône Lucide optionnelle affichée avant le label (recommandé vs emoji). */
+  icon?: ReactNode;
 };
 
 export function Switch({
@@ -17,6 +19,7 @@ export function Switch({
   label,
   description,
   disabled,
+  icon,
 }: SwitchProps) {
   const [checked, setChecked] = useState<boolean>(defaultChecked);
   const id = useId();
@@ -29,18 +32,30 @@ export function Switch({
         disabled && "opacity-60 cursor-not-allowed",
       )}
     >
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-night">{label}</p>
-        {description ? (
-          <p className="text-xs text-muted mt-0.5 leading-snug">
-            {description}
-          </p>
+      <div className="min-w-0 flex-1 flex items-start gap-2">
+        {icon ? (
+          <span
+            aria-hidden
+            className="shrink-0 mt-0.5 inline-flex w-5 h-5 items-center justify-center text-night-dim"
+          >
+            {icon}
+          </span>
         ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-night">{label}</p>
+          {description ? (
+            <p className="text-xs text-muted mt-0.5 leading-snug">
+              {description}
+            </p>
+          ) : null}
+        </div>
       </div>
       <span
         aria-hidden
-        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
-        style={{ backgroundColor: checked ? "#0A1F44" : "#d2d7e2" }}
+        className={cn(
+          "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200",
+          checked ? "bg-night" : "bg-line-strong",
+        )}
       >
         <span
           className={cn(

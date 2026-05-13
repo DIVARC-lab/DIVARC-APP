@@ -70,7 +70,7 @@ export default async function ProfilePage({
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 text-center">
         <h1 className="font-display text-3xl text-night">
-          Profil en cours de création
+          Profil en cours de <em className="italic text-gold-deep">création</em>
         </h1>
         <p className="mt-3 text-muted max-w-md">
           Ton profil n&apos;a pas encore été créé. Si tu viens de t&apos;inscrire,
@@ -228,7 +228,7 @@ export default async function ProfilePage({
                 </span>
               </div>
               <p className="mt-3 font-display text-xl leading-snug">
-                Tu fais partie du cercle restreint qui façonne DIVARC.
+                Tu fais partie du <em className="italic text-gold">cercle restreint</em> qui façonne DIVARC.
               </p>
               <p className="mt-2 text-xs text-cream/70 leading-relaxed">
                 Ton avis compte directement dans la roadmap. Réponds aux

@@ -1,6 +1,6 @@
 "use client";
 
-import { Save, Sparkles } from "lucide-react";
+import { BadgeCheck, EyeOff, Save, Sparkles, Users } from "lucide-react";
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -48,19 +48,22 @@ export function ProHeaderForm({ profile }: { profile: Profile }) {
       <div className="space-y-3 pt-3 border-t border-line">
         <Switch
           name="open_to_work"
-          label="🟢 Ouvert aux opportunités"
-          description="Un badge vert apparaît sur ton profil. Les recruteurs te trouvent en priorité."
+          icon={<BadgeCheck className="w-4 h-4 text-online" />}
+          label="Ouvert aux opportunités"
+          description="Un badge apparaît sur ton profil. Les recruteurs te trouvent en priorité."
           defaultChecked={profile.open_to_work}
         />
         <Switch
           name="open_to_hiring"
-          label="🔵 Je recrute"
-          description="Pour les recruteurs / fondateurs. Badge bleu sur ton profil."
+          icon={<Users className="w-4 h-4 text-gold-deep" />}
+          label="Je recrute"
+          description="Pour les recruteurs / fondateurs. Badge visible sur ton profil."
           defaultChecked={profile.open_to_hiring}
         />
         <Switch
           name="discrete_search"
-          label="🥷 Mode recherche discrète"
+          icon={<EyeOff className="w-4 h-4 text-night-dim" />}
+          label="Mode recherche discrète"
           description="Tes vues de profil ne sont plus enregistrées chez les autres."
           defaultChecked={profile.discrete_search}
         />

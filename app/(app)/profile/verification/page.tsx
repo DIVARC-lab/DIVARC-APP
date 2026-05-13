@@ -63,17 +63,17 @@ export default async function VerificationPage() {
             Confirme ton identité.
           </DisplayHeading>
           <p className="mt-3 text-[14px] text-night-soft leading-relaxed">
-            Gagne en crédibilité avec un badge bleu officiel DIVARC. Ta photo
+            Gagne en crédibilité avec un badge officiel DIVARC. Ta photo
             de profil et ton nom seront marqués comme vérifiés.
           </p>
         </header>
 
         {/* Statut actuel */}
         {profile?.identity_verified_at ? (
-          <section className="rounded-2xl bg-blue-50 border border-blue-200 p-5 mb-5">
+          <section className="rounded-2xl bg-gold/10 border border-gold/30 p-5 mb-5">
             <div className="flex items-start gap-3">
               <BadgeCheck
-                className="w-8 h-8 text-[#3B82F6] fill-[#DBEAFE] shrink-0"
+                className="w-8 h-8 text-gold-deep fill-gold/25 shrink-0"
                 aria-hidden
               />
               <div>
