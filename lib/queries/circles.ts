@@ -451,6 +451,17 @@ export async function getCircleBySlug(
   return enriched ?? null;
 }
 
+/* Chantier 3.8 — Règles du cercle pour l'onglet À propos. */
+export async function listCircleRules(circleId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circle_rules")
+    .select("*")
+    .eq("circle_id", circleId)
+    .order("position", { ascending: true });
+  return data ?? [];
+}
+
 /* Chantier 3.5 — Library : catégories + items. */
 export async function listCircleLibraryCategories(circleId: string) {
   const supabase = await createClient();
