@@ -1,19 +1,62 @@
-import { Users } from "lucide-react";
+import { Crown, Shield, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import { getCircleBySlug, listCircleMembers } from "@/lib/queries/circles";
+import {
+  getCircleBySlug,
+  listCircleMembersGrouped,
+} from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
+import type { CircleMemberWithProfile } from "@/lib/database.types";
+import { cn } from "@/lib/utils/cn";
 
 type Params = Promise<{ slug: string }>;
 
-export const metadata = {
-  title: "Membres",
+export const metadata = { title: "Membres" };
+
+const ROLE_META: Record<
+  string,
+  { label: string; icon: typeof Crown; class: string }
+> = {
+  owner: {
+    label: "Fondateur",
+    icon: Crown,
+    class: "bg-gold/15 text-gold-deep border-gold/30",
+  },
+  admin: {
+    label: "Admin",
+    icon: Shield,
+    class: "bg-night text-cream border-night",
+  },
+  moderator: {
+    label: "Modérateur",
+    icon: Shield,
+    class: "bg-night/10 text-night border-night/20",
+  },
+  mod: {
+    label: "Modérateur",
+    icon: Shield,
+    class: "bg-night/10 text-night border-night/20",
+  },
+  ambassador: {
+    label: "Ambassadeur",
+    icon: Sparkles,
+    class: "bg-violet-50 text-violet-700 border-violet-200",
+  },
+  contributor: {
+    label: "Contributeur",
+    icon: Sparkles,
+    class: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
 };
 
-/* Onglet "Membres" — placeholder V1 (reprend la liste existante).
- * Chantier 3.7 : équipe + actifs + tous + recherche + actions admin. */
+/* Onglet Membres v2 — 3 buckets transparents :
+ *  1. Équipe : owner + admin + moderator + ambassador
+ *  2. Membres actifs : last_active_at < 7j
+ *  3. Tous les autres
+ *
+ * Actions admin (promote/demote/mute/ban) au Chantier 4 (dashboard admin). */
 export default async function CircleMembersTab({
   params,
 }: {
@@ -29,73 +72,147 @@ export default async function CircleMembersTab({
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
 
-  const members = await listCircleMembers(circle.id, 48);
+  const { team, active, all, totalCount } = await listCircleMembersGrouped(
+    circle.id,
+  );
 
   return (
-    <section className="px-5 sm:px-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gold-deep" aria-hidden />
-          <KickerLabel>
-            {circle.members_count.toLocaleString("fr-FR")} membre
-            {circle.members_count > 1 ? "s" : ""}
-          </KickerLabel>
-        </div>
-        {circle.members_count > members.length ? (
-          <span className="text-[11px] text-night-dim">
-            {members.length} affichés
-          </span>
-        ) : null}
-      </div>
+    <section className="px-5 sm:px-8 pb-8">
+      <header className="pb-4 flex items-center gap-2">
+        <Users className="w-4 h-4 text-gold-deep" aria-hidden />
+        <KickerLabel>
+          {totalCount.toLocaleString("fr-FR")} membre
+          {totalCount > 1 ? "s" : ""}
+        </KickerLabel>
+      </header>
 
-      {members.length === 0 ? (
+      {/* Équipe */}
+      {team.length > 0 ? (
+        <div className="mb-6">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold-deep mb-2.5">
+            · Équipe
+          </h3>
+          <ul className="space-y-2">
+            {team.map((m) => (
+              <li key={m.user_id}>
+                <MemberRow member={m} variant="full" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* Membres actifs (7j) */}
+      {active.length > 0 ? (
+        <div className="mb-6">
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold-deep mb-2.5">
+            · Actifs cette semaine ({active.length})
+          </h3>
+          <ul className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {active.map((m) => (
+              <li key={m.user_id}>
+                <MemberAvatar member={m} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* Tous les autres */}
+      {all.length > 0 ? (
+        <div>
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-gold-deep mb-2.5">
+            · Tous les membres
+            {totalCount > all.length + active.length + team.length
+              ? ` (${all.length} affichés sur ${totalCount - active.length - team.length})`
+              : ""}
+          </h3>
+          <ul className="grid sm:grid-cols-2 gap-2">
+            {all.map((m) => (
+              <li key={m.user_id}>
+                <MemberRow member={m} variant="compact" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {team.length === 0 && active.length === 0 && all.length === 0 ? (
         <p className="text-[13px] text-night-dim">
           Personne pour l&apos;instant.
         </p>
-      ) : (
-        <ul className="grid sm:grid-cols-2 gap-2">
-          {members.map((m) => {
-            const profile = m.profile;
-            const name =
-              profile?.full_name ?? profile?.username ?? "Utilisateur";
-            return (
-              <li key={m.user_id}>
-                <Link
-                  href={profile?.username ? `/u/${profile.username}` : "#"}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-line hover:border-gold/40 transition-colors"
-                >
-                  <Avatar
-                    src={profile?.avatar_url ?? null}
-                    fullName={name}
-                    size="sm"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-night truncate">
-                      {name}
-                    </p>
-                    {profile?.username ? (
-                      <p className="text-[11px] text-night-dim truncate">
-                        @{profile.username}
-                      </p>
-                    ) : null}
-                  </div>
-                  {m.role !== "member" ? (
-                    <span className="text-[9.5px] font-extrabold uppercase tracking-widest text-gold-deep">
-                      {m.role === "owner"
-                        ? "Fondateur"
-                        : m.role === "admin"
-                          ? "Admin"
-                          : m.role === "moderator" || m.role === "mod"
-                            ? "Mod"
-                            : m.role}
-                    </span>
-                  ) : null}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      ) : null}
     </section>
+  );
+}
+
+function MemberRow({
+  member,
+  variant,
+}: {
+  member: CircleMemberWithProfile;
+  variant: "full" | "compact";
+}) {
+  const profile = member.profile;
+  const name = profile?.full_name ?? profile?.username ?? "Utilisateur";
+  const roleMeta = ROLE_META[member.role];
+  const RoleIcon = roleMeta?.icon;
+
+  return (
+    <Link
+      href={profile?.username ? `/u/${profile.username}` : "#"}
+      className={cn(
+        "flex items-center gap-3 rounded-2xl bg-white border border-line hover:border-gold/40 transition-colors",
+        variant === "full" ? "p-3" : "p-2.5",
+      )}
+    >
+      <Avatar
+        src={profile?.avatar_url ?? null}
+        fullName={name}
+        size={variant === "full" ? "md" : "sm"}
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-bold text-night truncate">{name}</p>
+        {profile?.username ? (
+          <p className="text-[11px] text-night-dim truncate">
+            @{profile.username}
+          </p>
+        ) : null}
+        {(
+          member as unknown as { badge?: string | null }
+        ).badge ? (
+          <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wider text-gold-deep">
+            {(member as unknown as { badge?: string | null }).badge}
+          </p>
+        ) : null}
+      </div>
+      {roleMeta && member.role !== "member" ? (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider shrink-0",
+            roleMeta.class,
+          )}
+        >
+          {RoleIcon ? <RoleIcon className="w-3 h-3" aria-hidden /> : null}
+          {roleMeta.label}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function MemberAvatar({ member }: { member: CircleMemberWithProfile }) {
+  const profile = member.profile;
+  const name = profile?.full_name ?? profile?.username ?? "Utilisateur";
+  return (
+    <Link
+      href={profile?.username ? `/u/${profile.username}` : "#"}
+      className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-bg-soft transition-colors"
+    >
+      <Avatar src={profile?.avatar_url ?? null} fullName={name} size="md" />
+      <p className="text-[11px] font-semibold text-night truncate w-full text-center">
+        {profile?.username ? `@${profile.username}` : name.split(" ")[0]}
+      </p>
+    </Link>
   );
 }

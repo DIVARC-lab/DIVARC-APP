@@ -493,6 +493,102 @@ export async function listCircleFlairs(circleId: string) {
   return data ?? [];
 }
 
+/* Chantier 3.7 — Liste de membres groupée pour l'onglet Membres v2.
+ * Retourne 3 buckets transparents :
+ *   - team : owner / admin / moderator (+ mod legacy) — top section "Équipe"
+ *   - active : membres standards avec last_active_at < 7j
+ *   - all : tous les autres (paginés). Pour V1, on cap à 100 dans le bucket
+ *     `all`, paging à faire au scroll plus tard. */
+export type CircleMembersGrouped = {
+  team: CircleMemberWithProfile[];
+  active: CircleMemberWithProfile[];
+  all: CircleMemberWithProfile[];
+  totalCount: number;
+};
+
+const TEAM_ROLES = new Set([
+  "owner",
+  "admin",
+  "moderator",
+  "mod",
+  "ambassador",
+]);
+
+export async function listCircleMembersGrouped(
+  circleId: string,
+): Promise<CircleMembersGrouped> {
+  const supabase = await createClient();
+
+  /* Load up to 200 members (V1) — paging plus tard. */
+  const { data: members, count } = await supabase
+    .from("circle_members")
+    .select("*", { count: "exact" })
+    .eq("circle_id", circleId)
+    .eq("status", "active")
+    .order("role", { ascending: true })
+    .order("last_active_at", { ascending: false, nullsFirst: false })
+    .limit(200);
+
+  if (!members || members.length === 0) {
+    return { team: [], active: [], all: [], totalCount: 0 };
+  }
+
+  const userIds = Array.from(new Set(members.map((m) => m.user_id)));
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, username, avatar_url")
+    .in("id", userIds);
+  const profById = new Map<
+    string,
+    Pick<Profile, "id" | "full_name" | "username" | "avatar_url">
+  >();
+  for (const p of profiles ?? []) profById.set(p.id, p);
+
+  const enriched: CircleMemberWithProfile[] = members.map((m) => ({
+    ...m,
+    profile: profById.get(m.user_id) ?? null,
+  }));
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+  const team: CircleMemberWithProfile[] = [];
+  const active: CircleMemberWithProfile[] = [];
+  const all: CircleMemberWithProfile[] = [];
+
+  for (const m of enriched) {
+    if (TEAM_ROLES.has(m.role)) {
+      team.push(m);
+      continue;
+    }
+    const lastActive = (m as { last_active_at?: string | null })
+      .last_active_at;
+    if (lastActive && new Date(lastActive).getTime() > sevenDaysAgo) {
+      active.push(m);
+    } else {
+      all.push(m);
+    }
+  }
+
+  /* Tri équipe par hiérarchie. */
+  const roleOrder: Record<string, number> = {
+    owner: 0,
+    admin: 1,
+    moderator: 2,
+    mod: 2,
+    ambassador: 3,
+    contributor: 4,
+    member: 5,
+  };
+  team.sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
+
+  return {
+    team,
+    active: active.slice(0, 30),
+    all: all.slice(0, 100),
+    totalCount: count ?? enriched.length,
+  };
+}
+
 export async function listCircleMembers(
   circleId: string,
   limit = 24,
