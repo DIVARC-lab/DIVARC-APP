@@ -518,3 +518,136 @@ function parseVector(raw: unknown): number[] | null {
   }
   return null;
 }
+
+/* ====================================================================
+ * RE-RANKER — Chantier Reels Recsys étape 11.
+ *
+ * Post-traitement business sur la liste triée du ranker. Applique :
+ *  1. Diversification créateurs : max 1 du même dans les 5 derniers,
+ *     max 2 dans les 10 derniers.
+ *  2. Diversification sources : quota exploration ~1 sur 5,
+ *     anti-monopole d'une source.
+ *  3. Soft dedup hashtags : si 3 mêmes hashtags consécutifs, démotion.
+ *  4. Boost contenus de close_friends (top 8 affinity) → toujours dans
+ *     les premiers (force position ≤ 3 si dispo).
+ *  5. Démotion contenus signalés/cliqués comme "see_less" historiquement.
+ *
+ * Algorithme : MMR (Maximal Marginal Relevance) — à chaque position du
+ * feed final, on choisit le candidat qui maximise un score combiné
+ * (relevance × diversity), pas juste le top score.
+ *
+ * Complexité : O(target_size × len(candidates)) — acceptable car
+ * candidats déjà limités à ~500-800 et target_size 30-50.
+ */
+
+export type RerankContext = {
+  target_size: number;
+  /* IDs de close friends (top 8 affinity) — boost position. */
+  close_friend_ids: Set<string>;
+  /* IDs d'auteurs déjà "see_less" cliqués historiquement. */
+  see_less_author_ids: Set<string>;
+};
+
+export function rerank(
+  ranked: ScoredCandidate[],
+  contentById: Map<string, HydratedContent>,
+  context: RerankContext,
+): ScoredCandidate[] {
+  const remaining = [...ranked];
+  const finalFeed: ScoredCandidate[] = [];
+
+  const seenAuthors: string[] = []; /* ordre chronologique du feed final */
+  const seenHashtags: string[] = [];
+  const seenSources: CandidateSource[] = [];
+
+  while (remaining.length > 0 && finalFeed.length < context.target_size) {
+    let bestIdx = -1;
+    let bestAdjusted = -Infinity;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const sc = remaining[i]!;
+      const content = contentById.get(sc.candidate.content_id);
+      if (!content) continue;
+
+      let adjusted = sc.final_score;
+
+      /* 1. Diversification auteurs. */
+      const recent5 = seenAuthors.slice(-5);
+      const recent10 = seenAuthors.slice(-10);
+      const inRecent5 = recent5.filter((id) => id === content.author_id).length;
+      const inRecent10 = recent10.filter((id) => id === content.author_id).length;
+
+      if (inRecent5 >= 1) adjusted *= 0.25;
+      if (inRecent10 >= 2) {
+        /* Hard exclusion. */
+        continue;
+      }
+
+      /* 2. Diversification sources : si 3 mêmes sources consécutives,
+       *    on pénalise pour forcer la rotation. */
+      const lastSources = seenSources.slice(-3);
+      if (lastSources.length === 3 && lastSources.every((s) => s === sc.candidate.source)) {
+        adjusted *= 0.5;
+      }
+
+      /* 3. Soft dedup hashtags : si tous les hashtags du contenu sont
+       *    déjà dans les 3 derniers items, démotion. */
+      if (content.hashtags.length > 0) {
+        const recentTags = new Set(seenHashtags.slice(-15));
+        const overlap = content.hashtags.filter((t) =>
+          recentTags.has(t.toLowerCase()),
+        ).length;
+        if (overlap >= content.hashtags.length && overlap >= 2) {
+          adjusted *= 0.7;
+        }
+      }
+
+      /* 4. Boost close friends — force apparition tôt. */
+      if (context.close_friend_ids.has(content.author_id)) {
+        adjusted *= 1.6;
+        /* Si on est dans les 3 premières positions, super boost. */
+        if (finalFeed.length < 3) adjusted *= 1.3;
+      }
+
+      /* 5. Démotion forte sur see_less auteurs. */
+      if (context.see_less_author_ids.has(content.author_id)) {
+        adjusted *= 0.1;
+      }
+
+      /* 6. Quota exploration ~1 sur 5 :
+       *    - si on est à la position 4,9,14,... et qu'on n'a PAS encore
+       *      un exploration récent, on boost exploration.
+       *    - sinon on dampe exploration. */
+      const lastExplorationIdx = seenSources.lastIndexOf("exploration");
+      const distSinceExploration =
+        lastExplorationIdx === -1
+          ? Infinity
+          : seenSources.length - 1 - lastExplorationIdx;
+
+      if (sc.candidate.source === "exploration") {
+        if (distSinceExploration < 4) adjusted *= 0.5;
+        else if (distSinceExploration >= 5) adjusted *= 1.4;
+      }
+
+      if (adjusted > bestAdjusted) {
+        bestAdjusted = adjusted;
+        bestIdx = i;
+      }
+    }
+
+    if (bestIdx === -1) break;
+
+    const chosen = remaining.splice(bestIdx, 1)[0]!;
+    chosen.final_score = bestAdjusted; /* on update pour explainability */
+    finalFeed.push(chosen);
+
+    const c = contentById.get(chosen.candidate.content_id);
+    if (c) {
+      seenAuthors.push(c.author_id);
+      for (const tag of c.hashtags) seenHashtags.push(tag.toLowerCase());
+    }
+    seenSources.push(chosen.candidate.source);
+  }
+
+  return finalFeed;
+}
