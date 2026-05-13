@@ -6385,6 +6385,18 @@ export type Database = {
         Args: { p_inviter_user_id: string; p_circle_id: string };
         Returns: void;
       };
+      /* Migration 0105 — recalcul cron vitality_score + counters dénormalisés. */
+      refresh_all_circles_vitality: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          circle_id: string;
+          vitality_score: number;
+          posts_count_7d: number;
+          active_members_count_7d: number;
+          new_members_count_7d: number;
+          new_members_count_30d: number;
+        }>;
+      };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */
       toggle_circle_post_vote: {
