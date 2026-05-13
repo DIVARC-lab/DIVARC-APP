@@ -451,6 +451,37 @@ export async function getCircleBySlug(
   return enriched ?? null;
 }
 
+/* Chantier 3.5 — Library : catégories + items. */
+export async function listCircleLibraryCategories(circleId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circle_library_categories")
+    .select("*")
+    .eq("circle_id", circleId)
+    .order("position", { ascending: true });
+  return data ?? [];
+}
+
+export async function listCircleLibraryItems(
+  circleId: string,
+  options: { onlyApproved?: boolean; limit?: number } = {},
+) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("circle_library_items")
+    .select("*")
+    .eq("circle_id", circleId);
+  if (options.onlyApproved !== false) {
+    query = query.eq("is_approved", true);
+  }
+  query = query
+    .order("category_id", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(options.limit ?? 100);
+  const { data } = await query;
+  return data ?? [];
+}
+
 /* Chantier 3.2 — Liste les flairs d'un cercle pour le composer + badges. */
 export async function listCircleFlairs(circleId: string) {
   const supabase = await createClient();

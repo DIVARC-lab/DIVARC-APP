@@ -1936,6 +1936,46 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Chantier 3.5 (migration 0098) — bibliothèque collaborative par cercle. */
+export type CircleLibraryItemType =
+  | "document"
+  | "video"
+  | "article"
+  | "link"
+  | "template"
+  | "wiki";
+
+export type CircleLibraryCategory = {
+  id: string;
+  circle_id: string;
+  label: string;
+  description: string | null;
+  position: number;
+  icon: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CircleLibraryItem = {
+  id: string;
+  circle_id: string;
+  category_id: string | null;
+  created_by: string;
+  type: CircleLibraryItemType;
+  title: string;
+  description: string | null;
+  content_url: string | null;
+  body: string | null;
+  tags: string[];
+  is_approved: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  views_count: number;
+  saves_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CircleMemberWithProfile = CircleMember & {
   profile: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
@@ -4941,6 +4981,49 @@ export type Database = {
         > &
           Partial<Pick<CirclePostVote, "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      /* Chantier 3.5 (migration 0098) — bibliothèque collaborative. */
+      circle_library_categories: {
+        Row: CircleLibraryCategory;
+        Insert: Pick<CircleLibraryCategory, "circle_id" | "label"> &
+          Partial<
+            Omit<CircleLibraryCategory, "circle_id" | "label" | "id" | "created_at" | "updated_at">
+          >;
+        Update: Partial<
+          Pick<CircleLibraryCategory, "label" | "description" | "position" | "icon">
+        >;
+        Relationships: [];
+      };
+      circle_library_items: {
+        Row: CircleLibraryItem;
+        Insert: Pick<
+          CircleLibraryItem,
+          "circle_id" | "created_by" | "type" | "title"
+        > &
+          Partial<
+            Omit<
+              CircleLibraryItem,
+              "circle_id" | "created_by" | "type" | "title" | "id" | "created_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            CircleLibraryItem,
+            | "category_id"
+            | "type"
+            | "title"
+            | "description"
+            | "content_url"
+            | "body"
+            | "tags"
+            | "is_approved"
+            | "approved_by"
+            | "approved_at"
+            | "views_count"
+            | "saves_count"
+          >
+        >;
         Relationships: [];
       };
       circle_events: {
