@@ -1938,6 +1938,24 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Chantier 5.4 (migration 0104) — système d'ambassadeurs. */
+export type CircleAmbassadorBadge =
+  | "connector"
+  | "ambassador"
+  | "champion"
+  | "cofounder";
+
+export type CircleAmbassadorReward = {
+  user_id: string;
+  circle_id: string;
+  invitations_sent: number;
+  invitations_accepted: number;
+  badges: Record<CircleAmbassadorBadge, string | null>;
+  current_level: number;
+  created_at: string;
+  updated_at: string;
+};
+
 /* Chantier 4.5 (migration 0102) — règles AutoMod par cercle. */
 export type CircleAutomodRuleType =
   | "slow_mode"
@@ -5091,6 +5109,21 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      /* Chantier 5.4 (migration 0104) — système d'ambassadeurs. */
+      circle_ambassador_rewards: {
+        Row: CircleAmbassadorReward;
+        Insert: Pick<CircleAmbassadorReward, "user_id" | "circle_id"> &
+          Partial<
+            Omit<CircleAmbassadorReward, "user_id" | "circle_id" | "created_at" | "updated_at">
+          >;
+        Update: Partial<
+          Pick<
+            CircleAmbassadorReward,
+            "invitations_sent" | "invitations_accepted" | "badges" | "current_level"
+          >
+        >;
+        Relationships: [];
+      };
       /* Chantier 4.5 (migration 0102) — règles AutoMod. */
       circle_automod_rules: {
         Row: CircleAutomodRule;
@@ -6346,6 +6379,11 @@ export type Database = {
       get_or_create_listing_conversation: {
         Args: { p_listing_id: string };
         Returns: string;
+      };
+      /* Migration 0104 — bump compteur ambassadeur après accept invitation. */
+      bump_ambassador_count: {
+        Args: { p_inviter_user_id: string; p_circle_id: string };
+        Returns: void;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */

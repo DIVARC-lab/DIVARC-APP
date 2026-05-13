@@ -880,6 +880,14 @@ export async function acceptCircleInvitation(token: string) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Non authentifié." };
 
+  /* Lit le créateur de l'invitation AVANT le join pour pouvoir bump
+   * l'ambassadeur après. */
+  const { data: invitation } = await supabase
+    .from("circle_invitations")
+    .select("created_by, circle_id")
+    .eq("token", token)
+    .maybeSingle();
+
   const { data, error } = await supabase.rpc("accept_circle_invitation", {
     p_token: token,
   });
@@ -894,6 +902,24 @@ export async function acceptCircleInvitation(token: string) {
             ? "Toutes les places sont prises."
             : "Invitation invalide.",
     };
+  }
+
+  /* Chantier 5.4 — bump le compteur ambassadeur du créateur de l'invitation
+   * (best-effort, ne bloque pas le join). On ne bump pas si le user accepte
+   * son propre lien d'invitation (auto-join). */
+  if (
+    invitation?.created_by &&
+    invitation.created_by !== user.id &&
+    invitation.circle_id
+  ) {
+    try {
+      await supabase.rpc("bump_ambassador_count", {
+        p_inviter_user_id: invitation.created_by,
+        p_circle_id: invitation.circle_id,
+      });
+    } catch (err) {
+      console.warn("[divarc] bump_ambassador_count failed:", err);
+    }
   }
 
   /* Get slug for redirect. */

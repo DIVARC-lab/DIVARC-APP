@@ -3,9 +3,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import { getCircleBySlug } from "@/lib/queries/circles";
+import {
+  getCircleAmbassadorReward,
+  getCircleBySlug,
+} from "@/lib/queries/circles";
 import { listCircleInvitations } from "@/lib/queries/circle_invitations";
 import { createClient } from "@/lib/supabase/server";
+import { AmbassadorProgress } from "./AmbassadorProgress";
 import { CircleInvitationsManager } from "./CircleInvitationsManager";
 
 export const metadata = {
@@ -36,7 +40,10 @@ export default async function CircleInvitePage({
     redirect(`/circles/${slug}`);
   }
 
-  const invitations = await listCircleInvitations(circle.id);
+  const [invitations, ambassador] = await Promise.all([
+    listCircleInvitations(circle.id),
+    getCircleAmbassadorReward(user.id, circle.id),
+  ]);
 
   return (
     <div className="px-6 sm:px-10 py-10 max-w-2xl mx-auto w-full">
@@ -58,6 +65,8 @@ export default async function CircleInvitePage({
             : "Génère un lien à partager. Optionnel : limite d'usages, expiration."}
         </p>
       </header>
+
+      <AmbassadorProgress reward={ambassador} circleName={circle.name} />
 
       <CircleInvitationsManager
         circleId={circle.id}

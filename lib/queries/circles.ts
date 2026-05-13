@@ -451,6 +451,21 @@ export async function getCircleBySlug(
   return enriched ?? null;
 }
 
+/* Chantier 5.4 — Récompenses ambassadeur d'un user dans un cercle. */
+export async function getCircleAmbassadorReward(
+  userId: string,
+  circleId: string,
+) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circle_ambassador_rewards")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("circle_id", circleId)
+    .maybeSingle();
+  return data;
+}
+
 /* Chantier 3.8 — Règles du cercle pour l'onglet À propos. */
 export async function listCircleRules(circleId: string) {
   const supabase = await createClient();
