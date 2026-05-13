@@ -1,38 +1,18 @@
-import { ArrowLeft, Lock, MessageSquareText, Users2 } from "lucide-react";
-import Link from "next/link";
+import { MessageSquareText } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { ArcDeco } from "@/components/marketing/ArcDeco";
-import { Avatar } from "@/components/ui/Avatar";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import {
-  getCircleBySlug,
-  listCircleMembers,
-} from "@/lib/queries/circles";
+import { getCircleBySlug } from "@/lib/queries/circles";
 import {
   listCirclePinnedPosts,
   listCirclePosts,
 } from "@/lib/queries/posts";
-import { listUpcomingCircleEvents } from "@/lib/queries/circle_events";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils/cn";
-import type { CircleColor } from "@/lib/database.types";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
-import { CircleEventsSection } from "./CircleEventsSection";
-import { CircleMembershipButton } from "./CircleMembershipButton";
 import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
 type Params = Promise<{ slug: string }>;
-
-const COLOR_HERO: Record<CircleColor, string> = {
-  gold: "bg-gradient-to-br from-gold via-gold-soft to-gold-deep text-night",
-  navy: "bg-gradient-to-br from-night via-night-soft to-night-muted text-cream",
-  emerald: "bg-gradient-to-br from-emerald-500 to-emerald-800 text-cream",
-  rose: "bg-gradient-to-br from-rose-400 to-rose-700 text-cream",
-  violet: "bg-gradient-to-br from-violet-400 to-violet-700 text-cream",
-  cream: "bg-gradient-to-br from-cream via-bg to-gold/30 text-night",
-};
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -45,7 +25,9 @@ export async function generateMetadata({ params }: { params: Params }) {
   return { title: circle?.name ?? "Cercle" };
 }
 
-export default async function CircleDetailPage({
+/* Onglet "Posts" du cercle (route racine /circles/[slug]). Le hero, les
+ * tabs et les actions sont rendus par le layout parent. */
+export default async function CirclePostsTab({
   params,
 }: {
   params: Params;
@@ -60,239 +42,90 @@ export default async function CircleDetailPage({
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
 
-  const [members, profile, posts, pinnedPosts, events] = await Promise.all([
-    listCircleMembers(circle.id, 12),
+  const isOwner = circle.owner_id === user.id;
+  const canModerate =
+    isOwner ||
+    circle.my_role === "admin" ||
+    circle.my_role === "moderator" ||
+    circle.my_role === "mod";
+
+  const [profile, posts, pinnedPosts] = await Promise.all([
     getCurrentProfile(),
-    circle.is_member ? listCirclePosts(circle.id, user.id, 30) : Promise.resolve([]),
+    circle.is_member
+      ? listCirclePosts(circle.id, user.id, 30)
+      : Promise.resolve([]),
     circle.is_member
       ? listCirclePinnedPosts(circle.id, user.id, 5)
       : Promise.resolve([]),
-    listUpcomingCircleEvents(circle.id, user.id, 5),
   ]);
-  const tone = COLOR_HERO[circle.color ?? "gold"];
-  const isOwner = circle.owner_id === user.id;
-  const canModerate =
-    isOwner || circle.my_role === "admin" || circle.my_role === "mod";
+
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
+  if (!circle.is_member) {
+    return (
+      <div className="px-5 sm:px-8 py-8 text-center">
+        <p className="text-[14px] text-night-dim leading-relaxed max-w-md mx-auto">
+          Rejoins ce cercle pour voir les discussions et participer.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-4xl mx-auto w-full">
-      <Link
-        href="/circles"
-        className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night mb-4"
-      >
-        <ArrowLeft className="w-4 h-4" aria-hidden />
-        Retour
-      </Link>
+    <section className="px-5 sm:px-8" aria-label="Discussions">
+      <div className="flex items-center gap-2 mb-4">
+        <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
+        <KickerLabel>Discussions</KickerLabel>
+      </div>
 
-      {/* Hero */}
-      <header
-        className={cn(
-          "relative overflow-hidden rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-5 shadow-soft",
-          tone,
-        )}
-      >
-        <div
-          aria-hidden
-          className="absolute -right-12 -top-16 pointer-events-none"
-        >
-          <ArcDeco
-            size={260}
-            tone={
-              circle.color === "navy"
-                ? "gold"
-                : circle.color === "cream"
-                  ? "navy"
-                  : "night"
-            }
-            opacity={0.4}
-            stroke={1.25}
-          />
-        </div>
-        <span
-          aria-hidden
-          className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl sm:text-5xl shrink-0 border-2 border-white/30"
-        >
-          {circle.emoji ?? circle.name.charAt(0).toUpperCase()}
-        </span>
-        <div className="relative flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={cn(
-                "text-[11px] font-extrabold uppercase tracking-[0.18em]",
-                circle.color === "navy" ||
-                  circle.color === "emerald" ||
-                  circle.color === "rose" ||
-                  circle.color === "violet"
-                  ? "text-cream/85"
-                  : "text-night/85",
-              )}
-            >
-              · {circle.is_private ? "Cercle privé" : "Cercle public"}
-            </span>
-            {circle.is_private ? (
-              <Lock className="w-3 h-3" aria-hidden />
-            ) : null}
-          </div>
-          <h1 className="mt-2 font-display italic text-[32px] sm:text-5xl leading-[1.05] tracking-[-0.02em]">
-            {circle.name}
-          </h1>
-          <p
-            className={cn(
-              "mt-2 text-sm",
-              circle.color === "navy" ||
-                circle.color === "emerald" ||
-                circle.color === "rose" ||
-                circle.color === "violet"
-                ? "text-cream/85"
-                : "text-night/80",
-            )}
-          >
-            <Users2 className="w-3.5 h-3.5 inline mr-1" aria-hidden />
-            {circle.members_count.toLocaleString("fr-FR")} membre
-            {circle.members_count > 1 ? "s" : ""}
-          </p>
-        </div>
-        <div className="relative">
-          <CircleMembershipButton
-            circleId={circle.id}
-            isMember={circle.is_member}
-            isOwner={isOwner}
-          />
-        </div>
-      </header>
-
-      {circle.description ? (
-        <section className="mt-8">
-          <KickerLabel>À propos</KickerLabel>
-          <p className="mt-3 text-sm leading-relaxed text-night-muted whitespace-pre-line">
-            {circle.description}
-          </p>
-        </section>
-      ) : null}
-
-      {canModerate ? (
-        <div className="mt-6 flex items-center gap-3 flex-wrap">
-          <Link
-            href={`/circles/${slug}/invite`}
-            className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night text-cream text-xs font-semibold hover:bg-night-soft transition-colors"
-          >
-            Inviter →
-          </Link>
-        </div>
-      ) : null}
-
-      {circle.is_member ? (
-        <section className="mt-10" aria-label="Discussions">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
-            <KickerLabel>Discussions</KickerLabel>
-          </div>
-
-          <CirclePostComposer
-            circleId={circle.id}
-            authorName={fullName}
-            authorAvatarUrl={profile?.avatar_url ?? null}
-          />
-
-          {pinnedPosts.length > 0 ? (
-            <ul className="mt-6 space-y-5">
-              {pinnedPosts.map((post) => (
-                <li key={post.id}>
-                  <CircleModeratablePost
-                    post={post}
-                    currentUserId={user.id}
-                    canModerate={canModerate}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {posts.length === 0 && pinnedPosts.length === 0 ? (
-            <p className="mt-6 text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
-              Aucun message pour l&apos;instant. <span className="italic font-display text-night">Lance la conversation.</span>
-            </p>
-          ) : null}
-
-          {posts.length > 0 ? (
-            <ul className="mt-4 space-y-4">
-              {posts.map((post) =>
-                canModerate ? (
-                  <li key={post.id}>
-                    <CircleModeratablePost
-                      post={post}
-                      currentUserId={user.id}
-                      canModerate
-                    />
-                  </li>
-                ) : (
-                  <li key={post.id}>
-                    <PostCard post={post} currentUserId={user.id} />
-                  </li>
-                ),
-              )}
-            </ul>
-          ) : null}
-        </section>
-      ) : null}
-
-      <section className="mt-10">
-        <div className="flex items-center justify-between mb-4">
-          <KickerLabel>Membres</KickerLabel>
-          {circle.members_count > members.length ? (
-            <span className="text-xs text-muted">
-              {members.length} sur {circle.members_count}
-            </span>
-          ) : null}
-        </div>
-        {members.length === 0 ? (
-          <p className="text-sm text-muted">Personne pour l&apos;instant.</p>
-        ) : (
-          <ul className="grid sm:grid-cols-2 gap-2">
-            {members.map((m) => {
-              const profile = m.profile;
-              const name =
-                profile?.full_name ?? profile?.username ?? "Utilisateur";
-              return (
-                <li key={m.user_id}>
-                  <Link
-                    href={profile?.username ? `/u/${profile.username}` : "#"}
-                    className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-line hover:border-gold/40 transition-colors"
-                  >
-                    <Avatar
-                      src={profile?.avatar_url ?? null}
-                      fullName={name}
-                      size="sm"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-night truncate">
-                        {name}
-                      </p>
-                      {profile?.username ? (
-                        <p className="text-xs text-muted truncate">
-                          @{profile.username}
-                        </p>
-                      ) : null}
-                    </div>
-                    {m.role !== "member" ? (
-                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-gold-deep">
-                        {m.role === "admin" ? "Admin" : "Mod"}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <CircleEventsSection
-        circleSlug={slug}
-        events={events}
-        isMember={circle.is_member}
+      <CirclePostComposer
+        circleId={circle.id}
+        authorName={fullName}
+        authorAvatarUrl={profile?.avatar_url ?? null}
       />
-    </div>
+
+      {pinnedPosts.length > 0 ? (
+        <ul className="mt-6 space-y-5">
+          {pinnedPosts.map((post) => (
+            <li key={post.id}>
+              <CircleModeratablePost
+                post={post}
+                currentUserId={user.id}
+                canModerate={canModerate}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {posts.length === 0 && pinnedPosts.length === 0 ? (
+        <p className="mt-6 text-sm text-night-dim text-center py-8 rounded-2xl border border-dashed border-line">
+          Aucun message pour l&apos;instant.{" "}
+          <span className="italic font-display text-night">
+            Lance la conversation.
+          </span>
+        </p>
+      ) : null}
+
+      {posts.length > 0 ? (
+        <ul className="mt-4 space-y-4">
+          {posts.map((post) =>
+            canModerate ? (
+              <li key={post.id}>
+                <CircleModeratablePost
+                  post={post}
+                  currentUserId={user.id}
+                  canModerate
+                />
+              </li>
+            ) : (
+              <li key={post.id}>
+                <PostCard post={post} currentUserId={user.id} />
+              </li>
+            ),
+          )}
+        </ul>
+      ) : null}
+    </section>
   );
 }
