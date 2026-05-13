@@ -23,6 +23,8 @@ type ListWithDetailsOptions = {
   offset?: number;
   status?: Listing["status"];
   sellerId?: string;
+  /* Chantier 3.3 — filtre par cercle (marketplace thématique). */
+  circleId?: string;
   /* Chantier 2.2 — recherche avancée */
   priceMin?: number;
   priceMax?: number;
@@ -201,6 +203,9 @@ export async function listListings(
   }
   if (options.sellerId) {
     query = query.eq("seller_id", options.sellerId);
+  }
+  if (options.circleId) {
+    query = query.eq("circle_id", options.circleId);
   }
   /* Chantier 2.2 — filtres prix + état. price_amount est un numeric(12,2)
    * stocké directement en unité monétaire (cf. migration 0006). */

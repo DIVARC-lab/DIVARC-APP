@@ -279,6 +279,21 @@ export async function createListingV2(
     getLegacyForTop(parsed.data.primary_category),
   );
 
+  /* Chantier 3.3 — circle_id optionnel (FK vers circles). On vérifie
+   * la membership pour éviter qu'un user publie dans un cercle où il
+   * n'est pas (RLS le rejetterait aussi). */
+  const circleIdRaw = formData.get("circle_id");
+  let circleId: string | null = null;
+  if (typeof circleIdRaw === "string" && circleIdRaw.length > 0) {
+    const { data: membership } = await supabase
+      .from("circle_members")
+      .select("user_id")
+      .eq("circle_id", circleIdRaw)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membership) circleId = circleIdRaw;
+  }
+
   const { data: listing, error: insertError } = await supabase
     .from("listings")
     .insert({
@@ -296,6 +311,7 @@ export async function createListingV2(
       condition: parsed.data.condition,
       location: parsed.data.location,
       status: "active",
+      circle_id: circleId,
     })
     .select("id")
     .single();

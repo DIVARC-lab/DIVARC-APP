@@ -37,6 +37,8 @@ type Props = {
   userId: string;
   defaultLocation: string | null;
   defaultCurrency: string;
+  /* Chantier 3.3 — annonce rattachée à un cercle (pré-rempli depuis ?circle=). */
+  circleId?: string | null;
 };
 
 type WizardState = {
@@ -75,6 +77,7 @@ export function CreateListingWizard({
   userId,
   defaultLocation,
   defaultCurrency,
+  circleId = null,
 }: Props) {
   const [state, formAction, pending] = useActionState<
     ListingV2FormState,
@@ -242,6 +245,9 @@ export function CreateListingWizard({
       {currentStep === "review" ? (
         <form action={formAction}>
           {/* Submission : on sérialise tout l'état du wizard en FormData. */}
+          {circleId ? (
+            <input type="hidden" name="circle_id" value={circleId} />
+          ) : null}
           <input
             type="hidden"
             name="photos"

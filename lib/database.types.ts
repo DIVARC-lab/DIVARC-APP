@@ -2125,6 +2125,8 @@ export type Listing = {
   sold_to: string | null;
   sold_price: number | null;
   seller_response_rate: number | null;
+  /* Chantier 3.3 — rattachement optionnel à un cercle (migration 0096). */
+  circle_id: string | null;
 };
 
 export type ListingPhoto = {
