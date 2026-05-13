@@ -2472,6 +2472,15 @@ export type ContentEmbedding = {
   generated_at: string;
 };
 
+/* Chantier Reels Recsys étape 4 — embeddings dédiés reels (migration 0118). */
+export type ReelEmbedding = {
+  reel_id: string;
+  embedding: number[];
+  model: string;
+  source_text: string | null;
+  generated_at: string;
+};
+
 export type EventSurface =
   | "feed_home"
   | "feed_circle"
@@ -4515,6 +4524,17 @@ export type Database = {
         >;
         Relationships: [];
       };
+      reel_embeddings: {
+        Row: ReelEmbedding;
+        Insert: Pick<ReelEmbedding, "reel_id" | "embedding"> &
+          Partial<
+            Pick<ReelEmbedding, "model" | "source_text" | "generated_at">
+          >;
+        Update: Partial<
+          Pick<ReelEmbedding, "embedding" | "model" | "source_text" | "generated_at">
+        >;
+        Relationships: [];
+      };
       recsys_events: {
         Row: RecsysEvent;
         Insert: Pick<
@@ -6538,6 +6558,11 @@ export type Database = {
       find_similar_posts_to_user: {
         Args: { target_user_id: string; result_limit?: number };
         Returns: Array<{ post_id: string; similarity_score: number }>;
+      };
+      /* Migration 0118 — Chantier Reels Recsys 4. */
+      find_similar_reels_to_user: {
+        Args: { target_user_id: string; result_limit?: number };
+        Returns: Array<{ reel_id: string; similarity_score: number }>;
       };
       refresh_post_engagement_stats: {
         Args: Record<string, never>;
