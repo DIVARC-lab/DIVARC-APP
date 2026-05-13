@@ -185,6 +185,13 @@ async function attachPhotos(
       upvotes: 0,
       downvotes: 0,
       helpful_marks: 0,
+      /* Chantier Feed v2 (migration 0110). */
+      post_kind: "standard" as const,
+      thread_root_id: null,
+      thread_reply_to_id: null,
+      thread_position: null,
+      reading_time_minutes: null,
+      audience_snapshot: null,
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],

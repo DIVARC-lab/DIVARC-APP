@@ -480,6 +480,13 @@ export type Post = {
   upvotes: number;
   downvotes: number;
   helpful_marks: number;
+  /* Chantier Feed v2 (migration 0110). */
+  post_kind: "standard" | "article" | "thread" | "longform";
+  thread_root_id: string | null;
+  thread_reply_to_id: string | null;
+  thread_position: number | null;
+  reading_time_minutes: number | null;
+  audience_snapshot: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -4614,6 +4621,12 @@ export type Database = {
               | "is_locked"
               | "is_announcement"
               | "requires_approval"
+              /* Chantier Feed v2 (migration 0110). */
+              | "post_kind"
+              | "thread_root_id"
+              | "thread_reply_to_id"
+              | "thread_position"
+              | "audience_snapshot"
             >
           >;
         Update: Partial<
@@ -4630,6 +4643,11 @@ export type Database = {
             | "requires_approval"
             | "approved_by"
             | "approved_at"
+            | "post_kind"
+            | "thread_root_id"
+            | "thread_reply_to_id"
+            | "thread_position"
+            | "audience_snapshot"
             | "edited_at"
             | "deleted_at"
             | "video_url"
