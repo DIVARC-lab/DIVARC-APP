@@ -420,6 +420,26 @@ export async function getPostById(
   return enriched ?? null;
 }
 
+/* Chantier Feed 4.2 — charge toutes les cartes d'un thread, ordonnées.
+ * rootId = id du post racine (thread_root_id pour les cartes suivantes,
+ * ou son propre id pour le root). */
+export async function getThreadCards(
+  rootId: string,
+  currentUserId: string,
+): Promise<PostWithDetails[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .or(`id.eq.${rootId},thread_root_id.eq.${rootId}`)
+    .is("deleted_at", null)
+    .eq("status", "published")
+    .order("thread_position", { ascending: true, nullsFirst: false });
+
+  if (error || !data) return [];
+  return attachDetails(data, currentUserId);
+}
+
 export async function listPostsByAuthor(
   authorId: string,
   currentUserId: string,

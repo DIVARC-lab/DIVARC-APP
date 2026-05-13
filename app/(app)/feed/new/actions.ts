@@ -39,6 +39,12 @@ const threadSchema = z.object({
   visibility: visibilityEnum,
 });
 
+const quoteSchema = z.object({
+  body: z.string().trim().min(1).max(500),
+  visibility: visibilityEnum,
+  quoted_post_id: z.string().uuid(),
+});
+
 function audienceSnapshot(visibility: PostVisibility) {
   return {
     visibility,
@@ -205,4 +211,68 @@ export async function createThreadPost(
 
   revalidatePath("/feed");
   return { status: "success", postId: rootPost.id };
+}
+
+/* Chantier Feed 4.4 — crée un post citant un autre post. */
+export async function createQuotePost(
+  _prev: PostV2FormState | undefined,
+  formData: FormData,
+): Promise<PostV2FormState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", error: "Tu dois être connecté." };
+
+  const parsed = quoteSchema.safeParse({
+    body: formData.get("body"),
+    visibility: formData.get("visibility"),
+    quoted_post_id: formData.get("quoted_post_id"),
+  });
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      status: "error",
+      error: first?.message ?? "Champs invalides.",
+    };
+  }
+
+  const { body, visibility, quoted_post_id } = parsed.data;
+
+  /* Vérifie que le post cité existe et est visible (RLS gère). */
+  const { data: quoted } = await supabase
+    .from("posts")
+    .select("id")
+    .eq("id", quoted_post_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!quoted) {
+    return { status: "error", error: "Post cité introuvable." };
+  }
+
+  const { data: post, error } = await supabase
+    .from("posts")
+    .insert({
+      author_id: user.id,
+      body,
+      visibility,
+      status: "published",
+      post_kind: "standard",
+      quoted_post_id,
+      audience_snapshot: audienceSnapshot(visibility),
+    })
+    .select("id")
+    .single();
+
+  if (error || !post) {
+    return {
+      status: "error",
+      error: error?.message ?? "Erreur lors de la publication.",
+    };
+  }
+
+  revalidatePath("/feed");
+  revalidatePath(`/feed/${quoted_post_id}`);
+  return { status: "success", postId: post.id };
 }

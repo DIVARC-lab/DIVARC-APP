@@ -1,8 +1,9 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   getPostById,
+  getThreadCards,
   listCommentsForPost,
 } from "@/lib/queries/posts";
 import { getCurrentProfile } from "@/lib/queries/profile";
@@ -44,6 +45,18 @@ export default async function PostPage({ params }: { params: Params }) {
 
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
 
+  /* Chantier Feed 4.2 — si le post fait partie d'un thread, on charge toutes
+   * les cartes (depuis le root) pour afficher la conversation complète. */
+  const threadRootId =
+    post.post_kind === "thread"
+      ? post.thread_root_id ?? post.id
+      : null;
+  const threadCards = threadRootId
+    ? await getThreadCards(threadRootId, user.id)
+    : null;
+  const cards =
+    threadCards && threadCards.length > 0 ? threadCards : [post];
+
   return (
     <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
       <Link
@@ -54,7 +67,30 @@ export default async function PostPage({ params }: { params: Params }) {
         Retour au feed
       </Link>
 
-      <PostCard post={post} currentUserId={user.id} />
+      {threadRootId && threadCards && threadCards.length > 1 ? (
+        <div className="rounded-2xl bg-violet-50 border border-violet-200 px-4 py-2.5 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-violet-700" aria-hidden />
+          <p className="text-[12.5px] font-extrabold text-violet-800">
+            Thread · {threadCards.length} cartes
+          </p>
+        </div>
+      ) : null}
+
+      <ol className="space-y-4">
+        {cards.map((card, idx) => (
+          <li key={card.id} className="relative">
+            {threadRootId && cards.length > 1 ? (
+              <span
+                aria-hidden
+                className="absolute left-4 -top-2 z-10 inline-flex w-6 h-6 rounded-full bg-violet-600 text-white text-[10px] font-extrabold items-center justify-center ring-2 ring-bg-soft"
+              >
+                {idx + 1}
+              </span>
+            ) : null}
+            <PostCard post={card} currentUserId={user.id} />
+          </li>
+        ))}
+      </ol>
 
       <section className="rounded-3xl bg-white border border-line shadow-soft p-5 sm:p-6 space-y-6">
         <header>

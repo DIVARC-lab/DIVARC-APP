@@ -520,6 +520,9 @@ export type Post = {
   /* Chantier Feed v2 (migration 0111) — reactions 6 types. */
   reactions_counts: Partial<Record<PostReactionType, number>>;
   total_reactions: number;
+  /* Chantier Feed v2 (migration 0115) — quote-post. */
+  quoted_post_id: string | null;
+  quotes_count: number;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -4687,6 +4690,9 @@ export type Database = {
               /* Chantier Feed v2 (migration 0111) — counters. */
               | "reactions_counts"
               | "total_reactions"
+              /* Chantier Feed v2 (migration 0115) — quote-post. */
+              | "quoted_post_id"
+              | "quotes_count"
             >
           >;
         Update: Partial<
@@ -4708,6 +4714,8 @@ export type Database = {
             | "thread_reply_to_id"
             | "thread_position"
             | "audience_snapshot"
+            | "quoted_post_id"
+            | "quotes_count"
             | "edited_at"
             | "deleted_at"
             | "video_url"

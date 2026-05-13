@@ -15,7 +15,7 @@
  * (utilities arbitraires `text-[19px]`, gradients via `bg-gradient-to-br`,
  * shadows via `shadow-[...]`). Aucun `style={{}}` inline.
  */
-import { Globe, Lock, MapPin, MessageCircle, Send, Users } from "lucide-react";
+import { Globe, Lock, MapPin, MessageCircle, Quote, Send, Users } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
@@ -26,7 +26,7 @@ import { renderPostBody } from "@/lib/utils/postBody";
 import { PostPoll } from "./PostPoll";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { BookmarkButton } from "./BookmarkButton";
-import { LikeButton } from "./LikeButton";
+import { ReactionsBar } from "./ReactionsBar";
 import { PostMenu } from "./PostMenu";
 import { WhyThisPost } from "@/components/feed/WhyThisPost";
 import type { RankingSignalDisplay } from "@/components/feed/WhyThisPost";
@@ -253,6 +253,20 @@ export function PostCard({
         })()
       ) : null}
 
+      {/* Chantier Feed 4.4 — chip "cite un post" si quoted_post_id présent. */}
+      {post.quoted_post_id ? (
+        <div className="px-[18px] pb-3">
+          <Link
+            href={`/feed/${post.quoted_post_id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-bg-soft hover:bg-night/8 text-[11.5px] font-extrabold text-night-soft hover:text-night transition-colors"
+          >
+            <Quote className="w-3 h-3" aria-hidden />
+            Cite un post →
+          </Link>
+        </div>
+      ) : null}
+
       {/* Plugin Sondage (Phase 1.6). */}
       {post.poll ? (
         <PostPoll
@@ -383,10 +397,9 @@ export function PostCard({
 
       {showActions ? (
         <footer className="flex items-center gap-1.5 px-3 pb-3.5">
-          <LikeButton
+          <ReactionsBar
             postId={post.id}
-            initialLiked={post.is_liked}
-            initialCount={post.likes_count}
+            initialTotal={post.total_reactions ?? post.likes_count}
           />
           <Link
             href={`/feed/${post.id}`}
@@ -395,6 +408,13 @@ export function PostCard({
           >
             <MessageCircle className="w-4 h-4" aria-hidden />
             {post.comments_count > 0 ? post.comments_count : "Commenter"}
+          </Link>
+          <Link
+            href={`/feed/quote/${post.id}`}
+            aria-label="Citer ce post"
+            className="inline-flex items-center justify-center h-11 w-11 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+          >
+            <Quote className="w-[15px] h-[15px]" aria-hidden />
           </Link>
           <button
             type="button"
