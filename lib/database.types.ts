@@ -1936,6 +1936,41 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Chantier 4.3 (migration 0100) — audit log modération par cercle. */
+export type CircleModerationActionType =
+  | "post_approved"
+  | "post_rejected"
+  | "post_pinned"
+  | "post_unpinned"
+  | "post_locked"
+  | "post_unlocked"
+  | "post_announcement_set"
+  | "post_announcement_unset"
+  | "member_promoted"
+  | "member_demoted"
+  | "member_warned"
+  | "member_muted"
+  | "member_unmuted"
+  | "member_banned"
+  | "member_unbanned"
+  | "rule_added"
+  | "rule_removed"
+  | "rule_updated"
+  | "flair_added"
+  | "flair_removed";
+
+export type CircleModerationAction = {
+  id: string;
+  circle_id: string;
+  actor_user_id: string;
+  action_type: CircleModerationActionType;
+  target_post_id: string | null;
+  target_user_id: string | null;
+  metadata: Record<string, unknown>;
+  reason: string | null;
+  created_at: string;
+};
+
 /* Chantier 3.5 (migration 0098) — bibliothèque collaborative par cercle. */
 export type CircleLibraryItemType =
   | "document"
@@ -5004,6 +5039,22 @@ export type Database = {
           "user_id" | "post_id" | "vote_type"
         > &
           Partial<Pick<CirclePostVote, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      /* Chantier 4.3 (migration 0100) — audit log modération. */
+      circle_moderation_actions: {
+        Row: CircleModerationAction;
+        Insert: Pick<
+          CircleModerationAction,
+          "circle_id" | "actor_user_id" | "action_type"
+        > &
+          Partial<
+            Omit<
+              CircleModerationAction,
+              "circle_id" | "actor_user_id" | "action_type" | "id" | "created_at"
+            >
+          >;
         Update: never;
         Relationships: [];
       };

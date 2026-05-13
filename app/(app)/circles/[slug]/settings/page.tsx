@@ -104,32 +104,39 @@ export default async function CircleSettingsPage({
           />
         </SettingsSection>
 
-        {/* Sous-pages dédiées (placeholder + lien) */}
+        {/* Sous-pages dédiées (lien direct) */}
         <SettingsSection
-          title="Règles, flairs & équipe"
-          description="Gestion détaillée arrive bientôt (Chantier 4.3)."
+          title="Modération & équipe"
+          description="Gestion des posts en attente, sanctions et rôles."
         >
           <ul className="space-y-1.5 text-[13px] text-night-dim">
             <li>
-              · Règles du cercle :{" "}
+              ·{" "}
+              <Link
+                href={`/circles/${slug}/moderation`}
+                className="text-gold-deep font-bold hover:underline"
+              >
+                Dashboard de modération
+              </Link>{" "}
+              : file d&apos;approbation + historique des actions
+            </li>
+            <li>
+              · Règles : visible dans{" "}
               <Link
                 href={`/circles/${slug}/about`}
                 className="text-gold-deep font-bold hover:underline"
               >
-                Voir l&apos;onglet À propos
+                l&apos;onglet À propos
               </Link>
             </li>
             <li>
-              · Membres et rôles :{" "}
+              · Membres & rôles :{" "}
               <Link
                 href={`/circles/${slug}/members`}
                 className="text-gold-deep font-bold hover:underline"
               >
-                Voir l&apos;onglet Membres
+                l&apos;onglet Membres
               </Link>
-            </li>
-            <li>
-              · File de modération : Chantier 4.3
             </li>
           </ul>
         </SettingsSection>

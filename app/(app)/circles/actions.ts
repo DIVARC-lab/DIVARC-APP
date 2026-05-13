@@ -1022,3 +1022,263 @@ export async function cancelEventRsvp(eventId: string) {
   }
   return { ok: true as const };
 }
+
+/* ============================================================================
+ * Chantier 4.3 — Modération par cercle
+ * ============================================================================ */
+
+async function assertCircleModerator(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  circleId: string,
+  userId: string,
+): Promise<{ ok: true; role: string } | { ok: false; error: string }> {
+  const { data: m } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", circleId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const role = (m as { role?: string } | null)?.role;
+  if (!role || !["owner", "admin", "moderator", "mod"].includes(role)) {
+    return {
+      ok: false,
+      error: "Seuls les modérateurs peuvent effectuer cette action.",
+    };
+  }
+  return { ok: true, role };
+}
+
+async function logModerationAction(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  circleId: string,
+  actorId: string,
+  actionType: import("@/lib/database.types").CircleModerationActionType,
+  args: {
+    targetPostId?: string | null;
+    targetUserId?: string | null;
+    reason?: string | null;
+    metadata?: Record<string, unknown>;
+  } = {},
+) {
+  try {
+    await supabase.from("circle_moderation_actions").insert({
+      circle_id: circleId,
+      actor_user_id: actorId,
+      action_type: actionType,
+      target_post_id: args.targetPostId ?? null,
+      target_user_id: args.targetUserId ?? null,
+      reason: args.reason ?? null,
+      metadata: args.metadata ?? {},
+    });
+  } catch (err) {
+    console.warn("[divarc] logModerationAction failed (non-fatal):", err);
+  }
+}
+
+export async function approveCirclePost(
+  postId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("circle_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post?.circle_id) return { ok: false, error: "Post introuvable." };
+
+  const check = await assertCircleModerator(supabase, post.circle_id, user.id);
+  if (!check.ok) return check;
+
+  const { error } = await supabase
+    .from("posts")
+    .update({
+      requires_approval: false,
+      approved_by: user.id,
+      approved_at: new Date().toISOString(),
+    })
+    .eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+
+  await logModerationAction(supabase, post.circle_id, user.id, "post_approved", {
+    targetPostId: postId,
+  });
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", post.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}`);
+    revalidatePath(`/circles/${circle.slug}/moderation`);
+  }
+  return { ok: true };
+}
+
+export async function rejectCirclePost(
+  postId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("circle_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post?.circle_id) return { ok: false, error: "Post introuvable." };
+
+  const check = await assertCircleModerator(supabase, post.circle_id, user.id);
+  if (!check.ok) return check;
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+
+  await logModerationAction(supabase, post.circle_id, user.id, "post_rejected", {
+    targetPostId: postId,
+    reason: reason.slice(0, 1000),
+  });
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", post.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}`);
+    revalidatePath(`/circles/${circle.slug}/moderation`);
+  }
+  return { ok: true };
+}
+
+export async function toggleLockCirclePost(
+  postId: string,
+): Promise<{ ok: boolean; error?: string; locked?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("circle_id, is_locked")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post?.circle_id) return { ok: false, error: "Post introuvable." };
+
+  const check = await assertCircleModerator(supabase, post.circle_id, user.id);
+  if (!check.ok) return check;
+
+  const nextLocked = !(post as { is_locked?: boolean }).is_locked;
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_locked: nextLocked })
+    .eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+
+  await logModerationAction(
+    supabase,
+    post.circle_id,
+    user.id,
+    nextLocked ? "post_locked" : "post_unlocked",
+    { targetPostId: postId },
+  );
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", post.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  return { ok: true, locked: nextLocked };
+}
+
+export async function updateCircleMemberRole(
+  circleId: string,
+  targetUserId: string,
+  newRole: "admin" | "moderator" | "ambassador" | "contributor" | "member",
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const [{ data: circle }, { data: actor }] = await Promise.all([
+    supabase
+      .from("circles")
+      .select("owner_id, slug")
+      .eq("id", circleId)
+      .maybeSingle(),
+    supabase
+      .from("circle_members")
+      .select("role")
+      .eq("circle_id", circleId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+
+  if (!circle) return { ok: false, error: "Cercle introuvable." };
+
+  const actorRole = (actor as { role?: string } | null)?.role;
+  const isOwner = circle.owner_id === user.id;
+  if (!isOwner && actorRole !== "admin") {
+    return {
+      ok: false,
+      error: "Seul le fondateur ou les admins peuvent modifier les rôles.",
+    };
+  }
+
+  if (targetUserId === circle.owner_id) {
+    return { ok: false, error: "Le rôle du fondateur ne peut être modifié." };
+  }
+
+  if (newRole === "admin" && !isOwner) {
+    return { ok: false, error: "Seul le fondateur peut nommer un admin." };
+  }
+
+  const { data: target } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", circleId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  const previousRole = (target as { role?: string } | null)?.role ?? "member";
+
+  const { error } = await supabase
+    .from("circle_members")
+    .update({ role: newRole })
+    .eq("circle_id", circleId)
+    .eq("user_id", targetUserId);
+  if (error) return { ok: false, error: error.message };
+
+  const ORDER = ["member", "contributor", "ambassador", "moderator", "admin"];
+  const actionType =
+    ORDER.indexOf(newRole) > ORDER.indexOf(previousRole)
+      ? "member_promoted"
+      : "member_demoted";
+
+  await logModerationAction(supabase, circleId, user.id, actionType, {
+    targetUserId,
+    metadata: { previous_role: previousRole, new_role: newRole },
+  });
+
+  if (circle.slug) {
+    revalidatePath(`/circles/${circle.slug}/members`);
+    revalidatePath(`/circles/${circle.slug}/moderation`);
+  }
+  return { ok: true };
+}
