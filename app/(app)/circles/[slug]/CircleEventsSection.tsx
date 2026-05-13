@@ -1,12 +1,22 @@
 "use client";
 
-import { Calendar, MapPin, Users2 } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  ExternalLink,
+  HelpCircle,
+  MapPin,
+  Users2,
+  Video,
+  X,
+} from "lucide-react";
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { cn } from "@/lib/utils/cn";
 import type {
+  CircleEventAttendanceStatus,
   CircleEventCategory,
   CircleEventWithRsvp,
 } from "@/lib/database.types";
@@ -36,24 +46,9 @@ export function CircleEventsSection({
   isMember,
 }: CircleEventsSectionProps) {
   return (
-    <section className="mt-10" aria-label="Événements">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gold-deep" aria-hidden />
-          <KickerLabel>Événements</KickerLabel>
-        </div>
-        {isMember ? (
-          <Link
-            href={`/circles/${circleSlug}/events/new`}
-            className="text-xs font-semibold text-gold-deep hover:text-night transition-colors"
-          >
-            + Nouvel événement
-          </Link>
-        ) : null}
-      </div>
-
+    <section aria-label="Événements">
       {events.length === 0 ? (
-        <p className="text-sm text-muted text-center py-8 rounded-2xl border border-dashed border-line">
+        <p className="text-sm text-night-dim text-center py-8 rounded-2xl border border-dashed border-line">
           Pas d&apos;événement à venir.{" "}
           {isMember ? (
             <Link
@@ -87,6 +82,10 @@ function EventCard({
   canRsvp: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [myStatus, setMyStatus] = useState<
+    CircleEventAttendanceStatus | null
+  >(event.my_status);
+
   const date = new Date(event.starts_at);
   const day = date.toLocaleDateString("fr-FR", { weekday: "short" });
   const dayNum = date.getDate();
@@ -96,24 +95,58 @@ function EventCard({
     minute: "2-digit",
   });
 
-  const going = event.my_status === "going";
+  const onRsvp = (status: CircleEventAttendanceStatus) => {
+    /* Toggle : cliquer le bouton actif → annule. */
+    const optimisticNext = myStatus === status ? null : status;
+    const previousStatus = myStatus;
+    setMyStatus(optimisticNext);
 
-  const onRsvp = () => {
     startTransition(async () => {
-      if (going) {
-        const result = await cancelEventRsvp(event.id);
-        if (!result.ok) toast.error(result.error ?? "Action impossible.");
-        else toast.success("RSVP annulé.");
-      } else {
-        const result = await attendCircleEvent(event.id, "going");
-        if (!result.ok) toast.error(result.error ?? "Action impossible.");
-        else toast.success("On y compte sur toi !");
+      const result =
+        optimisticNext === null
+          ? await cancelEventRsvp(event.id)
+          : await attendCircleEvent(event.id, optimisticNext);
+      if (!result.ok) {
+        setMyStatus(previousStatus);
+        toast.error(result.error ?? "Action impossible.");
+        return;
       }
+      if (optimisticNext === "going") toast.success("On y compte sur toi !");
+      else if (optimisticNext === "maybe") toast.success("Peut-être — OK.");
+      else if (optimisticNext === "not_going")
+        toast.success("Marqué comme indisponible.");
+      else toast.success("RSVP annulé.");
     });
   };
 
+  /* Type icon + label. */
+  const typeIcon =
+    event.event_type === "online" ? (
+      <Video className="w-3 h-3" aria-hidden />
+    ) : event.event_type === "hybrid" ? (
+      <>
+        <MapPin className="w-3 h-3" aria-hidden />
+        <Video className="w-3 h-3" aria-hidden />
+      </>
+    ) : (
+      <MapPin className="w-3 h-3" aria-hidden />
+    );
+  const typeLabel =
+    event.event_type === "online"
+      ? "En ligne"
+      : event.event_type === "hybrid"
+        ? "Hybride"
+        : "En présentiel";
+
+  const isCancelled = event.status === "cancelled";
+
   return (
-    <article className="flex gap-4 p-4 rounded-2xl bg-white border border-line">
+    <article
+      className={cn(
+        "flex gap-4 p-4 rounded-2xl bg-white border border-line",
+        isCancelled && "opacity-60",
+      )}
+    >
       {/* Date pill */}
       <div className="shrink-0 w-16 rounded-xl bg-night text-cream py-2 text-center shadow-soft overflow-hidden">
         <p className="text-[9px] tracking-[0.14em] uppercase font-extrabold text-gold">
@@ -135,41 +168,118 @@ function EventCard({
           >
             {CATEGORY_LABEL[event.category]}
           </span>
-          <span className="text-[11px] text-muted">{time}</span>
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-night-dim">
+            {typeIcon}
+            {typeLabel}
+          </span>
+          <span className="text-[11px] text-night-dim">{time}</span>
+          {isCancelled ? (
+            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+              Annulé
+            </span>
+          ) : null}
         </div>
+
         <h3 className="font-semibold text-night mt-1 leading-tight truncate">
           {event.title}
         </h3>
-        {event.location ? (
-          <p className="text-xs text-muted-strong mt-1 inline-flex items-center gap-1">
+
+        {event.event_type !== "in_person" && event.online_url ? (
+          <a
+            href={event.online_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-[12px] text-gold-deep font-bold hover:underline"
+          >
+            <ExternalLink className="w-3 h-3" aria-hidden />
+            {event.online_platform ?? "Lien de connexion"}
+          </a>
+        ) : null}
+        {event.location && event.event_type !== "online" ? (
+          <p className="text-xs text-night-dim mt-1 inline-flex items-center gap-1">
             <MapPin className="w-3 h-3" aria-hidden />
             {event.location}
           </p>
         ) : null}
-        <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
-          <p className="text-[11px] text-muted inline-flex items-center gap-1">
+
+        <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-[11px] text-night-dim inline-flex items-center gap-1">
             <Users2 className="w-3 h-3" aria-hidden />
-            {event.attendance_count}{" "}
-            {event.attendance_count > 1 ? "personnes" : "personne"} y va
+            <span className="tabular-nums">{event.attendance_count}</span>{" "}
+            {event.attendance_count > 1 ? "personnes" : "personne"} y vont
             {event.capacity ? ` · ${event.capacity} max` : ""}
           </p>
-          {canRsvp ? (
-            <button
-              type="button"
-              onClick={onRsvp}
-              disabled={pending}
-              className={cn(
-                "px-3 h-8 rounded-full text-xs font-semibold transition-colors disabled:opacity-50",
-                going
-                  ? "bg-gold text-night hover:bg-gold-soft"
-                  : "bg-night text-cream hover:bg-night-soft",
-              )}
-            >
-              {going ? "✓ J'y vais" : "+ Y aller"}
-            </button>
+
+          {canRsvp && !isCancelled ? (
+            <div className="inline-flex items-center gap-1">
+              <RsvpButton
+                label="J'y vais"
+                icon={Check}
+                active={myStatus === "going"}
+                tone="going"
+                onClick={() => onRsvp("going")}
+                disabled={pending}
+              />
+              <RsvpButton
+                label="Peut-être"
+                icon={HelpCircle}
+                active={myStatus === "maybe"}
+                tone="maybe"
+                onClick={() => onRsvp("maybe")}
+                disabled={pending}
+              />
+              <RsvpButton
+                label="Indispo"
+                icon={X}
+                active={myStatus === "not_going"}
+                tone="notgoing"
+                onClick={() => onRsvp("not_going")}
+                disabled={pending}
+              />
+            </div>
           ) : null}
         </div>
       </div>
     </article>
+  );
+}
+
+function RsvpButton({
+  label,
+  icon: Icon,
+  active,
+  tone,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  icon: typeof Calendar;
+  active: boolean;
+  tone: "going" | "maybe" | "notgoing";
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const activeClass = {
+    going: "bg-gold text-night",
+    maybe: "bg-amber-100 text-amber-700",
+    notgoing: "bg-night/10 text-night-dim",
+  }[tone];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex items-center gap-1 h-7 px-2 rounded-full text-[10.5px] font-extrabold transition-colors disabled:opacity-50",
+        active
+          ? activeClass
+          : "bg-bg-soft text-night-dim hover:bg-line",
+      )}
+    >
+      <Icon className="w-3 h-3" aria-hidden />
+      {label}
+    </button>
   );
 }

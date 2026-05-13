@@ -348,7 +348,7 @@ export async function createCircleEvent(formData: FormData) {
 
 export async function attendCircleEvent(
   eventId: string,
-  status: "going" | "interested" = "going",
+  status: "going" | "interested" | "maybe" | "not_going" = "going",
 ) {
   const supabase = await createClient();
   const {

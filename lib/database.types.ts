@@ -1982,7 +1982,19 @@ export type CircleMemberWithProfile = CircleMember & {
 
 export type CircleEventCategory = "community" | "social" | "cultural";
 
-export type CircleEventAttendanceStatus = "going" | "interested";
+/* Chantier 3.6 (migration 0099) — RSVP étendu + types event. */
+export type CircleEventAttendanceStatus =
+  | "going"
+  | "interested"
+  | "maybe"
+  | "not_going";
+
+export type CircleEventType = "in_person" | "online" | "hybrid";
+export type CircleEventLifecycle =
+  | "scheduled"
+  | "live"
+  | "ended"
+  | "cancelled";
 
 export type CircleEvent = {
   id: string;
@@ -2001,6 +2013,18 @@ export type CircleEvent = {
   created_at: string;
   reminded_24h_at: string | null;
   reminded_1h_at: string | null;
+  /* Chantier 3.6 (migration 0099). */
+  event_type: CircleEventType;
+  online_url: string | null;
+  online_platform: string | null;
+  timezone: string;
+  cover_image_url: string | null;
+  status: CircleEventLifecycle;
+  require_approval: boolean;
+  is_paid: boolean;
+  price_amount: number | null;
+  price_currency: string | null;
+  co_host_user_ids: string[];
 };
 
 export type CircleEventAttendance = {
