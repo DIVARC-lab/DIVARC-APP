@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  DiscoverReasonType,
   FeedMode,
   Post,
   PostPhoto,
@@ -462,6 +463,68 @@ export async function loadFeedV2(
   );
 
   /* Préserve l'ordre RPC. */
+  const orderById = new Map(ranked.map((r, i) => [r.post_id, i]));
+  enriched.sort(
+    (a, b) => (orderById.get(a.id) ?? 999) - (orderById.get(b.id) ?? 999),
+  );
+
+  return { posts: enriched, reasonByPostId };
+}
+
+/* loadDiscoverPosts — Chantier Feed 5.3 — appel RPC discover_posts.
+ * Retourne posts hydratés + Map des reasons structurées par post. */
+export async function loadDiscoverPosts(
+  currentUserId: string,
+  limit: number = 30,
+): Promise<{
+  posts: PostWithDetails[];
+  reasonByPostId: Map<
+    string,
+    { type: DiscoverReasonType; data: Record<string, number> }
+  >;
+}> {
+  const supabase = await createClient();
+
+  const { data: ranked, error } = await supabase.rpc("discover_posts", {
+    p_user_id: currentUserId,
+    p_limit: limit,
+  });
+
+  if (error || !ranked || ranked.length === 0) {
+    if (error) console.error("[loadDiscoverPosts]", error);
+    return { posts: [], reasonByPostId: new Map() };
+  }
+
+  const postIds = ranked.map((r) => r.post_id);
+  const reasonByPostId = new Map(
+    ranked.map((r) => [
+      r.post_id,
+      {
+        type: r.reason_type as DiscoverReasonType,
+        data: (r.reason_data ?? {}) as Record<string, number>,
+      },
+    ]),
+  );
+
+  const { data: rawPosts } = await supabase
+    .from("posts")
+    .select(
+      "id, author_id, body, visibility, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height, circle_id, pinned_at, pinned_by, created_at, updated_at, edited_at, deleted_at, status",
+    )
+    .in("id", postIds)
+    .is("deleted_at", null)
+    .eq("status", "published");
+
+  if (!rawPosts || rawPosts.length === 0) {
+    return { posts: [], reasonByPostId };
+  }
+
+  const enriched = await attachPhotos(
+    rawPosts as Post[],
+    new Map(),
+    currentUserId,
+  );
+
   const orderById = new Map(ranked.map((r, i) => [r.post_id, i]));
   enriched.sort(
     (a, b) => (orderById.get(a.id) ?? 999) - (orderById.get(b.id) ?? 999),

@@ -403,6 +403,35 @@ export type FeedV2Item = {
   reason: string | null;
 };
 
+/* Chantier Feed v2.5 — découverte explicable (RPC discover_posts). */
+export type DiscoverReasonType =
+  | "trending_diverse"
+  | "friend_echo"
+  | "rising_voice";
+
+export type DiscoverReasonData =
+  | {
+      type: "trending_diverse";
+      commenters: number;
+      reactors: number;
+    }
+  | {
+      type: "friend_echo";
+      friend_reactors: number;
+    }
+  | {
+      type: "rising_voice";
+      author_friends: number;
+      external_reactions: number;
+    };
+
+export type DiscoverItem = {
+  post_id: string;
+  score: number | null;
+  reason_type: DiscoverReasonType;
+  reason_data: Record<string, number>;
+};
+
 export type PostBackgroundColor =
   | "navy"
   | "gold"
@@ -6649,6 +6678,16 @@ export type Database = {
           post_id: string;
           score: number | null;
           reason: string | null;
+        }>;
+      };
+      /* Migration 0116 — Découverte explicable (3 sources mixées). */
+      discover_posts: {
+        Args: { p_user_id?: string | null; p_limit?: number };
+        Returns: Array<{
+          post_id: string;
+          score: number | null;
+          reason_type: DiscoverReasonType;
+          reason_data: Record<string, number>;
         }>;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
