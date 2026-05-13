@@ -102,6 +102,200 @@ export async function createCircle(formData: FormData) {
   };
 }
 
+/* Chantier 4.1 — Wizard de création v2 avec tous les champs étendus. */
+const createV2Schema = z.object({
+  name: z.string().trim().min(2).max(80),
+  tagline: z
+    .string()
+    .trim()
+    .max(140)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  description: z
+    .string()
+    .trim()
+    .max(4000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  emoji: z
+    .string()
+    .trim()
+    .max(8)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  color: z.enum(COLOR_VALUES).optional().transform((v) => v ?? null),
+  color_accent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional()
+    .transform((v) => v ?? "#C9A961"),
+  primary_category: z
+    .string()
+    .min(1)
+    .max(80)
+    .optional()
+    .transform((v) => v ?? null),
+  tags: z.array(z.string().min(1).max(40)).max(10).default([]),
+  language: z.string().min(2).max(5).default("fr"),
+  is_local: z.boolean().default(false),
+  location_city: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  location_country: z
+    .string()
+    .length(2)
+    .optional()
+    .transform((v) => v ?? null),
+  type: z.enum(["open", "semi_open", "private", "hidden"]).default("open"),
+  join_policy: z
+    .enum(["instant", "request", "invite_only", "paid", "quiz"])
+    .default("instant"),
+  visibility: z.enum(["public", "unlisted", "invite_only"]).default("public"),
+  modules: z.object({
+    social_feed: z.boolean().default(true),
+    marketplace: z.boolean().default(false),
+    jobs: z.boolean().default(false),
+    library: z.boolean().default(false),
+    events: z.boolean().default(true),
+    polls: z.boolean().default(true),
+    wiki: z.boolean().default(false),
+    live_audio: z.boolean().default(false),
+    challenges: z.boolean().default(false),
+    mentorship: z.boolean().default(false),
+  }),
+  welcome_message: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  rules: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(60),
+        description: z
+          .string()
+          .trim()
+          .max(300)
+          .optional()
+          .transform((v) => (v && v.length > 0 ? v : null)),
+        is_critical: z.boolean().default(false),
+      }),
+    )
+    .max(15)
+    .default([]),
+});
+
+export type CreateCircleV2Result =
+  | { ok: true; slug: string }
+  | { ok: false; error: string };
+
+export async function createCircleV2(
+  payload: unknown,
+): Promise<CreateCircleV2Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const parsed = createV2Schema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Cercle invalide.",
+    };
+  }
+
+  let slug = slugFromName(parsed.data.name);
+  if (slug.length < 2) slug = `cercle-${Date.now().toString(36).slice(-6)}`;
+
+  /* Insert avec retry sur conflit slug. */
+  let attempt = 0;
+  let lastError: { message: string } | null = null;
+  let createdId: string | null = null;
+  let createdSlug: string | null = null;
+  while (attempt < 5) {
+    const candidate = attempt === 0 ? slug : `${slug}-${attempt + 1}`;
+    const { data, error } = await supabase
+      .from("circles")
+      .insert({
+        slug: candidate,
+        name: parsed.data.name,
+        tagline: parsed.data.tagline,
+        description: parsed.data.description,
+        emoji: parsed.data.emoji,
+        color: parsed.data.color,
+        color_accent: parsed.data.color_accent,
+        primary_category: parsed.data.primary_category,
+        tags: parsed.data.tags,
+        language: parsed.data.language,
+        is_local: parsed.data.is_local,
+        location_city: parsed.data.location_city,
+        location_country: parsed.data.location_country,
+        type: parsed.data.type,
+        join_policy: parsed.data.join_policy,
+        visibility: parsed.data.visibility,
+        modules: parsed.data.modules,
+        welcome_message: parsed.data.welcome_message,
+        /* Conserve la sémantique legacy is_private pour les queries v1. */
+        is_private: parsed.data.type === "private" || parsed.data.type === "hidden",
+        owner_id: user.id,
+      })
+      .select("id, slug")
+      .single();
+    if (!error && data) {
+      createdId = data.id;
+      createdSlug = data.slug;
+      break;
+    }
+    lastError = error ?? null;
+    if (error?.code !== "23505") break;
+    attempt++;
+  }
+
+  if (!createdId || !createdSlug) {
+    return {
+      ok: false,
+      error: lastError?.message ?? "Création impossible.",
+    };
+  }
+
+  /* Ajoute le owner dans circle_members (le trigger backfill 0092 le fait
+   * pour les rows existantes, mais pas pour les nouvelles ; on l'insère
+   * explicitement pour cohérence). */
+  await supabase
+    .from("circle_members")
+    .insert({
+      circle_id: createdId,
+      user_id: user.id,
+      role: "owner",
+      status: "active",
+    })
+    /* idempotent : si le trigger ou la backfill a déjà inséré, on ignore. */
+    .select("user_id")
+    .maybeSingle();
+
+  /* Insère les règles (si fournies). */
+  if (parsed.data.rules.length > 0) {
+    await supabase.from("circle_rules").insert(
+      parsed.data.rules.map((r, i) => ({
+        circle_id: createdId,
+        position: i + 1,
+        title: r.title,
+        description: r.description,
+        is_critical: r.is_critical,
+      })),
+    );
+  }
+
+  revalidatePath("/circles");
+  return { ok: true, slug: createdSlug };
+}
+
 export async function joinCircle(circleId: string) {
   const supabase = await createClient();
   const {
