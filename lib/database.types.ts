@@ -2527,6 +2527,12 @@ export type UserInterestProfile = {
   events_processed_count: number;
   profile_version: number;
   last_updated: string;
+  /* Chantier Reels Recsys 16 — V3 fields (migration 0122). */
+  cold_start_topics: string[] | null;
+  cold_start_completed_at: string | null;
+  hashtag_affinity: Record<string, number>;
+  sound_affinity: Record<string, number>;
+  last_session_at: string | null;
 };
 
 export type UserAlgorithmSettings = {
@@ -4577,6 +4583,11 @@ export type Database = {
               | "events_processed_count"
               | "profile_version"
               | "last_updated"
+              | "cold_start_topics"
+              | "cold_start_completed_at"
+              | "hashtag_affinity"
+              | "sound_affinity"
+              | "last_session_at"
             >
           >;
         Update: Partial<
@@ -4592,6 +4603,11 @@ export type Database = {
             | "events_processed_count"
             | "profile_version"
             | "last_updated"
+            | "cold_start_topics"
+            | "cold_start_completed_at"
+            | "hashtag_affinity"
+            | "sound_affinity"
+            | "last_session_at"
           >
         >;
         Relationships: [];
