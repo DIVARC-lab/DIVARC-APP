@@ -383,7 +383,9 @@ export type NotificationType =
   | "marketplace_offer_accepted"
   | "marketplace_offer_declined"
   | "marketplace_offer_countered"
-  | "marketplace_offer_withdrawn";
+  | "marketplace_offer_withdrawn"
+  /* Migration 0106 — digest hebdomadaire cercle. */
+  | "circle_weekly_digest";
 
 export type PostVisibility = "public" | "friends" | "private";
 
@@ -6396,6 +6398,22 @@ export type Database = {
           new_members_count_7d: number;
           new_members_count_30d: number;
         }>;
+      };
+      /* Migration 0106 — stats agrégées d'un cercle sur 7j (digest hebdo). */
+      circle_weekly_stats: {
+        Args: { p_circle_id: string };
+        Returns: Record<string, unknown>;
+      };
+      /* Migration 0106 — insert notification digest idempotent. */
+      enqueue_circle_weekly_digest: {
+        Args: {
+          p_circle_id: string;
+          p_user_id: string;
+          p_title: string;
+          p_body: string;
+          p_href: string;
+        };
+        Returns: boolean;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */

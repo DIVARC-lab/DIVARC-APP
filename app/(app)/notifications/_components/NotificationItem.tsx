@@ -68,6 +68,8 @@ const TYPE_ICONS: Record<
   marketplace_offer_declined: { icon: X, color: "#DC2626" },
   marketplace_offer_countered: { icon: Reply, color: "#0A1F44" },
   marketplace_offer_withdrawn: { icon: Handshake, color: "#8696B0" },
+  /* Migration 0106 — digest hebdo cercle. */
+  circle_weekly_digest: { icon: Bell, color: "#B88A2A" },
 };
 
 type NotificationItemProps = {
