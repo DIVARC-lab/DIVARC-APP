@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
+import { WhyThisReel } from "@/components/reels/WhyThisReel";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
 import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
 import { useVideoTracking } from "@/lib/hooks/useVideoTracking";
@@ -87,6 +88,23 @@ export function ReelView({
    * (les events legacy reel_views restent intacts via watchStartRef). */
   useVideoTracking(videoRef, reel.id, { surface, position });
   const impressionRef = useTrackImpression(reel.id, { surface, position });
+
+  /* Chantier Reels Recsys 15 — sheet "Pourquoi ce reel ?" déclenchée au
+   * tap-long (>500ms) sur le conteneur. */
+  const [whyOpen, setWhyOpen] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handlePointerDownContainer = useCallback(() => {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      setWhyOpen(true);
+    }, 600);
+  }, []);
+  const handlePointerUpContainer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
 
   /* Text overlays — parsés une fois (memoized) puis filtrés par
      currentTime à chaque tick. parseOverlays() tolère les schemas
@@ -336,8 +354,17 @@ export function ReelView({
   return (
     <div
       ref={impressionRef as React.RefObject<HTMLDivElement>}
+      onPointerDown={handlePointerDownContainer}
+      onPointerUp={handlePointerUpContainer}
+      onPointerCancel={handlePointerUpContainer}
+      onPointerLeave={handlePointerUpContainer}
       className="relative w-full h-full bg-black"
     >
+      <WhyThisReel
+        reelId={reel.id}
+        open={whyOpen}
+        onClose={() => setWhyOpen(false)}
+      />
       {/* V3.8 — vidéo source du duet (toujours muted). */}
       {reel.duet_source ? (
         <video
