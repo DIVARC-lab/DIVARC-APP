@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { MessageCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
@@ -8,12 +8,16 @@ export default function MessagesEmptyState() {
       <div className="max-w-md text-center">
         <div
           aria-hidden
-          className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/20 border border-gold/30 flex items-center justify-center mb-4 sm:mb-6 shadow-soft text-4xl sm:text-5xl leading-none"
+          className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/20 border border-gold/30 flex items-center justify-center mb-4 sm:mb-6 shadow-soft"
         >
-          💬
+          <MessageCircle
+            className="w-9 h-9 sm:w-11 sm:h-11 text-gold-deep"
+            aria-hidden
+          />
         </div>
         <h1 className="font-display italic text-[28px] sm:text-[48px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
-          Bienvenue dans tes <span className="text-gold-deep">discussions</span>.
+          Bienvenue dans tes{" "}
+          <em className="italic text-gold-deep">discussions</em>.
         </h1>
         <p className="mt-3 text-sm sm:text-base text-muted-strong leading-relaxed">
           Choisis une conversation à gauche, ou démarre-en une nouvelle. Tes
