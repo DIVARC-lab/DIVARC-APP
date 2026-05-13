@@ -1,59 +1,121 @@
 /* Poids des events pour le calcul d'affinité.
  *
- * Source : brief V1, calibré sur observations Pinterest/LinkedIn.
- * Reports / hide / see_less = négatifs forts, exclusion de topics.
- * Like / comment / save / share = positifs, valeurs croissantes.
- * Impressions / dwell = signaux faibles mais cumulatifs.
+ * V1 (Pinterest/LinkedIn-style) : poids calibrés sur engagement explicite.
+ * V2 (TikTok-style, Chantier Reels Recsys étape 1) : ajout des signaux vidéo
+ * granulaires (quartiles, replay, skip_fast, scrub, unmute, fullscreen) qui
+ * sont LE cœur du ranker Reels. Cf. lib/recsys/ranker.ts et le cahier
+ * "TikTok playbook" pour les motivations.
  *
- * Le tagging dwell_3s+ / dwell_10s+ / video.completion_25 etc. n'est
- * pas natif dans event_type — la conversion se fait dans
- * `mapDwellEventToWeight` selon les properties.dwell_ms de l'event. */
+ * Convention de signes :
+ *   - négatif fort  : -50 à -100 (report, block, hide)
+ *   - négatif moyen : -10 à -30  (see_less, unmute_off, skip_fast)
+ *   - faible signal : 0.1 à 2     (impression, dwell, scrub_forward)
+ *   - engagement    : 3 à 9       (like, comment, save, share)
+ *   - signal max    : 10 à 15     (follow, replay_multiple, sound_use) */
 
 export const EVENT_WEIGHTS: Record<string, number> = {
-  // Négatifs (exclusion)
-  "post.report": -50,
-  "post.hide": -10,
-  "post.see_less": -5,
+  // === NÉGATIFS FORTS (exclusion / démotion massive) ===
+  "post.report": -100,
+  "user.block": -100,
+  "user.report": -100,
+  "post.hide": -30,
+  "user.mute": -20,
+  "post.see_less": -15,
+  "post.not_interested": -10,
+  "video.skip_fast": -8,
   "post.unlike": -2,
   "user.unfollow": -3,
   "circle.leave": -3,
 
-  // Faibles
+  // === SIGNAUX FAIBLES POSITIFS (cumulatifs) ===
   "post.impression": 0.1,
-
-  // Engagement standard
-  "post.like": 3,
-  "post.comment": 6,
-  "post.share": 8,
-  "post.save": 5,
+  "video.impression": 0.1,
   "post.expand": 1,
   "post.view_comments": 1.5,
+  "post.comments_scroll": 1.2,
+  "video.skip_normal": -1, // skip 2-5s : signal mou négatif
+
+  // === ENGAGEMENT EXPLICITE ===
+  "post.like": 3,
+  "post.love": 5, // réaction forte (Chantier Feed 4 reactions)
+  "post.applause": 4,
+  "post.insightful": 4.5,
+  "post.surprised": 3.5,
+  "post.sad": 3,
+  "post.laugh": 4,
+  "post.comment": 6,
+  "post.comment_create": 6,
+  "post.comment_like": 2,
+  "post.save": 5,
+  "post.share": 8,
+  "post.share_external": 9, // partage WhatsApp/SMS = signal max
+  "post.share_internal": 7, // partage à un ami DIVARC
   "post.click_link": 4,
 
-  // Profil
-  "profile.visit": 2,
-  "user.follow": 10,
+  // === VIDÉO TikTok-style — Chantier Reels Recsys 1 ===
+  "video.play_start": 0.5,
+  "video.quartile_25": 1.0,
+  "video.quartile_50": 2.0,
+  "video.quartile_75": 3.5,
+  "video.quartile_95": 5.0,
+  "video.completion": 7.0,
+  "video.replay": 10.0, // signal très fort
+  "video.replay_multiple": 15.0, // signal MAX (3+ replays)
+  "video.unmute": 2.0,
+  "video.fullscreen": 2.5,
+  "video.scrub_forward": 0.5,
+  "video.scrub_backward": 3.0, // veut revoir une partie = très fort
+  "video.long_press_pause": 1.5,
+  "video.pause": 0.3,
 
-  // Communauté
+  // === SOCIAL (Network) ===
+  "user.follow": 15,
+  "user.profile_visit": 2,
+  "user.profile_dwell": 1, // weight × seconds via dwellWeight
+  "profile.visit": 2, // legacy alias
+  "user.message_send": 5,
+
+  // === SOUND / HASHTAG (Reels signals) ===
+  "sound.use": 12, // crée un reel avec ce son = très fort
+  "sound.save": 4,
+  "hashtag.follow": 5,
+  "hashtag.click": 1,
+
+  // === COMMUNAUTÉ ===
   "circle.join": 8,
   "story.reaction": 2,
   "message.send": 7,
 
-  // Marketplace
+  // === MARKETPLACE / JOBS ===
   "marketplace.favorite": 4,
   "marketplace.purchase": 15,
-
-  // Jobs
   "job.save": 4,
   "job.apply": 12,
 
-  // Search
-  "search.click_result": 5,
+  // === SEARCH (signaux d'intention) ===
   "search.query": 0.5,
+  "search.click_result": 6, // clic après recherche = intent fort
+  "search.dwell_result": 3,
 
-  // Notifs
+  // === NOTIFS ===
   "notification.click": 1,
 };
+
+/* Set d'events critiques qui doivent flush immédiatement le batch (pas
+ * d'attente du timer 5s). Utilisé par EventTracker.track(). */
+export const CRITICAL_EVENT_TYPES = new Set<string>([
+  "post.report",
+  "user.block",
+  "user.report",
+  "post.hide",
+  "user.mute",
+  "post.see_less",
+  "post.not_interested",
+  "user.follow",
+  "user.unfollow",
+  "video.replay_multiple",
+  "post.share_external",
+]);
 
 /* Conversion dwell_ms en poids dwell (signal cumulatif).
  *  - 0-1s = 0 (passage)

@@ -1,5 +1,6 @@
 "use client";
 
+import { CRITICAL_EVENT_TYPES } from "@/lib/recsys/eventWeights";
 import type { EventSurface } from "@/lib/database.types";
 
 /* EventTracker — SDK frontend pour capturer les events comportementaux
@@ -99,7 +100,12 @@ class EventTracker {
 
     this.queue.push(ev);
 
-    if (this.queue.length >= MAX_BATCH) {
+    /* Chantier Reels Recsys 1 — events critiques (report/block/share_external/
+     * follow/replay_multiple) doivent partir immédiatement sans attendre le
+     * timer 5s : ils déclenchent des changements visibles côté ranker. */
+    if (CRITICAL_EVENT_TYPES.has(eventType)) {
+      void this.flush(false);
+    } else if (this.queue.length >= MAX_BATCH) {
       void this.flush(false);
     }
   }
