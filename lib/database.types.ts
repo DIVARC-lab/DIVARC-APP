@@ -6564,6 +6564,34 @@ export type Database = {
         Args: { target_user_id: string; result_limit?: number };
         Returns: Array<{ reel_id: string; similarity_score: number }>;
       };
+      /* Migration 0119 — Chantier Reels Recsys 7. Candidate generation
+       * multi-source pour le For You Page (étape 7 squelette, sources
+       * complètes étapes 8 + 9). */
+      generate_candidates_v3: {
+        Args: {
+          p_user_id: string;
+          p_surface?:
+            | "feed_foryou"
+            | "feed_home"
+            | "reels_foryou"
+            | "reels";
+          p_n?: number;
+        };
+        Returns: Array<{
+          content_id: string;
+          content_type: "post" | "reel";
+          source:
+            | "network"
+            | "similar_content"
+            | "creator_revisit"
+            | "exploration"
+            | "collaborative"
+            | "trending"
+            | "fresh_creators";
+          source_score: number;
+          source_metadata: Record<string, unknown>;
+        }>;
+      };
       refresh_post_engagement_stats: {
         Args: Record<string, never>;
         Returns: void;
