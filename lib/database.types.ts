@@ -6415,6 +6415,11 @@ export type Database = {
         };
         Returns: boolean;
       };
+      /* Migration 0107 — seeder bootstrap 20 cercles. */
+      seed_bootstrap_circles: {
+        Args: { p_owner_id: string };
+        Returns: Array<{ slug: string; created: boolean }>;
+      };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */
       toggle_circle_post_vote: {
