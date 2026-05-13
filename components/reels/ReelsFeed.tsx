@@ -3,10 +3,17 @@
 import { ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { ReelView } from "./ReelView";
 import { cn } from "@/lib/utils/cn";
 import type { ReelWithDetails } from "@/lib/database.types";
+import { loadMoreForYouReels } from "@/app/(app)/reels/foryou-actions";
 
 /* ReelsFeed — feed vertical fullscreen avec snap-scroll.
  *
@@ -40,7 +47,18 @@ export function ReelsFeed({
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeReelId, setActiveReelId] = useState<string | null>(null);
 
-  const reels = tab === "foryou" ? foryouReels : followingReels;
+  /* Chantier Reels Recsys 14 — préchargement intelligent.
+   * On accumule les batches reçus dans state local. Le déclenchement
+   * se fait quand l'user est à 3 reels de la fin. Anti-doublon via
+   * Set d'IDs déjà connus. */
+  const [prefetchedForyou, setPrefetchedForyou] = useState<ReelWithDetails[]>(
+    [],
+  );
+  const [isPrefetching, startPrefetch] = useTransition();
+  const prefetchInFlightRef = useRef(false);
+
+  const foryouAll = [...foryouReels, ...prefetchedForyou];
+  const reels = tab === "foryou" ? foryouAll : followingReels;
 
   /* IntersectionObserver pour détecter le reel actif (≥50% visible). */
   useEffect(() => {
@@ -76,6 +94,33 @@ export function ReelsFeed({
       setActiveReelId(reels[0].id);
     }
   }, [reels, activeReelId]);
+
+  /* Chantier Reels Recsys 14 — précharge le batch suivant quand on est
+   * à 3 reels de la fin du tab foryou. Empêche les fetchs concurrents
+   * via un ref flag. Seul foryou est préchargé (following = chrono). */
+  useEffect(() => {
+    if (tab !== "foryou") return;
+    if (!activeReelId) return;
+    if (prefetchInFlightRef.current) return;
+
+    const idx = foryouAll.findIndex((r) => r.id === activeReelId);
+    if (idx === -1) return;
+    if (idx < foryouAll.length - 3) return;
+
+    prefetchInFlightRef.current = true;
+    const knownIds = foryouAll.map((r) => r.id);
+    startPrefetch(async () => {
+      try {
+        const res = await loadMoreForYouReels(knownIds, 10);
+        if (res.ok && res.reels.length > 0) {
+          setPrefetchedForyou((prev) => [...prev, ...res.reels]);
+        }
+      } finally {
+        prefetchInFlightRef.current = false;
+      }
+    });
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [activeReelId, tab, foryouAll.length]);
 
   /* ESC = retour. */
   useEffect(() => {
