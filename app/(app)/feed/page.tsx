@@ -9,6 +9,7 @@ import {
   listFriendsOnlyFeed,
   listPersonalizedFeed,
   listRankedFeed,
+  loadFeedV2,
 } from "@/lib/queries/feed";
 import { suggestPeople } from "@/lib/queries/explore";
 import { listTrendingHashtags } from "@/lib/queries/hashtags";
@@ -26,16 +27,26 @@ import { PostChipTrigger } from "@/components/creator/PostChipTrigger";
 import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
 import { AdSlot } from "@/components/ads/AdSlot";
-import type { PostWithDetails } from "@/lib/database.types";
+import type { FeedMode, PostWithDetails } from "@/lib/database.types";
+import { FeedModeSelector } from "./_components/FeedModeSelector";
+import { FeedReasonChip } from "./_components/FeedReasonChip";
 
 export const metadata = {
   title: "Feed",
 };
 
-const VALID_TABS = ["for-you", "friends", "latest"] as const;
+const VALID_TABS = ["for-you", "friends", "latest", "transparent"] as const;
 type FeedTabId = (typeof VALID_TABS)[number];
 
-type SearchParams = Promise<{ tab?: string }>;
+const VALID_FEED_MODES: FeedMode[] = [
+  "fresh",
+  "conversations",
+  "rising_voices",
+  "inner_circle",
+  "raw",
+];
+
+type SearchParams = Promise<{ tab?: string; mode?: string }>;
 
 /* Implémentation directe des valeurs de design Bold (handoff
  * feed-mobile-bold.jsx) :
@@ -65,7 +76,9 @@ export default async function FeedPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, mode: modeParam } = await searchParams;
+  const feedMode: FeedMode = (VALID_FEED_MODES.find((m) => m === modeParam) ??
+    "fresh") as FeedMode;
 
   /* A/B test "feed-ranking-v2026" : le variant détermine le tab par
      défaut quand l'utilisateur n'a pas explicité de tab dans l'URL.
@@ -104,7 +117,13 @@ export default async function FeedPage({
   let rankingByPostId: Awaited<
     ReturnType<typeof listPersonalizedFeed>
   >["rankingByPostId"] = new Map();
-  if (tab === "for-you") {
+  /* Chantier Feed v2.3 — reasons par post quand tab=transparent. */
+  let reasonByPostId = new Map<string, string>();
+  if (tab === "transparent") {
+    const v2 = await loadFeedV2(user.id, feedMode, 40);
+    posts = v2.posts;
+    reasonByPostId = v2.reasonByPostId;
+  } else if (tab === "for-you") {
     /* Utilise le ranker recsys (lib/recsys/ranker) qui produit posts
        ordonnés + ranking_metadata.primary_signals par post pour la
        transparence DSA. Fallback sur listRankedFeed (RPC SQL legacy)
@@ -211,6 +230,13 @@ export default async function FeedPage({
               />
             </div>
 
+            {/* Chantier Feed v2.3 — sélecteur de mode si tab=transparent. */}
+            {tab === "transparent" ? (
+              <div className="px-4 sm:px-6 pb-4">
+                <FeedModeSelector current={feedMode} />
+              </div>
+            ) : null}
+
             {/* Trending hashtags : déplacés en right rail desktop seulement
                 (proto BoldFeedScreen mobile n'a pas cette section). */}
 
@@ -221,9 +247,16 @@ export default async function FeedPage({
               </div>
             ) : (
               <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10">
-                {posts.map((post, index) => (
+                {posts.map((post, index) => {
+                  const reason = reasonByPostId.get(post.id);
+                  return (
                   <Fragment key={post.id}>
                     <li>
+                      {reason ? (
+                        <div className="mb-1.5">
+                          <FeedReasonChip reason={reason} />
+                        </div>
+                      ) : null}
                       <PostViewTracker postId={post.id} />
                       <PostCard
                         post={post}
@@ -247,7 +280,8 @@ export default async function FeedPage({
                       </li>
                     ) : null}
                   </Fragment>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

@@ -389,6 +389,20 @@ export type NotificationType =
 
 export type PostVisibility = "public" | "friends" | "private";
 
+/* Chantier Feed v2.3 — modes du feed transparent. Cf. /about/feed-algorithm. */
+export type FeedMode =
+  | "fresh"
+  | "conversations"
+  | "rising_voices"
+  | "inner_circle"
+  | "raw";
+
+export type FeedV2Item = {
+  post_id: string;
+  score: number | null;
+  reason: string | null;
+};
+
 export type PostBackgroundColor =
   | "navy"
   | "gold"
@@ -6614,6 +6628,20 @@ export type Database = {
       recompute_poll_counts: {
         Args: { p_poll_id: string };
         Returns: void;
+      };
+      /* Migration 0114 — Feed v2 : 4 modes transparents en SQL pur. */
+      feed_v2: {
+        Args: {
+          p_mode?: FeedMode;
+          p_user_id?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Array<{
+          post_id: string;
+          score: number | null;
+          reason: string | null;
+        }>;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */

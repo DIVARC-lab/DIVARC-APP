@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Sparkles, Users } from "lucide-react";
+import { Clock, Eye, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -9,6 +9,8 @@ const TABS = [
   { id: "for-you", label: "Pour toi", icon: Sparkles },
   { id: "friends", label: "Amis", icon: Users },
   { id: "latest", label: "Récents", icon: Clock },
+  /* Chantier Feed v2.3 — onglet transparent (feed_v2 RPC, 4 modes). */
+  { id: "transparent", label: "Transparent", icon: Eye },
 ] as const;
 
 export type FeedTabId = (typeof TABS)[number]["id"];
@@ -22,8 +24,14 @@ export function FeedTabs({ active }: FeedTabsProps) {
 
   function buildHref(tab: FeedTabId) {
     const next = new URLSearchParams(params);
-    if (tab === "for-you") next.delete("tab");
-    else next.set("tab", tab);
+    if (tab === "for-you") {
+      next.delete("tab");
+      next.delete("mode");
+    } else {
+      next.set("tab", tab);
+      /* Le ?mode= n'a de sens que sur l'onglet transparent. */
+      if (tab !== "transparent") next.delete("mode");
+    }
     return next.toString() ? `/feed?${next}` : "/feed";
   }
 

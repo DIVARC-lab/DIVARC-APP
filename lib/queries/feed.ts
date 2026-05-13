@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  FeedMode,
   Post,
   PostPhoto,
   PostWithDetails,
@@ -400,4 +401,68 @@ export async function listPersonalizedFeed(
   );
 
   return { posts: enriched, rankingByPostId, nextCursor };
+}
+
+/* loadFeedV2 — Chantier Feed v2.3 — wrapper de la RPC feed_v2 (4 modes
+ * transparents SQL). Hydrate les posts via les queries existantes et préserve
+ * l'ordre RPC.
+ *
+ * Retourne aussi les `reasonByPostId` pour afficher la justification sous chaque
+ * post (« cercle proche », « voix émergente », etc.) — transparence par défaut. */
+export async function loadFeedV2(
+  currentUserId: string,
+  mode: FeedMode = "fresh",
+  limit: number = 30,
+  offset: number = 0,
+): Promise<{
+  posts: PostWithDetails[];
+  reasonByPostId: Map<string, string>;
+}> {
+  const supabase = await createClient();
+
+  const { data: ranked, error } = await supabase.rpc("feed_v2", {
+    p_mode: mode,
+    p_user_id: currentUserId,
+    p_limit: limit,
+    p_offset: offset,
+  });
+
+  if (error || !ranked || ranked.length === 0) {
+    if (error) console.error("[loadFeedV2]", mode, error);
+    return { posts: [], reasonByPostId: new Map() };
+  }
+
+  const postIds = ranked.map((r) => r.post_id);
+  const reasonByPostId = new Map(
+    ranked
+      .filter((r) => r.reason)
+      .map((r) => [r.post_id, r.reason as string]),
+  );
+
+  const { data: rawPosts } = await supabase
+    .from("posts")
+    .select(
+      "id, author_id, body, visibility, video_url, video_thumbnail_url, video_duration_ms, video_width, video_height, circle_id, pinned_at, pinned_by, created_at, updated_at, edited_at, deleted_at, status",
+    )
+    .in("id", postIds)
+    .is("deleted_at", null)
+    .eq("status", "published");
+
+  if (!rawPosts || rawPosts.length === 0) {
+    return { posts: [], reasonByPostId };
+  }
+
+  const enriched = await attachPhotos(
+    rawPosts as Post[],
+    new Map(),
+    currentUserId,
+  );
+
+  /* Préserve l'ordre RPC. */
+  const orderById = new Map(ranked.map((r, i) => [r.post_id, i]));
+  enriched.sort(
+    (a, b) => (orderById.get(a.id) ?? 999) - (orderById.get(b.id) ?? 999),
+  );
+
+  return { posts: enriched, reasonByPostId };
 }
