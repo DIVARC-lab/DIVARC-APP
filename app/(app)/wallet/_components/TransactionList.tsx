@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Banknote, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import type { TransactionWithCounterparty } from "@/lib/database.types";
@@ -16,11 +16,13 @@ export function TransactionList({ transactions }: TransactionListProps) {
       <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
         <div
           aria-hidden
-          className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-4 text-3xl"
+          className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-4"
         >
-          💸
+          <Banknote className="w-7 h-7 text-gold-deep" aria-hidden />
         </div>
-        <h3 className="font-display text-xl text-night">Aucun mouvement</h3>
+        <h3 className="font-display text-xl text-night">
+          Aucun <em className="italic text-gold-deep">mouvement</em>
+        </h3>
         <p className="mt-1 text-sm text-muted max-w-sm mx-auto">
           Tes transferts d&apos;argent apparaîtront ici.
         </p>
