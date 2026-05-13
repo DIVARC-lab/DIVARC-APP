@@ -1007,6 +1007,8 @@ export type Job = {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
+  /* Chantier 3.4 — rattachement optionnel à un cercle (migration 0097). */
+  circle_id: string | null;
 };
 
 export type JobApplicationStatus =

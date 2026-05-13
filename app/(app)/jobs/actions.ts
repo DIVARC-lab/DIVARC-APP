@@ -84,6 +84,20 @@ export async function createJob(
     }
   }
 
+  /* Chantier 3.4 — rattachement à un cercle (jobs.circle_id). Vérifie
+   * membership avant pour bloquer un user qui spoof l'ID. */
+  const circleIdRaw = formData.get("circle_id");
+  let circleId: string | null = null;
+  if (typeof circleIdRaw === "string" && circleIdRaw.length > 0) {
+    const { data: membership } = await supabase
+      .from("circle_members")
+      .select("user_id")
+      .eq("circle_id", circleIdRaw)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membership) circleId = circleIdRaw;
+  }
+
   const { data: job, error } = await supabase
     .from("jobs")
     .insert({
@@ -102,8 +116,9 @@ export async function createJob(
       salary_period: parsed.data.salary_period ?? null,
       poster_id: user.id,
       status: "active",
+      circle_id: circleId,
     })
-    .select("id")
+    .select("id, circle_id")
     .single();
 
   if (error || !job) {
@@ -112,6 +127,17 @@ export async function createJob(
 
   revalidatePath("/jobs");
   revalidatePath("/jobs/mine");
+  if (circleId) {
+    const { data: c } = await supabase
+      .from("circles")
+      .select("slug")
+      .eq("id", circleId)
+      .maybeSingle();
+    if (c?.slug) {
+      revalidatePath(`/circles/${c.slug}/jobs`);
+      redirect(`/circles/${c.slug}/jobs`);
+    }
+  }
   redirect(`/jobs/${job.id}`);
 }
 

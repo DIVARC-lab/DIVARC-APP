@@ -25,6 +25,8 @@ type ListJobsOptions = {
   limit?: number;
   posterId?: string;
   status?: Job["status"];
+  /* Chantier 3.4 — filtre par cercle (job board thématique). */
+  circleId?: string;
 };
 
 async function attachDetails(
@@ -118,6 +120,7 @@ export async function listJobs(
   if (options.jobType) query = query.eq("job_type", options.jobType);
   if (options.workMode) query = query.eq("work_mode", options.workMode);
   if (options.posterId) query = query.eq("poster_id", options.posterId);
+  if (options.circleId) query = query.eq("circle_id", options.circleId);
 
   if (options.query && options.query.trim().length > 0) {
     const sanitized = options.query.trim().replace(/[%,]/g, "").slice(0, 80);

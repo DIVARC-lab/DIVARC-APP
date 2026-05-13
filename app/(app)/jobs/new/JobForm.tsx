@@ -28,12 +28,15 @@ type JobFormProps = {
   defaultLocation: string | null;
   defaultCurrency: string;
   myCompanies: ReadonlyArray<{ id: string; name: string; slug: string }>;
+  /* Chantier 3.4 — si fourni, l'offre est rattachée à un cercle. */
+  circleId?: string | null;
 };
 
 export function JobForm({
   defaultLocation,
   defaultCurrency,
   myCompanies,
+  circleId = null,
 }: JobFormProps) {
   const [state, formAction, pending] = useActionState<JobFormState, FormData>(
     createJob,
@@ -46,6 +49,9 @@ export function JobForm({
 
   return (
     <form action={formAction} className="space-y-7" noValidate>
+      {circleId ? (
+        <input type="hidden" name="circle_id" value={circleId} />
+      ) : null}
       <Section title="L'offre" hint="Le titre, l'entreprise, ce qu'on cherche.">
         <div className="space-y-5">
           <Field>
