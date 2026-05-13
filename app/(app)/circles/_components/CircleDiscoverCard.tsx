@@ -62,7 +62,7 @@ export function CircleDiscoverCard({ circle }: Props) {
             className={cn("absolute inset-0", tone)}
             style={{
               backgroundImage: circle.color_accent
-                ? `linear-gradient(135deg, ${circle.color_accent}, color-mix(in srgb, ${circle.color_accent} 60%, #0A1F44))`
+                ? `linear-gradient(135deg, ${circle.color_accent}, color-mix(in srgb, ${circle.color_accent} 60%, var(--color-night)))`
                 : undefined,
             }}
           />

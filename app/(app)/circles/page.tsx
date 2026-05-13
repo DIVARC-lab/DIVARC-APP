@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { KickerLabel } from "@/components/ui/KickerLabel";
 import {
   discoverCircles,
   listLocalCircles,
@@ -135,10 +136,10 @@ export default async function CirclesPage({
           </div>
 
           <div className="relative max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+            <KickerLabel className="inline-flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" aria-hidden />
-              · Les Cercles
-            </span>
+              Les Cercles
+            </KickerLabel>
             <h1 className="mt-3 font-display text-[34px] sm:text-[52px] lg:text-[60px] text-night leading-[0.98] font-normal tracking-[-0.025em] text-balance">
               Sors de ton cercle,{" "}
               <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
@@ -308,7 +309,7 @@ export default async function CirclesPage({
 
         {/* MANIFESTE ANTI-ALGO — bloc fermeture qui rappelle la promesse-produit */}
         <section
-          className="mx-4 sm:mx-7 mb-8 mt-2 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-night via-night-soft to-[#1F3563] text-cream p-6 sm:p-8"
+          className="mx-4 sm:mx-7 mb-8 mt-2 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-6 sm:p-8"
           aria-labelledby="manifesto-heading"
         >
           <div
@@ -503,7 +504,7 @@ function CircleCard({ circle }: { circle: CircleWithMembership }) {
           </p>
           {circle.is_private ? (
             <Lock
-              className="w-[11px] h-[11px] text-[#8993A8] shrink-0"
+              className="w-[11px] h-[11px] text-muted shrink-0"
               aria-hidden
             />
           ) : null}
@@ -513,7 +514,7 @@ function CircleCard({ circle }: { circle: CircleWithMembership }) {
             {circle.description}
           </p>
         ) : null}
-        <p className="mt-1.5 text-[11px] text-[#8993A8] font-semibold">
+        <p className="mt-1.5 text-[11px] text-muted font-semibold">
           {circle.members_count.toLocaleString("fr-FR")} membre
           {circle.members_count > 1 ? "s" : ""}
         </p>
