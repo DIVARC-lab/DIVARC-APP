@@ -5,7 +5,8 @@ import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   listDiscoverableCircles,
-  listMyCircles,
+  listMyCirclesWithUnread,
+  type MyCircleSummary,
 } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
 import type { CircleColor, CircleWithMembership } from "@/lib/database.types";
@@ -36,7 +37,7 @@ export default async function CirclesPage() {
   if (!user) redirect("/login");
 
   const [mine, discoverable] = await Promise.all([
-    listMyCircles(user.id),
+    listMyCirclesWithUnread(user.id),
     listDiscoverableCircles(user.id, 14),
   ]);
 
@@ -106,32 +107,9 @@ export default async function CirclesPage() {
           </div>
         </header>
 
-        {/* Filter chips */}
-        <nav
-          aria-label="Filtres cercles"
-          className="px-4 sm:px-6 pb-4 flex gap-2 overflow-x-auto scrollbar-none"
-        >
-          {[
-            { l: "Tous", active: true },
-            { l: "Modéré par toi" },
-            { l: "Privés" },
-            { l: "Publics" },
-          ].map((f) => (
-            <span
-              key={f.l}
-              className={cn(
-                "shrink-0 inline-flex items-center h-7 px-3.5 rounded-full text-[12px] font-bold transition-colors",
-                f.active
-                  ? "bg-night text-cream"
-                  : "bg-bg-soft border border-line text-night-dim",
-              )}
-            >
-              {f.l}
-            </span>
-          ))}
-        </nav>
-
-        {/* Circle list */}
+        {/* SECTION "MES CERCLES" — carrousel horizontal avec badges
+            "X nouveaux posts". Permet d'aller direct à ses cercles favoris
+            sans scroll. Masqué si aucun cercle (empty state à la place). */}
         {mine.length === 0 ? (
           <div className="px-4 sm:px-6 pb-6">
             <EmptyState
@@ -149,13 +127,34 @@ export default async function CirclesPage() {
             />
           </div>
         ) : (
-          <ul className="px-4 sm:px-6 flex flex-col gap-2.5 mb-5">
-            {mine.map((circle) => (
-              <li key={circle.id}>
-                <CircleCard circle={circle} />
-              </li>
-            ))}
-          </ul>
+          <section className="pb-5" aria-labelledby="my-circles-heading">
+            <header className="px-5 sm:px-8 pb-2.5 flex items-baseline justify-between">
+              <h2
+                id="my-circles-heading"
+                className="text-[13px] font-bold text-night"
+              >
+                Mes cercles{" "}
+                <span className="text-night-dim font-semibold">
+                  ({mine.length})
+                </span>
+              </h2>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-night-dim">
+                · récents
+              </span>
+            </header>
+            <div className="overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+              <ul className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+                {mine.map((circle) => (
+                  <li
+                    key={circle.id}
+                    className="shrink-0 w-[180px] sm:w-[210px] snap-start"
+                  >
+                    <MyCircleCard circle={circle} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
         )}
 
         {/* Discover banner */}
@@ -198,6 +197,76 @@ const COLOR_BG: Record<CircleColor, string> = {
   violet: "bg-gradient-to-br from-violet-400 to-violet-700 text-cream",
   cream: "bg-gradient-to-br from-cream via-bg to-gold/30 text-night",
 };
+
+function MyCircleCard({ circle }: { circle: MyCircleSummary }) {
+  const tone = COLOR_BG[circle.color ?? "gold"];
+  const hasUnread = circle.unread_posts_count > 0;
+  const unreadLabel =
+    circle.unread_posts_count >= 99
+      ? "99+"
+      : String(circle.unread_posts_count);
+
+  return (
+    <Link
+      href={`/circles/${circle.slug}`}
+      className="group block h-full p-3 rounded-[16px] bg-white border border-line hover:border-gold/50 hover:shadow-[0_8px_22px_-12px_rgba(10,31,68,0.18)] transition-all"
+    >
+      <div className="flex items-start gap-2.5">
+        <span
+          aria-hidden
+          className={cn(
+            "relative shrink-0 w-12 h-12 rounded-[12px] flex items-center justify-center text-[22px] overflow-hidden",
+            tone,
+          )}
+        >
+          <span
+            aria-hidden
+            className="absolute inset-0 opacity-[0.18] pointer-events-none"
+          >
+            <ArcDeco size={48} tone="gold" opacity={1} stroke={1} />
+          </span>
+          <span className="relative">
+            {circle.emoji ?? circle.name.charAt(0).toUpperCase()}
+          </span>
+        </span>
+        {hasUnread ? (
+          <span
+            aria-label={`${circle.unread_posts_count} nouveau${circle.unread_posts_count > 1 ? "x" : ""} post${circle.unread_posts_count > 1 ? "s" : ""}`}
+            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-gold text-night text-[10px] font-extrabold"
+          >
+            {unreadLabel}
+          </span>
+        ) : null}
+      </div>
+
+      <p className="mt-2.5 text-[13px] font-extrabold text-night truncate">
+        {circle.name}
+      </p>
+
+      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-night-dim">
+        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        <span className="font-semibold tabular-nums">
+          {circle.members_count.toLocaleString("fr-FR")} membre
+          {circle.members_count > 1 ? "s" : ""}
+        </span>
+        {circle.is_private ? (
+          <Lock className="w-[11px] h-[11px] shrink-0" aria-hidden />
+        ) : null}
+      </div>
+
+      <p
+        className={cn(
+          "mt-1.5 text-[11px] truncate font-semibold",
+          hasUnread ? "text-gold-deep" : "text-night-dim",
+        )}
+      >
+        {hasUnread
+          ? `${circle.unread_posts_count >= 99 ? "99+" : circle.unread_posts_count} nouveau${circle.unread_posts_count > 1 ? "x" : ""} post${circle.unread_posts_count > 1 ? "s" : ""}`
+          : "À jour"}
+      </p>
+    </Link>
+  );
+}
 
 function CircleCard({ circle }: { circle: CircleWithMembership }) {
   const tone = COLOR_BG[circle.color ?? "gold"];
