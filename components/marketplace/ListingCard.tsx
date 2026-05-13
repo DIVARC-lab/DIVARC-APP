@@ -67,7 +67,7 @@ export function ListingCard({
       <Link
         href={`/marketplace/${listing.id}`}
         className={cn(
-          "group relative flex gap-3 sm:gap-4 rounded-2xl overflow-hidden bg-white border border-line p-2 hover:border-night/30 transition-colors",
+          "group relative flex gap-3 sm:gap-4 rounded-2xl overflow-hidden bg-white border border-line p-2 hover:border-gold-deep/30 transition-colors",
           className,
         )}
       >
@@ -120,7 +120,7 @@ export function ListingCard({
     <Link
       href={`/marketplace/${listing.id}`}
       className={cn(
-        "group relative flex flex-col rounded-2xl overflow-hidden bg-white border border-line hover:border-night/30 transition-all",
+        "group relative flex flex-col rounded-2xl overflow-hidden bg-white border border-line hover:border-gold-deep/30 transition-all",
         className,
       )}
     >
