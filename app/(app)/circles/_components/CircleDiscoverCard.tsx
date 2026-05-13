@@ -15,6 +15,7 @@ import type { CircleColor } from "@/lib/database.types";
 import type { CircleDiscoverResult } from "@/lib/queries/circles";
 import { getCircleCategory } from "@/lib/circles/categories";
 import { cn } from "@/lib/utils/cn";
+import { CircleReasonsBadge } from "./CircleReasonsBadge";
 import { CircleScoreBadge } from "./CircleScoreBadge";
 
 const COLOR_BG: Record<CircleColor, string> = {
@@ -138,6 +139,13 @@ export function CircleDiscoverCard({ circle }: Props) {
           <p className="mt-3 text-[12.5px] text-night-soft leading-[1.5] line-clamp-2">
             {circle.tagline ?? circle.description}
           </p>
+        ) : null}
+
+        {/* Raisons de recommandation (mode "Pour moi" uniquement) */}
+        {circle.reasons && circle.reasons.length > 0 ? (
+          <div className="mt-2.5">
+            <CircleReasonsBadge reasons={circle.reasons} />
+          </div>
         ) : null}
 
         {/* Tags */}

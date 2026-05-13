@@ -210,6 +210,8 @@ export type DiscoverScoreBreakdown = {
 export type CircleDiscoverResult = CircleWithMembership & {
   score: number;
   breakdown: DiscoverScoreBreakdown | null;
+  /* Chantier 2.5 — Raisons explicables (mode recommended uniquement). */
+  reasons: string[] | null;
 };
 
 export async function discoverCircles(
@@ -220,9 +222,58 @@ export async function discoverCircles(
   const limit = filters.limit ?? 24;
   const sort: DiscoverSort = filters.sort ?? "active";
 
-  /* Chantier 2.4 — Tentative via RPC discover_circles_v2 (formule transparente
-   * pondérée). Si la migration 0094 n'est pas encore appliquée ou que le RPC
-   * échoue, on fallback sur la query directe sans score. */
+  /* Chantier 2.5 — Tri "recommended" → RPC dédié qui retourne reasons[]. */
+  if (sort === "recommended") {
+    const { data: recos, error: recoError } = await supabase.rpc(
+      "recommend_circles_for_user",
+      { p_user_id: currentUserId, p_limit: limit * 2 },
+    );
+
+    if (!recoError && recos && recos.length > 0) {
+      const recoRows = recos as Array<{
+        id: string;
+        score: number;
+        reasons: string[] | null;
+      }>;
+      const orderedIds = recoRows.map((r) => r.id);
+      const { data: rows } = await supabase
+        .from("circles")
+        .select("*")
+        .in("id", orderedIds);
+
+      if (rows) {
+        const enriched = await attachMembership(rows, currentUserId);
+        const recoById = new Map(
+          recoRows.map((r) => [
+            r.id,
+            { score: r.score, reasons: r.reasons ?? [] },
+          ]),
+        );
+        const indexById = new Map(orderedIds.map((id, i) => [id, i]));
+
+        const results = enriched
+          .filter((c) => !c.is_member)
+          .sort(
+            (a, b) =>
+              (indexById.get(a.id) ?? Infinity) -
+              (indexById.get(b.id) ?? Infinity),
+          )
+          .slice(0, limit)
+          .map<CircleDiscoverResult>((c) => ({
+            ...c,
+            score: recoById.get(c.id)?.score ?? 0,
+            breakdown: null,
+            reasons: recoById.get(c.id)?.reasons ?? null,
+          }));
+
+        if (results.length > 0) return results;
+      }
+    }
+    /* Si pas de reco perso (user nouveau sans cercle/amis), on retombe sur
+     * le RPC discover_circles_v2 mode active. */
+  }
+
+  /* Chantier 2.4 — RPC discover_circles_v2 (formule transparente pondérée). */
   const sortForRpc: DiscoverSort = sort === "recommended" ? "active" : sort;
   const { data: ranked, error: rpcError } = await supabase.rpc(
     "discover_circles_v2",
@@ -268,6 +319,7 @@ export async function discoverCircles(
         ...c,
         score: scoreById.get(c.id)?.score ?? 0,
         breakdown: scoreById.get(c.id)?.breakdown ?? null,
+        reasons: null,
       }));
   }
 
@@ -315,7 +367,7 @@ export async function discoverCircles(
   return enriched
     .filter((c) => !c.is_member)
     .slice(0, limit)
-    .map((c) => ({ ...c, score: 0, breakdown: null }));
+    .map((c) => ({ ...c, score: 0, breakdown: null, reasons: null }));
 }
 
 export async function getCircleBySlug(

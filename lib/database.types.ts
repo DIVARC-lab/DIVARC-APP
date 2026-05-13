@@ -6087,6 +6087,18 @@ export type Database = {
           breakdown: Record<string, unknown>;
         }>;
       };
+      /* Migration 0095 — recommandations personnalisées avec reasons[]. */
+      recommend_circles_for_user: {
+        Args: {
+          p_user_id: string;
+          p_limit?: number;
+        };
+        Returns: Array<{
+          id: string;
+          score: number;
+          reasons: string[] | null;
+        }>;
+      };
       /* Migration 0090 — notification in-app sur réponse à offre. */
       notify_marketplace_offer_event: {
         Args: {
