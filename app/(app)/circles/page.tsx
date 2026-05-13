@@ -5,7 +5,10 @@ import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   discoverCircles,
+  listLocalCircles,
   listMyCirclesWithUnread,
+  listNewCircles,
+  listTrendingCircles,
   type DiscoverSort,
   type MyCircleSummary,
 } from "@/lib/queries/circles";
@@ -14,6 +17,7 @@ import type { CircleColor, CircleWithMembership } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 import { CircleDiscoverCard } from "./_components/CircleDiscoverCard";
 import { CircleDiscoverFilters } from "./_components/CircleDiscoverFilters";
+import { CircleMiniCard } from "./_components/CircleMiniCard";
 
 export const metadata = {
   title: "Cercles — Trouve ta tribu",
@@ -74,7 +78,9 @@ export default async function CirclesPage({
    * dans circles soit FR par défaut. */
   const nearbyCountry = profile?.location ? "FR" : null;
 
-  const [mine, discoverable] = await Promise.all([
+  const isFiltered = !!category || sort !== "active" || !!query;
+
+  const [mine, discoverable, trending, local, fresh] = await Promise.all([
     listMyCirclesWithUnread(user.id),
     discoverCircles(user.id, {
       sort,
@@ -83,7 +89,30 @@ export default async function CirclesPage({
       query,
       limit: 24,
     }),
+    /* Sections thématiques uniquement quand pas de filtres actifs : focus
+     * sur la grille filtrée sinon. */
+    !isFiltered ? listTrendingCircles(user.id, 8) : Promise.resolve([]),
+    !isFiltered
+      ? listLocalCircles(user.id, nearbyCountry, 8)
+      : Promise.resolve([]),
+    !isFiltered ? listNewCircles(user.id, 8) : Promise.resolve([]),
   ]);
+
+  /* Dédoublonne : les cercles déjà affichés dans la grille principale ne
+   * sont pas répétés dans les carrousels. */
+  const discoverableIds = new Set(discoverable.map((c) => c.id));
+  const trendingDeduped = trending.filter((c) => !discoverableIds.has(c.id));
+  const trendingIds = new Set(trendingDeduped.map((c) => c.id));
+  const localDeduped = local.filter(
+    (c) => !discoverableIds.has(c.id) && !trendingIds.has(c.id),
+  );
+  const localIds = new Set(localDeduped.map((c) => c.id));
+  const freshDeduped = fresh.filter(
+    (c) =>
+      !discoverableIds.has(c.id) &&
+      !trendingIds.has(c.id) &&
+      !localIds.has(c.id),
+  );
 
   return (
     <div className="bg-white min-h-[calc(100dvh-56px)] pb-24">
@@ -245,8 +274,79 @@ export default async function CirclesPage({
             </div>
           )}
         </section>
+
+        {/* SECTIONS THÉMATIQUES — masquées si filtres actifs (focus sur la grille).
+            3 carrousels horizontaux : Populaires / Locaux / Nouveaux. */}
+        {!isFiltered ? (
+          <>
+            {trendingDeduped.length > 0 ? (
+              <ThemedCarousel
+                id="trending"
+                title="Populaires ce mois-ci"
+                subtitle="· en pleine vitalité"
+                circles={trendingDeduped}
+              />
+            ) : null}
+            {localDeduped.length > 0 ? (
+              <ThemedCarousel
+                id="local"
+                title="Communautés locales près de toi"
+                subtitle="· dans ton pays"
+                circles={localDeduped}
+              />
+            ) : null}
+            {freshDeduped.length > 0 ? (
+              <ThemedCarousel
+                id="fresh"
+                title="Nouveaux à découvrir"
+                subtitle="· créés cette semaine"
+                circles={freshDeduped}
+              />
+            ) : null}
+          </>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function ThemedCarousel({
+  id,
+  title,
+  subtitle,
+  circles,
+}: {
+  id: string;
+  title: string;
+  subtitle: string;
+  circles: import("@/lib/database.types").CircleWithMembership[];
+}) {
+  return (
+    <section className="pb-6" aria-labelledby={`carousel-${id}-heading`}>
+      <header className="px-5 sm:px-8 pb-2.5 flex items-baseline justify-between gap-2">
+        <h2
+          id={`carousel-${id}-heading`}
+          className="text-[14px] sm:text-[15px] font-bold text-night"
+        >
+          {title}
+        </h2>
+        <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-night-dim shrink-0">
+          {subtitle}
+        </span>
+      </header>
+      <div className="overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+        <ul className="flex gap-2.5 px-4 sm:px-7 pb-2 snap-x snap-mandatory">
+          {circles.map((circle) => (
+            <li
+              key={circle.id}
+              className="shrink-0 w-[170px] sm:w-[200px] snap-start"
+            >
+              <CircleMiniCard circle={circle} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
 

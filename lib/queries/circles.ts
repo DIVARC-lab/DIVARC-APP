@@ -370,6 +370,72 @@ export async function discoverCircles(
     .map((c) => ({ ...c, score: 0, breakdown: null, reasons: null }));
 }
 
+/* Chantier 2.6 — Sections thématiques (3 carrousels en bas de page).
+ * Toutes excluent les cercles dont l'user est déjà membre + les archivés. */
+
+/** Populaires du mois — vitality_score desc + members_count desc fallback. */
+export async function listTrendingCircles(
+  currentUserId: string,
+  limit = 8,
+): Promise<CircleWithMembership[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circles")
+    .select("*")
+    .or("visibility.eq.public,is_private.eq.false")
+    .is("archived_at", null)
+    .order("vitality_score", { ascending: false, nullsFirst: false })
+    .order("members_count", { ascending: false })
+    .limit(limit * 2);
+  if (!data) return [];
+  const enriched = await attachMembership(data, currentUserId);
+  return enriched.filter((c) => !c.is_member).slice(0, limit);
+}
+
+/** Locaux près de toi — is_local + same country que l'user. */
+export async function listLocalCircles(
+  currentUserId: string,
+  country: string | null,
+  limit = 8,
+): Promise<CircleWithMembership[]> {
+  if (!country) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circles")
+    .select("*")
+    .or("visibility.eq.public,is_private.eq.false")
+    .is("archived_at", null)
+    .eq("is_local", true)
+    .eq("location_country", country)
+    .order("members_count", { ascending: false })
+    .limit(limit * 2);
+  if (!data) return [];
+  const enriched = await attachMembership(data, currentUserId);
+  return enriched.filter((c) => !c.is_member).slice(0, limit);
+}
+
+/** Nouveaux à découvrir — créés dans les 14 derniers jours. */
+export async function listNewCircles(
+  currentUserId: string,
+  limit = 8,
+): Promise<CircleWithMembership[]> {
+  const fourteenDaysAgo = new Date(
+    Date.now() - 14 * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circles")
+    .select("*")
+    .or("visibility.eq.public,is_private.eq.false")
+    .is("archived_at", null)
+    .gt("created_at", fourteenDaysAgo)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  if (!data) return [];
+  const enriched = await attachMembership(data, currentUserId);
+  return enriched.filter((c) => !c.is_member).slice(0, limit);
+}
+
 export async function getCircleBySlug(
   slug: string,
   currentUserId: string,
