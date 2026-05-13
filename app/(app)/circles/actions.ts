@@ -296,6 +296,164 @@ export async function createCircleV2(
   return { ok: true, slug: createdSlug };
 }
 
+/* Chantier 4.2 — Édition des settings du cercle (owner/admin only). */
+const updateSettingsSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  tagline: z
+    .string()
+    .trim()
+    .max(140)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  description: z
+    .string()
+    .trim()
+    .max(4000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  emoji: z
+    .string()
+    .trim()
+    .max(8)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  color_accent: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  primary_category: z.string().max(80).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(10).optional(),
+  language: z.string().min(2).max(5).optional(),
+  is_local: z.boolean().optional(),
+  location_city: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  location_country: z
+    .string()
+    .length(2)
+    .optional()
+    .transform((v) => v ?? null),
+  type: z.enum(["open", "semi_open", "private", "hidden"]).optional(),
+  join_policy: z
+    .enum(["instant", "request", "invite_only", "paid", "quiz"])
+    .optional(),
+  visibility: z.enum(["public", "unlisted", "invite_only"]).optional(),
+  modules: z
+    .object({
+      social_feed: z.boolean(),
+      marketplace: z.boolean(),
+      jobs: z.boolean(),
+      library: z.boolean(),
+      events: z.boolean(),
+      polls: z.boolean(),
+      wiki: z.boolean(),
+      live_audio: z.boolean(),
+      challenges: z.boolean(),
+      mentorship: z.boolean(),
+    })
+    .optional(),
+  welcome_message: z
+    .string()
+    .trim()
+    .max(1000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+export async function updateCircleSettings(
+  circleId: string,
+  patch: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: membership } = await supabase
+    .from("circle_members")
+    .select("role")
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const role = (membership as { role?: string } | null)?.role;
+  if (!role || !["owner", "admin"].includes(role)) {
+    return {
+      ok: false,
+      error: "Seuls le fondateur et les admins peuvent modifier ce cercle.",
+    };
+  }
+
+  const parsed = updateSettingsSchema.safeParse(patch);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Valeur invalide.",
+    };
+  }
+
+  /* Sync is_private legacy si type change (compat queries v1).
+   * Le typing strict de l'Update Supabase rejette le shape Partial dérivé
+   * de Zod ; on cast localement (les valeurs sont déjà validées). */
+  const dbPatch: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.type) {
+    dbPatch.is_private =
+      parsed.data.type === "private" || parsed.data.type === "hidden";
+  }
+
+  const { error } = await supabase
+    .from("circles")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update(dbPatch as any)
+    .eq("id", circleId);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}`);
+    revalidatePath(`/circles/${circle.slug}/settings`);
+  }
+  revalidatePath("/circles");
+  return { ok: true };
+}
+
+/* Chantier 4.2 — Archive (zone dangereuse). */
+export async function archiveCircle(
+  circleId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("owner_id")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (!circle) return { ok: false, error: "Cercle introuvable." };
+  if (circle.owner_id !== user.id) {
+    return { ok: false, error: "Seul le fondateur peut archiver." };
+  }
+
+  const { error } = await supabase
+    .from("circles")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", circleId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/circles");
+  return { ok: true };
+}
+
 export async function joinCircle(circleId: string) {
   const supabase = await createClient();
   const {
