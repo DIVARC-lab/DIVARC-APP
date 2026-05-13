@@ -124,16 +124,16 @@ export function PushNotificationToggle() {
             onClick={handleToggle}
             className={
               subscribed
-                ? "shrink-0 relative w-11 h-6 rounded-full bg-gold transition-colors"
-                : "shrink-0 relative w-11 h-6 rounded-full bg-night/15 transition-colors"
+                ? "shrink-0 relative w-11 h-6 rounded-full bg-night transition-colors disabled:opacity-60"
+                : "shrink-0 relative w-11 h-6 rounded-full bg-line-strong transition-colors disabled:opacity-60"
             }
           >
             <span
               aria-hidden
               className={
                 subscribed
-                  ? "absolute top-0.5 left-[22px] w-5 h-5 rounded-full bg-white shadow-soft transition-transform"
-                  : "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-soft transition-transform"
+                  ? "absolute top-0.5 left-[22px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+                  : "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
               }
             />
           </button>
