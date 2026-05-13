@@ -305,6 +305,47 @@ export default async function CirclesPage({
             ) : null}
           </>
         ) : null}
+
+        {/* MANIFESTE ANTI-ALGO — bloc fermeture qui rappelle la promesse-produit */}
+        <section
+          className="mx-4 sm:mx-7 mb-8 mt-2 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-night via-night-soft to-[#1F3563] text-cream p-6 sm:p-8"
+          aria-labelledby="manifesto-heading"
+        >
+          <div
+            aria-hidden
+            className="absolute -right-12 -top-12 opacity-25 pointer-events-none"
+          >
+            <ArcDeco size={220} tone="gold" opacity={1} stroke={1.3} />
+          </div>
+          <div className="relative max-w-xl">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold">
+              <Eye className="w-3 h-3" aria-hidden />
+              · Manifeste
+            </span>
+            <h3
+              id="manifesto-heading"
+              className="mt-2 font-display text-[24px] sm:text-[30px] leading-[1.05] tracking-[-0.02em] text-balance"
+            >
+              Pourquoi pas d&apos;algorithme opaque ?
+            </h3>
+            <p className="mt-3 text-[14px] sm:text-[15px] leading-[1.55] text-cream/85">
+              Les réseaux classiques décident pour toi ce que tu vois, sans te
+              dire comment. Nous, on te montre <strong className="text-cream">exactement comment on trie</strong> :
+              par fraîcheur, par engagement humain. Pas de mystère, pas de
+              manipulation.
+            </p>
+            <p className="mt-2 text-[13px] leading-[1.55] text-cream/70">
+              Tu choisis ton tri. Tu vois pourquoi chaque cercle apparaît. Et
+              tu peux désactiver les recommandations à tout moment.
+            </p>
+            <Link
+              href="/about/no-algorithm"
+              className="mt-5 inline-flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-gold text-night text-[12px] font-extrabold hover:bg-gold-soft transition-colors"
+            >
+              En savoir plus sur notre approche →
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
