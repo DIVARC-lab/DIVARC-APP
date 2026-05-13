@@ -162,6 +162,53 @@ export async function listForYouReels(
 ): Promise<ReelWithDetails[]> {
   const supabase = await createClient();
 
+  /* Chantier Reels Recsys étape 13 — pipeline V3 TikTok-style si user
+   * présent. Fallback sur le ranking lite legacy si :
+   *  - user null (non-auth)
+   *  - V3 retourne < 5 items (cold start sans profil)
+   *  - erreur RPC (migration pas encore appliquée)
+   *
+   * Le pipeline V3 émet déjà ses propres logs en cas d'erreur. */
+  if (currentUserId && !beforeCreatedAt) {
+    try {
+      const { runForYouPipeline } = await import(
+        "@/lib/recsys/foryouPipeline"
+      );
+      const result = await runForYouPipeline(
+        supabase,
+        currentUserId,
+        "reels_foryou",
+        { limit, candidates_n: Math.max(limit * 8, 300) },
+      );
+      if (result.items.length >= 5) {
+        const reelIds = result.items
+          .filter((it) => it.content_type === "reel")
+          .map((it) => it.content_id);
+        if (reelIds.length > 0) {
+          const { data: rawReels } = await supabase
+            .from("reels")
+            .select("*")
+            .in("id", reelIds)
+            .eq("status", "published")
+            .is("deleted_at", null);
+          if (rawReels && rawReels.length > 0) {
+            /* Préserve l'ordre du pipeline. */
+            const order = new Map(reelIds.map((id, i) => [id, i]));
+            const sorted = (rawReels as Reel[]).sort(
+              (a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999),
+            );
+            return attachReelDetails(sorted, currentUserId);
+          }
+        }
+      }
+      /* Fallback sur ranking lite si V3 vide ou trop court. */
+    } catch (err) {
+      console.error("[reels:listForYou] V3 pipeline failed, fallback:", err);
+    }
+  }
+
+  /* === Ranking lite legacy (fallback / cold start / pagination) === */
+
   /* 1. Reels vus dans les 24h dernières — exclus du candidate set. */
   let excludedIds: string[] = [];
   if (currentUserId) {
