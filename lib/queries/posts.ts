@@ -306,22 +306,75 @@ export async function listFeedPosts(
   return attachDetails(data, currentUserId);
 }
 
+/* Chantier 3.2 — Tris transparents pour le feed d'un cercle. */
+export type CircleFeedSort =
+  | "recent"
+  | "hot_24h"
+  | "hot_7d"
+  | "mine"
+  | "unread";
+
 export async function listCirclePosts(
   circleId: string,
   currentUserId: string,
   limit: number = 30,
+  sort: CircleFeedSort = "recent",
+  /* Pour 'unread' on lit last_read_at depuis circle_members. */
+  unreadSince: string | null = null,
 ): Promise<PostWithDetails[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
     .select("*")
     .eq("circle_id", circleId)
     .is("deleted_at", null)
     .is("pinned_at", null)
     .eq("status", "published")
-    .order("created_at", { ascending: false })
     .limit(limit);
 
+  switch (sort) {
+    case "hot_24h":
+      query = query
+        .gt(
+          "created_at",
+          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        )
+        .order("upvotes", { ascending: false, nullsFirst: false })
+        .order("helpful_marks", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      break;
+    case "hot_7d":
+      query = query
+        .gt(
+          "created_at",
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        )
+        .order("upvotes", { ascending: false, nullsFirst: false })
+        .order("helpful_marks", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      break;
+    case "mine":
+      query = query
+        .eq("author_id", currentUserId)
+        .order("created_at", { ascending: false });
+      break;
+    case "unread":
+      if (unreadSince) {
+        query = query
+          .gt("created_at", unreadSince)
+          .neq("author_id", currentUserId)
+          .order("created_at", { ascending: false });
+      } else {
+        query = query.order("created_at", { ascending: false });
+      }
+      break;
+    case "recent":
+    default:
+      query = query.order("created_at", { ascending: false });
+      break;
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
   return attachDetails(data, currentUserId);
 }

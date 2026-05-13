@@ -1,18 +1,29 @@
 import { MessageSquareText } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import { getCircleBySlug } from "@/lib/queries/circles";
+import { getCircleBySlug, listCircleFlairs } from "@/lib/queries/circles";
 import {
   listCirclePinnedPosts,
   listCirclePosts,
+  type CircleFeedSort,
 } from "@/lib/queries/posts";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
+import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
 import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
 type Params = Promise<{ slug: string }>;
+type SearchParamsP = Promise<{ sort?: string }>;
+
+const VALID_SORTS = new Set<CircleFeedSort>([
+  "recent",
+  "hot_24h",
+  "hot_7d",
+  "mine",
+  "unread",
+]);
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -25,14 +36,24 @@ export async function generateMetadata({ params }: { params: Params }) {
   return { title: circle?.name ?? "Cercle" };
 }
 
-/* Onglet "Posts" du cercle (route racine /circles/[slug]). Le hero, les
- * tabs et les actions sont rendus par le layout parent. */
+/* Onglet "Posts" v2 (route racine /circles/[slug]).
+ * - composer avec FlairSelector
+ * - tris transparents (recent/hot_24h/hot_7d/mine/unread)
+ * - posts épinglés en haut
+ * - le hero, les tabs et les actions sont rendus par le layout parent. */
 export default async function CirclePostsTab({
   params,
+  searchParams,
 }: {
   params: Params;
+  searchParams: SearchParamsP;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
+  const sort: CircleFeedSort = VALID_SORTS.has(sp.sort as CircleFeedSort)
+    ? (sp.sort as CircleFeedSort)
+    : "recent";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,14 +70,31 @@ export default async function CirclePostsTab({
     circle.my_role === "moderator" ||
     circle.my_role === "mod";
 
-  const [profile, posts, pinnedPosts] = await Promise.all([
+  /* Pour le tri "unread", on lit le last_active_at de l'user dans ce cercle. */
+  let unreadSince: string | null = null;
+  if (sort === "unread") {
+    const { data: m } = await supabase
+      .from("circle_members")
+      .select("last_active_at, joined_at")
+      .eq("circle_id", circle.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    unreadSince =
+      (m as { last_active_at?: string | null; joined_at?: string } | null)
+        ?.last_active_at ??
+      (m as { joined_at?: string } | null)?.joined_at ??
+      null;
+  }
+
+  const [profile, posts, pinnedPosts, flairs] = await Promise.all([
     getCurrentProfile(),
     circle.is_member
-      ? listCirclePosts(circle.id, user.id, 30)
+      ? listCirclePosts(circle.id, user.id, 30, sort, unreadSince)
       : Promise.resolve([]),
     circle.is_member
       ? listCirclePinnedPosts(circle.id, user.id, 5)
       : Promise.resolve([]),
+    circle.is_member ? listCircleFlairs(circle.id) : Promise.resolve([]),
   ]);
 
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
@@ -71,9 +109,18 @@ export default async function CirclePostsTab({
     );
   }
 
+  /* Met à jour silencieusement last_active_at (best-effort, ne bloque pas
+   * le render — pas async/await). */
+  void supabase
+    .from("circle_members")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("circle_id", circle.id)
+    .eq("user_id", user.id)
+    .then(() => undefined, () => undefined);
+
   return (
     <section className="px-5 sm:px-8" aria-label="Discussions">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
         <KickerLabel>Discussions</KickerLabel>
       </div>
@@ -82,49 +129,78 @@ export default async function CirclePostsTab({
         circleId={circle.id}
         authorName={fullName}
         authorAvatarUrl={profile?.avatar_url ?? null}
+        flairs={flairs}
       />
 
+      {/* Filtres tri transparents (URL-driven). */}
+      <div className="mt-4 mb-2">
+        <CircleFeedSortFilters
+          basePath={`/circles/${slug}`}
+          initialSort={sort}
+        />
+      </div>
+
+      {/* Pinned (toujours visibles, indépendant du tri). */}
       {pinnedPosts.length > 0 ? (
-        <ul className="mt-6 space-y-5">
-          {pinnedPosts.map((post) => (
-            <li key={post.id}>
-              <CircleModeratablePost
-                post={post}
-                currentUserId={user.id}
-                canModerate={canModerate}
-              />
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {posts.length === 0 && pinnedPosts.length === 0 ? (
-        <p className="mt-6 text-sm text-night-dim text-center py-8 rounded-2xl border border-dashed border-line">
-          Aucun message pour l&apos;instant.{" "}
-          <span className="italic font-display text-night">
-            Lance la conversation.
-          </span>
-        </p>
-      ) : null}
-
-      {posts.length > 0 ? (
-        <ul className="mt-4 space-y-4">
-          {posts.map((post) =>
-            canModerate ? (
+        <>
+          <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-gold-deep">
+            · Épinglés
+          </p>
+          <ul className="mt-1.5 space-y-4">
+            {pinnedPosts.map((post) => (
               <li key={post.id}>
                 <CircleModeratablePost
                   post={post}
                   currentUserId={user.id}
-                  canModerate
+                  canModerate={canModerate}
                 />
               </li>
-            ) : (
-              <li key={post.id}>
-                <PostCard post={post} currentUserId={user.id} />
-              </li>
-            ),
-          )}
-        </ul>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      {/* Feed principal selon le tri. */}
+      {posts.length === 0 && pinnedPosts.length === 0 ? (
+        <p className="mt-6 text-sm text-night-dim text-center py-8 rounded-2xl border border-dashed border-line">
+          {sort === "mine"
+            ? "Tu n'as encore rien posté dans ce cercle."
+            : sort === "unread"
+              ? "Aucun nouveau message depuis ta dernière visite. 🎉"
+              : "Aucun message pour l'instant."}{" "}
+          {sort === "recent" ? (
+            <span className="italic font-display text-night">
+              Lance la conversation.
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+
+      {posts.length > 0 ? (
+        <>
+          {pinnedPosts.length > 0 ? (
+            <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-night-dim">
+              · Récents
+            </p>
+          ) : null}
+          <ul className="mt-1.5 space-y-4">
+            {posts.map((post) =>
+              canModerate ? (
+                <li key={post.id}>
+                  <CircleModeratablePost
+                    post={post}
+                    currentUserId={user.id}
+                    canModerate
+                  />
+                </li>
+              ) : (
+                <li key={post.id}>
+                  <PostCard post={post} currentUserId={user.id} />
+                </li>
+              ),
+            )}
+          </ul>
+        </>
       ) : null}
     </section>
   );

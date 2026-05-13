@@ -468,6 +468,16 @@ export type Post = {
   scheduled_for: string | null;
   published_at: string | null;
   status: PostStatus;
+  /* Chantier 3 cercles (migration 0093) — curation circle posts. */
+  flair_id: string | null;
+  is_locked: boolean;
+  is_announcement: boolean;
+  requires_approval: boolean;
+  approved_by: string | null;
+  approved_at: string | null;
+  upvotes: number;
+  downvotes: number;
+  helpful_marks: number;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -4411,6 +4421,11 @@ export type Database = {
               | "scheduled_for"
               | "published_at"
               | "status"
+              /* Chantier 3 cercles (migration 0093). */
+              | "flair_id"
+              | "is_locked"
+              | "is_announcement"
+              | "requires_approval"
             >
           >;
         Update: Partial<
@@ -4421,6 +4436,12 @@ export type Database = {
             | "circle_id"
             | "pinned_at"
             | "pinned_by"
+            | "flair_id"
+            | "is_locked"
+            | "is_announcement"
+            | "requires_approval"
+            | "approved_by"
+            | "approved_at"
             | "edited_at"
             | "deleted_at"
             | "video_url"

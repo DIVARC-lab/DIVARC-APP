@@ -451,6 +451,17 @@ export async function getCircleBySlug(
   return enriched ?? null;
 }
 
+/* Chantier 3.2 — Liste les flairs d'un cercle pour le composer + badges. */
+export async function listCircleFlairs(circleId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("circle_flairs")
+    .select("*")
+    .eq("circle_id", circleId)
+    .order("position", { ascending: true });
+  return data ?? [];
+}
+
 export async function listCircleMembers(
   circleId: string,
   limit = 24,

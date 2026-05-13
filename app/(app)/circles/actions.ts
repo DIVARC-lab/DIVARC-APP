@@ -146,6 +146,12 @@ export async function leaveCircle(circleId: string) {
 const circlePostSchema = z.object({
   circle_id: z.string().uuid(),
   body: z.string().trim().min(1).max(4000),
+  /* Chantier 3.2 — flair optionnel (FK vers circle_flairs). */
+  flair_id: z
+    .preprocess(
+      (v) => (v == null || v === "" ? undefined : v),
+      z.string().uuid().optional(),
+    ),
 });
 
 export async function createCirclePost(formData: FormData) {
@@ -158,6 +164,7 @@ export async function createCirclePost(formData: FormData) {
   const parsed = circlePostSchema.safeParse({
     circle_id: formData.get("circle_id"),
     body: formData.get("body"),
+    flair_id: formData.get("flair_id"),
   });
   if (!parsed.success) {
     return {
@@ -186,6 +193,7 @@ export async function createCirclePost(formData: FormData) {
     body: parsed.data.body,
     visibility: "private",
     circle_id: parsed.data.circle_id,
+    flair_id: parsed.data.flair_id ?? null,
   });
 
   if (error) {
