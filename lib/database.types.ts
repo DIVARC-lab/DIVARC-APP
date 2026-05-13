@@ -433,6 +433,22 @@ export type PostCarouselSlide = {
   cta_url?: string;
 };
 
+/* Chantier Feed v2 (migration 0111) — reactions 6 types. */
+export type PostReactionType =
+  | "heart"
+  | "applause"
+  | "insightful"
+  | "surprised"
+  | "sad"
+  | "laugh";
+
+export type PostReaction = {
+  post_id: string;
+  user_id: string;
+  reaction_type: PostReactionType;
+  created_at: string;
+};
+
 export type Post = {
   id: string;
   author_id: string;
@@ -487,6 +503,9 @@ export type Post = {
   thread_position: number | null;
   reading_time_minutes: number | null;
   audience_snapshot: Record<string, unknown> | null;
+  /* Chantier Feed v2 (migration 0111) — reactions 6 types. */
+  reactions_counts: Partial<Record<PostReactionType, number>>;
+  total_reactions: number;
   created_at: string;
   updated_at: string;
   edited_at: string | null;
@@ -4627,6 +4646,9 @@ export type Database = {
               | "thread_reply_to_id"
               | "thread_position"
               | "audience_snapshot"
+              /* Chantier Feed v2 (migration 0111) — counters. */
+              | "reactions_counts"
+              | "total_reactions"
             >
           >;
         Update: Partial<
@@ -4702,6 +4724,14 @@ export type Database = {
       post_likes: {
         Row: PostLike;
         Insert: Pick<PostLike, "post_id" | "user_id">;
+        Update: never;
+        Relationships: [];
+      };
+      /* Chantier Feed v2 (migration 0111) — reactions 6 types. */
+      post_reactions: {
+        Row: PostReaction;
+        Insert: Pick<PostReaction, "post_id" | "user_id" | "reaction_type"> &
+          Partial<Pick<PostReaction, "created_at">>;
         Update: never;
         Relationships: [];
       };
@@ -6480,6 +6510,20 @@ export type Database = {
       seed_bootstrap_circles: {
         Args: { p_owner_id: string };
         Returns: Array<{ slug: string; created: boolean }>;
+      };
+      /* Migration 0111 — toggle reaction sur post (6 types). */
+      toggle_post_reaction: {
+        Args: {
+          p_post_id: string;
+          p_reaction_type:
+            | "heart"
+            | "applause"
+            | "insightful"
+            | "surprised"
+            | "sad"
+            | "laugh";
+        };
+        Returns: boolean;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */

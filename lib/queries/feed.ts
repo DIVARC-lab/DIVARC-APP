@@ -192,6 +192,9 @@ async function attachPhotos(
       thread_position: null,
       reading_time_minutes: null,
       audience_snapshot: null,
+      /* Chantier Feed v2 (migration 0111) — reactions counters. */
+      reactions_counts: {},
+      total_reactions: 0,
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],
