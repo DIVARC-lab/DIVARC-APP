@@ -62,6 +62,7 @@ export default async function CircleInvitePage({
       <CircleInvitationsManager
         circleId={circle.id}
         invitations={invitations}
+        circleName={circle.name}
       />
     </div>
   );

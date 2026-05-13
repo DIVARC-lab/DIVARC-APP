@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Plus, X } from "lucide-react";
+import { Check, Copy, Plus, Send, Share2, Users, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -14,11 +14,13 @@ import {
 type CircleInvitationsManagerProps = {
   circleId: string;
   invitations: CircleInvitation[];
+  circleName: string;
 };
 
 export function CircleInvitationsManager({
   circleId,
   invitations,
+  circleName,
 }: CircleInvitationsManagerProps) {
   const [maxUses, setMaxUses] = useState("");
   const [expiresInDays, setExpiresInDays] = useState("");
@@ -60,6 +62,45 @@ export function CircleInvitationsManager({
     }
   };
 
+  /* Web Share API natif (mobile : ouvre SMS/WhatsApp/Mail/etc.). */
+  const handleShare = async (token: string) => {
+    const url = inviteUrl(token);
+    const shareData = {
+      title: `Rejoins ${circleName} sur DIVARC`,
+      text: `J'ai un cercle à te montrer : ${circleName}. Rejoins-moi.`,
+      url,
+    };
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function"
+    ) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        /* AbortError si user annule la sheet — silencieux. */
+        if ((err as { name?: string })?.name === "AbortError") return;
+      }
+    }
+    /* Fallback : copie. */
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Lien copié — colle-le où tu veux.");
+    } catch {
+      toast.error("Impossible de partager.");
+    }
+  };
+
+  /* Calcul des stats viralité. */
+  const totalUses = invitations.reduce((sum, i) => sum + i.uses, 0);
+  const activeInvites = invitations.filter(
+    (i) =>
+      !i.revoked_at &&
+      (!i.max_uses || i.uses < i.max_uses) &&
+      (!i.expires_at ||
+        new Date(i.expires_at).getTime() > new Date().getTime()),
+  ).length;
+
   const handleRevoke = (id: string) => {
     startTransition(async () => {
       const result = await revokeCircleInvitation(id);
@@ -69,7 +110,36 @@ export function CircleInvitationsManager({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Stats viralité */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="rounded-2xl bg-white border border-line p-3.5">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-night-dim">
+            Personnes invitées
+          </p>
+          <p className="mt-1 font-display italic text-[24px] text-night leading-none tabular-nums">
+            {totalUses}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white border border-line p-3.5">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-night-dim">
+            Liens actifs
+          </p>
+          <p className="mt-1 font-display italic text-[24px] text-night leading-none tabular-nums">
+            {activeInvites}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-gold/10 border border-gold/30 p-3.5 col-span-2 sm:col-span-1">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-gold-deep">
+            <Users className="inline w-3 h-3 mr-0.5" aria-hidden />
+            Récompenses ambassadeur
+          </p>
+          <p className="mt-1 text-[11px] text-night-soft">
+            Invite 5 amis qui rejoignent → badge Connecteur. 10 → Ambassadeur.
+          </p>
+        </div>
+      </div>
+
       <form
         onSubmit={handleCreate}
         className="rounded-2xl bg-white border border-line p-5 space-y-4"
@@ -172,20 +242,30 @@ export function CircleInvitationsManager({
                   </p>
                 </div>
                 {isActive ? (
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleShare(invitation.token)}
+                      aria-label="Partager le lien"
+                      className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-night text-cream text-xs font-extrabold hover:bg-night-soft transition-colors"
+                    >
+                      <Share2 className="w-3.5 h-3.5" aria-hidden />
+                      Partager
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
                         handleCopy(invitation.id, invitation.token)
                       }
-                      className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold text-night text-xs font-semibold hover:bg-gold-soft transition-colors"
+                      aria-label="Copier le lien"
+                      className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-gold text-night text-xs font-extrabold hover:bg-gold-soft transition-colors"
                     >
                       {copiedId === invitation.id ? (
                         <Check className="w-3.5 h-3.5" aria-hidden />
                       ) : (
                         <Copy className="w-3.5 h-3.5" aria-hidden />
                       )}
-                      {copiedId === invitation.id ? "Copié" : "Copier le lien"}
+                      {copiedId === invitation.id ? "Copié" : "Copier"}
                     </button>
                     <button
                       type="button"
