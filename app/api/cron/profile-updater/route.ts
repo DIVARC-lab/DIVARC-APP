@@ -172,25 +172,43 @@ async function updateProfileForUser(
 
   let interestVector: number[] | null = null;
   if (topPostWeights.length >= 3) {
-    const postIds = topPostWeights.map(([id]) => id);
-    const { data: embeddings } = await supabase
-      .from("content_embeddings")
-      .select("post_id, embedding")
-      .in("post_id", postIds);
+    const targetIds = topPostWeights.map(([id]) => id);
 
-    if (embeddings && embeddings.length >= 3) {
-      /* Moyenne pondérée des vecteurs : Σ (weight × embedding) / Σ weights.
-         pgvector retourne le vecteur soit en string ("[0.1,0.2,...]") soit
-         en number[] selon la version du client — on gère les deux cas. */
+    /* Chantier Reels Recsys 6 — un target_post_id dans recsys_events peut
+     * être soit un post.id soit un reel.id (les UUIDs sont uniques entre
+     * tables). On query les 2 tables en parallèle et on accumule. */
+    const [postRes, reelRes] = await Promise.all([
+      supabase
+        .from("content_embeddings")
+        .select("post_id, embedding")
+        .in("post_id", targetIds),
+      supabase
+        .from("reel_embeddings")
+        .select("reel_id, embedding")
+        .in("reel_id", targetIds),
+    ]);
+
+    type EmbedRow = { id: string; embedding: unknown };
+    const allEmbeddings: EmbedRow[] = [
+      ...((postRes.data ?? []) as Array<{ post_id: string; embedding: unknown }>).map(
+        (r) => ({ id: r.post_id, embedding: r.embedding }),
+      ),
+      ...((reelRes.data ?? []) as Array<{ reel_id: string; embedding: unknown }>).map(
+        (r) => ({ id: r.reel_id, embedding: r.embedding }),
+      ),
+    ];
+
+    if (allEmbeddings.length >= 3) {
+      /* Moyenne pondérée des vecteurs : Σ (weight × embedding) / Σ weights. */
       const dim = 1536;
       const sum = new Array(dim).fill(0);
       let totalWeight = 0;
       const weightById = Object.fromEntries(topPostWeights);
 
-      for (const row of embeddings) {
-        const weight = weightById[row.post_id] ?? 0;
+      for (const row of allEmbeddings) {
+        const weight = weightById[row.id] ?? 0;
         if (weight <= 0) continue;
-        const vec = parseEmbedding(row.embedding as unknown);
+        const vec = parseEmbedding(row.embedding);
         if (!vec || vec.length !== dim) continue;
         for (let i = 0; i < dim; i++) {
           sum[i] += vec[i]! * weight;
