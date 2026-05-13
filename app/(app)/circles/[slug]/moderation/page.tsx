@@ -1,4 +1,4 @@
-import { Check, History, Inbox, Shield, X } from "lucide-react";
+import { Check, Gavel, History, Inbox, Shield, X } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { KickerLabel } from "@/components/ui/KickerLabel";
@@ -9,6 +9,7 @@ import type {
   CircleModerationAction,
   CircleModerationActionType,
 } from "@/lib/database.types";
+import { MemberSanctionRow } from "./_components/MemberSanctionRow";
 import { ModerationActionsBar } from "./_components/ModerationActionsBar";
 
 type Params = Promise<{ slug: string }>;
@@ -121,13 +122,34 @@ export default async function CircleModerationPage({
     .limit(50);
   const logList = (logs ?? []) as CircleModerationAction[];
 
-  /* Profiles batch (auteurs + acteurs + targets). */
+  /* Membres sanctionnables (warnings_count > 0 OU muted OU banned OU
+   * actifs récents — pour donner une vue actionnable). */
+  const { data: flaggedMembers } = await supabase
+    .from("circle_members")
+    .select("user_id, role, warnings_count, is_muted, is_banned, last_active_at")
+    .eq("circle_id", circle.id)
+    .or("is_muted.eq.true,is_banned.eq.true,warnings_count.gt.0")
+    .order("is_banned", { ascending: false })
+    .order("is_muted", { ascending: false })
+    .order("warnings_count", { ascending: false })
+    .limit(20);
+  const flaggedList =
+    (flaggedMembers as Array<{
+      user_id: string;
+      role: string;
+      warnings_count: number;
+      is_muted: boolean;
+      is_banned: boolean;
+    }> | null) ?? [];
+
+  /* Profiles batch (auteurs + acteurs + targets + flagged). */
   const userIds = new Set<string>();
   for (const p of pendingList) userIds.add(p.author_id);
   for (const l of logList) {
     userIds.add(l.actor_user_id);
     if (l.target_user_id) userIds.add(l.target_user_id);
   }
+  for (const m of flaggedList) userIds.add(m.user_id);
   const profileMap = new Map<
     string,
     { id: string; full_name: string | null; username: string | null; avatar_url: string | null }
@@ -197,6 +219,45 @@ export default async function CircleModerationPage({
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      {/* Sanctions / membres flaggés */}
+      <section className="rounded-2xl bg-white border border-line overflow-hidden">
+        <header className="px-4 py-3 border-b border-line flex items-center gap-2">
+          <Gavel className="w-4 h-4 text-red-700" aria-hidden />
+          <KickerLabel>
+            Membres sous surveillance ({flaggedList.length})
+          </KickerLabel>
+        </header>
+        {flaggedList.length === 0 ? (
+          <div className="px-4 py-8 text-center text-[13px] text-night-dim">
+            <Check
+              className="w-8 h-8 mx-auto mb-2 text-emerald-500"
+              aria-hidden
+            />
+            Aucun membre n&apos;a de sanction active. 6 niveaux progressifs
+            sont disponibles : avertissement / mute 1h-7j / ban 30j /
+            ban définitif.
+          </div>
+        ) : (
+          <ul className="divide-y divide-line">
+            {flaggedList.map((m) => (
+              <li key={m.user_id}>
+                <MemberSanctionRow
+                  circleId={circle.id}
+                  member={{
+                    user_id: m.user_id,
+                    profile: profileMap.get(m.user_id) ?? null,
+                    role: m.role,
+                    warnings_count: m.warnings_count,
+                    is_muted: m.is_muted,
+                    is_banned: m.is_banned,
+                  }}
+                />
+              </li>
+            ))}
           </ul>
         )}
       </section>

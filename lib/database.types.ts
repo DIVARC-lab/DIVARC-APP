@@ -1936,6 +1936,30 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Chantier 4.4 (migration 0101) — sanctions progressives par cercle. */
+export type CircleSanctionAction =
+  | "warning"
+  | "mute_1h"
+  | "mute_24h"
+  | "mute_7d"
+  | "temp_ban_30d"
+  | "permanent_ban";
+
+export type CircleSanction = {
+  id: string;
+  circle_id: string;
+  target_user_id: string;
+  issued_by: string | null;
+  level: number;
+  action: CircleSanctionAction;
+  reason: string | null;
+  issued_at: string;
+  expires_at: string | null;
+  lifted_at: string | null;
+  lifted_by: string | null;
+  lifted_reason: string | null;
+};
+
 /* Chantier 4.3 (migration 0100) — audit log modération par cercle. */
 export type CircleModerationActionType =
   | "post_approved"
@@ -5040,6 +5064,29 @@ export type Database = {
         > &
           Partial<Pick<CirclePostVote, "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      /* Chantier 4.4 (migration 0101) — sanctions progressives. */
+      circle_sanctions: {
+        Row: CircleSanction;
+        Insert: Pick<
+          CircleSanction,
+          "circle_id" | "target_user_id" | "level" | "action"
+        > &
+          Partial<
+            Omit<
+              CircleSanction,
+              | "circle_id"
+              | "target_user_id"
+              | "level"
+              | "action"
+              | "id"
+              | "issued_at"
+            >
+          >;
+        Update: Partial<
+          Pick<CircleSanction, "lifted_at" | "lifted_by" | "lifted_reason">
+        >;
         Relationships: [];
       };
       /* Chantier 4.3 (migration 0100) — audit log modération. */

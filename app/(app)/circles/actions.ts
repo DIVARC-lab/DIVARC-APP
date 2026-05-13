@@ -1282,3 +1282,224 @@ export async function updateCircleMemberRole(
   }
   return { ok: true };
 }
+
+/* ============================================================================
+ * Chantier 4.4 — Sanctions progressives
+ * ============================================================================ */
+
+const SANCTION_ACTIONS = [
+  "warning",
+  "mute_1h",
+  "mute_24h",
+  "mute_7d",
+  "temp_ban_30d",
+  "permanent_ban",
+] as const;
+type SanctionAction = (typeof SANCTION_ACTIONS)[number];
+
+const SANCTION_LEVELS: Record<SanctionAction, number> = {
+  warning: 1,
+  mute_1h: 2,
+  mute_24h: 3,
+  mute_7d: 4,
+  temp_ban_30d: 5,
+  permanent_ban: 6,
+};
+
+const SANCTION_DURATION_MS: Record<SanctionAction, number | null> = {
+  warning: null,
+  mute_1h: 60 * 60 * 1000,
+  mute_24h: 24 * 60 * 60 * 1000,
+  mute_7d: 7 * 24 * 60 * 60 * 1000,
+  temp_ban_30d: 30 * 24 * 60 * 60 * 1000,
+  permanent_ban: null,
+};
+
+export async function issueCircleSanction(
+  circleId: string,
+  targetUserId: string,
+  action: SanctionAction,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const check = await assertCircleModerator(supabase, circleId, user.id);
+  if (!check.ok) return check;
+
+  if (!SANCTION_ACTIONS.includes(action)) {
+    return { ok: false, error: "Sanction invalide." };
+  }
+  if (reason.trim().length < 5) {
+    return {
+      ok: false,
+      error: "Précise la raison (5 caractères minimum).",
+    };
+  }
+
+  /* Le owner du cercle est intouchable. */
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("owner_id, slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (!circle) return { ok: false, error: "Cercle introuvable." };
+  if (circle.owner_id === targetUserId) {
+    return { ok: false, error: "Le fondateur ne peut être sanctionné." };
+  }
+
+  const now = Date.now();
+  const duration = SANCTION_DURATION_MS[action];
+  const expiresAt =
+    duration === null ? null : new Date(now + duration).toISOString();
+
+  /* Insert sanction. */
+  const { error: insertError } = await supabase
+    .from("circle_sanctions")
+    .insert({
+      circle_id: circleId,
+      target_user_id: targetUserId,
+      issued_by: user.id,
+      level: SANCTION_LEVELS[action],
+      action,
+      reason: reason.trim().slice(0, 1000),
+      expires_at: expiresAt,
+    });
+  if (insertError) return { ok: false, error: insertError.message };
+
+  /* Update circle_members selon le type de sanction. */
+  const memberPatch: Record<string, unknown> = {};
+  if (action === "warning") {
+    /* Increment warnings_count. */
+    const { data: m } = await supabase
+      .from("circle_members")
+      .select("warnings_count")
+      .eq("circle_id", circleId)
+      .eq("user_id", targetUserId)
+      .maybeSingle();
+    const prev = (m as { warnings_count?: number } | null)?.warnings_count ?? 0;
+    memberPatch.warnings_count = prev + 1;
+  } else if (action.startsWith("mute_")) {
+    memberPatch.is_muted = true;
+    memberPatch.muted_until = expiresAt;
+  } else if (action === "temp_ban_30d" || action === "permanent_ban") {
+    memberPatch.is_banned = true;
+    memberPatch.banned_at = new Date(now).toISOString();
+    memberPatch.ban_reason = reason.trim().slice(0, 500);
+    memberPatch.status = "banned";
+  }
+
+  if (Object.keys(memberPatch).length > 0) {
+    await supabase
+      .from("circle_members")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(memberPatch as any)
+      .eq("circle_id", circleId)
+      .eq("user_id", targetUserId);
+  }
+
+  /* Log dans circle_moderation_actions. */
+  const logAction =
+    action === "warning"
+      ? "member_warned"
+      : action.startsWith("mute_")
+        ? "member_muted"
+        : "member_banned";
+  await logModerationAction(supabase, circleId, user.id, logAction, {
+    targetUserId,
+    reason: reason.trim().slice(0, 1000),
+    metadata: { action, level: SANCTION_LEVELS[action], expires_at: expiresAt },
+  });
+
+  if (circle.slug) {
+    revalidatePath(`/circles/${circle.slug}/members`);
+    revalidatePath(`/circles/${circle.slug}/moderation`);
+  }
+  return { ok: true };
+}
+
+export async function liftCircleSanction(
+  sanctionId: string,
+  liftReason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: sanction } = await supabase
+    .from("circle_sanctions")
+    .select("circle_id, target_user_id, action, lifted_at")
+    .eq("id", sanctionId)
+    .maybeSingle();
+  if (!sanction) return { ok: false, error: "Sanction introuvable." };
+  if (sanction.lifted_at)
+    return { ok: false, error: "Sanction déjà levée." };
+
+  const check = await assertCircleModerator(
+    supabase,
+    sanction.circle_id,
+    user.id,
+  );
+  if (!check.ok) return check;
+
+  const { error } = await supabase
+    .from("circle_sanctions")
+    .update({
+      lifted_at: new Date().toISOString(),
+      lifted_by: user.id,
+      lifted_reason: liftReason.slice(0, 500),
+    })
+    .eq("id", sanctionId);
+  if (error) return { ok: false, error: error.message };
+
+  /* Reset les flags membre selon l'action levée. */
+  const memberPatch: Record<string, unknown> = {};
+  if (sanction.action.startsWith("mute_")) {
+    memberPatch.is_muted = false;
+    memberPatch.muted_until = null;
+  } else if (
+    sanction.action === "temp_ban_30d" ||
+    sanction.action === "permanent_ban"
+  ) {
+    memberPatch.is_banned = false;
+    memberPatch.banned_at = null;
+    memberPatch.ban_reason = null;
+    memberPatch.status = "active";
+  }
+  if (Object.keys(memberPatch).length > 0) {
+    await supabase
+      .from("circle_members")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(memberPatch as any)
+      .eq("circle_id", sanction.circle_id)
+      .eq("user_id", sanction.target_user_id);
+  }
+
+  const logType =
+    sanction.action.startsWith("mute_")
+      ? "member_unmuted"
+      : sanction.action === "temp_ban_30d" || sanction.action === "permanent_ban"
+        ? "member_unbanned"
+        : "member_warned";
+  await logModerationAction(supabase, sanction.circle_id, user.id, logType, {
+    targetUserId: sanction.target_user_id,
+    reason: liftReason.slice(0, 500),
+    metadata: { sanction_id: sanctionId, action_lifted: sanction.action },
+  });
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", sanction.circle_id)
+    .maybeSingle();
+  if (circle?.slug) {
+    revalidatePath(`/circles/${circle.slug}/members`);
+    revalidatePath(`/circles/${circle.slug}/moderation`);
+  }
+  return { ok: true };
+}
