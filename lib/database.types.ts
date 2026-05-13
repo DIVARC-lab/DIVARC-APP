@@ -730,6 +730,13 @@ export type LiveSessionMessageWithAuthor = LiveSessionMessage & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
+export type PostCollectionColorTheme =
+  | "warm"
+  | "cool"
+  | "mono"
+  | "earth"
+  | "berry";
+
 export type PostCollection = {
   id: string;
   user_id: string;
@@ -739,13 +746,26 @@ export type PostCollection = {
   bookmarks_count: number;
   position_order: number;
   created_at: string;
+  /* Chantier Feed v2 — migration 0112. */
+  cover_url: string | null;
+  description: string | null;
+  is_archived: boolean;
+  share_slug: string | null;
+  color_theme: PostCollectionColorTheme;
+  last_post_at: string | null;
 };
+
+export type PostBookmarkReadingState = "to_read" | "reading" | "done";
 
 export type PostBookmark = {
   user_id: string;
   post_id: string;
   collection_id: string | null;
   created_at: string;
+  /* Chantier Feed v2 — migration 0112. */
+  reading_state: PostBookmarkReadingState;
+  note: string | null;
+  last_seen_at: string | null;
 };
 
 export type Hashtag = {
@@ -4908,18 +4928,50 @@ export type Database = {
               | "bookmarks_count"
               | "position_order"
               | "created_at"
+              | "cover_url"
+              | "description"
+              | "is_archived"
+              | "share_slug"
+              | "color_theme"
+              | "last_post_at"
             >
           >;
         Update: Partial<
-          Pick<PostCollection, "name" | "emoji" | "is_private" | "position_order">
+          Pick<
+            PostCollection,
+            | "name"
+            | "emoji"
+            | "is_private"
+            | "position_order"
+            | "cover_url"
+            | "description"
+            | "is_archived"
+            | "share_slug"
+            | "color_theme"
+            | "last_post_at"
+          >
         >;
         Relationships: [];
       };
       post_bookmarks: {
         Row: PostBookmark;
         Insert: Pick<PostBookmark, "user_id" | "post_id"> &
-          Partial<Pick<PostBookmark, "collection_id" | "created_at">>;
-        Update: Partial<Pick<PostBookmark, "collection_id">>;
+          Partial<
+            Pick<
+              PostBookmark,
+              | "collection_id"
+              | "created_at"
+              | "reading_state"
+              | "note"
+              | "last_seen_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            PostBookmark,
+            "collection_id" | "reading_state" | "note" | "last_seen_at"
+          >
+        >;
         Relationships: [];
       };
       pro_connections: {
@@ -6524,6 +6576,24 @@ export type Database = {
             | "laugh";
         };
         Returns: boolean;
+      };
+      /* Migration 0112 — Collections v2 : partage, organisation, lecture. */
+      share_collection: {
+        Args: { p_collection_id: string; p_desired_slug?: string | null };
+        Returns: string;
+      };
+      organize_bookmark: {
+        Args: {
+          p_post_id: string;
+          p_collection_id?: string | null;
+          p_reading_state?: "to_read" | "reading" | "done" | null;
+          p_note?: string | null;
+        };
+        Returns: void;
+      };
+      touch_bookmark: {
+        Args: { p_post_id: string };
+        Returns: void;
       };
       /* Migration 0093 — toggle vote sur post de cercle (upvote/downvote/helpful).
        * Retourne true si vote ajouté, false si vote retiré. */
