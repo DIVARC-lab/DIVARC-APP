@@ -20,8 +20,8 @@ const MODULES_LIST: Array<{
   { key: "marketplace", label: "Marketplace", desc: "Annonces thématiques" },
   { key: "jobs", label: "Job board", desc: "Offres d'emploi gratuites" },
   { key: "library", label: "Bibliothèque", desc: "Ressources curées" },
-  { key: "wiki", label: "Wiki", desc: "Base de connaissances", comingSoon: true },
-  { key: "mentorship", label: "Mentorat", desc: "Pairing mentor/mentee", comingSoon: true },
+  { key: "wiki", label: "Wiki", desc: "Pages éditables dans la Bibliothèque" },
+  { key: "mentorship", label: "Mentorat", desc: "Mentors et mentees du cercle" },
 ];
 
 type Props = {

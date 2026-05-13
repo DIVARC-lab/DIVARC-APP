@@ -1940,6 +1940,22 @@ export type CirclePostVote = {
   created_at: string;
 };
 
+/* Migration 0108 — Module Mentorat. */
+export type CircleMentorOffer = {
+  id: string;
+  circle_id: string;
+  mentor_user_id: string;
+  headline: string;
+  bio: string | null;
+  expertise: string[];
+  availability: string | null;
+  capacity: number | null;
+  current_mentees: number;
+  is_open: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 /* Chantier 5.4 (migration 0104) — système d'ambassadeurs. */
 export type CircleAmbassadorBadge =
   | "connector"
@@ -5109,6 +5125,33 @@ export type Database = {
         > &
           Partial<Pick<CirclePostVote, "created_at">>;
         Update: never;
+        Relationships: [];
+      };
+      /* Migration 0108 — Module Mentorat. */
+      circle_mentor_offers: {
+        Row: CircleMentorOffer;
+        Insert: Pick<
+          CircleMentorOffer,
+          "circle_id" | "mentor_user_id" | "headline"
+        > &
+          Partial<
+            Omit<
+              CircleMentorOffer,
+              "circle_id" | "mentor_user_id" | "headline" | "id" | "created_at" | "updated_at"
+            >
+          >;
+        Update: Partial<
+          Pick<
+            CircleMentorOffer,
+            | "headline"
+            | "bio"
+            | "expertise"
+            | "availability"
+            | "capacity"
+            | "current_mentees"
+            | "is_open"
+          >
+        >;
         Relationships: [];
       };
       /* Chantier 5.4 (migration 0104) — système d'ambassadeurs. */

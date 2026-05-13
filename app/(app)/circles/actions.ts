@@ -1792,3 +1792,152 @@ export async function deleteAutomodRule(
   }
   return { ok: true };
 }
+
+/* ============================================================================
+ * Module Mentorat (migration 0108) — offres de mentors
+ * ============================================================================ */
+
+const mentorOfferSchema = z.object({
+  headline: z.string().trim().min(10).max(160),
+  bio: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  expertise: z.array(z.string().min(1).max(40)).max(10).default([]),
+  availability: z
+    .string()
+    .trim()
+    .max(80)
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+  capacity: z
+    .union([z.number().int().min(1).max(50), z.null()])
+    .optional()
+    .transform((v) => v ?? null),
+});
+
+export async function createOrUpdateMentorOffer(
+  circleId: string,
+  payload: unknown,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Doit être membre actif du cercle. */
+  const { data: member } = await supabase
+    .from("circle_members")
+    .select("status")
+    .eq("circle_id", circleId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!member || (member as { status?: string }).status !== "active") {
+    return { ok: false, error: "Tu dois être membre actif du cercle." };
+  }
+
+  const parsed = mentorOfferSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Offre invalide.",
+    };
+  }
+
+  /* Upsert (unique (circle_id, mentor_user_id)). */
+  const { error } = await supabase
+    .from("circle_mentor_offers")
+    .upsert(
+      {
+        circle_id: circleId,
+        mentor_user_id: user.id,
+        headline: parsed.data.headline,
+        bio: parsed.data.bio,
+        expertise: parsed.data.expertise,
+        availability: parsed.data.availability,
+        capacity: parsed.data.capacity,
+        is_open: true,
+      },
+      { onConflict: "circle_id,mentor_user_id" },
+    );
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", circleId)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}/mentorship`);
+  return { ok: true };
+}
+
+export async function deleteMentorOffer(
+  offerId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: offer } = await supabase
+    .from("circle_mentor_offers")
+    .select("circle_id, mentor_user_id")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (!offer) return { ok: false, error: "Offre introuvable." };
+  if (offer.mentor_user_id !== user.id) {
+    return { ok: false, error: "Tu ne peux supprimer que tes propres offres." };
+  }
+
+  const { error } = await supabase
+    .from("circle_mentor_offers")
+    .delete()
+    .eq("id", offerId);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", offer.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}/mentorship`);
+  return { ok: true };
+}
+
+export async function toggleMentorOfferOpen(
+  offerId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: offer } = await supabase
+    .from("circle_mentor_offers")
+    .select("circle_id, mentor_user_id, is_open")
+    .eq("id", offerId)
+    .maybeSingle();
+  if (!offer) return { ok: false, error: "Offre introuvable." };
+  if (offer.mentor_user_id !== user.id) {
+    return { ok: false, error: "Non autorisé." };
+  }
+
+  const { error } = await supabase
+    .from("circle_mentor_offers")
+    .update({ is_open: !offer.is_open })
+    .eq("id", offerId);
+  if (error) return { ok: false, error: error.message };
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("slug")
+    .eq("id", offer.circle_id)
+    .maybeSingle();
+  if (circle?.slug) revalidatePath(`/circles/${circle.slug}/mentorship`);
+  return { ok: true };
+}

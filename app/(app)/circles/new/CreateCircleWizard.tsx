@@ -537,14 +537,12 @@ const MODULES_META: Array<{
   {
     key: "wiki",
     label: "Wiki collaboratif",
-    desc: "Base de connaissances éditable",
-    comingSoon: true,
+    desc: "Base de connaissances éditable dans la Bibliothèque",
   },
   {
     key: "mentorship",
     label: "Mentorat",
-    desc: "Pairing mentor/mentee dans le cercle",
-    comingSoon: true,
+    desc: "Membres mentors qui se déclarent pour accompagner les autres",
   },
 ];
 

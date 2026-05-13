@@ -4,6 +4,7 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
+  GraduationCap,
   Info,
   MessageSquare,
   Store,
@@ -59,6 +60,13 @@ const ALL_TABS: Tab[] = [
     icon: Calendar,
     moduleKey: "events",
     segment: "/events",
+  },
+  {
+    slug: "mentorship",
+    label: "Mentorat",
+    icon: GraduationCap,
+    moduleKey: "mentorship",
+    segment: "/mentorship",
   },
   {
     slug: "members",
