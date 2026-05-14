@@ -247,7 +247,7 @@ export default async function FeedPage({
                 <FeedEmptyState tab={tab} />
               </div>
             ) : (
-              <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10">
+              <ul className="flex flex-col gap-5 sm:gap-6 px-4 sm:px-6 pb-10">
                 {posts.map((post, index) => {
                   const reason = reasonByPostId.get(post.id);
                   return (
