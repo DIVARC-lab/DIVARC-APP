@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { KeywordPlannerClient } from "@/components/ads/keyword-planner/KeywordPlannerClient";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Keyword Planner" };
 
@@ -29,7 +30,7 @@ export default async function KeywordPlannerPage({
   if (!hasRole) notFound();
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <Link
         href={`/ads-manager/${accountId}`}
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -55,6 +56,6 @@ export default async function KeywordPlannerPage({
       </header>
 
       <KeywordPlannerClient accountId={accountId} />
-    </div>
+    </Container>
   );
 }

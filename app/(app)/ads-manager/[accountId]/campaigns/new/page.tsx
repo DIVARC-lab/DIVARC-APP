@@ -6,6 +6,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { CampaignBuilderPro } from "@/components/ads/builder/CampaignBuilderPro";
 import { SmartCampaignBuilder } from "@/components/ads/smartCampaign/SmartCampaignBuilder";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Nouvelle campagne" };
 
@@ -75,7 +76,7 @@ export default async function NewCampaignPage({
        sinon        → écran de choix Smart vs Expert */
   if (mode === "smart") {
     return (
-      <div className="px-5 sm:px-8 py-8 max-w-4xl mx-auto">
+      <Container maxWidth="default" paddingX="page" paddingY="3xl">
         <Link
           href={`/ads-manager/${accountId}`}
           className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -88,13 +89,13 @@ export default async function NewCampaignPage({
           entities={entities ?? []}
           analysisId={analysis}
         />
-      </div>
+      </Container>
     );
   }
 
   if (mode === "expert") {
     return (
-      <div className="px-5 sm:px-8 py-8 max-w-4xl mx-auto">
+      <Container maxWidth="default" paddingX="page" paddingY="3xl">
         <Link
           href={`/ads-manager/${accountId}`}
           className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -120,13 +121,13 @@ export default async function NewCampaignPage({
           currency={account?.currency ?? "EUR"}
           entities={entities ?? []}
         />
-      </div>
+      </Container>
     );
   }
 
   /* Default : mode chooser. */
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-3xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <Link
         href={`/ads-manager/${accountId}`}
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -216,6 +217,6 @@ export default async function NewCampaignPage({
           ton site.
         </p>
       </div>
-    </div>
+    </Container>
   );
 }

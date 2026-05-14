@@ -6,6 +6,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { FunnelChart } from "@/components/ads/FunnelChart";
 import { buildFunnel } from "@/lib/queries/adsFunnel";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Funnel de conversion" };
 
@@ -50,7 +51,7 @@ export default async function FunnelPage({
   });
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <Link
         href={`/ads-manager/${accountId}`}
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -161,7 +162,7 @@ export default async function FunnelPage({
           </p>
         </div>
       </section>
-    </div>
+    </Container>
   );
 }
 
