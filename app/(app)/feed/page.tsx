@@ -31,6 +31,7 @@ import type { FeedMode, PostWithDetails } from "@/lib/database.types";
 import { AntiDoomscrollPause } from "./_components/AntiDoomscrollPause";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
 import { FeedReasonChip } from "./_components/FeedReasonChip";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Feed",
@@ -176,9 +177,9 @@ export default async function FeedPage({
 
   return (
     <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)] max-w-[100vw] overflow-x-hidden">
-      <div className="mx-auto w-full max-w-6xl">
+      <Container maxWidth="wide" paddingX="none">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
-          <div className="mx-auto w-full max-w-2xl min-w-0 lg:mx-0">
+          <Container maxWidth="text" paddingX="none" className="lg:mx-0 min-w-0">
             {/* Hero header — gradient cream → bg-soft, ArcDeco gold visible */}
             <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
               <div
@@ -294,7 +295,7 @@ export default async function FeedPage({
                 })}
               </ul>
             )}
-          </div>
+          </Container>
 
           {/* Right rail desktop */}
           <div className="hidden lg:block py-10 pr-4">
@@ -305,7 +306,7 @@ export default async function FeedPage({
             />
           </div>
         </div>
-      </div>
+      </Container>
 
       {/* FAB Créer — navy 56 r-full border-2 gold, double shadow gold+navy.
           lg:hidden car la sidebar desktop a déjà un bouton + (et le bottom
