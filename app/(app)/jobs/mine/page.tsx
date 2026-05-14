@@ -7,6 +7,10 @@ import { listMyJobs } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { MyJobActions } from "./_components/MyJobActions";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Mes offres",
@@ -24,7 +28,8 @@ export default async function MyJobsPage() {
   const closed = jobs.filter((j) => j.status !== "active");
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <Link
@@ -52,23 +57,15 @@ export default async function MyJobsPage() {
       </header>
 
       {jobs.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-          >
-            <Briefcase className="w-8 h-8 text-night-muted" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucune offre publiée
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Publie ta première offre pour recruter sur DIVARC.
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/jobs/new">Publier une offre</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={Briefcase}
+          title="Aucune offre publiée"
+          body="Publie ta première offre pour recruter sur DIVARC."
+          ctaHref="/jobs/new"
+          ctaLabel="Publier une offre"
+          tone="default"
+          size="lg"
+        />
       ) : (
         <div className="space-y-10">
           {active.length > 0 ? (
@@ -102,7 +99,8 @@ export default async function MyJobsPage() {
           ) : null}
         </div>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
@@ -120,7 +118,7 @@ function Section({
       <h2 className="font-display text-2xl text-night mb-4">
         {title} <span className="text-muted text-base">· {count}</span>
       </h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>
+      <Grid cols={{ mobile: 1, desktop: 2 }} gap="lg">{children}</Grid>
     </section>
   );
 }

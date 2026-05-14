@@ -6,6 +6,9 @@ import { listMyProfileViewers } from "@/lib/queries/profileViews";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Qui a vu mon profil",
@@ -21,7 +24,8 @@ export default async function ProfileViewsPage() {
   const viewers = await listMyProfileViewers(user.id, 100);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/profile"
@@ -41,20 +45,13 @@ export default async function ProfileViewsPage() {
       </header>
 
       {viewers.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-          >
-            <Eye className="w-7 h-7 text-gold-deep" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Pas encore de visiteur
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Quand quelqu&apos;un visite ton profil public, tu le verras ici.
-          </p>
-        </div>
+        <EmptyState
+          icon={Eye}
+          title="Pas encore de visiteur"
+          body="Quand quelqu'un visite ton profil public, tu le verras ici."
+          tone="default"
+          size="lg"
+        />
       ) : (
         <ul className="space-y-2">
           {viewers.map((view) => {
@@ -115,6 +112,7 @@ export default async function ProfileViewsPage() {
           })}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
