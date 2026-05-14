@@ -177,6 +177,46 @@ export function ReactionsBar({ postId, initialTotal }: Props) {
     }
   }
 
+  /* Long-press mobile — appui >500ms ouvre le picker au lieu de faire
+     un tap simple (pattern FB/Messenger). Sur desktop, le hover du
+     wrapper ouvre déjà le picker (voir @media hover). */
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+
+  function handlePressStart() {
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setOpen(true);
+      /* Feedback haptique léger si dispo (iOS Safari ignore, Android OK). */
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(20);
+        } catch {
+          /* Vibration peut être bloquée par certains contextes (iframe,
+             user pas encore interagi). Ignore silencieusement. */
+        }
+      }
+    }, 500);
+  }
+
+  function handlePressEnd() {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  function handleMainClickWithLongPressGuard() {
+    /* Si long-press a déjà ouvert le picker, on swallow le click qui
+       suit (pour ne pas immédiatement toggle / fermer). */
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
+    handleMainClick();
+  }
+
   const myFirst = REACTIONS.find((r) => myReactions.has(r.type));
   const hasAny = myReactions.size > 0;
 
@@ -185,17 +225,25 @@ export function ReactionsBar({ postId, initialTotal }: Props) {
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={handleMainClick}
+          onClick={handleMainClickWithLongPressGuard}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+          onTouchCancel={handlePressEnd}
+          onTouchMove={handlePressEnd}
+          /* Desktop : long-press souris pour cohérence (rare mais OK). */
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
           disabled={pending}
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label={
             hasAny
-              ? `Modifier ma réaction (${total} au total)`
-              : "Ajouter une réaction"
+              ? `Modifier ma réaction (${total} au total). Appui long pour ouvrir le sélecteur.`
+              : "Ajouter une réaction. Appui long pour choisir un emoji."
           }
           className={cn(
-            "inline-flex items-center gap-1.5 h-11 px-[14px] rounded-full transition-colors text-[13px] font-bold",
+            "inline-flex items-center gap-1.5 h-11 px-[14px] rounded-full transition-colors text-[13px] font-bold select-none",
             hasAny
               ? "bg-[linear-gradient(135deg,#FEF2F2,#FFE4E4)] text-[#DC2626]"
               : "bg-transparent text-night-soft hover:bg-night/5",
