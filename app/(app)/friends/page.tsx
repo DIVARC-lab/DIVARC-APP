@@ -18,6 +18,9 @@ import {
 import { getPresenceForUsers } from "@/lib/queries/presence";
 import { FriendCard } from "./_components/FriendCard";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Amis",
@@ -70,7 +73,8 @@ export default async function FriendsPage({
   }));
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <KickerLabel>Amis</KickerLabel>
@@ -112,7 +116,7 @@ export default async function FriendsPage({
               secondaryLabel="Découvrir des suggestions"
             />
           ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <Grid cols={{ mobile: 1, desktop: 2 }} gap="lg">
               {friends.map((friendship) => (
                 <FriendCard
                   key={friendship.id}
@@ -121,7 +125,7 @@ export default async function FriendsPage({
                   presence={presenceMap[friendship.other.id] ?? null}
                 />
               ))}
-            </div>
+            </Grid>
           )
         ) : null}
 
@@ -135,7 +139,7 @@ export default async function FriendsPage({
               ctaLabel="Trouver des amis"
             />
           ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <Grid cols={{ mobile: 1, desktop: 2 }} gap="lg">
               {incoming.map((friendship) => (
                 <FriendCard
                   key={friendship.id}
@@ -143,7 +147,7 @@ export default async function FriendsPage({
                   variant="incoming"
                 />
               ))}
-            </div>
+            </Grid>
           )
         ) : null}
 
@@ -159,7 +163,7 @@ export default async function FriendsPage({
               secondaryLabel="Voir les suggestions"
             />
           ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
+            <Grid cols={{ mobile: 1, desktop: 2 }} gap="lg">
               {outgoing.map((friendship) => (
                 <FriendCard
                   key={friendship.id}
@@ -167,11 +171,12 @@ export default async function FriendsPage({
                   variant="outgoing"
                 />
               ))}
-            </div>
+            </Grid>
           )
         ) : null}
       </div>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
