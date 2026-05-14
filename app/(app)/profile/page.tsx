@@ -34,6 +34,8 @@ import { ProSectionsPanel } from "./_components/ProSectionsPanel";
 import { ExtendedIdentityPanel } from "@/components/profile/ExtendedIdentityPanel";
 import { FacetsManager } from "@/components/profile/FacetsManager";
 import { SectionsVisibilityPanel } from "@/components/profile/SectionsVisibilityPanel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Profil",
@@ -93,7 +95,8 @@ export default async function ProfilePage({
   const profileViewsCount = await countMyProfileViews(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <ProfileHero profile={profile} fullName={fullName} />
 
       <StatsBar
@@ -239,7 +242,8 @@ export default async function ProfilePage({
           </article>
         </aside>
       </div>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 

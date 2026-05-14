@@ -26,6 +26,7 @@ import { lookupFriendshipState } from "@/lib/queries/friendships";
 import { canViewSection, computeViewerRelation } from "@/lib/profile/visibility";
 import { createClient } from "@/lib/supabase/server";
 import { UserActionBar } from "./_components/UserActionBar";
+import { Container } from "@/components/primitives/Container";
 
 /* Page profil public /u/[username] — Profil v2 (bascule V2 effective).
  *
@@ -213,14 +214,14 @@ export default async function PublicProfilePage({
       />
 
       {!isOwn ? (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 mb-2">
+        <Container maxWidth="default" paddingX="page" className="-mt-2 mb-2">
           <ProfileRelationsBar targetUserId={profile.id} isOwn={isOwn} />
-        </div>
+        </Container>
       ) : null}
 
       <ProfileTabsV2 facets={profile.facets} counters={counters} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
+      <Container as="main" maxWidth="default" paddingX="page" className="py-6 lg:py-8 space-y-6">
         {pkg.open_to_work && pkg.open_to_work.visibility !== "hidden" ? (
           <OpenToWorkBanner data={pkg.open_to_work} />
         ) : null}
@@ -389,7 +390,7 @@ export default async function PublicProfilePage({
             </p>
           </div>
         ) : null}
-      </main>
+      </Container>
     </div>
   );
 }

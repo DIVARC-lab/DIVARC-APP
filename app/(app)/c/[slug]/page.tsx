@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { getCompanyBySlug } from "@/lib/queries/company";
 import { createClient } from "@/lib/supabase/server";
 import { FollowCompanyButton } from "./_components/FollowCompanyButton";
+import { Container } from "@/components/primitives/Container";
 
 /* Page entreprise /c/[slug] V1 :
  *   - Cover + logo + name + tagline + verified badge
@@ -86,7 +87,7 @@ export default async function CompanyPage({
       </div>
 
       {/* Header */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+      <Container as="section" maxWidth="default" paddingX="page" className="pb-6">
         <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-5 -mt-12 sm:-mt-16 lg:-mt-20">
           {/* Logo */}
           <div className="shrink-0 w-24 h-24 sm:w-32 sm:h-32 lg:w-[168px] lg:h-[168px] rounded-2xl bg-white ring-4 ring-white shadow-[0_8px_28px_-12px_rgba(10,31,68,0.4)] overflow-hidden flex items-center justify-center">
@@ -196,10 +197,10 @@ export default async function CompanyPage({
             </div>
           </div>
         </div>
-      </section>
+      </Container>
 
       {/* About + Employés */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-6">
+      <Container as="main" maxWidth="default" paddingX="page" className="pb-12 space-y-6">
         {company.description ? (
           <section className="rounded-2xl bg-white border border-line p-5">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-night-muted mb-3">
@@ -248,7 +249,7 @@ export default async function CompanyPage({
             </ul>
           </section>
         ) : null}
-      </main>
+      </Container>
     </div>
   );
 }

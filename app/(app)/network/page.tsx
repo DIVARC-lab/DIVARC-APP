@@ -21,6 +21,7 @@ import { countMyProfileViews } from "@/lib/queries/profileViews";
 import { createClient } from "@/lib/supabase/server";
 import { ConnectionRespondActions } from "./_components/ConnectionRespondActions";
 import { ConnectionDeleteButton } from "./_components/ConnectionDeleteButton";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Réseau pro",
@@ -73,7 +74,7 @@ export default async function NetworkPage({
 
   return (
     <div className="bg-bg min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-5xl">
+      <Container maxWidth="default" paddingX="none">
         {/* Hero header */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg px-5 sm:px-8 pt-10 pb-7">
           <div
@@ -226,7 +227,7 @@ export default async function NetworkPage({
             </ul>
           </section>
         ) : null}
-      </div>
+      </Container>
     </div>
   );
 }
