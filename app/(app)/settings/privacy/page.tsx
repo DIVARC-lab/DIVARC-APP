@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteAccountSection } from "./DeleteAccountSection";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Confidentialité & RGPD",
@@ -32,7 +33,7 @@ export default async function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-bg-soft pb-12">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-8">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <header className="mb-6">
           <Link
             href="/settings"
@@ -114,7 +115,7 @@ export default async function PrivacyPage() {
             </div>
           </div>
         </section>
-      </div>
+      </Container>
     </div>
   );
 }

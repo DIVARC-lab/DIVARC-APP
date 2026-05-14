@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { FeedMode } from "@/lib/database.types";
 import { FeedSettingsForm } from "./_components/FeedSettingsForm";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Réglages du feed — DIVARC",
@@ -34,8 +36,9 @@ export default async function FeedSettingsPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-bg-soft">
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-7 py-8 pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)] space-y-6">
+    <div className="min-h-[100dvh] bg-bg-soft pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)]">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
+        <Stack gap="2xl">
         <Link
           href="/settings"
           className="inline-flex items-center gap-2 text-[13px] text-night-muted hover:text-night"
@@ -70,7 +73,8 @@ export default async function FeedSettingsPage() {
         </header>
 
         <FeedSettingsForm initial={initial} />
-      </div>
+        </Stack>
+      </Container>
     </div>
   );
 }
