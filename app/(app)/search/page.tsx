@@ -9,6 +9,7 @@ import { suggestPeople } from "@/lib/queries/explore";
 import { listTrendingHashtags } from "@/lib/queries/hashtags";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Recherche",
@@ -34,7 +35,7 @@ export default async function SearchPage() {
   ]);
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       {/* Search bar (visual — real input lives in components/GlobalSearch) */}
       <header className="flex items-center gap-3 mb-5">
         <div className="flex-1 h-11 rounded-full bg-white border border-line flex items-center gap-2.5 px-4 text-sm text-muted-strong">
@@ -195,6 +196,6 @@ export default async function SearchPage() {
           ))}
         </ul>
       </section>
-    </div>
+    </Container>
   );
 }

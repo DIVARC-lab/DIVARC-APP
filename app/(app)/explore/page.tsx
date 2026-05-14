@@ -20,6 +20,8 @@ import { MiniListingCard } from "./_components/MiniListingCard";
 import { PersonCard } from "./_components/PersonCard";
 import { TrendingPostCard } from "./_components/TrendingPostCard";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Découvrir",
@@ -46,7 +48,8 @@ export default async function ExplorePage() {
     jobs.length === 0;
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-12">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="4xl">
       <header>
         <KickerLabel>Découvrir</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
@@ -134,7 +137,8 @@ export default async function ExplorePage() {
           </div>
         </Section>
       ) : null}
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
