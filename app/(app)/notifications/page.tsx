@@ -8,7 +8,9 @@ import {
 import { MarkAllReadButton } from "./_components/MarkAllReadButton";
 import { NotificationItem } from "./_components/NotificationItem";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata = {
@@ -32,7 +34,7 @@ export default async function NotificationsPage() {
   const groups = groupByBucket(notifications);
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="flex items-start justify-between gap-3 mb-5">
         <div className="min-w-0">
           <KickerLabel>· Activité</KickerLabel>
@@ -98,26 +100,24 @@ export default async function NotificationsPage() {
           ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 }
 
 function EmptyNotifications() {
   return (
-    <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-      <div
-        aria-hidden
-        className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-      >
-        <Bell className="w-8 h-8 text-night-muted" aria-hidden />
-      </div>
-      <h2 className="font-display italic text-2xl text-night">
-        Tu es <em className="italic text-gold-deep">à jour</em>
-      </h2>
-      <p className="mt-2 text-muted max-w-sm mx-auto leading-relaxed">
-        Quand tes amis interagiront avec ton contenu, ce sera ici.
-      </p>
-    </div>
+    <EmptyState
+      icon={Bell}
+      kicker="Tranquille"
+      title={
+        <>
+          Tu es <em className="italic">à jour</em>.
+        </>
+      }
+      body="Quand tes amis interagiront avec ton contenu, ce sera ici."
+      tone="default"
+      size="lg"
+    />
   );
 }
 
