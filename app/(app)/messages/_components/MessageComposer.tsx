@@ -238,7 +238,15 @@ export function MessageComposer({
       });
 
     if (error) {
-      toast.error("Échec du téléversement.");
+      console.error("[messages:uploadFile]", error);
+      const reason = error.message?.toLowerCase().includes("not found")
+        ? "Bucket chat-media absent. Contacte l'admin."
+        : error.message?.toLowerCase().includes("row-level security")
+          ? "Permission refusée (RLS). Contacte l'admin."
+          : error.message?.toLowerCase().includes("size")
+            ? "Fichier trop lourd pour ce serveur."
+            : (error.message ?? "erreur inconnue");
+      toast.error(`Échec du téléversement : ${reason}`);
       return null;
     }
 
