@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type {
+  CommentReactionEmoji,
   CommentWithAuthor,
   Post,
   PostPhoto,
@@ -468,6 +469,13 @@ export async function listCommentsForPost(
   postId: string,
 ): Promise<CommentWithAuthor[]> {
   const supabase = await createClient();
+
+  /* Current user — pour calculer liked_by_me et my_reaction par commentaire. */
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const currentUserId = user?.id ?? null;
+
   const { data: comments } = await supabase
     .from("post_comments")
     .select("*")
@@ -477,19 +485,78 @@ export async function listCommentsForPost(
 
   if (!comments || comments.length === 0) return [];
 
+  const commentIds = comments.map((c) => c.id);
   const authorIds = Array.from(new Set(comments.map((c) => c.author_id)));
-  const { data: authors } = await supabase
-    .from("profiles")
-    .select("id, full_name, username, avatar_url")
-    .in("id", authorIds);
+
+  /* Parallèle : auteurs + likes by me + my reactions + reactions summary. */
+  const [
+    { data: authors },
+    likedByMe,
+    myReactions,
+    reactionsSummary,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, username, avatar_url")
+      .in("id", authorIds),
+    currentUserId
+      ? supabase
+          .from("post_comment_likes")
+          .select("comment_id")
+          .eq("user_id", currentUserId)
+          .in("comment_id", commentIds)
+      : Promise.resolve({ data: [] as Array<{ comment_id: string }> }),
+    currentUserId
+      ? supabase
+          .from("post_comment_reactions")
+          .select("comment_id, emoji")
+          .eq("user_id", currentUserId)
+          .in("comment_id", commentIds)
+      : Promise.resolve({
+          data: [] as Array<{ comment_id: string; emoji: string }>,
+        }),
+    /* Agrégation des réactions tous users pour le summary. */
+    supabase
+      .from("post_comment_reactions")
+      .select("comment_id, emoji")
+      .in("comment_id", commentIds),
+  ]);
 
   const authorById = new Map<string, AuthorRow>();
   for (const author of authors ?? []) {
     authorById.set(author.id, author);
   }
 
+  const likedSet = new Set<string>(
+    (likedByMe.data ?? []).map((r) => r.comment_id),
+  );
+
+  const myReactionByComment = new Map<string, string>();
+  for (const r of myReactions.data ?? []) {
+    myReactionByComment.set(r.comment_id, r.emoji);
+  }
+
+  /* reactions_summary : Map<comment_id, Map<emoji, count>>. */
+  const summaryByComment = new Map<
+    string,
+    Record<string, number>
+  >();
+  for (const r of reactionsSummary.data ?? []) {
+    const m = summaryByComment.get(r.comment_id) ?? {};
+    m[r.emoji] = (m[r.emoji] ?? 0) + 1;
+    summaryByComment.set(r.comment_id, m);
+  }
+
   return comments.map((comment) => ({
     ...comment,
     author: authorById.get(comment.author_id) ?? null,
+    liked_by_me: likedSet.has(comment.id),
+    my_reaction: (myReactionByComment.get(comment.id) ?? null) as
+      | CommentReactionEmoji
+      | null,
+    reactions_summary: (summaryByComment.get(comment.id) ?? {}) as Record<
+      CommentReactionEmoji,
+      number
+    >,
   }));
 }

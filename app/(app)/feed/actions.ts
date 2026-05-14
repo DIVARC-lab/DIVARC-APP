@@ -586,10 +586,33 @@ export async function addComment(
     };
   }
 
+  /* Si parentCommentId fourni → c'est une réponse. Sinon commentaire racine.
+     Validation : le parent doit appartenir au même post (anti-cross-post). */
+  const parentRaw = formData.get("parent_comment_id");
+  let parentCommentId: string | null = null;
+  if (parentRaw && typeof parentRaw === "string" && parentRaw.length > 0) {
+    const parsedParent = z.string().uuid().safeParse(parentRaw);
+    if (!parsedParent.success) {
+      return { status: "error", message: "Réponse invalide." };
+    }
+    const { data: parent } = await supabase
+      .from("post_comments")
+      .select("post_id, parent_comment_id")
+      .eq("id", parsedParent.data)
+      .maybeSingle();
+    if (!parent || parent.post_id !== postId) {
+      return { status: "error", message: "Commentaire parent introuvable." };
+    }
+    /* On n'autorise qu'1 niveau de threading (replies sur racines, pas
+       sur réponses) — comme YouTube/Twitter, évite l'arbre infini. */
+    parentCommentId = parent.parent_comment_id ?? parsedParent.data;
+  }
+
   const { error } = await supabase.from("post_comments").insert({
     post_id: postId,
     author_id: user.id,
     body: parsed.data.body,
+    parent_comment_id: parentCommentId,
   });
 
   if (error) {
@@ -598,6 +621,147 @@ export async function addComment(
 
   revalidatePath(`/feed/${postId}`);
   return { status: "success" };
+}
+
+/* Chantier Comments v2 — toggle like sur un commentaire (idempotent).
+ * Si l'user a déjà liké, DELETE. Sinon INSERT. Le trigger SQL maintient
+ * likes_count sur post_comments. */
+export async function toggleCommentLike(
+  commentId: string,
+): Promise<{ ok: true; liked: boolean } | { ok: false; error: string }> {
+  const parsed = z.string().uuid().safeParse(commentId);
+  if (!parsed.success) return { ok: false, error: "Commentaire invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Récupère le post_id pour revalidatePath en fin de chemin. */
+  const { data: comment } = await supabase
+    .from("post_comments")
+    .select("post_id")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  if (!comment) return { ok: false, error: "Commentaire introuvable." };
+
+  /* Toggle : existe? → DELETE. sinon → INSERT. */
+  const { data: existing } = await supabase
+    .from("post_comment_likes")
+    .select("comment_id")
+    .eq("comment_id", parsed.data)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("post_comment_likes")
+      .delete()
+      .eq("comment_id", parsed.data)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Unlike impossible." };
+    revalidatePath(`/feed/${comment.post_id}`);
+    return { ok: true, liked: false };
+  }
+
+  const { error } = await supabase
+    .from("post_comment_likes")
+    .insert({ comment_id: parsed.data, user_id: user.id });
+  if (error) return { ok: false, error: "Like impossible." };
+  revalidatePath(`/feed/${comment.post_id}`);
+  return { ok: true, liked: true };
+}
+
+/* Chantier Comments v2 — pose / retire une réaction emoji.
+ * Règles :
+ *  - 1 emoji par (comment, user) max (PK).
+ *  - Si l'user pose le MÊME emoji que le current → DELETE (toggle off).
+ *  - Si l'user pose un emoji DIFFÉRENT → UPDATE (overwrite, pas
+ *    d'incrément count).
+ *  - Sinon → INSERT.
+ */
+const ALLOWED_EMOJIS = [
+  "👍",
+  "❤️",
+  "😂",
+  "🔥",
+  "👏",
+  "🤔",
+  "😢",
+  "😠",
+] as const;
+const reactionSchema = z.object({
+  commentId: z.string().uuid(),
+  emoji: z.enum(ALLOWED_EMOJIS),
+});
+
+export async function setCommentReaction(
+  commentId: string,
+  emoji: string,
+): Promise<
+  | { ok: true; reaction: string | null }
+  | { ok: false; error: string }
+> {
+  const parsed = reactionSchema.safeParse({ commentId, emoji });
+  if (!parsed.success) return { ok: false, error: "Réaction invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: comment } = await supabase
+    .from("post_comments")
+    .select("post_id")
+    .eq("id", parsed.data.commentId)
+    .maybeSingle();
+  if (!comment) return { ok: false, error: "Commentaire introuvable." };
+
+  /* Existe-t-il déjà une réaction ? */
+  const { data: existing } = await supabase
+    .from("post_comment_reactions")
+    .select("emoji")
+    .eq("comment_id", parsed.data.commentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing && existing.emoji === parsed.data.emoji) {
+    /* Toggle off. */
+    const { error } = await supabase
+      .from("post_comment_reactions")
+      .delete()
+      .eq("comment_id", parsed.data.commentId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Retrait impossible." };
+    revalidatePath(`/feed/${comment.post_id}`);
+    return { ok: true, reaction: null };
+  }
+
+  if (existing) {
+    /* Change d'emoji. */
+    const { error } = await supabase
+      .from("post_comment_reactions")
+      .update({ emoji: parsed.data.emoji })
+      .eq("comment_id", parsed.data.commentId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Mise à jour impossible." };
+    revalidatePath(`/feed/${comment.post_id}`);
+    return { ok: true, reaction: parsed.data.emoji };
+  }
+
+  /* Nouvelle réaction. */
+  const { error } = await supabase
+    .from("post_comment_reactions")
+    .insert({
+      comment_id: parsed.data.commentId,
+      user_id: user.id,
+      emoji: parsed.data.emoji,
+    });
+  if (error) return { ok: false, error: "Réaction impossible." };
+  revalidatePath(`/feed/${comment.post_id}`);
+  return { ok: true, reaction: parsed.data.emoji };
 }
 
 /* Plugin Sondage : voter (toggle). Multi-choice = empile. Single =

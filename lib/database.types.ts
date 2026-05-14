@@ -626,6 +626,38 @@ export type PostComment = {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+  /* Chantier Comments v2 (migration 0126) */
+  parent_comment_id: string | null;
+  likes_count: number;
+  replies_count: number;
+  reactions_count: number;
+};
+
+/* Émojis autorisés pour les réactions sur commentaires.
+ * Doit matcher le CHECK constraint SQL de post_comment_reactions. */
+export const COMMENT_REACTION_EMOJIS = [
+  "👍",
+  "❤️",
+  "😂",
+  "🔥",
+  "👏",
+  "🤔",
+  "😢",
+  "😠",
+] as const;
+export type CommentReactionEmoji = (typeof COMMENT_REACTION_EMOJIS)[number];
+
+export type PostCommentLike = {
+  comment_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type PostCommentReaction = {
+  comment_id: string;
+  user_id: string;
+  emoji: CommentReactionEmoji;
+  created_at: string;
 };
 
 // =============== Pro features (B.9 → B.13) ===============
@@ -1044,6 +1076,14 @@ export type PostWithDetails = Post & {
 
 export type CommentWithAuthor = PostComment & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  /* Chantier Comments v2 (migration 0126).
+   * - liked_by_me : true si le current user a liké ce commentaire.
+   * - my_reaction : emoji que le current user a posé (1 max), null sinon.
+   * - reactions_summary : Map emoji → count (top emojis affichés sous le
+   *   commentaire). Vide si reactions_count = 0. */
+  liked_by_me?: boolean;
+  my_reaction?: CommentReactionEmoji | null;
+  reactions_summary?: Record<CommentReactionEmoji, number>;
 };
 
 export type JobType =
@@ -5013,9 +5053,36 @@ export type Database = {
       };
       post_comments: {
         Row: PostComment;
-        Insert: Omit<PostComment, "id" | "created_at" | "edited_at" | "deleted_at"> &
-          Partial<Pick<PostComment, "id" | "edited_at" | "deleted_at">>;
+        /* Champs requis à l'insert : post_id, author_id, body. Le reste
+           (parent_comment_id, counts) a un default SQL (NULL ou 0). */
+        Insert: Pick<PostComment, "post_id" | "author_id" | "body"> &
+          Partial<
+            Pick<
+              PostComment,
+              | "id"
+              | "edited_at"
+              | "deleted_at"
+              | "parent_comment_id"
+              | "likes_count"
+              | "replies_count"
+              | "reactions_count"
+            >
+          >;
         Update: Partial<Pick<PostComment, "body" | "edited_at" | "deleted_at">>;
+        Relationships: [];
+      };
+      post_comment_likes: {
+        Row: PostCommentLike;
+        Insert: Pick<PostCommentLike, "comment_id" | "user_id"> &
+          Partial<Pick<PostCommentLike, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      post_comment_reactions: {
+        Row: PostCommentReaction;
+        Insert: Pick<PostCommentReaction, "comment_id" | "user_id" | "emoji"> &
+          Partial<Pick<PostCommentReaction, "created_at">>;
+        Update: Partial<Pick<PostCommentReaction, "emoji">>;
         Relationships: [];
       };
       hashtags: {
