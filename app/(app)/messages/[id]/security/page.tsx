@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { getSecretStatus } from "@/app/(app)/messages/secret-actions";
 import { createClient } from "@/lib/supabase/server";
 import { SecretToggle } from "./SecretToggle";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ id: string }>;
 
@@ -51,7 +52,7 @@ export default async function ConversationSecurityPage({
             <h1 className="font-semibold text-night">Sécurité</h1>
           </div>
         </header>
-        <div className="px-5 sm:px-8 py-8 max-w-2xl mx-auto">
+        <Container maxWidth="text" paddingX="lg" paddingY="3xl">
           <div className="rounded-2xl bg-white border border-line p-6 text-center">
             <p className="text-[13.5px] text-night-muted">
               Le mode secret n&apos;est disponible que pour les conversations
@@ -59,7 +60,7 @@ export default async function ConversationSecurityPage({
               jour ultérieure (Double Ratchet par-sender).
             </p>
           </div>
-        </div>
+        </Container>
       </div>
     );
   }
@@ -110,7 +111,7 @@ export default async function ConversationSecurityPage({
         </div>
       </header>
 
-      <div className="px-5 sm:px-8 py-6 max-w-2xl mx-auto">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <SecretToggle
           conversationId={id}
           peerUserId={status.peerUserId}
@@ -119,7 +120,7 @@ export default async function ConversationSecurityPage({
           peerHasIdentity={status.peerHasIdentity}
           peerDisplayName={peerDisplayName}
         />
-      </div>
+      </Container>
     </div>
   );
 }

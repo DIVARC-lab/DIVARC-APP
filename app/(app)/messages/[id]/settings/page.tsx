@@ -11,6 +11,8 @@ import { AddMemberSection } from "./_components/AddMemberSection";
 import { AutoDeleteSection } from "./_components/AutoDeleteSection";
 import { GroupSettingsActions } from "./_components/GroupSettingsActions";
 import { KickMemberButton } from "./_components/MemberActions";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ id: string }>;
 
@@ -91,7 +93,8 @@ export default async function ConversationSettingsPage({
         </div>
       </header>
 
-      <div className="px-4 sm:px-8 py-8 max-w-2xl mx-auto space-y-6">
+      <Container maxWidth="text" paddingX="lg" paddingY="3xl">
+        <Stack gap="2xl">
         {isGroup ? (
           <GroupSettingsActions
             conversationId={id}
@@ -199,7 +202,8 @@ export default async function ConversationSettingsPage({
             ) : null}
           </section>
         ) : null}
-      </div>
+        </Stack>
+      </Container>
     </div>
   );
 }

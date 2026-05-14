@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSellerDac7Yearly } from "@/lib/queries/marketplaceReviews";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Déclaration fiscale DAC7",
@@ -19,7 +20,7 @@ export default async function Dac7Page() {
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <Link
           href="/wallet/seller"
           className="inline-flex items-center gap-2 text-[12px] text-night-dim hover:text-night mb-3"
@@ -122,7 +123,7 @@ export default async function Dac7Page() {
             </p>
           </div>
         </section>
-      </div>
+      </Container>
     </div>
   );
 }
