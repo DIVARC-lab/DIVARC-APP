@@ -539,25 +539,34 @@ export function MessageBubble({
                 {hasMissingAttachment ? (
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2.5 rounded-2xl border text-[12px]",
+                      "flex flex-col gap-1 px-3 py-2.5 rounded-2xl border text-[12px]",
                       isOwn
                         ? "bg-night/5 border-night/15 text-night-dim"
                         : "bg-bg-soft border-line text-night-dim",
                     )}
                   >
-                    <span
-                      aria-hidden
-                      className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-error/15 text-error text-[14px] font-extrabold"
-                    >
-                      !
-                    </span>
-                    <span className="italic">
-                      {message.attachment_type === "image"
-                        ? "Image indisponible (upload échoué)"
-                        : message.attachment_type === "audio"
-                          ? "Audio indisponible"
-                          : "Pièce jointe indisponible"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-error/15 text-error text-[14px] font-extrabold"
+                      >
+                        !
+                      </span>
+                      <span className="italic">
+                        {message.attachment_type === "image"
+                          ? "Image indisponible"
+                          : message.attachment_type === "audio"
+                            ? "Audio indisponible"
+                            : "Pièce jointe indisponible"}
+                      </span>
+                    </div>
+                    <code className="text-[10px] text-night-dim/70 break-all">
+                      {message.attachment_url === null
+                        ? "URL = NULL (col vide en BDD)"
+                        : message.attachment_url === ""
+                          ? 'URL = "" (string vide)'
+                          : `URL: ${message.attachment_url}`}
+                    </code>
                   </div>
                 ) : null}
               </>
