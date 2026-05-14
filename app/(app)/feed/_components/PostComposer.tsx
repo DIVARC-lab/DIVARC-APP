@@ -55,7 +55,6 @@ import {
 import { SchedulePicker } from "@/components/creator/plugins/SchedulePicker";
 import { SentimentPicker } from "@/components/creator/plugins/SentimentPicker";
 import type { PostCarouselSlide, PostLinkPreview } from "@/lib/database.types";
-import { useKeyboardInset } from "@/lib/hooks/useVisualViewport";
 import { cn } from "@/lib/utils/cn";
 import { createClient } from "@/lib/supabase/client";
 import type { PostBackgroundColor, PostVisibility } from "@/lib/database.types";
@@ -608,9 +607,12 @@ export function PostComposer({
 
   const firstName = authorName?.split(" ")[0] ?? null;
 
-  /* Hauteur du clavier mobile pour caler un sticky CTA au-dessus.
-     Sur desktop (pas de visualViewport API actif), reste 0 → pas d'impact. */
-  const keyboardInset = useKeyboardInset();
+  /* Note : on a retiré le hook useKeyboardInset + translateY tricks.
+     Le footer mobile utilise `position: sticky bottom-0` dans le scroll
+     container parent — le browser gère naturellement l'autoscroll vers
+     le focus quand le clavier s'ouvre, et le sticky reste collé en bas
+     du content scrollable (pas du viewport), donc plus de recouvrement
+     du textarea par le bouton. */
 
   /* Form interne réutilisable — extrait pour pouvoir être rendu soit
      dans le Modal interne legacy, soit pluggé dans ContentCreatorModal
@@ -1092,17 +1094,16 @@ export function PostComposer({
               </span>
             </div>
 
-            {/* Footer sticky mobile : bouton Publier qui se hisse au-dessus
-                du clavier (visualViewport API). Le bouton du top bar reste
-                visible sur desktop ; ce footer cible mobile uniquement
-                (sm:hidden). */}
-            <div
-              className="sm:hidden fixed left-0 right-0 z-40 px-4 pt-2 pb-[max(env(safe-area-inset-bottom,0px),12px)] bg-bg-soft/95 backdrop-blur-md border-t border-line transition-transform"
-              style={{
-                bottom: 0,
-                transform: `translateY(-${keyboardInset}px)`,
-              }}
-            >
+            {/* Footer sticky mobile : bouton Publier collé au bas du
+                scroll container parent (ContentCreatorModal body OR Modal
+                wrapper standalone). En `position: sticky bottom-0`, le
+                bouton suit naturellement le scroll : quand l'user tape
+                en bas du textarea, le browser scroll le container pour
+                garder le focus visible, et le bouton reste sous la zone
+                de texte (pas par-dessus). Plus besoin de translateY
+                + visualViewport API tricks qui buguaient sur iOS Safari.
+                sm:hidden : le bouton du top bar prend le relais sur desktop. */}
+            <div className="sm:hidden sticky bottom-0 z-10 -mx-[18px] px-4 pt-2 pb-[max(env(safe-area-inset-bottom,0px),12px)] bg-bg-soft/95 backdrop-blur-md border-t border-line">
               <button
                 type="submit"
                 disabled={!canSubmit}
@@ -1121,15 +1122,6 @@ export function PostComposer({
                 Publier
               </button>
             </div>
-            {/* Spacer pour que le contenu scroll ne passe pas sous le sticky
-                footer mobile. Hauteur dynamique = bouton (80px) + clavier
-                ouvert (keyboardInset). Sans ça, le bouton vient cacher la
-                fin du textarea quand l'user tape un long texte. */}
-            <div
-              className="sm:hidden"
-              style={{ height: 80 + keyboardInset }}
-              aria-hidden
-            />
 
             {/* Plugin Sentiment / Activité — overlay modal au-dessus du
                 composer. Le SentimentPicker est rendu ici pour avoir

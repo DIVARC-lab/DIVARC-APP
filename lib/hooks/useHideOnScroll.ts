@@ -12,32 +12,52 @@ import { useEffect, useRef, useState } from "react";
  * Usage :
  *   const hidden = useHideOnScroll(80);
  *   <header style={{ transform: hidden ? "translateY(-100%)" : "translateY(0)" }} />
+ *
+ * Note critique : on stocke `hidden` dans un ref + on utilise setState
+ * fonctionnel, pour que le useEffect soit monté UNE seule fois (deps = []).
+ * Sans ça, chaque scroll-triggered setHidden détacherait/rattacherait le
+ * listener — micro-jank permanent sur desktop.
  */
 export function useHideOnScroll(threshold = 80): boolean {
   const [hidden, setHidden] = useState(false);
   const lastYRef = useRef(0);
+  const hiddenRef = useRef(false);
+  const thresholdRef = useRef(threshold);
+
+  /* Synchro les refs avec les valeurs courantes (pas re-mount du listener). */
+  thresholdRef.current = threshold;
+  hiddenRef.current = hidden;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    let ticking = false;
+
     function onScroll() {
-      const y = window.scrollY;
-      const lastY = lastYRef.current;
-      const goingDown = y > lastY;
-      const beyondThreshold = y > threshold;
+      /* rAF throttle : un seul update par frame, pas par scroll event. */
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const lastY = lastYRef.current;
+        const goingDown = y > lastY;
+        const beyondThreshold = y > thresholdRef.current;
+        const currentlyHidden = hiddenRef.current;
 
-      if (goingDown && beyondThreshold && !hidden) {
-        setHidden(true);
-      } else if (!goingDown && hidden) {
-        setHidden(false);
-      }
+        if (goingDown && beyondThreshold && !currentlyHidden) {
+          setHidden(true);
+        } else if (!goingDown && currentlyHidden) {
+          setHidden(false);
+        }
 
-      lastYRef.current = y;
+        lastYRef.current = y;
+        ticking = false;
+      });
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold, hidden]);
+  }, []); /* IMPORTANT : deps = [] — listener monté une seule fois. */
 
   return hidden;
 }
