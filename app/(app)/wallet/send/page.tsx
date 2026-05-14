@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Currency } from "@/lib/database.types";
 import { SendForm } from "./SendForm";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Envoyer de l'argent",
@@ -56,7 +57,7 @@ export default async function SendMoneyPage({
       : (wallets[0]?.currency ?? "EUR");
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="mb-8">
         <Link
           href="/wallet"
@@ -80,6 +81,6 @@ export default async function SendMoneyPage({
         initialRecipientId={to ?? null}
         initialCurrency={initialCurrency}
       />
-    </div>
+    </Container>
   );
 }

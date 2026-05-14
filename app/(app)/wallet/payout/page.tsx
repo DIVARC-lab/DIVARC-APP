@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/utils/currency";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { PayoutForm } from "./_components/PayoutForm";
 import { PayoutCancelButton } from "./_components/PayoutCancelButton";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Encaisser",
@@ -64,7 +65,7 @@ export default async function PayoutPage() {
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         {/* Hero header */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-7">
           <div
@@ -204,7 +205,7 @@ export default async function PayoutPage() {
             </ul>
           )}
         </section>
-      </div>
+      </Container>
     </div>
   );
 }

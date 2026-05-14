@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreateCircleWizard } from "./CreateCircleWizard";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Créer un cercle",
@@ -17,7 +18,7 @@ export default async function NewCirclePage() {
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <header className="mb-6">
           <Link
             href="/circles"
@@ -39,7 +40,7 @@ export default async function NewCirclePage() {
         </header>
 
         <CreateCircleWizard />
-      </div>
+      </Container>
     </div>
   );
 }

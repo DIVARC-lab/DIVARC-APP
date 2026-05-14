@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SellerOnboardButton } from "./SellerOnboardButton";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Activer les paiements",
@@ -64,7 +65,7 @@ export default async function SellerOnboardingPage() {
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <Link
           href="/wallet"
           className="inline-flex items-center gap-2 text-[12px] text-night-dim hover:text-night mb-3"
@@ -139,7 +140,7 @@ export default async function SellerOnboardingPage() {
             </p>
           </div>
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
