@@ -6,6 +6,7 @@ import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { JobForm } from "./JobForm";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Nouvelle offre",
@@ -48,7 +49,7 @@ export default async function NewJobPage({
   }
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="mb-8">
         <Link
           href={
@@ -85,6 +86,6 @@ export default async function NewJobPage({
         }))}
         circleId={circleContext?.id ?? null}
       />
-    </div>
+    </Container>
   );
 }

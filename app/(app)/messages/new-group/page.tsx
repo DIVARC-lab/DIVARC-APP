@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listFriendsForUser } from "@/lib/queries/friendships";
 import { createClient } from "@/lib/supabase/server";
 import { GroupForm } from "./GroupForm";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Nouveau groupe",
@@ -44,9 +45,9 @@ export default async function NewGroupPage() {
           </div>
         </div>
       </header>
-      <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-2xl mx-auto">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <GroupForm friends={friends} />
-      </div>
+      </Container>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { UserSearch } from "./UserSearch";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Nouvelle discussion",
@@ -24,9 +25,9 @@ export default function NewConversationPage() {
           </p>
         </div>
       </header>
-      <div className="px-4 sm:px-6 py-6 sm:py-8 max-w-2xl mx-auto">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <UserSearch />
-      </div>
+      </Container>
     </div>
   );
 }

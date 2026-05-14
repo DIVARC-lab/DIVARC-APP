@@ -5,6 +5,8 @@ import { getMyMentorOffer } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
 import { MentorOfferForm } from "../_components/MentorOfferForm";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Offre de mentorat",
@@ -20,7 +22,8 @@ export default async function MentorOfferPage() {
   const offer = await getMyMentorOffer(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/mentors"
@@ -42,6 +45,7 @@ export default async function MentorOfferPage() {
       <article className="rounded-3xl bg-white border border-line shadow-soft p-6 sm:p-8">
         <MentorOfferForm offer={offer} />
       </article>
-    </div>
+      </Stack>
+    </Container>
   );
 }
