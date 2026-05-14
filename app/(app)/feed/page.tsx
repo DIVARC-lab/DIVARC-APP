@@ -26,6 +26,7 @@ import { StoriesRow } from "./_components/StoriesRow";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
 import { FeedPostList } from "./_components/FeedPostList";
+import { PullToRefresh } from "./_components/PullToRefresh";
 import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
@@ -171,6 +172,7 @@ export default async function FeedPage({
   ).length;
 
   return (
+    <PullToRefresh>
     <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)] max-w-[100vw] overflow-x-hidden">
       <Container maxWidth="wide" paddingX="none">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
@@ -287,6 +289,7 @@ export default async function FeedPage({
         <Plus className="w-[22px] h-[22px]" strokeWidth={2.6} aria-hidden />
       </Link>
     </div>
+    </PullToRefresh>
   );
 }
 
