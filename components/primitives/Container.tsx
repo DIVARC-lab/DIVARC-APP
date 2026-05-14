@@ -10,6 +10,9 @@
  *   - `paddingX="page"` par défaut = px-4 sur mobile, lg:px-6 sur desktop
  *     (alignement spec : PAGE_PADDING_X_MOBILE=16, PAGE_PADDING_X_DESKTOP=24).
  *   - `paddingY` optionnel via tokens SemanticSpacing.
+ *   - `maxWidth` accepte un token simple OU un objet responsive
+ *     `{ mobile, tablet?, desktop }` pour absorber les pages historiques
+ *     style `max-w-2xl lg:max-w-5xl` (marketplace, jobs, c/[slug]…).
  *
  * Anti-patterns à éviter :
  *   - max-width custom en pixels : utiliser un des 5 presets.
@@ -24,14 +27,46 @@ import {
 } from "@/lib/design/layout";
 import { spacing, type SpacingToken } from "@/lib/design/spacing";
 
+type ResponsiveMaxWidth = {
+  mobile: ContainerWidth;
+  tablet?: ContainerWidth;
+  desktop: ContainerWidth;
+};
+
 type ContainerProps = {
-  maxWidth?: ContainerWidth;
+  maxWidth?: ContainerWidth | ResponsiveMaxWidth;
   /* "page" = padding responsive standardisé. Sinon, token SemanticSpacing. */
   paddingX?: "page" | "none" | SpacingToken;
   paddingY?: SpacingToken;
   as?: "div" | "section" | "article" | "main";
   className?: string;
   children: ReactNode;
+};
+
+/* Classes statiques pré-déclarées pour que Tailwind v4 les détecte au scan.
+ * Indispensable : `max-w-[Xpx]` dynamique ne serait pas généré sinon. */
+const MAX_W_MOBILE: Record<ContainerWidth, string> = {
+  narrow: "max-w-[480px]",
+  text: "max-w-[680px]",
+  default: "max-w-[1100px]",
+  wide: "max-w-[1280px]",
+  full: "max-w-[1536px]",
+};
+
+const MAX_W_TABLET: Record<ContainerWidth, string> = {
+  narrow: "md:max-w-[480px]",
+  text: "md:max-w-[680px]",
+  default: "md:max-w-[1100px]",
+  wide: "md:max-w-[1280px]",
+  full: "md:max-w-[1536px]",
+};
+
+const MAX_W_DESKTOP: Record<ContainerWidth, string> = {
+  narrow: "lg:max-w-[480px]",
+  text: "lg:max-w-[680px]",
+  default: "lg:max-w-[1100px]",
+  wide: "lg:max-w-[1280px]",
+  full: "lg:max-w-[1536px]",
 };
 
 export function Container({
@@ -54,11 +89,26 @@ export function Container({
       ? spacing[paddingX]
       : undefined;
 
+  /* maxWidth peut être :
+   *   - un string (token simple) → applique en style inline pour back-compat
+   *   - un object responsive → applique via classes Tailwind statiques. */
+  const isResponsive = typeof maxWidth === "object";
+  const responsiveClasses = isResponsive
+    ? cn(
+        MAX_W_MOBILE[maxWidth.mobile],
+        maxWidth.tablet ? MAX_W_TABLET[maxWidth.tablet] : null,
+        MAX_W_DESKTOP[maxWidth.desktop],
+      )
+    : null;
+  const inlineMaxWidth = isResponsive
+    ? undefined
+    : CONTAINER_WIDTHS[maxWidth];
+
   return (
     <Tag
-      className={cn("mx-auto w-full", px, className)}
+      className={cn("mx-auto w-full", responsiveClasses, px, className)}
       style={{
-        maxWidth: CONTAINER_WIDTHS[maxWidth],
+        maxWidth: inlineMaxWidth,
         paddingLeft: customPaddingX,
         paddingRight: customPaddingX,
         paddingTop: paddingY ? spacing[paddingY] : undefined,
