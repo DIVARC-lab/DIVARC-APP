@@ -16,6 +16,8 @@ import {
 } from "@/lib/queries/companies";
 import { createClient } from "@/lib/supabase/server";
 import { FollowCompanyButton } from "../_components/FollowCompanyButton";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ slug: string }>;
 
@@ -48,7 +50,8 @@ export default async function CompanyPage({ params }: { params: Params }) {
   ]);
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <section className="rounded-3xl border border-line bg-white overflow-hidden">
         <div className="h-32 sm:h-40 relative bg-gradient-to-br from-night via-night-soft to-night-muted grain">
           {company.cover_url ? (
@@ -199,7 +202,8 @@ export default async function CompanyPage({ params }: { params: Params }) {
           </div>
         )}
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 

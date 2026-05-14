@@ -5,6 +5,8 @@ import { getJobById, listApplicationsForJob } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { ApplicantCard } from "./_components/ApplicantCard";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ id: string }>;
 
@@ -30,7 +32,8 @@ export default async function ApplicantsPage({
   const applications = await listApplicationsForJob(id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-4xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href={`/jobs/${id}`}
@@ -74,6 +77,7 @@ export default async function ApplicantsPage({
           ))}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
