@@ -442,7 +442,9 @@ export function MessageBubble({
 
       <div
         className={cn(
-          "max-w-[78%] sm:max-w-[60%] flex flex-col relative",
+          /* Largeur bulle alignée WhatsApp/iMessage : 85% mobile, 70% desktop.
+           * Avant : 78%/60% trop étroit, force des wraps inutiles. */
+          "max-w-[85%] sm:max-w-[70%] flex flex-col relative",
           isOwn ? "items-end" : "items-start",
         )}
       >
