@@ -85,6 +85,7 @@ function PostCardInner({
   return (
     <article
       ref={mergeRefs<HTMLElement>(impressionRef, dwellRef)}
+      data-post-id={post.id}
       className="overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]"
     >
       {/* Hero media — au-dessus du header pour la 1ère card du feed */}
