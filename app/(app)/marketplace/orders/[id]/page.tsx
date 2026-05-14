@@ -12,6 +12,7 @@ import { CONDITION_META } from "@/lib/utils/categories";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { SubmitReviewDialog } from "./SubmitReviewDialog";
 import { OpenDisputeDialog } from "./OpenDisputeDialog";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ id: string }>;
 
@@ -114,7 +115,7 @@ export default async function OrderDetailPage({
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-20">
-      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <Link
           href="/marketplace"
           className="inline-flex items-center gap-2 text-[12px] text-night-dim hover:text-night mb-3"
@@ -289,7 +290,7 @@ export default async function OrderDetailPage({
             <OpenDisputeDialog orderId={order.id} role={role} />
           ) : null}
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
