@@ -190,7 +190,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
             type="button"
             onClick={handleDelete}
             disabled={pending}
-            className="text-[11px] font-semibold text-night-muted hover:text-red-600 flex items-center gap-1"
+            className="text-[11px] font-semibold text-night-muted hover:text-error flex items-center gap-1"
           >
             <Trash2 className="w-3 h-3" aria-hidden />
             Supprimer

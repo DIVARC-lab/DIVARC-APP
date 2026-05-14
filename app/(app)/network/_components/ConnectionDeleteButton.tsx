@@ -40,7 +40,7 @@ export function ConnectionDeleteButton({
       size="sm"
       onClick={handle}
       disabled={pending}
-      className="text-red-600 hover:bg-red-50"
+      className="text-error hover:bg-error-bg"
     >
       {pending ? (
         <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
