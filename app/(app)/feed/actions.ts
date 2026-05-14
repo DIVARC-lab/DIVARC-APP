@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { listFeedPosts } from "@/lib/queries/posts";
-import type { PostWithDetails } from "@/lib/database.types";
+import { listCommentsForPost, listFeedPosts } from "@/lib/queries/posts";
+import type {
+  CommentWithAuthor,
+  PostWithDetails,
+} from "@/lib/database.types";
 import {
   commentSchema,
   postFormSchema,
@@ -1131,4 +1134,23 @@ export async function loadMoreFeedPosts(args: {
   const nextCursor = posts.length > 0 ? posts[posts.length - 1]!.created_at : null;
 
   return { ok: true, posts, nextCursor, hasMore };
+}
+
+/* ============================================================
+ * Étape 13 — Modal détail desktop
+ * ============================================================
+ *
+ * Charge les commentaires d'un post pour affichage en modal détail
+ * (sans navigation vers /feed/[id]). Réutilise listCommentsForPost
+ * qui inclut likes_by_me + reactions + threads (Comments v2).
+ */
+export async function loadPostDetails(postId: string): Promise<{
+  ok: true;
+  comments: CommentWithAuthor[];
+}> {
+  const parsed = z.string().uuid().safeParse(postId);
+  if (!parsed.success) return { ok: true, comments: [] };
+
+  const comments = await listCommentsForPost(parsed.data);
+  return { ok: true, comments };
 }

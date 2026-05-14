@@ -17,7 +17,7 @@
  */
 import { Globe, Lock, MapPin, MessageCircle, Quote, Users } from "lucide-react";
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import type { PostWithDetails } from "@/lib/database.types";
 import { getPalette } from "@/lib/posts/backgroundColors";
@@ -37,6 +37,7 @@ import { useTrackDwell } from "@/lib/hooks/useTrackDwell";
 import { mergeRefs } from "@/lib/utils/mergeRefs";
 import type { EventSurface } from "@/lib/database.types";
 import { PostCarousel } from "./PostCarousel";
+import { PostDetailModal } from "./PostDetailModal";
 import { PostPhotos } from "./PostPhotos";
 import { PostVideoPlayer } from "./PostVideoPlayer";
 
@@ -70,6 +71,10 @@ function PostCardInner({
   const author = post.author;
   const displayName = author?.full_name ?? author?.username ?? "Utilisateur";
   const isOwn = post.author_id === currentUserId;
+
+  /* Étape 13 — État local pour ouvrir le modal détail desktop au clic
+     "Commenter". Mobile garde nav vers /feed/[id]. */
+  const [detailOpen, setDetailOpen] = useState(false);
 
   /* Découpe première phrase / reste — pattern Bold du proto. Si pas de
      point dans le body, tout reste en italic display. */
@@ -410,10 +415,23 @@ function PostCardInner({
             postId={post.id}
             initialTotal={post.total_reactions ?? post.likes_count}
           />
-          {/* Commenter — toujours visible */}
+          {/* Commenter — desktop ouvre modal détail (étape 13), mobile
+              navigate vers /feed/[id]. Le SEO et le partage URL gardent
+              la page dédiée. */}
+          <button
+            type="button"
+            onClick={() => setDetailOpen(true)}
+            className="hidden sm:inline-flex items-center justify-center gap-1.5 h-11 min-w-[88px] px-3 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
+            aria-label="Voir les commentaires"
+          >
+            <MessageCircle className="w-4 h-4 shrink-0" aria-hidden />
+            <span className="truncate">
+              {post.comments_count > 0 ? post.comments_count : "Commenter"}
+            </span>
+          </button>
           <Link
             href={`/feed/${post.id}`}
-            className="inline-flex items-center justify-center gap-1.5 h-11 min-w-[100px] sm:min-w-[88px] px-4 sm:px-3 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
+            className="sm:hidden inline-flex items-center justify-center gap-1.5 h-11 min-w-[100px] px-4 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
             <MessageCircle className="w-4 h-4 shrink-0" aria-hidden />
@@ -440,6 +458,17 @@ function PostCardInner({
           </div>
         </footer>
       ) : null}
+      {/* Étape 13 — Modal détail desktop (rendu hors article pour z-index
+          isolation, mais state local pour éviter de hisser le state au
+          parent FeedPostList). */}
+      <PostDetailModal
+        post={post}
+        currentUserId={currentUserId}
+        currentAuthorName={null}
+        currentAuthorAvatarUrl={null}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      />
     </article>
   );
 }
