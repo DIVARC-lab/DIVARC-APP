@@ -9,6 +9,8 @@ import {
 } from "@/lib/queries/liveSessions";
 import { createClient } from "@/lib/supabase/server";
 import { LiveSessionRoom } from "../_components/LiveSessionRoom";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ id: string }>;
 
@@ -48,7 +50,8 @@ export default async function LiveSessionPage({
     session.host?.full_name ?? session.host?.username ?? "Hôte";
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-4xl mx-auto w-full space-y-6">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="2xl">
       <Link
         href="/jobs/live"
         className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night"
@@ -112,6 +115,7 @@ export default async function LiveSessionPage({
         initiallyAttending={attending}
         initialMessages={initialMessages}
       />
-    </div>
+      </Stack>
+    </Container>
   );
 }

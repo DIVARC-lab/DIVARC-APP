@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { listReelsByUser } from "@/lib/queries/reels";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ username: string }>;
 
@@ -41,7 +42,7 @@ export default async function UserReelsPage({
   const totalLikes = reels.reduce((acc, r) => acc + r.likes_count, 0);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-4xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="2xl">
       <Link
         href={`/u/${username}`}
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -76,6 +77,6 @@ export default async function UserReelsPage({
       </header>
 
       <ReelsGrid reels={reels} metric="views" />
-    </div>
+    </Container>
   );
 }

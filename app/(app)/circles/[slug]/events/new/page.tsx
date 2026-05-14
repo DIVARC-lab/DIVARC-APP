@@ -6,6 +6,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { getCircleBySlug } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
 import { CircleEventCreateForm } from "./CircleEventCreateForm";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Nouvel événement",
@@ -32,7 +33,7 @@ export default async function NewCircleEventPage({
   }
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-2xl mx-auto w-full">
+    <Container maxWidth="text" paddingX="page" paddingY="3xl">
       <header className="mb-8">
         <Link
           href={`/circles/${slug}`}
@@ -52,6 +53,6 @@ export default async function NewCircleEventPage({
       </header>
 
       <CircleEventCreateForm circleId={circle.id} circleSlug={slug} />
-    </div>
+    </Container>
   );
 }
