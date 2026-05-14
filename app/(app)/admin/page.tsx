@@ -26,6 +26,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/utils/currency";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Admin",
@@ -50,7 +52,8 @@ export default async function AdminPage() {
     profile?.full_name?.split(" ")[0] ?? user.email?.split("@")[0] ?? "toi";
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-6xl mx-auto w-full space-y-10">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="4xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <KickerLabel>· Admin</KickerLabel>
@@ -301,7 +304,8 @@ export default async function AdminPage() {
           </pre>
         </div>
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
