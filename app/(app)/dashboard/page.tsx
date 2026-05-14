@@ -17,6 +17,8 @@ import { ArcMark } from "@/components/marketing/ArcMark";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { safeFormatDate } from "@/lib/utils/date";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -68,7 +70,8 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="px-6 sm:px-10 py-10 sm:py-14 max-w-6xl mx-auto w-full space-y-10">
+    <Container maxWidth="wide" paddingX="page" paddingY="4xl">
+      <Stack gap="3xl">
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-8 sm:p-12 grain">
         <div className="pointer-events-none absolute -top-32 -right-24 opacity-80">
           <ArcMark size={400} animate={false} />
@@ -280,7 +283,8 @@ export default async function DashboardPage() {
           })}
         </div>
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
