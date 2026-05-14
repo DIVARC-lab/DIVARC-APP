@@ -8,6 +8,7 @@ import {
   getReactionsForConversation,
 } from "@/lib/queries/conversations";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ id: string }>;
 
@@ -86,7 +87,7 @@ export default async function MarketplaceChatPage({
     <div className="flex flex-col h-[calc(100dvh-56px)] bg-bg-soft">
       {/* Header marketplace personnalisé : back + listing card */}
       <header className="shrink-0 border-b border-line bg-white">
-        <div className="max-w-3xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-3">
+        <Container maxWidth="text" paddingX="page" className="py-3 flex items-center gap-3">
           <Link
             href="/marketplace/messages"
             aria-label="Retour aux messages marketplace"
@@ -156,7 +157,7 @@ export default async function MarketplaceChatPage({
               </p>
             </div>
           )}
-        </div>
+        </Container>
       </header>
 
       {/* Body : ConversationView existant. */}

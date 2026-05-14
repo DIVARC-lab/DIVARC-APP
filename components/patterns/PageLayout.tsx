@@ -198,23 +198,51 @@ export function PageLayout({
   );
 }
 
-/* === Sticky header helper === */
+/* === Sticky header helper ===
+ *
+ * Header collant en haut de page. Quand maxWidth/paddingX sont fournis,
+ * un <Container> interne s'aligne automatiquement avec le main contenu.
+ * Indispensable pour les pages où le sticky header doit matcher la largeur
+ * du main (feed/quote, feed/new/article, feed/new/thread, marketplace/
+ * messages/[id]).
+ */
 
 type PageStickyHeaderProps = {
+  /* Solid (white + line) ou translucide (bg/85 + backdrop-blur, défaut). */
+  variant?: "solid" | "translucent";
+  /* Si fourni, ajoute un Container interne aligné avec le main. */
+  maxWidth?: ContainerWidth | { mobile: ContainerWidth; tablet?: ContainerWidth; desktop: ContainerWidth };
+  paddingX?: "page" | "none" | SpacingToken;
   className?: string;
   children: ReactNode;
 };
 
-export function PageStickyHeader({ className, children }: PageStickyHeaderProps) {
+export function PageStickyHeader({
+  variant = "translucent",
+  maxWidth,
+  paddingX,
+  className,
+  children,
+}: PageStickyHeaderProps) {
+  const bgClass =
+    variant === "solid"
+      ? "bg-bg border-b border-line"
+      : "bg-bg/85 backdrop-blur-md border-b border-line/60";
+
+  const wrapper = maxWidth ? (
+    <Container maxWidth={maxWidth} paddingX={paddingX ?? "page"}>
+      {children}
+    </Container>
+  ) : (
+    children
+  );
+
   return (
     <div
-      className={cn(
-        "sticky top-0 bg-bg/85 backdrop-blur-md border-b border-line/60",
-        className,
-      )}
+      className={cn("sticky top-0", bgClass, className)}
       style={{ zIndex: 20 }}
     >
-      {children}
+      {wrapper}
     </div>
   );
 }

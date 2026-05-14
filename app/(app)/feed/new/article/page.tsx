@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ArticleEditor } from "./_components/ArticleEditor";
+import { Container } from "@/components/primitives/Container";
+import { PageStickyHeader } from "@/components/patterns/PageLayout";
 
 export const metadata = {
   title: "Nouvel article — DIVARC",
@@ -25,8 +27,8 @@ export default async function NewArticlePage() {
 
   return (
     <div className="min-h-[100dvh] bg-bg-soft">
-      <header className="sticky top-0 z-30 bg-white border-b border-line">
-        <div className="flex items-center gap-3 h-12 px-4 sm:px-7 max-w-3xl mx-auto">
+      <PageStickyHeader variant="solid" maxWidth="text" paddingX="page">
+        <div className="flex items-center gap-3 h-12">
           <Link
             href="/feed"
             aria-label="Retour au feed"
@@ -41,11 +43,18 @@ export default async function NewArticlePage() {
             · Article
           </span>
         </div>
-      </header>
+      </PageStickyHeader>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-7 py-6 pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)]">
-        <ArticleEditor authorId={user.id} authorProfile={profile} />
-      </main>
+      <Container
+        maxWidth="text"
+        paddingX="page"
+        as="main"
+        className="pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)]"
+      >
+        <div className="py-6">
+          <ArticleEditor authorId={user.id} authorProfile={profile} />
+        </div>
+      </Container>
     </div>
   );
 }
