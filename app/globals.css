@@ -52,6 +52,23 @@
   --radius-xl: 28px;
   --radius-2xl: 36px;
 
+  /* Spacing scale rigide — Chantier DS Structurel · Étape 1.
+     Multiples de 4px uniquement. Préfixe `--space-*` (pas `--spacing-*`,
+     réservé par Tailwind v4 pour générer p-N/m-N/gap-N). Utilisable en
+     CSS via `var(--space-lg)`, en TS via `import { spacing } from
+     "@/lib/design/spacing"`. */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 48px;
+  --space-5xl: 64px;
+  --space-6xl: 96px;
+  --space-7xl: 128px;
+
   --shadow-soft: 0 1px 2px rgba(10, 31, 68, 0.06), 0 8px 24px -12px rgba(10, 31, 68, 0.18);
   --shadow-night: 0 20px 60px -20px rgba(10, 31, 68, 0.45);
   --shadow-gold: 0 12px 40px -12px rgba(244, 185, 66, 0.55);
