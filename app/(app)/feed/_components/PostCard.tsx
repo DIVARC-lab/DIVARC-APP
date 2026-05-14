@@ -394,34 +394,40 @@ function PostCardInner({
       ) : null}
 
       {showActions ? (
-        <footer className="flex items-center gap-1.5 px-3 pb-3.5">
+        <footer className="flex items-center gap-1 px-3 pb-3.5 h-[60px]">
+          {/* ReactionsBar : largeur naturelle, hauteur 44px (h-11) intégrée. */}
           <ReactionsBar
             postId={post.id}
             initialTotal={post.total_reactions ?? post.likes_count}
           />
+          {/* Commenter : min-w-[88px] empêche le décalage des boutons droits
+              selon le nombre de commentaires (1 vs 999). tabular-nums aligne
+              les chiffres entre posts. */}
           <Link
             href={`/feed/${post.id}`}
-            className="inline-flex items-center gap-1.5 min-h-11 h-11 px-3 rounded-full text-night-soft text-[13px] font-bold hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 h-11 min-w-[88px] px-3 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
-            <MessageCircle className="w-4 h-4" aria-hidden />
-            {post.comments_count > 0 ? post.comments_count : "Commenter"}
+            <MessageCircle className="w-4 h-4 shrink-0" aria-hidden />
+            <span className="truncate">
+              {post.comments_count > 0 ? post.comments_count : "Commenter"}
+            </span>
           </Link>
           <Link
             href={`/feed/quote/${post.id}`}
             aria-label="Citer ce post"
-            className="inline-flex items-center justify-center h-11 w-11 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center justify-center h-11 w-11 shrink-0 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
           >
             <Quote className="w-[15px] h-[15px]" aria-hidden />
           </Link>
           <button
             type="button"
-            className="inline-flex items-center justify-center h-11 w-11 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center justify-center h-11 w-11 shrink-0 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Partager"
           >
             <Send className="w-[15px] h-[15px]" aria-hidden />
           </button>
-          <div className="ml-auto">
+          <div className="ml-auto shrink-0">
             <BookmarkButton
               postId={post.id}
               initialBookmarked={post.is_bookmarked}
