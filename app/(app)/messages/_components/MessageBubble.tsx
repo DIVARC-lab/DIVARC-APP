@@ -1011,23 +1011,19 @@ function ImageAttachment({
           isOwn ? "border-night/30" : "border-line",
         )}
       >
-        <span
-          className="relative block w-full"
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          /* IMG HTML pur (pas next/image) : Supabase Storage CDN sert
+           * déjà les images. next/image ajoutait un layer d'optimisation
+           * via /_next/image qui plantait silencieusement → bulle vide.
+           * Cf. message d'amie qui n'arrivait pas. */
+          className="block w-full object-cover"
           style={{ aspectRatio: aspect, maxHeight: "320px" }}
-        >
-          <Image
-            src={url}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 80vw, 320px"
-            className="object-cover"
-            /* unoptimized=true forcé : les URLs Supabase Storage publiques
-             * sont déjà sur un CDN. L'optimisation Next.js via /_next/image
-             * échoue parfois silencieusement (timeout proxy / format) →
-             * bulle vide chez l'utilisateur. */
-            unoptimized
-          />
-        </span>
+        />
       </button>
 
       {open ? (
@@ -1042,13 +1038,11 @@ function ImageAttachment({
             onClick={(event) => event.stopPropagation()}
             className="relative max-w-5xl max-h-[90vh] w-full"
           >
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={url}
               alt=""
-              width={width ?? 1200}
-              height={height ?? 800}
               className="w-full h-auto max-h-[90vh] object-contain rounded-2xl"
-              unoptimized
             />
           </button>
         </div>
