@@ -20,6 +20,13 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
   const active = photos[activeIndex] ?? photos[0]!;
   const single = photos.length === 1;
 
+  /* Aspect ratio natif de l'image (depuis aspect_ratio ou width/height
+   * stockés en BDD), clampé pour éviter les cas extrêmes.
+   * - Si dispo : container suit l'image, object-contain (image entière).
+   * - Sinon (posts legacy sans metadata) : fallback portrait mobile +
+   *   paysage desktop avec object-cover (= comportement d'avant). */
+  const nativeRatio = computeAspectRatio(active);
+
   return (
     <div
       className={cn(
@@ -27,14 +34,24 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
         rounded && "rounded-2xl",
       )}
     >
-      <div className="relative w-full aspect-[4/5] sm:aspect-[16/10]">
+      <div
+        className={cn(
+          "relative w-full",
+          !nativeRatio && "aspect-[4/5] sm:aspect-[16/10]",
+        )}
+        style={
+          nativeRatio
+            ? ({ aspectRatio: String(nativeRatio) } as React.CSSProperties)
+            : undefined
+        }
+      >
         <Image
           key={active.id}
           src={active.url}
           alt={alt}
           fill
           sizes="(max-width: 640px) 100vw, 600px"
-          className="object-cover"
+          className={nativeRatio ? "object-contain" : "object-cover"}
           unoptimized={active.url.includes("?")}
         />
       </div>
@@ -92,4 +109,37 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
       ) : null}
     </div>
   );
+}
+
+/* Lit aspect_ratio ("1.78" ou "16/9") ou width/height de la PostPhoto.
+ * Clamp dans [0.5, 4] : portrait extrême → panorama large.
+ * Retourne null si aucune metadata exploitable → fallback CSS. */
+function computeAspectRatio(photo: PostPhoto): number | null {
+  const MIN = 0.5;
+  const MAX = 4;
+
+  if (photo.aspect_ratio) {
+    const raw = photo.aspect_ratio.trim();
+    let value: number | null = null;
+    if (raw.includes("/")) {
+      const [w, h] = raw.split("/").map(Number);
+      if (w && h && Number.isFinite(w) && Number.isFinite(h)) value = w / h;
+    } else {
+      const num = Number(raw);
+      if (Number.isFinite(num) && num > 0) value = num;
+    }
+    if (value !== null) return Math.min(Math.max(value, MIN), MAX);
+  }
+
+  if (
+    photo.width &&
+    photo.height &&
+    Number.isFinite(photo.width) &&
+    Number.isFinite(photo.height) &&
+    photo.height > 0
+  ) {
+    return Math.min(Math.max(photo.width / photo.height, MIN), MAX);
+  }
+
+  return null;
 }
