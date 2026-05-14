@@ -33,8 +33,8 @@ export function StoriesRow({
   const hasMyStories = !!myGroup && myGroup.stories.length > 0;
 
   return (
-    <div className="-mt-2.5 pb-3">
-      <ul className="flex items-start gap-3 px-[18px] py-2 overflow-x-auto min-w-max">
+    <div className="-mt-2.5 pb-3 overflow-x-auto scrollbar-none [-webkit-overflow-scrolling:touch]">
+      <ul className="flex items-start gap-3 px-[18px] py-2 min-w-max">
         {/* Tile "Toi" — card blanche border navy + FAB gold pour ajouter */}
         <li className="flex flex-col items-center gap-1.5 shrink-0">
           <Link
