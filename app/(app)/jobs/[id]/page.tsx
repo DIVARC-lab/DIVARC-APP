@@ -35,6 +35,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildApplicationDraft } from "@/lib/utils/applicationDraft";
 import { ApplyDialog } from "./_components/ApplyDialog";
 import { ReferDialog } from "./_components/ReferDialog";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ id: string }>;
 
@@ -163,7 +164,7 @@ export default async function JobDetailPage({
   return (
     <div className="bg-bg-soft min-h-screen pb-[120px] relative">
       {jsonLd ? <script {...jsonLdScriptProps(jsonLd)} /> : null}
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         {/* Top bar : back / share / save (proto L117-123) */}
         <div className="flex items-center justify-between gap-3 px-4 pt-12 sm:pt-14 pb-2">
           <Link
@@ -427,7 +428,7 @@ export default async function JobDetailPage({
             </article>
           </section>
         ) : null}
-      </div>
+      </Container>
 
       {/* Sticky CTA bottom */}
       <div
@@ -436,7 +437,7 @@ export default async function JobDetailPage({
           paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)",
         }}
       >
-        <div className="max-w-2xl mx-auto flex items-center gap-2.5">
+        <Container maxWidth="text" paddingX="none" className="flex items-center gap-2.5">
           {isOwn ? (
             <Link
               href={`/jobs/${job.id}/applicants`}
@@ -477,7 +478,7 @@ export default async function JobDetailPage({
               />
             </>
           )}
-        </div>
+        </Container>
       </div>
     </div>
   );
