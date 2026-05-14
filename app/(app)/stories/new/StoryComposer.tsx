@@ -41,7 +41,8 @@ const BACKGROUNDS = [
 type ComposerMode = "photo" | "text";
 
 const VIDEO_BUCKET = "story-videos";
-const VIDEO_MAX_BYTES = 30 * 1024 * 1024; // 30 Mo cap soft
+const VIDEO_MAX_BYTES = 50 * 1024 * 1024; // 50 Mo cap (max Supabase free tier)
+const VIDEO_MAX_DURATION_MS = 60_000; // 60s max (aligné TikTok)
 
 type StoryComposerProps = {
   userId: string;

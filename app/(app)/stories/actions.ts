@@ -37,7 +37,7 @@ const storySchema = z
       .number()
       .int()
       .min(0)
-      .max(30_000)
+      .max(60_000) // 60s max — aligné TikTok (migration 0124)
       .nullable()
       .optional(),
     caption: z

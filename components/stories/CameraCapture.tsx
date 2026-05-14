@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/cn";
 
-const MAX_VIDEO_MS = 15_000;
+const MAX_VIDEO_MS = 60_000; // 60s max (aligné TikTok / migration 0124)
 
 type PhotoResult = { kind: "photo"; blob: Blob };
 type VideoResult = {
