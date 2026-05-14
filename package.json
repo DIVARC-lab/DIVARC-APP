@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.3",
+    "@tanstack/react-virtual": "^3.13.24",
     "blurhash": "^2.0.5",
     "clsx": "^2.1.1",
     "heic2any": "^0.0.4",

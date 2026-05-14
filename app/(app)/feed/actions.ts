@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { listFeedPosts } from "@/lib/queries/posts";
+import type { PostWithDetails } from "@/lib/database.types";
 import {
   commentSchema,
   postFormSchema,
@@ -1077,4 +1079,56 @@ export async function listShareTargets(): Promise<{
   }
 
   return { ok: true, conversations, friends };
+}
+
+/* ============================================================
+ * Étape 9 — Infinite scroll lazy load
+ * ============================================================
+ *
+ * Server action appelée depuis le composant client FeedPostList quand
+ * l'user scroll proche du bas. Charge le batch suivant de posts pour
+ * le tab "latest" (ordre chronologique, le seul qui se paginate
+ * proprement avec cursor created_at).
+ *
+ * Pour les autres tabs (for-you / friends / transparent), la pagination
+ * sera ajoutée plus tard (ranker recsys non-stable au paging). En
+ * attendant, ces tabs restent en chargement initial complet.
+ */
+export async function loadMoreFeedPosts(args: {
+  cursor: string;
+  limit?: number;
+}): Promise<{
+  ok: true;
+  posts: PostWithDetails[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}> {
+  const parsed = z
+    .object({
+      cursor: z.string().datetime(),
+      limit: z.number().int().min(1).max(40).optional(),
+    })
+    .safeParse(args);
+
+  if (!parsed.success) {
+    return { ok: true, posts: [], nextCursor: null, hasMore: false };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: true, posts: [], nextCursor: null, hasMore: false };
+  }
+
+  const limit = parsed.data.limit ?? 20;
+  const posts = await listFeedPosts(user.id, limit, parsed.data.cursor);
+
+  /* hasMore = on a reçu autant que demandé → potentiellement plus.
+     Si moins, on est en fin de liste. */
+  const hasMore = posts.length === limit;
+  const nextCursor = posts.length > 0 ? posts[posts.length - 1]!.created_at : null;
+
+  return { ok: true, posts, nextCursor, hasMore };
 }

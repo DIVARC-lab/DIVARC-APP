@@ -302,9 +302,13 @@ async function attachDetails(
 export async function listFeedPosts(
   currentUserId: string,
   limit: number = 30,
+  /* Cursor pagination : si fourni, retourne les posts dont created_at <
+     cursor (= posts plus anciens). Permet l'infinite scroll FB-style.
+     Format attendu : ISO string (post.created_at d'un post déjà chargé). */
+  cursor?: string | null,
 ): Promise<PostWithDetails[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
     .select("*")
     .is("deleted_at", null)
@@ -312,6 +316,12 @@ export async function listFeedPosts(
     .eq("status", "published")
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) return [];
   return attachDetails(data, currentUserId);

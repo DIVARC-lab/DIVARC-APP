@@ -1,5 +1,4 @@
 import { Compass, Plus, Sparkles, UserPlus } from "lucide-react";
-import { Fragment } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
@@ -22,15 +21,11 @@ import {
 } from "@/lib/queries/stories";
 import { createClient } from "@/lib/supabase/server";
 import { FeedRightRail } from "./_components/FeedRightRail";
-import { PostCard } from "./_components/PostCard";
 import { PostChipTrigger } from "@/components/creator/PostChipTrigger";
-import { PostViewTracker } from "./_components/PostViewTracker";
 import { StoriesRow } from "./_components/StoriesRow";
-import { AdSlot } from "@/components/ads/AdSlot";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
-import { AntiDoomscrollPause } from "./_components/AntiDoomscrollPause";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
-import { FeedReasonChip } from "./_components/FeedReasonChip";
+import { FeedPostList } from "./_components/FeedPostList";
 import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
@@ -242,58 +237,30 @@ export default async function FeedPage({
             {/* Trending hashtags : déplacés en right rail desktop seulement
                 (proto BoldFeedScreen mobile n'a pas cette section). */}
 
-            {/* Posts */}
+            {/* Posts — FeedPostList est un client component qui hydrate
+                la pagination incrémentale (infinite scroll). Les posts
+                initiaux sont SSR pour FCP rapide + SEO. */}
             {posts.length === 0 ? (
               <div className="px-4 sm:px-6 pb-10">
                 <FeedEmptyState tab={tab} />
               </div>
             ) : (
-              <ul className="flex flex-col gap-5 sm:gap-4 px-4 sm:px-6 pb-10">
-                {posts.map((post, index) => {
-                  const reason = reasonByPostId.get(post.id);
-                  return (
-                  <Fragment key={post.id}>
-                    <li>
-                      {reason ? (
-                        <div className="mb-1.5">
-                          <FeedReasonChip reason={reason} />
-                        </div>
-                      ) : null}
-                      <PostViewTracker postId={post.id} />
-                      <PostCard
-                        post={post}
-                        currentUserId={user.id}
-                        hero={index === 0}
-                        rankingSignals={
-                          rankingByPostId.get(post.id)?.primary_signals
-                        }
-                      />
-                    </li>
-                    {/* Densité publicitaire DIVARC : 1 ad tous les 6
-                        posts (entre les positions 5/11/17/...).
-                        Conformité DSA art. 26 — chaque ad affiche
-                        "Sponsorisé" + lien Why this ad. */}
-                    {index > 0 && (index + 1) % 6 === 0 ? (
-                      <li aria-label="Publicité sponsorisée">
-                        <AdSlot
-                          surface="feed_home"
-                          slotIndex={Math.floor((index + 1) / 6)}
-                        />
-                      </li>
-                    ) : null}
-                    {/* Chantier Feed 6.1 — pause anti-doomscroll toutes les
-                        20 positions. Affichée APRÈS l'item index 19, 39, ... */}
-                    {index > 0 && (index + 1) % 20 === 0 ? (
-                      <li>
-                        <AntiDoomscrollPause
-                          pauseIndex={Math.floor((index + 1) / 20)}
-                        />
-                      </li>
-                    ) : null}
-                  </Fragment>
-                  );
-                })}
-              </ul>
+              <FeedPostList
+                initialPosts={posts}
+                currentUserId={user.id}
+                reasonByPostId={Object.fromEntries(reasonByPostId)}
+                rankingSignalsByPostId={Object.fromEntries(
+                  Array.from(rankingByPostId.entries()).map(([id, meta]) => [
+                    id,
+                    meta.primary_signals,
+                  ]),
+                )}
+                /* Pagination cursor stable uniquement pour latest
+                   (chronologique strict). Les autres tabs ont un ranking
+                   non-paginable proprement et restent en chargement
+                   initial complet. */
+                enableInfiniteScroll={tab === "latest"}
+              />
             )}
           </Container>
 
