@@ -5,6 +5,7 @@ import { ReelsGrid } from "@/components/reels/ReelsGrid";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { listReelsBySound } from "@/lib/queries/reels";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 type Params = Promise<{ id: string }>;
 
@@ -44,7 +45,7 @@ export default async function SoundPage({ params }: { params: Params }) {
   const reels = await listReelsBySound(id, user.id, 30);
 
   return (
-    <div className="px-5 sm:px-8 py-6 max-w-4xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="2xl">
       <Link
         href="/reels"
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -105,6 +106,6 @@ export default async function SoundPage({ params }: { params: Params }) {
         </h2>
         <ReelsGrid reels={reels} metric="plays" />
       </section>
-    </div>
+    </Container>
   );
 }

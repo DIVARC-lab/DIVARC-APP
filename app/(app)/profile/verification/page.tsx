@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { safeFormatDate } from "@/lib/utils/date";
 import type { IdentityVerificationRequest } from "@/lib/database.types";
 import { SubmitVerificationForm } from "./SubmitVerificationForm";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Vérification d'identité",
@@ -46,7 +47,7 @@ export default async function VerificationPage() {
 
   return (
     <div className="min-h-screen bg-bg-soft pb-12">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-8">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <header className="mb-6">
           <Link
             href="/profile"
@@ -174,7 +175,7 @@ export default async function VerificationPage() {
             <SubmitVerificationForm />
           </section>
         ) : null}
-      </div>
+      </Container>
     </div>
   );
 }

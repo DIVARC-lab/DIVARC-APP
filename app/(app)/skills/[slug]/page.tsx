@@ -5,6 +5,8 @@ import { getQuizBySlug } from "@/lib/queries/skills";
 import { createClient } from "@/lib/supabase/server";
 import { QuizPlayer } from "../_components/QuizPlayer";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ slug: string }>;
 
@@ -36,7 +38,8 @@ export default async function QuizPage({ params }: { params: Params }) {
   }));
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-8">
+    <Container maxWidth="text" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <Link
         href="/skills"
         className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night"
@@ -60,6 +63,7 @@ export default async function QuizPage({ params }: { params: Params }) {
       </header>
 
       <QuizPlayer quizId={data.quiz.id} questions={safeQuestions} />
-    </div>
+      </Stack>
+    </Container>
   );
 }
