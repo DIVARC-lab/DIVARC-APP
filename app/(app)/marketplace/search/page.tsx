@@ -8,6 +8,7 @@ import { listListings } from "@/lib/queries/listings";
 import { CATEGORY_META } from "@/lib/utils/categories";
 import { createClient } from "@/lib/supabase/server";
 import type { ListingCategory, ListingCondition } from "@/lib/database.types";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Recherche — Marketplace",
@@ -115,7 +116,7 @@ export default async function MarketplaceSearchPage({
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
+      <Container maxWidth={{ mobile: "text", desktop: "wide" }} paddingX="none">
         {/* Header avec retour + search bar */}
         <header className="px-4 sm:px-8 pt-6 sm:pt-10 pb-3">
           <div className="flex items-center gap-3 mb-4">
@@ -211,7 +212,7 @@ export default async function MarketplaceSearchPage({
             ))}
           </div>
         )}
-      </div>
+      </Container>
     </div>
   );
 }

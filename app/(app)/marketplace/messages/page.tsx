@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { listMarketplaceConversations } from "@/lib/queries/marketplaceConversations";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Messages marketplace",
@@ -21,7 +22,7 @@ export default async function MarketplaceMessagesPage() {
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+      <Container maxWidth="text" paddingX="none">
         <header className="px-4 sm:px-8 pt-6 sm:pt-10 pb-4">
           <Link
             href="/marketplace"
@@ -140,7 +141,7 @@ export default async function MarketplaceMessagesPage() {
             ))}
           </ul>
         )}
-      </div>
+      </Container>
 
       {/* Marker icon pour pas que MessageSquare soit tree-shaké si non utilisé */}
       <span className="sr-only">

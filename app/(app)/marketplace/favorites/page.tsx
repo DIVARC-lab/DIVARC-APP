@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListingCard } from "@/components/marketplace/ListingCard";
 import { listFavoriteListings } from "@/lib/queries/listings";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Mes favoris",
@@ -22,7 +23,7 @@ export default async function FavoritesPage() {
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-24">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
+      <Container maxWidth={{ mobile: "text", desktop: "wide" }} paddingX="none">
         {/* Hero header — grammaire Bold cohérente avec /marketplace */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-7">
           <div
@@ -76,7 +77,7 @@ export default async function FavoritesPage() {
             ))}
           </div>
         )}
-      </div>
+      </Container>
     </div>
   );
 }

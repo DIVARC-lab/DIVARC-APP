@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { listMyOffers } from "@/lib/queries/listingOffers";
 import { createClient } from "@/lib/supabase/server";
 import { OfferCard } from "./_components/OfferCard";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Mes offres",
@@ -32,7 +33,7 @@ export default async function OffersPage({
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)] pb-24">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+      <Container maxWidth="text" paddingX="none">
         {/* Hero header — grammaire Bold cohérente */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-6">
           <div
@@ -135,7 +136,7 @@ export default async function OffersPage({
             ))}
           </div>
         )}
-      </div>
+      </Container>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import type {
   WorkMode,
 } from "@/lib/database.types";
 import { JobFilters } from "./_components/JobFilters";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Emploi",
@@ -100,7 +101,7 @@ export default async function JobsPage({
      ou les liens contextuels. */
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
+      <Container maxWidth={{ mobile: "text", desktop: "wide" }} paddingX="none">
         {/* Header */}
         <header className="px-5 sm:px-8 pt-8 sm:pt-10 pb-3 flex items-end justify-between gap-3">
           <div className="min-w-0">
@@ -234,7 +235,7 @@ export default async function JobsPage({
             ))}
           </ul>
         )}
-      </div>
+      </Container>
     </div>
   );
 }

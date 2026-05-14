@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TransactionList } from "../_components/TransactionList";
 import { cn } from "@/lib/utils/cn";
 import { formatPrice } from "@/lib/utils/currency";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Historique",
@@ -94,7 +95,7 @@ export default async function WalletHistoryPage({
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-3xl">
+      <Container maxWidth="text" paddingX="none">
         {/* Hero header */}
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft px-5 sm:px-8 pt-8 sm:pt-10 pb-6">
           <div
@@ -213,7 +214,7 @@ export default async function WalletHistoryPage({
             </div>
           )}
         </div>
-      </div>
+      </Container>
     </div>
   );
 }

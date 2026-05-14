@@ -22,6 +22,7 @@ import { countPendingReceivedOffers } from "@/lib/queries/listingOffers";
 import { CATEGORY_META } from "@/lib/utils/categories";
 import { createClient } from "@/lib/supabase/server";
 import type { ListingCategory } from "@/lib/database.types";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Marketplace",
@@ -93,7 +94,7 @@ export default async function MarketplacePage({
 
   return (
     <div className="bg-bg-soft min-h-[calc(100dvh-56px)]">
-      <div className="mx-auto w-full max-w-2xl lg:max-w-5xl">
+      <Container maxWidth={{ mobile: "text", desktop: "wide" }} paddingX="none">
         {/* Header */}
         <header className="px-4 sm:px-8 pt-6 sm:pt-10 pb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div className="min-w-0">
@@ -365,7 +366,7 @@ export default async function MarketplacePage({
             </div>
           </>
         )}
-      </div>
+      </Container>
     </div>
   );
 }
