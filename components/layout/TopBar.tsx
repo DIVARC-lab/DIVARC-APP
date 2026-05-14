@@ -15,7 +15,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
-import { useHideOnScroll } from "@/lib/hooks/useHideOnScroll";
 import type { NotificationWithActor } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 import { NotificationsDropdown } from "./NotificationsDropdown";
@@ -30,8 +29,9 @@ import { TopBarMobile } from "./TopBarMobile";
  *  - Desktop ≥ 1024px : 3 zones (logo+search / 5 onglets centraux / actions)
  *  - Mobile < 1024px : layout simplifié (logo + page title + 3 actions)
  *
- * Hide-on-scroll : pattern Facebook mobile, fonctionne aussi sur desktop
- * en mode "petit écran" (tablette).
+ * Header FIXE permanent : décision produit — pas de hide-on-scroll.
+ * Pattern LinkedIn/Twitter web (stable et pro) plutôt que Facebook mobile
+ * (qui slide). User feedback : la version slide était perçue comme buggy.
  *
  * Couleurs : palette DIVARC (validée par user). Bordure-bas active = gold,
  * pas bleu Facebook. */
@@ -90,13 +90,10 @@ type TopBarProps = {
 };
 
 export function TopBar(props: TopBarProps) {
-  const hidden = useHideOnScroll(80);
-
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-14 bg-bg border-b border-line transition-transform duration-200 ease-out",
-        hidden && "-translate-y-full",
+        "fixed top-0 left-0 right-0 z-50 h-14 bg-bg border-b border-line",
       )}
       aria-label="Navigation principale"
     >
