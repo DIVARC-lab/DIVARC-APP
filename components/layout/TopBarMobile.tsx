@@ -107,9 +107,16 @@ function MobileActionButton({
       {badgeCount > 0 ? (
         <span
           aria-hidden
-          className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-gold text-night text-[10px] font-bold flex items-center justify-center"
+          className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-gold text-night text-[10px] font-bold flex items-center justify-center shadow-[0_2px_6px_-1px_rgba(244,185,66,0.6)]"
         >
-          {badgeCount > 9 ? "9+" : badgeCount}
+          {/* Étape 18 — halo gold pulsé subtle (cohérent desktop). */}
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-gold animate-ping opacity-50"
+          />
+          <span className="relative">
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
         </span>
       ) : null}
     </Link>

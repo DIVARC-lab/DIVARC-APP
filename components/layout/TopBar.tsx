@@ -258,9 +258,18 @@ function RoundActionButton({
       {badgeCount > 0 ? (
         <span
           aria-hidden
-          className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-night text-[11px] font-bold flex items-center justify-center"
+          className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-gold text-night text-[11px] font-bold flex items-center justify-center shadow-[0_2px_6px_-1px_rgba(244,185,66,0.6)]"
         >
-          {badgeCount > 9 ? "9+" : badgeCount}
+          {/* Étape 18 — halo gold pulsé subtle pour attirer l'œil sur
+              les notifs/messages non-lus, sans agresser (1.8s cycle,
+              opacity max 50%). */}
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-full bg-gold animate-ping opacity-50"
+          />
+          <span className="relative">
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
         </span>
       ) : null}
     </Link>
