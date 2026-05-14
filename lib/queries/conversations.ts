@@ -338,7 +338,14 @@ export async function getMessagesForConversation(
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error || !data) return [];
+  if (error) {
+    /* Log explicite : si une colonne BDD manque (migration pas appliquée),
+     * l'user voit conversation vide sans comprendre pourquoi. Ce log
+     * apparaît dans Vercel logs et permet le diagnostic. */
+    console.error("[getMessagesForConversation]", conversationId, error);
+    return [];
+  }
+  if (!data) return [];
   return [...data].reverse();
 }
 

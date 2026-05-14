@@ -531,7 +531,13 @@ export function MessageComposer({
         const { error } = result;
 
         if (error) {
-          toast.error("Échec de l'envoi.");
+          console.error("[messages:send]", error);
+          const reason = error.message?.toLowerCase().includes("column")
+            ? "Colonne BDD manquante. Migration à appliquer."
+            : error.message?.toLowerCase().includes("row-level security")
+              ? "Permission refusée (RLS conversation)."
+              : (error.message ?? error.code ?? "raison inconnue");
+          toast.error(`Échec de l'envoi : ${reason}`);
           setBody(previousBody);
           setAttachment(previousAttachment);
           requestAnimationFrame(resize);
