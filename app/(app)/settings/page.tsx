@@ -19,6 +19,7 @@ import { LogoutButton } from "@/components/auth/LogoutButton";
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PushNotificationToggle } from "./_components/PushNotificationToggle";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Paramètres",
@@ -111,7 +112,7 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-2xl mx-auto w-full pb-12">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="flex items-start justify-between gap-3 mb-6">
         <div>
           <KickerLabel>· Réglages</KickerLabel>
@@ -180,7 +181,7 @@ export default async function SettingsPage() {
       <div className="mt-8 px-2">
         <LogoutButton />
       </div>
-    </div>
+    </Container>
   );
 }
 
