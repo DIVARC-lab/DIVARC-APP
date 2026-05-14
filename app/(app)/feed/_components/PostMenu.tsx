@@ -132,11 +132,14 @@ export function PostMenu({
           role="menu"
           className="absolute top-10 right-0 min-w-52 z-20 rounded-2xl bg-white border border-line shadow-soft p-1.5"
         >
+          {/* Mobile uniquement : Sauvegarder + Citer ce post.
+              Sur desktop, ces actions sont dans le footer de la PostCard
+              (BookmarkButton + Citer Link). */}
           <button
             type="button"
             onClick={handleToggleBookmark}
             disabled={bookmarkPending}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night disabled:opacity-60"
+            className="sm:hidden w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night disabled:opacity-60"
           >
             {bookmarked ? (
               <BookmarkCheck className="w-4 h-4 text-gold-deep" aria-hidden />
@@ -148,7 +151,7 @@ export function PostMenu({
           <button
             type="button"
             onClick={handleQuote}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night"
+            className="sm:hidden w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-night-muted hover:bg-night/5 hover:text-night"
           >
             <Quote className="w-4 h-4" aria-hidden />
             Citer ce post

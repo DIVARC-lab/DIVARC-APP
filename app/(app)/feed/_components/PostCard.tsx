@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils/cn";
 import { renderPostBody } from "@/lib/utils/postBody";
 import { PostPoll } from "./PostPoll";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { BookmarkButton } from "./BookmarkButton";
 import { ReactionsBar } from "./ReactionsBar";
 import { PostMenu } from "./PostMenu";
 import { SharePostButton } from "./SharePostButton";
@@ -111,7 +112,7 @@ function PostCardInner({
         </Link>
       ) : null}
 
-      <header className="flex items-center gap-3 pt-5 px-5 pb-3">
+      <header className="flex items-center gap-3 pt-5 sm:pt-4 px-5 sm:px-[18px] pb-3 sm:pb-2">
         <Link
           href={`/u/${author?.username ?? ""}`}
           className="shrink-0"
@@ -220,7 +221,7 @@ function PostCardInner({
           const palette = getPalette(post.background_color);
           if (palette && !post.video_url && post.photos.length === 0) {
             return (
-              <div className="px-5 pb-3.5">
+              <div className="px-5 sm:px-[18px] pb-3.5">
                 <div
                   className={cn(
                     "rounded-[18px] overflow-hidden flex items-center justify-center min-h-[260px] px-6 py-10",
@@ -241,7 +242,7 @@ function PostCardInner({
           }
           /* Rendu standard : 1ère phrase Cormorant + reste Inter. */
           return (
-            <div className="px-5 pb-3.5">
+            <div className="px-5 sm:px-[18px] pb-3.5">
               <p className="font-display italic text-[19px] font-normal leading-[1.3] text-night whitespace-pre-wrap break-words">
                 {renderPostBody(firstSentence)}
               </p>
@@ -257,7 +258,7 @@ function PostCardInner({
 
       {/* Chantier Feed 4.4 — chip "cite un post" si quoted_post_id présent. */}
       {post.quoted_post_id ? (
-        <div className="px-5 pb-3">
+        <div className="px-5 sm:px-[18px] pb-3">
           <Link
             href={`/feed/${post.quoted_post_id}`}
             onClick={(e) => e.stopPropagation()}
@@ -293,7 +294,7 @@ function PostCardInner({
 
       {/* Plugin Tag amis : "avec @user1, @user2 et N autres". */}
       {post.tagged_users && post.tagged_users.length > 0 ? (
-        <div className="px-5 pb-3 -mt-1">
+        <div className="px-5 sm:px-[18px] pb-3 -mt-1">
           <p className="text-[12px] text-night-soft">
             <span className="text-night-muted">avec </span>
             {post.tagged_users.slice(0, 3).map((u, idx) => (
@@ -321,7 +322,7 @@ function PostCardInner({
 
       {/* Media inline (non-hero) — radius 18 + padding x */}
       {!heroMedia && post.video_url ? (
-        <div className="px-5 pb-3.5">
+        <div className="px-5 sm:px-[18px] pb-3.5">
           <div className="overflow-hidden rounded-[18px]">
             <PostVideoPlayer
               url={post.video_url}
@@ -335,7 +336,7 @@ function PostCardInner({
           </div>
         </div>
       ) : !heroMedia && post.is_carousel && post.carousel_slides ? (
-        <Link href={`/feed/${post.id}`} className="block px-5 pb-3.5">
+        <Link href={`/feed/${post.id}`} className="block px-5 sm:px-[18px] pb-3.5">
           <div className="overflow-hidden rounded-[18px]">
             <PostCarousel
               slides={post.carousel_slides}
@@ -345,7 +346,7 @@ function PostCardInner({
           </div>
         </Link>
       ) : !heroMedia && post.photos.length > 0 ? (
-        <Link href={`/feed/${post.id}`} className="block px-5 pb-3.5">
+        <Link href={`/feed/${post.id}`} className="block px-5 sm:px-[18px] pb-3.5">
           <div className="overflow-hidden rounded-[18px]">
             <PostPhotos
               photos={post.photos}
@@ -395,16 +396,23 @@ function PostCardInner({
       ) : null}
 
       {showActions ? (
-        <footer className="flex items-center gap-2 px-5 pt-3 pb-5 h-[68px] border-t border-line/60 mt-2">
+        <footer
+          className={cn(
+            "flex items-center px-5 sm:px-3 h-[68px] sm:h-[60px]",
+            "pt-3 pb-5 sm:pt-0 sm:pb-3.5",
+            "gap-2 sm:gap-1",
+            "border-t border-line/60 sm:border-t-0 mt-2 sm:mt-0",
+          )}
+        >
           {/* Like (via ReactionsBar) */}
           <ReactionsBar
             postId={post.id}
             initialTotal={post.total_reactions ?? post.likes_count}
           />
-          {/* Commenter */}
+          {/* Commenter — toujours visible */}
           <Link
             href={`/feed/${post.id}`}
-            className="inline-flex items-center justify-center gap-1.5 h-11 min-w-[100px] px-4 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 h-11 min-w-[100px] sm:min-w-[88px] px-4 sm:px-3 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
             <MessageCircle className="w-4 h-4 shrink-0" aria-hidden />
@@ -412,8 +420,23 @@ function PostCardInner({
               {post.comments_count > 0 ? post.comments_count : "Commenter"}
             </span>
           </Link>
-          {/* Partager — Web Share API + fallback clipboard */}
+          {/* Citer — desktop uniquement (sur mobile, dans le menu ...) */}
+          <Link
+            href={`/feed/quote/${post.id}`}
+            aria-label="Citer ce post"
+            className="hidden sm:inline-flex items-center justify-center h-11 w-11 shrink-0 rounded-full text-night-soft hover:bg-night/5 hover:text-night transition-colors"
+          >
+            <Quote className="w-[15px] h-[15px]" aria-hidden />
+          </Link>
+          {/* Partager — toujours visible (Web Share API + fallback) */}
           <SharePostButton postId={post.id} />
+          {/* Bookmark — desktop uniquement (sur mobile, dans le menu ...) */}
+          <div className="hidden sm:block ml-auto shrink-0">
+            <BookmarkButton
+              postId={post.id}
+              initialBookmarked={post.is_bookmarked}
+            />
+          </div>
         </footer>
       ) : null}
     </article>
