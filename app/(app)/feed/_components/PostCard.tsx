@@ -56,6 +56,10 @@ type PostCardProps = {
   /** Signaux de ranking (depuis /api/feed/personalized) pour
       <WhyThisPost />. Si absent, popover affiche message générique. */
   rankingSignals?: RankingSignalDisplay[];
+  /** Timestamp de la dernière visite du feed (ms). Sert à marquer les
+   *  posts publiés depuis (badge "Nouveau"). null = première visite,
+   *  pas de badge. */
+  lastFeedVisit?: number | null;
 };
 
 function PostCardInner({
@@ -66,6 +70,7 @@ function PostCardInner({
   surface = "feed_home",
   position,
   rankingSignals,
+  lastFeedVisit,
 }: PostCardProps) {
   const impressionRef = useTrackImpression(post.id, { surface, position });
   const dwellRef = useTrackDwell(post.id, { surface });
@@ -83,6 +88,17 @@ function PostCardInner({
   const { isVisited, markVisited } = useVisitedPosts();
   const visited = isVisited(post.id);
 
+  /* Étape 15 — "Nouveau depuis ta dernière visite". Un post est new si :
+     1. Il a été publié APRÈS le timestamp de la dernière visite stockée
+     2. ET il n'a pas encore été visité dans cette session
+     Sans timestamp précédent (1re visite, localStorage vide), pas de
+     badge — on évite d'inonder le feed de "Nouveau" partout. */
+  const isNew =
+    !visited &&
+    lastFeedVisit !== null &&
+    lastFeedVisit !== undefined &&
+    new Date(post.created_at).getTime() > lastFeedVisit;
+
   /* Découpe première phrase / reste — pattern Bold du proto. Si pas de
      point dans le body, tout reste en italic display. */
   const fullBody = post.body ?? "";
@@ -99,13 +115,29 @@ function PostCardInner({
       ref={mergeRefs<HTMLElement>(impressionRef, dwellRef)}
       data-post-id={post.id}
       data-visited={visited ? "true" : undefined}
+      data-new={isNew ? "true" : undefined}
       className={cn(
-        "overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)] transition-all",
+        "relative overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)] transition-all",
         /* "Déjà vu" : légère désaturation + accent gold-deep à gauche.
            Discret pour ne pas alourdir le feed visuel. */
         visited && "opacity-[0.82] ring-1 ring-inset ring-gold-deep/15",
       )}
     >
+      {/* Étape 15 — Badge "Nouveau" sur posts publiés depuis la dernière
+          visite. Position top-right, gold pulsé subtle. Disparaît au
+          consult (visited=true). */}
+      {isNew ? (
+        <div
+          aria-label="Nouveau post depuis ta dernière visite"
+          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-gold text-night text-[10px] font-extrabold uppercase tracking-[0.14em] shadow-[0_4px_12px_-2px_rgba(244,185,66,0.45)]"
+        >
+          <span
+            aria-hidden
+            className="w-1.5 h-1.5 rounded-full bg-night animate-pulse"
+          />
+          Nouveau
+        </div>
+      ) : null}
       {/* Hero media — au-dessus du header pour la 1ère card du feed */}
       {heroMedia && post.video_url ? (
         <PostVideoPlayer

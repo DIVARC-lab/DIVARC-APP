@@ -13,6 +13,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { PostWithDetails } from "@/lib/database.types";
 import type { RankingSignalDisplay } from "@/components/feed/WhyThisPost";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { useLastFeedVisit } from "@/lib/hooks/useLastFeedVisit";
 import { loadMoreFeedPosts } from "../actions";
 import { AntiDoomscrollPause } from "./AntiDoomscrollPause";
 import { FeedReasonChip } from "./FeedReasonChip";
@@ -67,6 +68,11 @@ export function FeedPostList({
   );
   const [hasMore, setHasMore] = useState<boolean>(enableInfiniteScroll);
   const [loading, setLoading] = useState(false);
+
+  /* Étape 15 — timestamp de la dernière visite pour calculer les posts
+     "Nouveau". Hook appelé UNE seule fois ici (vs dans chaque PostCard
+     = 40 listeners). On passe la valeur en prop à PostCard. */
+  const lastFeedVisit = useLastFeedVisit();
   const sentinelRef = useRef<HTMLLIElement>(null);
   /* Track les IDs déjà fetchés pour dédupliquer en cas de double-trigger. */
   const seenIdsRef = useRef<Set<string>>(
@@ -140,6 +146,7 @@ export function FeedPostList({
         loading={loading}
         hasMore={hasMore}
         sentinelRef={sentinelRef}
+        lastFeedVisit={lastFeedVisit}
       />
     );
   }
@@ -163,6 +170,7 @@ export function FeedPostList({
                 currentUserId={currentUserId}
                 hero={index === 0}
                 rankingSignals={rankingSignals}
+                lastFeedVisit={lastFeedVisit}
               />
             </li>
             {/* Densité publicitaire DIVARC : 1 ad tous les 6 posts. */}
@@ -239,6 +247,7 @@ function VirtualizedList({
   loading,
   hasMore,
   sentinelRef,
+  lastFeedVisit,
 }: {
   posts: PostWithDetails[];
   currentUserId: string;
@@ -248,6 +257,7 @@ function VirtualizedList({
   loading: boolean;
   hasMore: boolean;
   sentinelRef: React.RefObject<HTMLLIElement | null>;
+  lastFeedVisit: number | null;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -336,6 +346,7 @@ function VirtualizedList({
                     currentUserId={currentUserId}
                     hero={item.index === 0}
                     rankingSignals={rankingSignalsByPostId?.[item.post.id]}
+                    lastFeedVisit={lastFeedVisit}
                   />
                 </>
               ) : item.kind === "ad" ? (
