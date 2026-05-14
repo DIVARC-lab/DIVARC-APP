@@ -175,10 +175,10 @@ export default async function FeedPage({
   ).length;
 
   return (
-    <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)]">
+    <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)] max-w-[100vw] overflow-x-hidden">
       <div className="mx-auto w-full max-w-6xl">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
-          <div className="mx-auto w-full max-w-2xl lg:mx-0">
+          <div className="mx-auto w-full max-w-2xl min-w-0 lg:mx-0">
             {/* Hero header — gradient cream → bg-soft, ArcDeco gold visible */}
             <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
               <div
@@ -191,7 +191,7 @@ export default async function FeedPage({
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
                   · Le feed · {todayKicker}
                 </p>
-                <h1 className="mt-2.5 font-display text-[30px] sm:text-[44px] lg:text-[64px] font-normal leading-[1] tracking-[-0.025em] text-night">
+                <h1 className="mt-2.5 font-display text-[28px] sm:text-[44px] lg:text-[64px] font-normal leading-[1.05] tracking-[-0.02em] text-night break-words max-w-full">
                   Ce que tes proches{" "}
                   <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
                     racontent
