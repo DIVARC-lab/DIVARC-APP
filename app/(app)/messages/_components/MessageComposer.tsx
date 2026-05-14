@@ -453,7 +453,19 @@ export function MessageComposer({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = body.trim();
-    if ((!trimmed && !attachment) || pending) return;
+    /* Si attachment est défini, son url DOIT être non-vide. Sinon on
+     * envoyait un message-fantôme (BDD avec attachment_url="") qui
+     * apparaissait comme une bulle vide chez le destinataire. */
+    const hasValidAttachment =
+      attachment !== null &&
+      typeof attachment.url === "string" &&
+      attachment.url.length > 0;
+    if (attachment !== null && !hasValidAttachment) {
+      toast.error("Pièce jointe corrompue. Renvoie-la.");
+      setAttachment(null);
+      return;
+    }
+    if ((!trimmed && !hasValidAttachment) || pending) return;
 
     const previousBody = body;
     const previousAttachment = attachment;

@@ -323,15 +323,21 @@ export function MessageBubble({
   const mediaLocked =
     mediaState.kind === "decrypting" || mediaState.kind === "error";
 
-  const hasImage =
-    message.attachment_type === "image" && mediaUrl !== null;
-  const hasAudio =
-    message.attachment_type === "audio" && mediaUrl !== null;
+  /* mediaUrl peut être null OU string vide ("") quand un upload a échoué
+   * silencieusement (cf. bug photos messages). On exige non-vide pour
+   * considérer qu'on a vraiment du média à afficher. */
+  const hasUsableMedia = mediaUrl !== null && mediaUrl.length > 0;
+  const hasImage = message.attachment_type === "image" && hasUsableMedia;
+  const hasAudio = message.attachment_type === "audio" && hasUsableMedia;
   const hasFile =
-    mediaUrl !== null &&
+    hasUsableMedia &&
     message.attachment_type !== "image" &&
     message.attachment_type !== "audio" &&
     message.attachment_type !== null;
+  /* Cas où le message indique un attachment mais l'URL est cassée :
+   * placeholder explicite plutôt qu'une bulle vide silencieuse. */
+  const hasMissingAttachment =
+    message.attachment_type !== null && !hasUsableMedia && !mediaLocked;
 
   async function handleOpenEclat() {
     if (!isViewOnce || viewOnceConsumed || isOwn) return;
@@ -528,6 +534,31 @@ export function MessageBubble({
                     size={message.attachment_size}
                     isOwn={isOwn}
                   />
+                ) : null}
+
+                {hasMissingAttachment ? (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2.5 rounded-2xl border text-[12px]",
+                      isOwn
+                        ? "bg-night/5 border-night/15 text-night-dim"
+                        : "bg-bg-soft border-line text-night-dim",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className="inline-flex w-7 h-7 items-center justify-center rounded-full bg-error/15 text-error text-[14px] font-extrabold"
+                    >
+                      !
+                    </span>
+                    <span className="italic">
+                      {message.attachment_type === "image"
+                        ? "Image indisponible (upload échoué)"
+                        : message.attachment_type === "audio"
+                          ? "Audio indisponible"
+                          : "Pièce jointe indisponible"}
+                    </span>
+                  </div>
                 ) : null}
               </>
             )}
