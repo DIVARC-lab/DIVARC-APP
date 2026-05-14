@@ -80,7 +80,14 @@ const MAX_VIDEO_DURATION_S = 60;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
 const ALLOWED_VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 
-type Photo = { url: string; position: number; storagePath: string };
+type Photo = {
+  url: string;
+  position: number;
+  storagePath: string;
+  width: number | null;
+  height: number | null;
+  aspect_ratio: string | null;
+};
 
 type VideoUpload = {
   url: string;
@@ -378,10 +385,19 @@ export function PostComposer({
       const {
         data: { publicUrl },
       } = supabase.storage.from("posts").getPublicUrl(storagePath);
+
+      /* Lit naturalWidth/Height depuis l'image pour stocker l'aspect_ratio
+       * en BDD → PostPhotos peut rendre l'image dans son ratio réel sans
+       * crop sur mobile. Fallback null si lecture échoue. */
+      const dims = await readImageDimensions(file).catch(() => null);
+
       uploaded.push({
         url: publicUrl,
         position: photos.length + uploaded.length,
         storagePath,
+        width: dims?.width ?? null,
+        height: dims?.height ?? null,
+        aspect_ratio: dims ? String(dims.width / dims.height) : null,
       });
     }
 
@@ -606,7 +622,13 @@ export function PostComposer({
               type="hidden"
               name="photos"
               value={JSON.stringify(
-                photos.map((p) => ({ url: p.url, position: p.position })),
+                photos.map((p) => ({
+                  url: p.url,
+                  position: p.position,
+                  width: p.width,
+                  height: p.height,
+                  aspect_ratio: p.aspect_ratio,
+                })),
               )}
             />
             <input
@@ -1480,4 +1502,30 @@ function VisibilityChip({
       <ChevronDown className="w-2.5 h-2.5" aria-hidden />
     </button>
   );
+}
+
+/* Lit les dimensions natives d'une image (File) via un Image() invisible.
+ * Retourne { width, height } en pixels. Utilisé pour stocker l'aspect_ratio
+ * en BDD au moment de l'upload — sinon PostPhotos crop l'image sur mobile. */
+function readImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const { naturalWidth, naturalHeight } = img;
+      URL.revokeObjectURL(url);
+      if (naturalWidth > 0 && naturalHeight > 0) {
+        resolve({ width: naturalWidth, height: naturalHeight });
+      } else {
+        reject(new Error("Invalid image dimensions"));
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image load failed"));
+    };
+    img.src = url;
+  });
 }

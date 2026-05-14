@@ -24,6 +24,11 @@ const photoSchema = z.array(
   z.object({
     url: z.string().url(),
     position: z.number().int().min(0),
+    /* Dimensions natives pour rendu non-croppé côté feed (lues côté
+     * client via image.naturalWidth/Height au moment de l'upload). */
+    width: z.number().int().positive().nullable().optional(),
+    height: z.number().int().positive().nullable().optional(),
+    aspect_ratio: z.string().min(1).max(20).nullable().optional(),
   }),
 );
 
@@ -71,7 +76,7 @@ export async function createPost(
   }
 
   const photosRaw = formData.get("photos");
-  let photos: { url: string; position: number }[] = [];
+  let photos: z.infer<typeof photoSchema> = [];
   if (typeof photosRaw === "string") {
     try {
       photos = photoSchema.parse(JSON.parse(photosRaw));
@@ -361,6 +366,11 @@ export async function createPost(
           post_id: post.id,
           url: photo.url,
           position: photo.position ?? idx,
+          /* Dimensions natives — utilisées par PostPhotos.tsx pour rendre
+           * l'image dans son aspect ratio réel (pas crop). */
+          width: photo.width ?? null,
+          height: photo.height ?? null,
+          aspect_ratio: photo.aspect_ratio ?? null,
         })),
       );
     if (photoError) {
