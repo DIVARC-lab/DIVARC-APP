@@ -8,6 +8,7 @@ import { getGroupDetails } from "@/lib/queries/groups";
 import { getPresenceForUser } from "@/lib/queries/presence";
 import { createClient } from "@/lib/supabase/server";
 import { ChatHeader } from "../_components/ChatHeader";
+import { ConversationReadRefresher } from "../_components/ConversationReadRefresher";
 import { ConversationView } from "../_components/ConversationView";
 import { getSecretStatus } from "../secret-actions";
 
@@ -92,6 +93,10 @@ export default async function ConversationPage({ params }: { params: Params }) {
 
   return (
     <>
+      {/* Force router.refresh() au mount pour que le layout (TopBar +
+          MobileBottomNav avec badges unread) reflète le mark-as-read
+          effectué juste au-dessus côté server. */}
+      <ConversationReadRefresher />
       <ChatHeader
         conversationId={id}
         displayName={displayName}

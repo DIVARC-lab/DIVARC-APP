@@ -89,7 +89,14 @@ export function NotificationItem({ notification }: NotificationItemProps) {
       return;
     }
     if (!isRead) {
-      void markNotificationRead(notification.id);
+      /* Fire-and-forget mark-as-read + router.refresh() pour que le
+       * layout (TopBar / MobileBottomNav avec le compteur unreadNotifications)
+       * se re-render avec la nouvelle valeur. Sans ce refresh, le badge
+       * restait avec l'ancienne valeur jusqu'à navigation complète. */
+      void (async () => {
+        await markNotificationRead(notification.id);
+        router.refresh();
+      })();
     }
   }
 
