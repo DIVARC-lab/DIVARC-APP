@@ -4,6 +4,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listMyAdAccounts } from "@/lib/queries/ads";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Analytics Ads" };
 
@@ -18,11 +19,11 @@ export default async function AnalyticsPage() {
   const accountIds = accounts.map((a) => a.id);
   if (accountIds.length === 0) {
     return (
-      <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+      <Container maxWidth="default" paddingX="page" paddingY="3xl">
         <p className="text-[14px] text-night-muted">
           Pas de compte publicitaire. Crée-en un d&apos;abord.
         </p>
-      </div>
+      </Container>
     );
   }
 
@@ -37,12 +38,12 @@ export default async function AnalyticsPage() {
   } catch (err) {
     console.error("[ads:analytics] admin client unavailable:", err);
     return (
-      <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+      <Container maxWidth="default" paddingX="page" paddingY="3xl">
         <p className="text-[14px] text-night-muted">
           Analytics temporairement indisponibles (configuration serveur
           incomplète).
         </p>
-      </div>
+      </Container>
     );
   }
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
@@ -101,7 +102,7 @@ export default async function AnalyticsPage() {
       : 0;
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
       <header className="mb-7">
         <KickerLabel>· Analytics</KickerLabel>
         <DisplayHeading
@@ -183,7 +184,7 @@ export default async function AnalyticsPage() {
           </ul>
         )}
       </section>
-    </div>
+    </Container>
   );
 }
 
