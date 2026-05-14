@@ -1,8 +1,4 @@
-"use client";
-
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { PostPhoto } from "@/lib/database.types";
 
@@ -31,8 +27,9 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
   if (photos.length === 0) return null;
   if (photos.length === 1) return <Single photo={photos[0]!} alt={alt} rounded={rounded} />;
   if (photos.length === 2) return <GridTwo photos={photos} alt={alt} rounded={rounded} />;
-  /* Fallback : carousel pour 3+ photos en attendant étapes 2-4. */
-  return <Carousel photos={photos} alt={alt} rounded={rounded} />;
+  if (photos.length === 3) return <GridThree photos={photos} alt={alt} rounded={rounded} />;
+  if (photos.length === 4) return <GridFour photos={photos} alt={alt} rounded={rounded} />;
+  return <GridFivePlus photos={photos} alt={alt} rounded={rounded} />;
 }
 
 /* ============ Layout : 1 photo ============ */
@@ -120,9 +117,12 @@ function GridTwo({
   );
 }
 
-/* ============ Carousel legacy (fallback 3+ photos) ============ */
+/* ============ Layout : 3 photos (1 grande gauche + 2 petites droite) ============ */
 
-function Carousel({
+/* Pattern FB : photo 0 occupe la colonne gauche en pleine hauteur,
+ * photos 1 et 2 empilées dans la colonne droite. Ratio global 4:3
+ * (660px wide → 495px tall en feed center). */
+function GridThree({
   photos,
   alt,
   rounded,
@@ -131,85 +131,146 @@ function Carousel({
   alt: string;
   rounded: boolean;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const active = photos[activeIndex] ?? photos[0]!;
-  const nativeRatio = computeAspectRatio(active);
+  return (
+    <div
+      className={cn(
+        "relative w-full grid grid-cols-2 gap-[2px] bg-night/5 overflow-hidden",
+        rounded && "rounded-2xl",
+      )}
+      style={{ aspectRatio: "4 / 3" }}
+    >
+      <div className="relative row-span-2 bg-night/5">
+        <Image
+          src={photos[0]!.url}
+          alt={`${alt} — photo 1`}
+          fill
+          sizes="(max-width: 640px) 50vw, 340px"
+          className="object-cover"
+          unoptimized={photos[0]!.url.includes("?")}
+        />
+      </div>
+      {photos.slice(1, 3).map((photo, idx) => (
+        <div key={photo.id} className="relative bg-night/5">
+          <Image
+            src={photo.url}
+            alt={`${alt} — photo ${idx + 2}`}
+            fill
+            sizes="(max-width: 640px) 50vw, 340px"
+            className="object-cover"
+            unoptimized={photo.url.includes("?")}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============ Layout : 4 photos (grille 2×2 carrée) ============ */
+
+function GridFour({
+  photos,
+  alt,
+  rounded,
+}: {
+  photos: PostPhoto[];
+  alt: string;
+  rounded: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative w-full grid grid-cols-2 gap-[2px] bg-night/5 overflow-hidden",
+        rounded && "rounded-2xl",
+      )}
+    >
+      {photos.slice(0, 4).map((photo, idx) => (
+        <div
+          key={photo.id}
+          className="relative bg-night/5"
+          style={{ aspectRatio: "1 / 1" }}
+        >
+          <Image
+            src={photo.url}
+            alt={`${alt} — photo ${idx + 1}`}
+            fill
+            sizes="(max-width: 640px) 50vw, 340px"
+            className="object-cover"
+            unoptimized={photo.url.includes("?")}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============ Layout : 5+ photos (2 grandes top + 3 petites bottom) ============ */
+
+/* Pattern FB classique : 2 photos en haut, 3 en bas, overlay "+N" sur
+ * la 5ème si total > 5. Aspect global 3:2. */
+function GridFivePlus({
+  photos,
+  alt,
+  rounded,
+}: {
+  photos: PostPhoto[];
+  alt: string;
+  rounded: boolean;
+}) {
+  const top = photos.slice(0, 2);
+  const bottom = photos.slice(2, 5);
+  const remaining = photos.length - 5;
 
   return (
     <div
       className={cn(
-        "relative w-full bg-night/5 overflow-hidden",
+        "relative w-full flex flex-col gap-[2px] bg-night/5 overflow-hidden",
         rounded && "rounded-2xl",
       )}
+      style={{ aspectRatio: "3 / 2" }}
     >
-      <div
-        className={cn(
-          "relative w-full",
-          !nativeRatio && "aspect-[4/5] sm:aspect-[16/10]",
-        )}
-        style={
-          nativeRatio
-            ? ({ aspectRatio: String(nativeRatio) } as React.CSSProperties)
-            : undefined
-        }
-      >
-        <Image
-          key={active.id}
-          src={active.url}
-          alt={alt}
-          fill
-          sizes="(max-width: 640px) 100vw, 600px"
-          className="object-cover"
-          unoptimized={active.url.includes("?")}
-        />
-      </div>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setActiveIndex((prev) =>
-            prev === 0 ? photos.length - 1 : prev - 1,
-          );
-        }}
-        aria-label="Précédent"
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-line text-night flex items-center justify-center hover:bg-white shadow-soft"
-      >
-        <ChevronLeft className="w-4 h-4" aria-hidden />
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setActiveIndex((prev) =>
-            prev === photos.length - 1 ? 0 : prev + 1,
-          );
-        }}
-        aria-label="Suivant"
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm border border-line text-night flex items-center justify-center hover:bg-white shadow-soft"
-      >
-        <ChevronRight className="w-4 h-4" aria-hidden />
-      </button>
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {photos.map((photo, idx) => (
-          <button
-            key={photo.id}
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setActiveIndex(idx);
-            }}
-            aria-label={`Photo ${idx + 1}`}
-            className={cn(
-              "h-1.5 rounded-full transition-all",
-              idx === activeIndex
-                ? "w-6 bg-white"
-                : "w-1.5 bg-white/60 hover:bg-white/80",
-            )}
-          />
+      {/* Top row : 2 photos plein largeur, aspect 2:1 chacune. */}
+      <div className="grid grid-cols-2 gap-[2px] flex-[2_2_0%]">
+        {top.map((photo, idx) => (
+          <div key={photo.id} className="relative bg-night/5">
+            <Image
+              src={photo.url}
+              alt={`${alt} — photo ${idx + 1}`}
+              fill
+              sizes="(max-width: 640px) 50vw, 340px"
+              className="object-cover"
+              unoptimized={photo.url.includes("?")}
+            />
+          </div>
         ))}
+      </div>
+      {/* Bottom row : 3 photos. Overlay +N sur la dernière si remaining > 0. */}
+      <div className="grid grid-cols-3 gap-[2px] flex-[1_1_0%]">
+        {bottom.map((photo, idx) => {
+          const isLast = idx === bottom.length - 1;
+          const showOverlay = isLast && remaining > 0;
+          return (
+            <div key={photo.id} className="relative bg-night/5">
+              <Image
+                src={photo.url}
+                alt={`${alt} — photo ${idx + 3}`}
+                fill
+                sizes="(max-width: 640px) 33vw, 220px"
+                className="object-cover"
+                unoptimized={photo.url.includes("?")}
+              />
+              {showOverlay ? (
+                <div
+                  aria-hidden
+                  className="absolute inset-0 bg-night/55 flex items-center justify-center"
+                >
+                  <span className="font-display italic text-cream text-3xl sm:text-4xl tracking-tight">
+                    +{remaining}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
