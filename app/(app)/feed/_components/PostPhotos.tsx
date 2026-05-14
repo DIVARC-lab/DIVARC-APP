@@ -20,11 +20,15 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
   const active = photos[activeIndex] ?? photos[0]!;
   const single = photos.length === 1;
 
-  /* Aspect ratio natif de l'image (depuis aspect_ratio ou width/height
-   * stockés en BDD), clampé pour éviter les cas extrêmes.
-   * - Si dispo : container suit l'image, object-contain (image entière).
-   * - Sinon (posts legacy sans metadata) : fallback portrait mobile +
-   *   paysage desktop avec object-cover (= comportement d'avant). */
+  /* Aspect ratio natif clampé pour comportement Facebook-like.
+   * Zone de tolérance [0.75 portrait, 1.91 paysage 16:8.4 type Instagram].
+   * - Dans la zone : container suit le ratio image, pas de crop.
+   * - Hors zone (panorama extrême ou portrait très vertical) : clampé +
+   *   léger crop via object-cover pour ne pas avoir d'image trop petite
+   *   en hauteur (paysage) ni trop haute (portrait extrême).
+   *
+   * Fallback (posts legacy sans metadata) : aspect 4/5 mobile, 16/10 desktop
+   * avec object-cover — comportement d'avant. */
   const nativeRatio = computeAspectRatio(active);
 
   return (
@@ -51,7 +55,7 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
           alt={alt}
           fill
           sizes="(max-width: 640px) 100vw, 600px"
-          className={nativeRatio ? "object-contain" : "object-cover"}
+          className="object-cover"
           unoptimized={active.url.includes("?")}
         />
       </div>
@@ -112,11 +116,14 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
 }
 
 /* Lit aspect_ratio ("1.78" ou "16/9") ou width/height de la PostPhoto.
- * Clamp dans [0.5, 4] : portrait extrême → panorama large.
+ * Clamp [0.75 portrait, 1.91 paysage 16:8.4] pour matcher Facebook /
+ * Instagram : pas d'image trop petite verticalement sur les panoramas,
+ * pas trop haute sur les portraits extrêmes. object-cover crop
+ * légèrement hors zone.
  * Retourne null si aucune metadata exploitable → fallback CSS. */
 function computeAspectRatio(photo: PostPhoto): number | null {
-  const MIN = 0.5;
-  const MAX = 4;
+  const MIN = 0.75;
+  const MAX = 1.91;
 
   if (photo.aspect_ratio) {
     const raw = photo.aspect_ratio.trim();
