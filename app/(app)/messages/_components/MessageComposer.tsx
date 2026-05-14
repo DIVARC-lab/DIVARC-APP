@@ -57,12 +57,19 @@ import { VoiceRecorder, type RecordedAudio } from "./VoiceRecorder";
 const MAX_LENGTH = 4000;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 Mo (max Supabase Free)
 const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const VIDEO_MIME = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/mov",
+];
 
 type Attachment = {
   url: string;
   storagePath: string;
-  type: "image" | "file";
+  type: "image" | "file" | "video";
   name: string;
   size: number;
   width: number | null;
@@ -191,7 +198,10 @@ export function MessageComposer({
     });
   }
 
-  async function uploadFile(file: File, kind: "image" | "file") {
+  async function uploadFile(
+    file: File,
+    kind: "image" | "file" | "video",
+  ) {
     const supabase = createClient();
     /* Dimensions BEFORE encryption — il faut un Blob image lisible
        pour mesurer naturalWidth/Height. */
@@ -273,10 +283,26 @@ export function MessageComposer({
     event.target.value = "";
     if (!file) return;
 
-    if (!IMAGE_MIME.includes(file.type)) {
-      toast.error("Format invalide. JPG, PNG, WebP ou GIF.");
+    const isImage = IMAGE_MIME.includes(file.type);
+    const isVideo = VIDEO_MIME.includes(file.type);
+
+    if (!isImage && !isVideo) {
+      toast.error("Format invalide. JPG, PNG, WebP, GIF, MP4, WebM ou MOV.");
       return;
     }
+
+    if (isVideo) {
+      if (file.size > MAX_VIDEO_BYTES) {
+        toast.error("Vidéo trop lourde (50 Mo max).");
+        return;
+      }
+      setUploading(true);
+      const result = await uploadFile(file, "video");
+      setUploading(false);
+      if (result) setAttachment(result);
+      return;
+    }
+
     if (file.size > MAX_IMAGE_BYTES) {
       toast.error("Image trop lourde (10 Mo max).");
       return;
@@ -293,6 +319,21 @@ export function MessageComposer({
     event.target.value = "";
     if (!file) return;
 
+    /* Si l'user sélectionne une vidéo via le bouton "fichier", on
+     * la route vers le pipeline vidéo (lecteur dans le bubble +
+     * cap 50 Mo). Sinon : fichier générique 25 Mo. */
+    if (VIDEO_MIME.includes(file.type)) {
+      if (file.size > MAX_VIDEO_BYTES) {
+        toast.error("Vidéo trop lourde (50 Mo max).");
+        return;
+      }
+      setUploading(true);
+      const result = await uploadFile(file, "video");
+      setUploading(false);
+      if (result) setAttachment(result);
+      return;
+    }
+
     if (file.size > MAX_FILE_BYTES) {
       toast.error("Fichier trop lourd (25 Mo max).");
       return;
@@ -300,6 +341,26 @@ export function MessageComposer({
 
     setUploading(true);
     const result = await uploadFile(file, "file");
+    setUploading(false);
+    if (result) setAttachment(result);
+  }
+
+  async function handleVideoSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!VIDEO_MIME.includes(file.type)) {
+      toast.error("Format vidéo invalide. MP4, WebM ou MOV.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error("Vidéo trop lourde (50 Mo max).");
+      return;
+    }
+
+    setUploading(true);
+    const result = await uploadFile(file, "video");
     setUploading(false);
     if (result) setAttachment(result);
   }
@@ -641,14 +702,28 @@ export function MessageComposer({
               <div className="mb-3 flex items-center gap-3 p-3 rounded-2xl bg-bg border border-line">
                 {attachment.type === "image" ? (
                   <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-night/5 shrink-0">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={attachment.url}
                       alt=""
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                      unoptimized
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
+                  </div>
+                ) : attachment.type === "video" ? (
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-night flex items-center justify-center shrink-0">
+                    <video
+                      src={attachment.url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <span
+                      aria-hidden
+                      className="relative z-10 inline-flex w-6 h-6 rounded-full bg-night/70 backdrop-blur-sm text-cream text-[12px] items-center justify-center"
+                    >
+                      ▶
+                    </span>
                   </div>
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-night/5 flex items-center justify-center shrink-0">
@@ -846,7 +921,10 @@ export function MessageComposer({
             <input
               ref={imageInputRef}
               type="file"
-              accept={IMAGE_MIME.join(",")}
+              /* Accepte photos ET vidéos depuis la galerie/caméra mobile
+               * (pattern WhatsApp / iMessage). handleImageSelect route
+               * automatiquement selon le MIME type. */
+              accept={[...IMAGE_MIME, ...VIDEO_MIME].join(",")}
               onChange={handleImageSelect}
               className="sr-only"
             />

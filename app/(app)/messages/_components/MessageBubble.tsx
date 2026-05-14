@@ -328,10 +328,12 @@ export function MessageBubble({
    * considérer qu'on a vraiment du média à afficher. */
   const hasUsableMedia = mediaUrl !== null && mediaUrl.length > 0;
   const hasImage = message.attachment_type === "image" && hasUsableMedia;
+  const hasVideo = message.attachment_type === "video" && hasUsableMedia;
   const hasAudio = message.attachment_type === "audio" && hasUsableMedia;
   const hasFile =
     hasUsableMedia &&
     message.attachment_type !== "image" &&
+    message.attachment_type !== "video" &&
     message.attachment_type !== "audio" &&
     message.attachment_type !== null;
   /* Cas où le message indique un attachment mais l'URL est cassée :
@@ -512,6 +514,15 @@ export function MessageBubble({
               <>
                 {hasImage ? (
                   <ImageAttachment
+                    url={mediaUrl!}
+                    width={message.attachment_width}
+                    height={message.attachment_height}
+                    isOwn={isOwn}
+                  />
+                ) : null}
+
+                {hasVideo ? (
+                  <VideoAttachment
                     url={mediaUrl!}
                     width={message.attachment_width}
                     height={message.attachment_height}
@@ -1048,6 +1059,43 @@ function ImageAttachment({
         </div>
       ) : null}
     </>
+  );
+}
+
+/* Lecteur vidéo dans bulle message. Aspect ratio natif (clampé), controls
+ * standards, max 320px de large pour rester compact. Tag <video> HTML
+ * direct (pas de wrapper React qui ajouterait du middleware). */
+function VideoAttachment({
+  url,
+  width,
+  height,
+  isOwn,
+}: {
+  url: string;
+  width: number | null;
+  height: number | null;
+  isOwn: boolean;
+}) {
+  const aspect =
+    width && height && width > 0 && height > 0
+      ? `${width} / ${height}`
+      : "9 / 16";
+  return (
+    <div
+      className={cn(
+        "overflow-hidden rounded-3xl bg-night/5 border max-w-xs w-full",
+        isOwn ? "border-night/30" : "border-line",
+      )}
+    >
+      <video
+        src={url}
+        controls
+        playsInline
+        preload="metadata"
+        className="block w-full"
+        style={{ aspectRatio: aspect, maxHeight: "480px" }}
+      />
+    </div>
   );
 }
 
