@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { CommentForm } from "../_components/CommentForm";
 import { CommentList } from "../_components/CommentList";
 import { PostCard } from "../_components/PostCard";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ id: string }>;
 
@@ -58,7 +60,8 @@ export default async function PostPage({ params }: { params: Params }) {
     threadCards && threadCards.length > 0 ? threadCards : [post];
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
+    <Container maxWidth="text" paddingX="page" paddingY="3xl">
+      <Stack gap="2xl">
       <Link
         href="/feed"
         className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night"
@@ -116,6 +119,7 @@ export default async function PostPage({ params }: { params: Params }) {
           currentUserId={user.id}
         />
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }

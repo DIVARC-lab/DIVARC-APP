@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { DiscoverReasonChip } from "../feed/_components/DiscoverReasonChip";
 import { PostCard } from "../feed/_components/PostCard";
 import { PostViewTracker } from "../feed/_components/PostViewTracker";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Découvrir — DIVARC",
@@ -25,8 +27,9 @@ export default async function DiscoverPage() {
   const { posts, reasonByPostId } = await loadDiscoverPosts(user.id, 30);
 
   return (
-    <div className="min-h-[100dvh] bg-bg-soft">
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-7 py-8 pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)] space-y-6">
+    <div className="min-h-[100dvh] bg-bg-soft pb-[max(calc(64px+env(safe-area-inset-bottom)),96px)]">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
+        <Stack gap="2xl">
         <header className="space-y-3">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep flex items-center gap-1.5">
             <Compass className="w-3 h-3" aria-hidden />
@@ -90,7 +93,8 @@ export default async function DiscoverPage() {
             })}
           </ul>
         )}
-      </div>
+        </Stack>
+      </Container>
     </div>
   );
 }
