@@ -795,7 +795,7 @@ function StepRules({
                 type="button"
                 onClick={() => removeRule(i)}
                 aria-label="Supprimer cette règle"
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-red-50 text-night-dim hover:text-red-600 transition-colors shrink-0"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-error-bg text-night-dim hover:text-error transition-colors shrink-0"
               >
                 <Trash2 className="w-3.5 h-3.5" aria-hidden />
               </button>
@@ -895,7 +895,7 @@ function Label({
     >
       {children}
       {required ? (
-        <span className="text-red-500 ml-0.5" aria-hidden>
+        <span className="text-error ml-0.5" aria-hidden>
           *
         </span>
       ) : null}

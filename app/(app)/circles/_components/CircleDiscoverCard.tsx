@@ -185,7 +185,7 @@ export function CircleDiscoverCard({ circle }: Props) {
         {/* Stats 7j (transparence : on montre les vrais chiffres) */}
         <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-2 text-[11px] text-night-dim">
           <span className="inline-flex items-center gap-1 font-semibold">
-            <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-online" />
             <span className="tabular-nums">
               {circle.members_count.toLocaleString("fr-FR")}
             </span>

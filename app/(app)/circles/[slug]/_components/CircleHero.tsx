@@ -141,8 +141,8 @@ export function CircleHero({
           </span>
           {circle.active_members_count_7d > 0 ? (
             <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="font-bold text-emerald-700 tabular-nums">
+              <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-online" />
+              <span className="font-bold text-success tabular-nums">
                 {circle.active_members_count_7d}
               </span>
               <span>actif{circle.active_members_count_7d > 1 ? "s" : ""} (7j)</span>

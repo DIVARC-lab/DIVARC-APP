@@ -447,7 +447,7 @@ function MyCircleCard({ circle }: { circle: MyCircleSummary }) {
       </p>
 
       <div className="mt-1 flex items-center gap-1.5 text-[11px] text-night-dim">
-        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-online" />
         <span className="font-semibold tabular-nums">
           {circle.members_count.toLocaleString("fr-FR")} membre
           {circle.members_count > 1 ? "s" : ""}

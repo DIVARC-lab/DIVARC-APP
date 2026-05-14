@@ -155,7 +155,7 @@ export function CircleWelcomeModal({
                     className={cn(
                       "flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors",
                       isChecked
-                        ? "bg-emerald-50 border-emerald-200"
+                        ? "bg-success-bg border-success/30"
                         : "bg-bg-soft border-line hover:border-night/30",
                     )}
                   >
@@ -164,7 +164,7 @@ export function CircleWelcomeModal({
                       className={cn(
                         "inline-flex w-6 h-6 rounded-md items-center justify-center shrink-0",
                         isChecked
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-success text-white"
                           : "bg-white border border-line text-night-dim",
                       )}
                     >
@@ -178,7 +178,7 @@ export function CircleWelcomeModal({
                       className={cn(
                         "text-[13px]",
                         isChecked
-                          ? "text-emerald-700 line-through font-medium"
+                          ? "text-success line-through font-medium"
                           : "text-night font-semibold",
                       )}
                     >

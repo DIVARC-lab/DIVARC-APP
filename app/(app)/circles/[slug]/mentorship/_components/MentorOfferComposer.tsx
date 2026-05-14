@@ -96,7 +96,7 @@ export function MentorOfferComposer({ circleId, initial }: Props) {
             className={cn(
               "inline-flex items-center h-5 px-2 rounded-full text-[10px] font-extrabold uppercase tracking-wider",
               initial.is_open
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-success-bg text-success"
                 : "bg-bg text-night-dim",
             )}
           >
@@ -148,7 +148,7 @@ export function MentorOfferComposer({ circleId, initial }: Props) {
             onClick={remove}
             disabled={pending}
             aria-label="Supprimer mon offre"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-50 text-night-dim hover:text-red-600 transition-colors disabled:opacity-50"
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-error-bg text-night-dim hover:text-error transition-colors disabled:opacity-50"
           >
             <Trash2 className="w-3.5 h-3.5" aria-hidden />
           </button>
