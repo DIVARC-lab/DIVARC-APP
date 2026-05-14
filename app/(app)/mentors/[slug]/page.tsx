@@ -5,6 +5,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { getMentorOfferByUsername } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
 import { BookSessionForm } from "../_components/BookSessionForm";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 type Params = Promise<{ slug: string }>;
 
@@ -39,7 +41,8 @@ export default async function MentorDetailPage({
   const displayName = profile.full_name ?? profile.username ?? "Mentor";
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-4xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <Link
         href="/mentors"
         className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night"
@@ -129,6 +132,7 @@ export default async function MentorDetailPage({
           <BookSessionForm mentorId={profile.id} />
         </article>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }

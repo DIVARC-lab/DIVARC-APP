@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
 import { EncryptionPanel } from "./EncryptionPanel";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Chiffrement bout-en-bout · Sécurité",
@@ -29,7 +30,7 @@ export default async function EncryptionPage() {
 
   return (
     <div className="min-h-screen bg-bg-soft pb-12">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-8">
+      <Container maxWidth="text" paddingX="lg" paddingY="2xl">
         <header className="mb-6">
           <Link
             href="/settings"
@@ -69,7 +70,7 @@ export default async function EncryptionPage() {
         </div>
 
         <EncryptionPanel />
-      </div>
+      </Container>
     </div>
   );
 }
