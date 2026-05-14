@@ -275,14 +275,27 @@ function PostCardInner({
               <div className="px-5 sm:px-[18px] pb-3.5">
                 <div
                   className={cn(
-                    "rounded-[18px] overflow-hidden flex items-center justify-center min-h-[260px] px-6 py-10",
+                    "rounded-[18px] overflow-hidden flex items-center justify-center px-6 py-10 sm:py-14",
+                    /* Hauteur responsive : 280 mobile / 340 desktop pour
+                       respirer comme un vrai "thought card" FB. */
+                    "min-h-[280px] sm:min-h-[340px]",
                     palette.bg,
                   )}
                 >
                   <p
                     className={cn(
-                      "text-center font-display italic text-[26px] sm:text-[30px] leading-[1.2] whitespace-pre-wrap break-words",
-                      palette.text === "cream" ? "text-cream" : "text-night",
+                      "text-center font-display italic leading-[1.2] whitespace-pre-wrap break-words",
+                      /* Taille type adaptative : texte court (≤80 chars)
+                         passe en taille XL pour impact, sinon taille
+                         standard. */
+                      fullBody.length <= 80
+                        ? "text-[30px] sm:text-[38px]"
+                        : "text-[24px] sm:text-[28px]",
+                      palette.text === "cream"
+                        ? /* Drop shadow subtile pour lisibilité sur
+                             gradients très saturés (dusk, rose, ocean). */
+                          "text-cream [text-shadow:0_1px_2px_rgba(10,31,68,0.25)]"
+                        : "text-night",
                     )}
                   >
                     {renderPostBody(fullBody)}
