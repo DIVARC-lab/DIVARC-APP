@@ -1021,7 +1021,11 @@ function ImageAttachment({
             fill
             sizes="(max-width: 640px) 80vw, 320px"
             className="object-cover"
-            unoptimized={url.includes("?")}
+            /* unoptimized=true forcé : les URLs Supabase Storage publiques
+             * sont déjà sur un CDN. L'optimisation Next.js via /_next/image
+             * échoue parfois silencieusement (timeout proxy / format) →
+             * bulle vide chez l'utilisateur. */
+            unoptimized
           />
         </span>
       </button>
