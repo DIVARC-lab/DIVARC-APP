@@ -90,7 +90,6 @@ async function attachDetails(
     commentRows,
     bookmarkedByMe,
     pollRows,
-    pollOptionRows,
     userVoteRows,
     taggedUserRows,
   ] = await Promise.all([
@@ -122,12 +121,15 @@ async function attachDetails(
       .select("post_id")
       .eq("user_id", currentUserId)
       .in("post_id", postIds),
-    /* V4 Phase 1.6 — sondages. */
-    supabase.from("post_polls").select("*").in("post_id", postIds),
+    /* V4 Phase 1.6 — sondages.
+       PERF FIX : avant on fetchait TOUTES les options de sondage de la
+       BDD (`select * from post_poll_options` sans filtre). Maintenant
+       nested select Supabase pour récupérer options en même temps que
+       polls, filtré par post_id IN postIds. */
     supabase
-      .from("post_poll_options")
-      .select("*")
-      .order("position", { ascending: true }),
+      .from("post_polls")
+      .select("*, post_poll_options(*)")
+      .in("post_id", postIds),
     supabase
       .from("post_poll_votes")
       .select("poll_id, option_id")
@@ -228,15 +230,19 @@ async function attachDetails(
     emoji: string | null;
   };
 
+  /* pollRows.data contient maintenant des PollRow avec un champ
+     `post_poll_options: PollOptionRow[]` grâce au nested select. */
+  type PollRowWithOptions = PollRow & {
+    post_poll_options: PollOptionRow[] | null;
+  };
   const pollByPost = new Map<string, PollRow>();
-  for (const p of (pollRows.data ?? []) as PollRow[]) {
-    pollByPost.set(p.post_id, p);
-  }
   const optionsByPoll = new Map<string, PollOptionRow[]>();
-  for (const o of (pollOptionRows.data ?? []) as PollOptionRow[]) {
-    const arr = optionsByPoll.get(o.poll_id) ?? [];
-    arr.push(o);
-    optionsByPoll.set(o.poll_id, arr);
+  for (const p of ((pollRows.data ?? []) as unknown) as PollRowWithOptions[]) {
+    pollByPost.set(p.post_id, p);
+    const opts = (p.post_poll_options ?? []).slice().sort(
+      (a, b) => a.position - b.position,
+    );
+    optionsByPoll.set(p.id, opts);
   }
   const userVotesByPoll = new Map<string, string[]>();
   for (const v of (userVoteRows.data ?? []) as Array<{

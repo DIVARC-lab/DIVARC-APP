@@ -51,7 +51,7 @@ export function ConversationItem({
   const isOwnLastMessage = lastMessage?.sender_id === currentUserId;
 
   return (
-    <div className="relative min-w-0 [content-visibility:auto] [contain-intrinsic-size:auto_80px]">
+    <div className="relative min-w-0">
       <Link
         href={`/messages/${conversation.id}`}
         aria-current={active ? "page" : undefined}
@@ -158,19 +158,13 @@ export function ConversationItem({
             {!active && conversation.unread_count > 0 ? (
               <span
                 aria-label={`${conversation.unread_count} message non lu`}
-                className={`relative shrink-0 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                className={`shrink-0 min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center ${
                   conversation.is_muted
                     ? "bg-night/10 text-night-muted"
                     : "bg-gold text-night"
                 }`}
               >
-                {!conversation.is_muted ? (
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 rounded-full bg-gold animate-ping opacity-50"
-                  />
-                ) : null}
-                <span className="relative">{conversation.unread_count}</span>
+                {conversation.unread_count}
               </span>
             ) : null}
           </div>

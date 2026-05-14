@@ -88,19 +88,29 @@ export async function listConversationsForUser(
     }
   }
 
+  /* PERF FIX : avant on faisait `select * from messages where
+     conversation_id IN (...)` → fetch TOUS les messages de toutes les
+     conversations (potentiellement 10 000+ rows). Causait chargement de
+     plusieurs minutes sur mobile.
+     Maintenant on utilise `conversations.last_message_id` (1 référence
+     par conv) et on fetch UNIQUEMENT ces N messages (1 par conv). */
   const lastMessageByConv = new Map<string, Message>();
-  if (conversationIds.length > 0) {
+  const lastMessageIds = conversations
+    .map((c) => c.last_message_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (lastMessageIds.length > 0) {
     const { data: lastMessages } = await supabase
       .from("messages")
-      .select("*")
-      .in("conversation_id", conversationIds)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
+      .select(
+        "id, conversation_id, sender_id, body, created_at, attachment_type, is_secret, deleted_at",
+      )
+      .in("id", lastMessageIds);
 
     for (const message of lastMessages ?? []) {
-      if (!lastMessageByConv.has(message.conversation_id)) {
-        lastMessageByConv.set(message.conversation_id, message);
-      }
+      /* Skip messages soft-deleted (deleted_at IS NOT NULL). */
+      if (message.deleted_at) continue;
+      lastMessageByConv.set(message.conversation_id, message as Message);
     }
   }
 

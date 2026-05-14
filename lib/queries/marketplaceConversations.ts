@@ -43,16 +43,21 @@ export async function listMarketplaceConversations(
     memberRows.map((m) => [m.conversation_id, m.last_read_at]),
   );
 
-  /* 2. Filtre type='listing_chat' avec listing_id. */
+  /* 2. Filtre type='listing_chat' avec listing_id.
+     On récupère aussi last_message_id pour faire un fetch ciblé des
+     last messages (vs SELECT * de tous les messages — perf disaster). */
   const { data: conversations } = await supabase
     .from("conversations")
-    .select("id, listing_id, last_message_at")
+    .select("id, listing_id, last_message_at, last_message_id")
     .in("id", convIds)
     .eq("type", "listing_chat")
     .order("last_message_at", { ascending: false });
   if (!conversations || conversations.length === 0) return [];
 
   const filteredIds = conversations.map((c) => c.id);
+  const lastMessageIds = conversations
+    .map((c) => c.last_message_id)
+    .filter((id): id is string => Boolean(id));
   const listingIds = Array.from(
     new Set(conversations.map((c) => c.listing_id).filter((x): x is string => !!x)),
   );
@@ -76,12 +81,16 @@ export async function listMarketplaceConversations(
         .from("conversation_members")
         .select("conversation_id, user_id")
         .in("conversation_id", filteredIds),
-      supabase
-        .from("messages")
-        .select("*")
-        .in("conversation_id", filteredIds)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
+      /* PERF FIX : fetch UNIQUEMENT les last messages référencés
+         (1 par conv) au lieu de SELECT * de tous les messages. */
+      lastMessageIds.length > 0
+        ? supabase
+            .from("messages")
+            .select(
+              "id, conversation_id, sender_id, body, created_at, attachment_type, is_secret, deleted_at",
+            )
+            .in("id", lastMessageIds)
+        : Promise.resolve({ data: [] as Message[] }),
     ]);
 
   /* Photos couverture (1ère photo par listing). */
@@ -125,12 +134,12 @@ export async function listMarketplaceConversations(
     }
   }
 
-  /* Last message par conv. */
+  /* Last message par conv (1 row par conv puisqu'on a fetché par
+     last_message_id). Skip si soft-deleted. */
   const lastMsgByConv = new Map<string, Message>();
-  for (const m of lastMessages ?? []) {
-    if (!lastMsgByConv.has(m.conversation_id)) {
-      lastMsgByConv.set(m.conversation_id, m);
-    }
+  for (const m of (lastMessages ?? []) as Message[]) {
+    if (m.deleted_at) continue;
+    lastMsgByConv.set(m.conversation_id, m);
   }
 
   /* Build items. */
