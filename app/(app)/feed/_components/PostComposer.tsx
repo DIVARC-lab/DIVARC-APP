@@ -743,7 +743,10 @@ export function PostComposer({
                 type="submit"
                 disabled={!canSubmit}
                 className={cn(
-                  "inline-flex items-center gap-1.5 h-[38px] px-[18px] rounded-[19px] font-bold text-[13px] transition-opacity",
+                  /* Caché sur mobile : doublon avec le sticky footer bottom
+                   * (cf. ligne ~1096). Sur desktop sm+, c'est CE bouton qui
+                   * sert (et le footer est masqué via sm:hidden). */
+                  "hidden sm:inline-flex items-center gap-1.5 h-[38px] px-[18px] rounded-[19px] font-bold text-[13px] transition-opacity",
                   canSubmit
                     ? "bg-gradient-to-br from-gold to-gold-deep text-night shadow-[0_8px_20px_-8px_rgba(244,185,66,0.7)]"
                     : "bg-gold/30 text-night/50 cursor-not-allowed",
