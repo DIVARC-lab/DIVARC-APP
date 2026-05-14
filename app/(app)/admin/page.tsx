@@ -95,23 +95,23 @@ export default async function AdminPage() {
           </Link>
           <Link
             href="/admin/legal/pharos-queue"
-            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-red-50/40 border border-red-200 hover:bg-red-50 transition-colors"
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-error-bg/60 border border-error/30 hover:bg-error-bg transition-colors"
           >
             <span
               aria-hidden
-              className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0"
+              className="w-10 h-10 rounded-xl bg-error/15 text-error flex items-center justify-center shrink-0"
             >
               <Shield className="w-[18px] h-[18px]" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-red-900">
+              <p className="text-[14px] font-semibold text-error">
                 Pharos / NCMEC
               </p>
-              <p className="text-[11.5px] text-red-700">
+              <p className="text-[11.5px] text-error">
                 Incidents critiques aux autorités
               </p>
             </div>
-            <ChevronRight className="w-5 h-5 text-red-700" aria-hidden />
+            <ChevronRight className="w-5 h-5 text-error" aria-hidden />
           </Link>
           <Link
             href="/legal/transparency-report"
@@ -167,7 +167,7 @@ export default async function AdminPage() {
               icon={ShoppingBag}
               label="Annonces actives"
               value={stats.listings_active}
-              accent="bg-emerald-50 text-emerald-700"
+              accent="bg-success-bg text-success"
             />
             <StatCard
               icon={Briefcase}
@@ -193,7 +193,7 @@ export default async function AdminPage() {
               icon={Send}
               label="Transferts"
               value={stats.transfers_count}
-              accent="bg-emerald-50 text-emerald-700"
+              accent="bg-success-bg text-success"
             />
             <StatCard
               icon={Send}
@@ -262,7 +262,7 @@ export default async function AdminPage() {
                         </span>
                       ) : null}
                       {!profile.onboarded_at ? (
-                        <span className="px-1.5 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold uppercase tracking-widest">
+                        <span className="px-1.5 py-0.5 rounded-md bg-error-bg text-error text-[10px] font-bold uppercase tracking-widest">
                           Pas onboardé
                         </span>
                       ) : null}
