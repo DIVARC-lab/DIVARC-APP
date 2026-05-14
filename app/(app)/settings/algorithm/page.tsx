@@ -13,6 +13,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
 import { AlgorithmSettingsForm } from "./AlgorithmSettingsForm";
 import { DeleteProfileButton } from "./DeleteProfileButton";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Mes recommandations",
@@ -59,7 +60,7 @@ export default async function AlgorithmSettingsPage() {
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         <header className="px-5 sm:px-8 pt-8 pb-6">
           <Link
             href="/settings"
@@ -185,7 +186,7 @@ export default async function AlgorithmSettingsPage() {
             <DeleteProfileItem />
           </div>
         </section>
-      </div>
+      </Container>
     </div>
   );
 }

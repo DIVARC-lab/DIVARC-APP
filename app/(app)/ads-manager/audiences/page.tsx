@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listMyAdAccounts } from "@/lib/queries/ads";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Audiences" };
 
@@ -40,7 +41,7 @@ export default async function AudiencesManagerPage() {
   }
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
       <header className="mb-7 flex items-end justify-between gap-4 flex-wrap">
         <div>
           <KickerLabel>· Audiences</KickerLabel>
@@ -111,7 +112,7 @@ export default async function AudiencesManagerPage() {
           ))}
         </ul>
       )}
-    </div>
+    </Container>
   );
 }
 

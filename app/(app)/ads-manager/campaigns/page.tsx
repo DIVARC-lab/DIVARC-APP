@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listMyAdAccounts } from "@/lib/queries/ads";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Toutes mes campagnes" };
 
@@ -52,7 +53,7 @@ export default async function AllCampaignsPage() {
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
       <header className="mb-7 flex items-end justify-between gap-4 flex-wrap">
         <div>
           <KickerLabel>· Toutes mes campagnes</KickerLabel>
@@ -128,7 +129,7 @@ export default async function AllCampaignsPage() {
           })}
         </ul>
       )}
-    </div>
+    </Container>
   );
 }
 

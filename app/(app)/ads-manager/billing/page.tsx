@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listMyAdAccounts } from "@/lib/queries/ads";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Facturation Ads" };
 
@@ -29,7 +30,7 @@ export default async function BillingPage() {
     : { data: [] };
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-5xl mx-auto">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="mb-7">
         <KickerLabel>· Facturation</KickerLabel>
         <DisplayHeading
@@ -175,7 +176,7 @@ export default async function BillingPage() {
           </ul>
         )}
       </section>
-    </div>
+    </Container>
   );
 }
 
