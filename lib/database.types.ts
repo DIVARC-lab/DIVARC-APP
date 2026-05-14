@@ -483,7 +483,10 @@ export type PostReactionType =
   | "insightful"
   | "surprised"
   | "sad"
-  | "laugh";
+  | "laugh"
+  /* Migration 0127 — 2 réactions custom DIVARC ajoutées aux 6 FB-compat. */
+  | "fire"
+  | "sparkle";
 
 export type PostReaction = {
   post_id: string;
@@ -6776,13 +6779,7 @@ export type Database = {
       toggle_post_reaction: {
         Args: {
           p_post_id: string;
-          p_reaction_type:
-            | "heart"
-            | "applause"
-            | "insightful"
-            | "surprised"
-            | "sad"
-            | "laugh";
+          p_reaction_type: PostReactionType;
         };
         Returns: boolean;
       };

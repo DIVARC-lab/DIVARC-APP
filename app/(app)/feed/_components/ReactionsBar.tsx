@@ -58,6 +58,14 @@ const REACTIONS: ReactionDef[] = [
   },
   { type: "sad", emoji: "😢", label: "Triste", color: "text-night-soft" },
   { type: "laugh", emoji: "😂", label: "Drôle", color: "text-emerald-600" },
+  /* Migration 0127 — DIVARC custom : 🔥 hype, ✨ magique. */
+  { type: "fire", emoji: "🔥", label: "Feu", color: "text-orange-600" },
+  {
+    type: "sparkle",
+    emoji: "✨",
+    label: "Magique",
+    color: "text-gold-deep",
+  },
 ];
 
 export function ReactionsBar({ postId, initialTotal }: Props) {
