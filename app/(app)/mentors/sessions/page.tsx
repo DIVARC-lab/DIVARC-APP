@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { SessionRespondActions } from "../_components/SessionRespondActions";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Mes sessions de mentorat",
@@ -55,7 +58,8 @@ export default async function MentorSessionsPage({
   const sessions = await listMyMentorSessions(user.id, role);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/mentors"
@@ -79,17 +83,20 @@ export default async function MentorSessionsPage({
       />
 
       {sessions.length === 0 ? (
-        <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-          <CalendarCheck
-            className="w-8 h-8 mx-auto text-gold-deep mb-3"
-            aria-hidden
-          />
-          <p className="text-sm text-muted">
-            {activeTab === "demandes"
-              ? "Pas encore de demande reçue."
-              : "Pas encore de session demandée."}
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarCheck}
+          title={
+            activeTab === "demandes"
+              ? "Pas encore de demande reçue"
+              : "Pas encore de session demandée"
+          }
+          body={
+            activeTab === "demandes"
+              ? "Quand un mentee demande une session, elle apparaîtra ici."
+              : "Demande une session à un mentor pour la voir ici."
+          }
+          tone="default"
+        />
       ) : (
         <ul className="space-y-3">
           {sessions.map((s) => (
@@ -141,6 +148,7 @@ export default async function MentorSessionsPage({
           ))}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
