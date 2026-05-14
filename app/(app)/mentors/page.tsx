@@ -3,12 +3,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   getMyMentorOffer,
   listMentorOffers,
 } from "@/lib/queries/mentors";
 import { createClient } from "@/lib/supabase/server";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Mentors",
@@ -27,7 +31,8 @@ export default async function MentorsPage() {
   ]);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <KickerLabel>Mentorat</KickerLabel>
@@ -56,33 +61,24 @@ export default async function MentorsPage() {
       </header>
 
       {offers.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-          >
-            <GraduationCap className="w-7 h-7 text-gold-deep" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucun mentor pour l&apos;instant
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Sois le premier à proposer une offre de mentorat sur DIVARC.
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/mentors/offer">Devenir mentor</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={GraduationCap}
+          title="Aucun mentor pour l'instant"
+          body="Sois le premier à proposer une offre de mentorat sur DIVARC."
+          ctaHref="/mentors/offer"
+          ctaLabel="Devenir mentor"
+          tone="default"
+          size="lg"
+        />
       ) : (
-        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Grid cols={{ mobile: 1, tablet: 2, desktop: 3 }} gap="lg">
           {offers.map((offer) => (
-            <li key={offer.id}>
-              <MentorCard offer={offer} />
-            </li>
+            <MentorCard key={offer.id} offer={offer} />
           ))}
-        </ul>
+        </Grid>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
