@@ -44,7 +44,9 @@ export default function FeedAlgorithmPage() {
         toutes les formules — aucune ne te sera cachée.
       </p>
 
-      <h2 className="text-[28px] sm:text-[34px]">Les 4 modes de tri du feed</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Les 4 <em className="italic text-gold-deep">modes de tri</em> du feed
+      </h2>
 
       <p className="text-[14px] text-night-soft">
         Tu choisis le mode de tri en haut du <Link href="/">feed</Link>. Chaque
@@ -83,7 +85,7 @@ export default function FeedAlgorithmPage() {
       </div>
 
       <h2 className="text-[28px] sm:text-[34px]">
-        Les 4 garde-fous anti-toxicité
+        Les 4 <em className="italic text-gold-deep">garde-fous</em> anti-toxicité
       </h2>
 
       <p className="text-[14px] text-night-soft">
@@ -121,7 +123,9 @@ export default function FeedAlgorithmPage() {
         />
       </div>
 
-      <h2 className="text-[28px] sm:text-[34px]">Ce qu&apos;on ne fait pas</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Ce qu&apos;on <em className="italic text-gold-deep">ne fait pas</em>
+      </h2>
 
       <ul className="text-[15px] leading-relaxed">
         <li>
@@ -152,7 +156,7 @@ export default function FeedAlgorithmPage() {
       </ul>
 
       <h2 className="text-[28px] sm:text-[34px]">
-        Les signaux qu&apos;on utilise
+        Les <em className="italic text-gold-deep">signaux</em> qu&apos;on utilise
       </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
@@ -189,7 +193,9 @@ export default function FeedAlgorithmPage() {
         </li>
       </ul>
 
-      <h2 className="text-[28px] sm:text-[34px]">Pourquoi cette approche</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Pourquoi cette <em className="italic text-gold-deep">approche</em>
+      </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
         Parce qu&apos;un feed devrait te <strong>servir</strong>, pas

@@ -49,7 +49,9 @@ export default function ReelsAlgorithmPage() {
         désactiver.
       </p>
 
-      <h2 className="text-[28px] sm:text-[34px]">Les 7 sources de candidats</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Les 7 <em className="italic text-gold-deep">sources</em> de candidats
+      </h2>
 
       <p className="text-[14px] text-night-soft">
         Pour chaque actualisation de ton feed Reels, on construit ~800
@@ -108,7 +110,9 @@ export default function ReelsAlgorithmPage() {
         />
       </div>
 
-      <h2 className="text-[28px] sm:text-[34px]">Le ranker (heuristique pondérée)</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Le <em className="italic text-gold-deep">ranker</em> (heuristique pondérée)
+      </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
         Chaque candidat est scoré via{" "}
@@ -137,7 +141,9 @@ export default function ReelsAlgorithmPage() {
         . Phase 2 : un modèle entraîné quand on aura du volume.
       </p>
 
-      <h2 className="text-[28px] sm:text-[34px]">Le re-ranker (diversité)</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Le <em className="italic text-gold-deep">re-ranker</em> (diversité)
+      </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
         Le ranker peut produire des feeds répétitifs. Le re-ranker applique
@@ -151,7 +157,9 @@ export default function ReelsAlgorithmPage() {
         <li><strong>Boost « close friends »</strong> (top 8 affinity) → toujours dans les premiers</li>
       </ul>
 
-      <h2 className="text-[28px] sm:text-[34px]">Recompute toutes les 5 minutes</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Recompute toutes les <em className="italic text-gold-deep">5 minutes</em>
+      </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
         Ton vecteur d&apos;intérêts est recalculé{" "}
@@ -160,7 +168,9 @@ export default function ReelsAlgorithmPage() {
         ton feed s&apos;adapte en 10-15 reels engagés.
       </p>
 
-      <h2 className="text-[28px] sm:text-[34px]">Ce qu&apos;on ne fait PAS</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Ce qu&apos;on <em className="italic text-gold-deep">ne fait PAS</em>
+      </h2>
 
       <ul className="text-[15px] leading-relaxed">
         <li><strong>Pas de profilage publicitaire.</strong> Tes signaux nourrissent UNIQUEMENT le ranker Reels. Jamais de vente, jamais de tiers.</li>
@@ -169,7 +179,9 @@ export default function ReelsAlgorithmPage() {
         <li><strong>Pas d&apos;optimisation manipulatrice.</strong> Pas de notifications agressives, pas de streaks, pas de FOMO.</li>
       </ul>
 
-      <h2 className="text-[28px] sm:text-[34px]">Comment t&apos;auto-protéger</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Comment <em className="italic text-gold-deep">t&apos;auto-protéger</em>
+      </h2>
 
       <ul className="text-[15px] leading-relaxed">
         <li>

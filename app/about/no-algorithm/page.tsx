@@ -38,7 +38,9 @@ export default function NoAlgorithmPage() {
         propriétaire. Aucune optimisation pour te garder accroché.
       </p>
 
-      <h2 className="text-[28px] sm:text-[34px]">Les 5 tris transparents</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Les 5 tris <em className="italic text-gold-deep">transparents</em>
+      </h2>
 
       <p className="text-[14px] text-night-soft">
         Sur la page <Link href="/circles">Cercles</Link>, tu choisis comment
@@ -91,7 +93,9 @@ export default function NoAlgorithmPage() {
         />
       </div>
 
-      <h2 className="text-[28px] sm:text-[34px]">Ce qu&apos;on ne fait pas</h2>
+      <h2 className="text-[28px] sm:text-[34px]">
+        Ce qu&apos;on <em className="italic text-gold-deep">ne fait pas</em>
+      </h2>
 
       <ul className="text-[15px] leading-relaxed">
         <li>
@@ -118,7 +122,7 @@ export default function NoAlgorithmPage() {
       </ul>
 
       <h2 className="text-[28px] sm:text-[34px]">
-        Pourquoi cette approche radicale
+        Pourquoi cette approche <em className="italic text-gold-deep">radicale</em>
       </h2>
 
       <p className="text-[15px] leading-relaxed text-pretty">
