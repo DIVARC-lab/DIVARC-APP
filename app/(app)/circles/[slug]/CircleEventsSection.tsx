@@ -174,7 +174,7 @@ function EventCard({
           </span>
           <span className="text-[11px] text-night-dim">{time}</span>
           {isCancelled ? (
-            <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-error uppercase tracking-wider">
               Annulé
             </span>
           ) : null}

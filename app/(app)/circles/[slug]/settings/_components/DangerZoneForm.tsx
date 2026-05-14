@@ -32,16 +32,16 @@ export function DangerZoneForm({ circleId, circleName }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200">
+      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-error-bg border border-error/30">
         <AlertTriangle
-          className="w-4 h-4 mt-0.5 text-red-700 shrink-0"
+          className="w-4 h-4 mt-0.5 text-error shrink-0"
           aria-hidden
         />
         <div>
-          <p className="text-[12.5px] font-bold text-red-700">
+          <p className="text-[12.5px] font-bold text-error">
             Archiver le cercle
           </p>
-          <p className="mt-1 text-[11.5px] text-red-700/80 leading-snug">
+          <p className="mt-1 text-[11.5px] text-error/80 leading-snug">
             Le cercle ne sera plus visible dans la discovery ni accessible
             aux membres. Les données sont conservées (réactivation possible
             via support).
@@ -65,7 +65,7 @@ export function DangerZoneForm({ circleId, circleName }: Props) {
           type="text"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="w-full h-10 rounded-xl border border-line bg-white px-3 text-[13px] focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15"
+          className="w-full h-10 rounded-xl border border-line bg-white px-3 text-[13px] focus:outline-none focus:border-error focus:ring-2 focus:ring-error/15"
         />
       </div>
 
@@ -74,7 +74,7 @@ export function DangerZoneForm({ circleId, circleName }: Props) {
           type="button"
           onClick={submitArchive}
           disabled={!canArchive || pending}
-          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-red-600 text-white text-[12px] font-extrabold hover:bg-red-700 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-error text-white text-[12px] font-extrabold hover:bg-error/90 transition-colors disabled:opacity-50"
         >
           {pending ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />

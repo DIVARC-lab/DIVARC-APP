@@ -195,7 +195,7 @@ export default async function CircleAboutTab({
       <div className="pt-3">
         <Link
           href={`/legal/transparency-report?circle=${circle.id}`}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white border border-red-200 text-red-600 text-[12px] font-bold hover:bg-red-50 transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white border border-error/30 text-error text-[12px] font-bold hover:bg-error-bg transition-colors"
         >
           <Flag className="w-3.5 h-3.5" aria-hidden />
           Signaler ce cercle
@@ -218,7 +218,7 @@ function RuleItem({ rule }: { rule: CircleRule }) {
         className={cn(
           "shrink-0 inline-flex w-7 h-7 rounded-lg items-center justify-center text-[11px] font-extrabold",
           rule.is_critical
-            ? "bg-red-50 text-red-700"
+            ? "bg-error-bg text-error"
             : "bg-bg-soft text-night",
         )}
       >
@@ -232,7 +232,7 @@ function RuleItem({ rule }: { rule: CircleRule }) {
         <p className="text-[13.5px] font-bold text-night leading-tight">
           {rule.title}
           {rule.is_critical ? (
-            <span className="ml-2 text-[9.5px] font-extrabold uppercase tracking-wider text-red-700">
+            <span className="ml-2 text-[9.5px] font-extrabold uppercase tracking-wider text-error">
               · Règle critique
             </span>
           ) : null}

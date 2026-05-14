@@ -12,9 +12,9 @@ export function SettingsSection({
   tone = "default",
 }: Props) {
   const borderClass =
-    tone === "danger" ? "border-red-200" : "border-line";
+    tone === "danger" ? "border-error/30" : "border-line";
   const headerClass =
-    tone === "danger" ? "text-red-700" : "text-night";
+    tone === "danger" ? "text-error" : "text-night";
   return (
     <section
       className={`rounded-2xl bg-white border ${borderClass} overflow-hidden`}

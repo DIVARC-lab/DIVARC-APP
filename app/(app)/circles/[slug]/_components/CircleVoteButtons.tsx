@@ -91,7 +91,7 @@ export function CircleVoteButtons({
         className={cn(
           "inline-flex items-center gap-1 h-7 px-2 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50",
           myHelpful
-            ? "bg-emerald-100 text-emerald-700"
+            ? "bg-success-bg text-success"
             : "bg-bg-soft text-night-dim hover:bg-line",
         )}
       >

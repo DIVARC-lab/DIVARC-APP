@@ -272,7 +272,7 @@ export function CircleInvitationsManager({
                       onClick={() => handleRevoke(invitation.id)}
                       disabled={pending}
                       aria-label="Révoquer"
-                      className="w-9 h-9 rounded-full bg-white border border-line text-night-muted hover:border-red-500 hover:text-red-500 flex items-center justify-center transition-colors disabled:opacity-50"
+                      className="w-9 h-9 rounded-full bg-white border border-line text-night-muted hover:border-error hover:text-error flex items-center justify-center transition-colors disabled:opacity-50"
                     >
                       <X className="w-3.5 h-3.5" aria-hidden />
                     </button>
