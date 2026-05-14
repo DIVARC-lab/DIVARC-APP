@@ -5,6 +5,10 @@ import { JobCard } from "@/components/jobs/JobCard";
 import { listSavedJobs } from "@/lib/queries/jobs";
 import { createClient } from "@/lib/supabase/server";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Offres sauvegardées",
@@ -20,50 +24,42 @@ export default async function SavedJobsPage() {
   const jobs = await listSavedJobs(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
-      <header>
-        <Link
-          href="/jobs"
-          className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
-          Emploi
-        </Link>
-        <KickerLabel>Sauvegardés</KickerLabel>
-        <h1 className="mt-2 font-display text-4xl text-night">
-          Tes <em className="italic text-gold-deep">offres marquées</em>.
-        </h1>
-        <p className="mt-1 text-muted-strong">
-          {jobs.length} offre{jobs.length > 1 ? "s" : ""} sauvegardée
-          {jobs.length > 1 ? "s" : ""}.
-        </p>
-      </header>
-
-      {jobs.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5 text-4xl"
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
+        <header>
+          <Link
+            href="/jobs"
+            className="inline-flex items-center gap-2 text-sm text-night-muted hover:text-night mb-3"
           >
-            <Bookmark className="w-8 h-8 text-gold-deep" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucune offre sauvegardée
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Sur une offre, clique sur le drapeau pour la garder ici et y
-            revenir plus tard.
+            <ArrowLeft className="w-4 h-4" aria-hidden />
+            Emploi
+          </Link>
+          <KickerLabel>Sauvegardés</KickerLabel>
+          <h1 className="mt-2 font-display text-4xl text-night">
+            Tes <em className="italic text-gold-deep">offres marquées</em>.
+          </h1>
+          <p className="mt-1 text-muted-strong">
+            {jobs.length} offre{jobs.length > 1 ? "s" : ""} sauvegardée
+            {jobs.length > 1 ? "s" : ""}.
           </p>
-        </div>
-      ) : (
-        <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {jobs.map((job) => (
-            <li key={job.id}>
-              <JobCard job={job} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+        </header>
+
+        {jobs.length === 0 ? (
+          <EmptyState
+            icon={Bookmark}
+            title="Aucune offre sauvegardée"
+            body="Sur une offre, clique sur le drapeau pour la garder ici et y revenir plus tard."
+            tone="default"
+            size="lg"
+          />
+        ) : (
+          <Grid cols={{ mobile: 1, desktop: 2 }} gap="lg">
+            {jobs.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </Grid>
+        )}
+      </Stack>
+    </Container>
   );
 }

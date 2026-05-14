@@ -5,6 +5,9 @@ import { listBookmarkedPosts } from "@/lib/queries/posts";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "../_components/PostCard";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Posts sauvegardés",
@@ -20,7 +23,8 @@ export default async function SavedFeedPage() {
   const posts = await listBookmarkedPosts(user.id, 80);
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-2xl mx-auto w-full space-y-6">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="2xl">
       <header>
         <Link
           href="/feed"
@@ -40,21 +44,12 @@ export default async function SavedFeedPage() {
       </header>
 
       {posts.length === 0 ? (
-        <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-          >
-            <Bookmark className="w-7 h-7 text-gold-deep" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucun post sauvegardé
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Sur un post, clique sur l&apos;icône bookmark pour le retrouver
-            ici.
-          </p>
-        </div>
+        <EmptyState
+          icon={Bookmark}
+          title="Aucun post sauvegardé"
+          body="Sur un post, clique sur l'icône bookmark pour le retrouver ici."
+          tone="default"
+        />
       ) : (
         <ul className="space-y-4">
           {posts.map((post) => (
@@ -64,6 +59,7 @@ export default async function SavedFeedPage() {
           ))}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
