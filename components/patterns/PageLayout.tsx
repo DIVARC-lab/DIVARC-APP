@@ -240,7 +240,10 @@ export function PageStickyHeader({
   return (
     <div
       className={cn("sticky top-0", bgClass, className)}
-      style={{ zIndex: 20 }}
+      /* `isolation: isolate` crée un stacking context scope, isole le
+         z-index du sticky pour qu'il ne soit pas dépassé par des fixed
+         enfants dans le contenu (CTA bottom, FAB). */
+      style={{ zIndex: 20, isolation: "isolate" }}
     >
       {wrapper}
     </div>

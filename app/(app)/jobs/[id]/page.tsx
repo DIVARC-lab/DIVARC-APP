@@ -437,7 +437,7 @@ export default async function JobDetailPage({
           paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)",
         }}
       >
-        <Container maxWidth="text" paddingX="none" className="flex items-center gap-2.5">
+        <div className="max-w-[680px] mx-auto flex items-center gap-2.5">
           {isOwn ? (
             <Link
               href={`/jobs/${job.id}/applicants`}
@@ -478,7 +478,7 @@ export default async function JobDetailPage({
               />
             </>
           )}
-        </Container>
+        </div>
       </div>
     </div>
   );

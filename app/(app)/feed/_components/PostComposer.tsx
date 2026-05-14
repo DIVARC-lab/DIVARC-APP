@@ -1121,8 +1121,15 @@ export function PostComposer({
                 Publier
               </button>
             </div>
-            {/* Spacer pour que le contenu scroll ne passe pas sous le sticky footer mobile. */}
-            <div className="sm:hidden h-20" aria-hidden />
+            {/* Spacer pour que le contenu scroll ne passe pas sous le sticky
+                footer mobile. Hauteur dynamique = bouton (80px) + clavier
+                ouvert (keyboardInset). Sans ça, le bouton vient cacher la
+                fin du textarea quand l'user tape un long texte. */}
+            <div
+              className="sm:hidden"
+              style={{ height: 80 + keyboardInset }}
+              aria-hidden
+            />
 
             {/* Plugin Sentiment / Activité — overlay modal au-dessus du
                 composer. Le SentimentPicker est rendu ici pour avoir
