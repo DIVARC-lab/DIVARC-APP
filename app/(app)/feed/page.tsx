@@ -245,8 +245,18 @@ export default async function FeedPage({
                 la pagination incrémentale (infinite scroll). Les posts
                 initiaux sont SSR pour FCP rapide + SEO. */}
             {posts.length === 0 ? (
-              <div className="px-4 sm:px-6 pb-10">
-                <FeedEmptyState tab={tab} />
+              <div className="relative px-4 sm:px-6 pb-10">
+                {/* ArcDeco décoratif en background — signature DIVARC sur
+                    les états vides du feed. */}
+                <div
+                  aria-hidden
+                  className="absolute -top-6 -right-6 opacity-35 pointer-events-none"
+                >
+                  <ArcDeco size={220} tone="gold" opacity={0.9} stroke={1} />
+                </div>
+                <div className="relative">
+                  <FeedEmptyState tab={tab} />
+                </div>
               </div>
             ) : (
               <FeedPostList
