@@ -9,6 +9,9 @@ import {
 } from "@/lib/queries/companies";
 import { createClient } from "@/lib/supabase/server";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Entreprises",
@@ -27,7 +30,8 @@ export default async function CompaniesPage() {
   ]);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-6xl mx-auto w-full space-y-8">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <KickerLabel>Entreprises</KickerLabel>
@@ -80,14 +84,15 @@ export default async function CompaniesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Grid cols={{ mobile: 1, tablet: 2, desktop: 3 }} gap="lg">
             {companies.map((company) => (
               <CompanyCard key={company.id} company={company} />
             ))}
-          </div>
+          </Grid>
         )}
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
