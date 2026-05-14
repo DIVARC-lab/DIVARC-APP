@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/Button";
 import { getMyBadges, listQuizzes } from "@/lib/queries/skills";
 import { createClient } from "@/lib/supabase/server";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Grid } from "@/components/primitives/Grid";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Compétences vérifiées",
@@ -28,7 +31,8 @@ export default async function SkillsPage() {
   );
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-5xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <KickerLabel>Compétences vérifiées</KickerLabel>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl text-night text-balance leading-[1.05]">
@@ -71,7 +75,7 @@ export default async function SkillsPage() {
         {quizzes.length === 0 ? (
           <p className="text-sm text-muted">Aucun quiz pour l&apos;instant.</p>
         ) : (
-          <ul className="grid sm:grid-cols-2 gap-4">
+          <Grid as="ul" cols={{ mobile: 1, desktop: 2 }} gap="lg">
             {quizzes.map((q) => {
               const best = bestByQuiz.get(q.id);
               const passed = passedSet.has(q.id);
@@ -122,9 +126,10 @@ export default async function SkillsPage() {
                 </li>
               );
             })}
-          </ul>
+          </Grid>
         )}
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }

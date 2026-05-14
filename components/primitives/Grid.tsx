@@ -30,6 +30,9 @@ type GridProps = {
   /* Escape hatch — répétition manuelle. Format CSS: "repeat(7, 1fr)"
      ou "200px 1fr 100px". Préférer `cols` quand possible. */
   customCols?: string;
+  /* Tag HTML — `ul`/`ol` quand le contenu est sémantiquement une liste
+     (enfants <li>), `div` (défaut) sinon. */
+  as?: "div" | "ul" | "ol" | "section";
   className?: string;
   children: ReactNode;
 };
@@ -65,6 +68,7 @@ export function Grid({
   cols = 1,
   gap = "lg",
   customCols,
+  as: Tag = "div",
   className,
   children,
 }: GridProps) {
@@ -79,14 +83,19 @@ export function Grid({
         );
 
   return (
-    <div
-      className={cn("grid", colsClass, className)}
+    <Tag
+      className={cn(
+        "grid",
+        Tag === "ul" || Tag === "ol" ? "list-none p-0" : null,
+        colsClass,
+        className,
+      )}
       style={{
         gap: spacing[gap],
         gridTemplateColumns: customCols ?? undefined,
       }}
     >
       {children}
-    </div>
+    </Tag>
   );
 }
