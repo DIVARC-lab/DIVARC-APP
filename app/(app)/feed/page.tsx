@@ -178,7 +178,7 @@ export default async function FeedPage({
     <div className="relative bg-bg-soft min-h-[calc(100dvh-56px)]">
       <div className="mx-auto w-full max-w-6xl">
         <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-0 lg:gap-10">
-          <div className="mx-auto w-full max-w-2xl lg:mx-0">
+          <div className="mx-auto w-full max-w-2xl min-w-0 lg:mx-0">
             {/* Hero header — gradient cream → bg-soft, ArcDeco gold visible */}
             <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg-soft pt-16 pb-7 px-[22px] sm:pt-20 sm:px-7">
               <div
@@ -247,7 +247,7 @@ export default async function FeedPage({
                 <FeedEmptyState tab={tab} />
               </div>
             ) : (
-              <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10">
+              <ul className="flex flex-col gap-4 px-4 sm:px-6 pb-10 min-w-0">
                 {posts.map((post, index) => {
                   const reason = reasonByPostId.get(post.id);
                   return (
