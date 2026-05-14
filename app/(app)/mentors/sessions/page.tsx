@@ -30,8 +30,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-night/5 text-night-muted",
-  confirmed: "bg-emerald-50 text-emerald-700",
-  declined: "bg-red-50 text-red-600",
+  confirmed: "bg-success-bg text-success",
+  declined: "bg-error-bg text-error",
   completed: "bg-gold/15 text-gold-deep",
   cancelled: "bg-night/[0.04] text-muted",
 };

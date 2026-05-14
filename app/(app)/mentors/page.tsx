@@ -141,7 +141,7 @@ function MentorCard({
             <span className="text-muted">/h</span>
           </span>
         ) : (
-          <span className="font-semibold text-emerald-700">Gratuit</span>
+          <span className="font-semibold text-success">Gratuit</span>
         )}
       </footer>
     </Link>

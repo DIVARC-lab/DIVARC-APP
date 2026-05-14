@@ -40,7 +40,7 @@ export function SessionRespondActions({ sessionId, status, isMentor }: Props) {
             size="sm"
             onClick={() => handle("declined")}
             disabled={pending}
-            className="text-red-600 hover:bg-red-50"
+            className="text-error hover:bg-error-bg"
           >
             <X className="w-3.5 h-3.5" aria-hidden />
             Refuser
@@ -83,7 +83,7 @@ export function SessionRespondActions({ sessionId, status, isMentor }: Props) {
         size="sm"
         onClick={() => handle("cancelled")}
         disabled={pending}
-        className="text-red-600 hover:bg-red-50"
+        className="text-error hover:bg-error-bg"
       >
         <X className="w-3.5 h-3.5" aria-hidden />
         Annuler

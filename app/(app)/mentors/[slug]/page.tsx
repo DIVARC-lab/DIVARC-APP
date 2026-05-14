@@ -75,7 +75,7 @@ export default async function MentorDetailPage({
                   <span className="text-muted">/h</span>
                 </span>
               ) : (
-                <span className="font-semibold text-emerald-700">Gratuit</span>
+                <span className="font-semibold text-success">Gratuit</span>
               )}
               {offer.languages.length > 0 ? (
                 <span>· Langues : {offer.languages.join(", ")}</span>
