@@ -35,6 +35,7 @@ import type { RankingSignalDisplay } from "@/components/feed/WhyThisPost";
 import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
 import { useTrackDwell } from "@/lib/hooks/useTrackDwell";
 import { mergeRefs } from "@/lib/utils/mergeRefs";
+import { useVisitedPosts } from "@/lib/hooks/useVisitedPosts";
 import type { EventSurface } from "@/lib/database.types";
 import { PostCarousel } from "./PostCarousel";
 import { PostDetailModal } from "./PostDetailModal";
@@ -76,6 +77,12 @@ function PostCardInner({
      "Commenter". Mobile garde nav vers /feed/[id]. */
   const [detailOpen, setDetailOpen] = useState(false);
 
+  /* Étape 14 — Tracking "déjà vu" via localStorage. Le post passe en
+     mode "visited" (opacity légère + bordure gauche gold subtle) une
+     fois consulté (modal ouvert OU nav vers /feed/[id]). */
+  const { isVisited, markVisited } = useVisitedPosts();
+  const visited = isVisited(post.id);
+
   /* Découpe première phrase / reste — pattern Bold du proto. Si pas de
      point dans le body, tout reste en italic display. */
   const fullBody = post.body ?? "";
@@ -91,7 +98,13 @@ function PostCardInner({
     <article
       ref={mergeRefs<HTMLElement>(impressionRef, dwellRef)}
       data-post-id={post.id}
-      className="overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]"
+      data-visited={visited ? "true" : undefined}
+      className={cn(
+        "overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)] transition-all",
+        /* "Déjà vu" : légère désaturation + accent gold-deep à gauche.
+           Discret pour ne pas alourdir le feed visuel. */
+        visited && "opacity-[0.82] ring-1 ring-inset ring-gold-deep/15",
+      )}
     >
       {/* Hero media — au-dessus du header pour la 1ère card du feed */}
       {heroMedia && post.video_url ? (
@@ -420,7 +433,10 @@ function PostCardInner({
               la page dédiée. */}
           <button
             type="button"
-            onClick={() => setDetailOpen(true)}
+            onClick={() => {
+              markVisited(post.id);
+              setDetailOpen(true);
+            }}
             className="hidden sm:inline-flex items-center justify-center gap-1.5 h-11 min-w-[88px] px-3 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
@@ -431,6 +447,7 @@ function PostCardInner({
           </button>
           <Link
             href={`/feed/${post.id}`}
+            onClick={() => markVisited(post.id)}
             className="sm:hidden inline-flex items-center justify-center gap-1.5 h-11 min-w-[100px] px-4 rounded-full text-night-soft text-[13px] font-bold tabular-nums hover:bg-night/5 hover:text-night transition-colors"
             aria-label="Voir les commentaires"
           >
