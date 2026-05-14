@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 import {
   EXPERIMENTS,
   getExperimentVariant,
@@ -211,7 +212,7 @@ export default async function TransparencyPage() {
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         <header className="px-5 sm:px-8 pt-8 pb-6">
           <Link
             href="/settings/algorithm"
@@ -527,7 +528,7 @@ export default async function TransparencyPage() {
             Modifier mes préférences →
           </Link>
         </div>
-      </div>
+      </Container>
     </div>
   );
 }

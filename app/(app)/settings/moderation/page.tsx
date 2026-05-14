@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { CATEGORY_BY_ID } from "@/lib/moderation/categories";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Mon historique de modération",
@@ -65,7 +66,7 @@ export default async function UserModerationPage() {
 
   return (
     <div className="bg-bg-soft min-h-screen pb-24">
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         <header className="px-5 sm:px-8 pt-8 pb-6">
           <Link
             href="/settings"
@@ -207,7 +208,7 @@ export default async function UserModerationPage() {
             </ul>
           )}
         </section>
-      </div>
+      </Container>
     </div>
   );
 }
