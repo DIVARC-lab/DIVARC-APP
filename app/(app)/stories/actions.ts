@@ -96,11 +96,17 @@ export async function createStory(formData: FormData) {
     return { ok: false, error: "Overlays mal formés." };
   }
 
+  /* Normalise string vide → null avant validation. Sinon z.string().url()
+   * rejette les chaînes vides et l'user voit "Invalid url" alors qu'il
+   * n'a juste pas uploadé (ou l'upload a échoué silencieusement). */
+  const emptyToNull = (v: FormDataEntryValue | null): string | null =>
+    typeof v === "string" && v.length > 0 ? v : null;
+
   const parsed = storySchema.safeParse({
     type: formData.get("type"),
-    photo_url: formData.get("photo_url"),
-    video_url: formData.get("video_url"),
-    video_thumbnail_url: formData.get("video_thumbnail_url"),
+    photo_url: emptyToNull(formData.get("photo_url")),
+    video_url: emptyToNull(formData.get("video_url")),
+    video_thumbnail_url: emptyToNull(formData.get("video_thumbnail_url")),
     video_duration_ms: duration,
     caption: formData.get("caption"),
     background: formData.get("background"),

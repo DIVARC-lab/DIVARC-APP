@@ -21,7 +21,14 @@ import { STORY_FILTERS, getFilterCss } from "@/lib/stories/filters";
 import { createStory } from "../actions";
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED_VIDEO_MIME = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/mov",
+];
+const ALLOWED_MIME = [...ALLOWED_IMAGE_MIME, ...ALLOWED_VIDEO_MIME];
 
 const BACKGROUNDS = [
   { id: "from-night via-night-soft to-night-muted", label: "Nuit" },
@@ -174,18 +181,86 @@ export function StoryComposer({ userId, embedded = false, onPublished }: StoryCo
     event.target.value = "";
     if (!file) return;
 
-    if (!ALLOWED_MIME.includes(file.type)) {
-      toast.error("Format invalide.");
+    const isVideo = ALLOWED_VIDEO_MIME.includes(file.type);
+    const isImage = ALLOWED_IMAGE_MIME.includes(file.type);
+
+    if (!isImage && !isVideo) {
+      toast.error("Format invalide. Image (JPG/PNG/WebP) ou vidéo (MP4/WebM/MOV) uniquement.");
       return;
     }
-    if (file.size > MAX_SIZE_BYTES) {
-      toast.error("Fichier trop lourd (8 Mo max).");
+
+    /* Vidéos jusqu'à 30 Mo, images jusqu'à 8 Mo. */
+    if (isVideo && file.size > VIDEO_MAX_BYTES) {
+      toast.error("Vidéo trop lourde (30 Mo max).");
+      return;
+    }
+    if (isImage && file.size > MAX_SIZE_BYTES) {
+      toast.error("Image trop lourde (8 Mo max).");
       return;
     }
 
     setUploading(true);
     const supabase = createClient();
-    const ext = file.type.split("/")[1] ?? "jpg";
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? (isVideo ? "mp4" : "jpg");
+
+    if (isVideo) {
+      /* Upload vidéo dans le bucket dédié + génération thumbnail côté
+       * client (frame à t=0). On utilise le même pipeline que la capture
+       * caméra pour rester cohérent. */
+      const base = `${userId}/${crypto.randomUUID()}`;
+      const videoPath = `${base}.${ext}`;
+      const thumbPath = `${base}.jpg`;
+
+      try {
+        const thumb = await extractVideoThumbnail(file);
+        const { error: vErr } = await supabase.storage
+          .from(VIDEO_BUCKET)
+          .upload(videoPath, file, {
+            contentType: file.type,
+            cacheControl: "3600",
+          });
+        if (vErr) throw vErr;
+
+        const { error: tErr } = await supabase.storage
+          .from(VIDEO_BUCKET)
+          .upload(thumbPath, thumb.blob, {
+            contentType: "image/jpeg",
+            cacheControl: "86400",
+          });
+        if (tErr) {
+          await supabase.storage.from(VIDEO_BUCKET).remove([videoPath]);
+          throw tErr;
+        }
+
+        const { data: vPub } = supabase.storage
+          .from(VIDEO_BUCKET)
+          .getPublicUrl(videoPath);
+        const { data: tPub } = supabase.storage
+          .from(VIDEO_BUCKET)
+          .getPublicUrl(thumbPath);
+
+        setVideo({
+          url: vPub.publicUrl,
+          storagePath: videoPath,
+          thumbnailUrl: tPub.publicUrl,
+          thumbnailStoragePath: thumbPath,
+          durationMs: thumb.durationMs,
+        });
+        setPhoto(null);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erreur upload";
+        toast.error(
+          msg.includes("not found")
+            ? "Bucket vidéo indisponible. Contacte l'admin."
+            : `Échec du téléversement vidéo : ${msg}`,
+        );
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+
+    /* Image classique. */
     const storagePath = `${userId}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage
       .from("stories")
@@ -195,7 +270,7 @@ export function StoryComposer({ userId, embedded = false, onPublished }: StoryCo
       });
 
     if (error) {
-      toast.error("Échec du téléversement.");
+      toast.error(`Échec du téléversement : ${error.message}`);
       setUploading(false);
       return;
     }
@@ -501,4 +576,75 @@ export function StoryComposer({ userId, embedded = false, onPublished }: StoryCo
       </div>
     </form>
   );
+}
+
+/* Extrait une thumbnail (JPEG) + la durée à partir d'un fichier vidéo
+ * côté client. Crée un <video> hors-DOM, attend metadata + premier frame,
+ * dessine sur canvas, exporte en blob.
+ *
+ * Utilisé quand l'utilisateur uploade une vidéo depuis sa galerie
+ * (pas via la capture caméra qui génère déjà sa thumbnail). */
+async function extractVideoThumbnail(
+  file: File,
+): Promise<{ blob: Blob; durationMs: number }> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = url;
+
+    const cleanup = () => URL.revokeObjectURL(url);
+    let resolved = false;
+
+    const timeout = setTimeout(() => {
+      if (resolved) return;
+      cleanup();
+      reject(new Error("Timeout lors de l'extraction de la vignette"));
+    }, 10_000);
+
+    video.onloadedmetadata = () => {
+      /* Seek à 0.1s pour éviter une frame noire au tout début. */
+      video.currentTime = Math.min(0.1, (video.duration || 0) / 2);
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 720;
+        canvas.height = video.videoHeight || 1280;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas indisponible");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            clearTimeout(timeout);
+            cleanup();
+            if (!blob) {
+              reject(new Error("Échec génération vignette"));
+              return;
+            }
+            resolved = true;
+            resolve({
+              blob,
+              durationMs: Math.round((video.duration || 0) * 1000),
+            });
+          },
+          "image/jpeg",
+          0.85,
+        );
+      } catch (err) {
+        clearTimeout(timeout);
+        cleanup();
+        reject(err);
+      }
+    };
+
+    video.onerror = () => {
+      clearTimeout(timeout);
+      cleanup();
+      reject(new Error("Vidéo illisible"));
+    };
+  });
 }
