@@ -1,6 +1,10 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { PostPhoto } from "@/lib/database.types";
+import { PhotoLightbox } from "./PhotoLightbox";
 
 type PostPhotosProps = {
   photos: PostPhoto[];
@@ -10,26 +14,59 @@ type PostPhotosProps = {
 
 /* PostPhotos — routeur de layouts photos selon le nombre.
  *
- * Pattern FB-style : la grille est statique (pas de swipe), le user
- * tape sur une photo pour ouvrir un Lightbox plein écran (étape 5).
+ * Pattern FB-style : la grille est statique (pas de swipe inline), le
+ * user tape sur une photo pour ouvrir un Lightbox plein écran.
  *
  * Layouts :
  *  - 1 photo   : Single (aspect natif clampé)
- *  - 2 photos  : Grid 2×1 carré 1:1 — implémenté étape 1 ✅
- *  - 3 photos  : Grid 1 grande + 2 petites — étape 2 (TODO)
- *  - 4 photos  : Grid 2×2 — étape 3 (TODO)
- *  - 5+ photos : Grid 3+2 avec +N — étape 4 (TODO)
+ *  - 2 photos  : GridTwo  — 2×1 carré 1:1
+ *  - 3 photos  : GridThree — 1 grande + 2 petites
+ *  - 4 photos  : GridFour  — 2×2
+ *  - 5+ photos : GridFivePlus — 2 top + 3 bottom + overlay +N
  *
- * Fallback carousel : tant que les étapes 2-4 ne sont pas faites, on
- * route les counts ≥3 vers l'ancien comportement (1 active + dots).
+ * Click photo → ouvre PhotoLightbox sur l'index cliqué (étape 5+6).
  */
 export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   if (photos.length === 0) return null;
-  if (photos.length === 1) return <Single photo={photos[0]!} alt={alt} rounded={rounded} />;
-  if (photos.length === 2) return <GridTwo photos={photos} alt={alt} rounded={rounded} />;
-  if (photos.length === 3) return <GridThree photos={photos} alt={alt} rounded={rounded} />;
-  if (photos.length === 4) return <GridFour photos={photos} alt={alt} rounded={rounded} />;
-  return <GridFivePlus photos={photos} alt={alt} rounded={rounded} />;
+
+  function handleOpen(index: number, e: React.MouseEvent) {
+    /* Empêche la navigation parent (Link wrapping PostPhotos dans PostCard
+       navigue vers /feed/[id]). Le user veut voir la photo en grand sans
+       quitter le feed. */
+    e.preventDefault();
+    e.stopPropagation();
+    setLightboxIndex(index);
+  }
+
+  const handler = (idx: number) => (e: React.MouseEvent) => handleOpen(idx, e);
+
+  const grid =
+    photos.length === 1 ? (
+      <Single photo={photos[0]!} alt={alt} rounded={rounded} onClick={handler(0)} />
+    ) : photos.length === 2 ? (
+      <GridTwo photos={photos} alt={alt} rounded={rounded} onPhotoClick={handler} />
+    ) : photos.length === 3 ? (
+      <GridThree photos={photos} alt={alt} rounded={rounded} onPhotoClick={handler} />
+    ) : photos.length === 4 ? (
+      <GridFour photos={photos} alt={alt} rounded={rounded} onPhotoClick={handler} />
+    ) : (
+      <GridFivePlus photos={photos} alt={alt} rounded={rounded} onPhotoClick={handler} />
+    );
+
+  return (
+    <>
+      {grid}
+      <PhotoLightbox
+        photos={photos}
+        initialIndex={lightboxIndex ?? 0}
+        alt={alt}
+        open={lightboxIndex !== null}
+        onClose={() => setLightboxIndex(null)}
+      />
+    </>
+  );
 }
 
 /* ============ Layout : 1 photo ============ */
@@ -38,16 +75,21 @@ function Single({
   photo,
   alt,
   rounded,
+  onClick,
 }: {
   photo: PostPhoto;
   alt: string;
   rounded: boolean;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const nativeRatio = computeAspectRatio(photo);
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Agrandir la photo"
       className={cn(
-        "relative w-full bg-night/5 overflow-hidden",
+        "relative w-full bg-night/5 overflow-hidden cursor-zoom-in",
         rounded && "rounded-2xl",
       )}
     >
@@ -71,24 +113,22 @@ function Single({
           unoptimized={photo.url.includes("?")}
         />
       </div>
-    </div>
+    </button>
   );
 }
 
 /* ============ Layout : 2 photos (FB-style grille 2×1) ============ */
 
-/* Grille statique : 2 colonnes égales, aspect 1:1 chacune, gap 2px
- * (look FB : photos collées avec ligne blanche fine). Tap = lightbox
- * (étape 5+6). En attendant la lightbox, le wrapper Link de PostCard
- * route vers /feed/[id] comme avant. */
 function GridTwo({
   photos,
   alt,
   rounded,
+  onPhotoClick,
 }: {
   photos: PostPhoto[];
   alt: string;
   rounded: boolean;
+  onPhotoClick: (idx: number) => (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -98,9 +138,12 @@ function GridTwo({
       )}
     >
       {photos.slice(0, 2).map((photo, idx) => (
-        <div
+        <button
           key={photo.id}
-          className="relative aspect-square bg-night/5"
+          type="button"
+          onClick={onPhotoClick(idx)}
+          aria-label={`Agrandir photo ${idx + 1}`}
+          className="relative bg-night/5 cursor-zoom-in"
           style={{ aspectRatio: "1 / 1" }}
         >
           <Image
@@ -111,25 +154,24 @@ function GridTwo({
             className="object-cover"
             unoptimized={photo.url.includes("?")}
           />
-        </div>
+        </button>
       ))}
     </div>
   );
 }
 
-/* ============ Layout : 3 photos (1 grande gauche + 2 petites droite) ============ */
+/* ============ Layout : 3 photos ============ */
 
-/* Pattern FB : photo 0 occupe la colonne gauche en pleine hauteur,
- * photos 1 et 2 empilées dans la colonne droite. Ratio global 4:3
- * (660px wide → 495px tall en feed center). */
 function GridThree({
   photos,
   alt,
   rounded,
+  onPhotoClick,
 }: {
   photos: PostPhoto[];
   alt: string;
   rounded: boolean;
+  onPhotoClick: (idx: number) => (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -139,7 +181,12 @@ function GridThree({
       )}
       style={{ aspectRatio: "4 / 3" }}
     >
-      <div className="relative row-span-2 bg-night/5">
+      <button
+        type="button"
+        onClick={onPhotoClick(0)}
+        aria-label="Agrandir photo 1"
+        className="relative row-span-2 bg-night/5 cursor-zoom-in"
+      >
         <Image
           src={photos[0]!.url}
           alt={`${alt} — photo 1`}
@@ -148,9 +195,15 @@ function GridThree({
           className="object-cover"
           unoptimized={photos[0]!.url.includes("?")}
         />
-      </div>
+      </button>
       {photos.slice(1, 3).map((photo, idx) => (
-        <div key={photo.id} className="relative bg-night/5">
+        <button
+          key={photo.id}
+          type="button"
+          onClick={onPhotoClick(idx + 1)}
+          aria-label={`Agrandir photo ${idx + 2}`}
+          className="relative bg-night/5 cursor-zoom-in"
+        >
           <Image
             src={photo.url}
             alt={`${alt} — photo ${idx + 2}`}
@@ -159,7 +212,7 @@ function GridThree({
             className="object-cover"
             unoptimized={photo.url.includes("?")}
           />
-        </div>
+        </button>
       ))}
     </div>
   );
@@ -171,10 +224,12 @@ function GridFour({
   photos,
   alt,
   rounded,
+  onPhotoClick,
 }: {
   photos: PostPhoto[];
   alt: string;
   rounded: boolean;
+  onPhotoClick: (idx: number) => (e: React.MouseEvent) => void;
 }) {
   return (
     <div
@@ -184,9 +239,12 @@ function GridFour({
       )}
     >
       {photos.slice(0, 4).map((photo, idx) => (
-        <div
+        <button
           key={photo.id}
-          className="relative bg-night/5"
+          type="button"
+          onClick={onPhotoClick(idx)}
+          aria-label={`Agrandir photo ${idx + 1}`}
+          className="relative bg-night/5 cursor-zoom-in"
           style={{ aspectRatio: "1 / 1" }}
         >
           <Image
@@ -197,24 +255,24 @@ function GridFour({
             className="object-cover"
             unoptimized={photo.url.includes("?")}
           />
-        </div>
+        </button>
       ))}
     </div>
   );
 }
 
-/* ============ Layout : 5+ photos (2 grandes top + 3 petites bottom) ============ */
+/* ============ Layout : 5+ photos ============ */
 
-/* Pattern FB classique : 2 photos en haut, 3 en bas, overlay "+N" sur
- * la 5ème si total > 5. Aspect global 3:2. */
 function GridFivePlus({
   photos,
   alt,
   rounded,
+  onPhotoClick,
 }: {
   photos: PostPhoto[];
   alt: string;
   rounded: boolean;
+  onPhotoClick: (idx: number) => (e: React.MouseEvent) => void;
 }) {
   const top = photos.slice(0, 2);
   const bottom = photos.slice(2, 5);
@@ -228,10 +286,15 @@ function GridFivePlus({
       )}
       style={{ aspectRatio: "3 / 2" }}
     >
-      {/* Top row : 2 photos plein largeur, aspect 2:1 chacune. */}
       <div className="grid grid-cols-2 gap-[2px] flex-[2_2_0%]">
         {top.map((photo, idx) => (
-          <div key={photo.id} className="relative bg-night/5">
+          <button
+            key={photo.id}
+            type="button"
+            onClick={onPhotoClick(idx)}
+            aria-label={`Agrandir photo ${idx + 1}`}
+            className="relative bg-night/5 cursor-zoom-in"
+          >
             <Image
               src={photo.url}
               alt={`${alt} — photo ${idx + 1}`}
@@ -240,19 +303,29 @@ function GridFivePlus({
               className="object-cover"
               unoptimized={photo.url.includes("?")}
             />
-          </div>
+          </button>
         ))}
       </div>
-      {/* Bottom row : 3 photos. Overlay +N sur la dernière si remaining > 0. */}
       <div className="grid grid-cols-3 gap-[2px] flex-[1_1_0%]">
         {bottom.map((photo, idx) => {
+          const realIdx = idx + 2;
           const isLast = idx === bottom.length - 1;
           const showOverlay = isLast && remaining > 0;
           return (
-            <div key={photo.id} className="relative bg-night/5">
+            <button
+              key={photo.id}
+              type="button"
+              onClick={onPhotoClick(realIdx)}
+              aria-label={
+                showOverlay
+                  ? `Voir les ${remaining + 1} photos restantes`
+                  : `Agrandir photo ${realIdx + 1}`
+              }
+              className="relative bg-night/5 cursor-zoom-in"
+            >
               <Image
                 src={photo.url}
-                alt={`${alt} — photo ${idx + 3}`}
+                alt={`${alt} — photo ${realIdx + 1}`}
                 fill
                 sizes="(max-width: 640px) 33vw, 220px"
                 className="object-cover"
@@ -268,7 +341,7 @@ function GridFivePlus({
                   </span>
                 </div>
               ) : null}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -278,12 +351,6 @@ function GridFivePlus({
 
 /* ============ Helpers ============ */
 
-/* Lit aspect_ratio ("1.78" ou "16/9") ou width/height de la PostPhoto.
- * Clamp [0.75 portrait, 1.91 paysage 16:8.4] pour matcher Facebook /
- * Instagram : pas d'image trop petite verticalement sur les panoramas,
- * pas trop haute sur les portraits extrêmes. object-cover crop
- * légèrement hors zone.
- * Retourne null si aucune metadata exploitable → fallback CSS. */
 function computeAspectRatio(photo: PostPhoto): number | null {
   const MIN = 0.75;
   const MAX = 1.91;
