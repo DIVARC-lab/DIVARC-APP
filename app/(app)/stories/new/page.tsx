@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import { createClient } from "@/lib/supabase/server";
 import { StoryComposer } from "./StoryComposer";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Nouvelle story",
@@ -18,7 +19,7 @@ export default async function NewStoryPage() {
 
   return (
     <div className="bg-bg min-h-screen pb-16">
-      <div className="mx-auto w-full max-w-2xl">
+      <Container maxWidth="text" paddingX="none">
         <header className="relative overflow-hidden bg-gradient-to-b from-cream to-bg px-5 sm:px-8 pt-8 sm:pt-10 pb-7">
           <div
             aria-hidden
@@ -53,7 +54,7 @@ export default async function NewStoryPage() {
         <div className="px-5 sm:px-8 pt-6">
           <StoryComposer userId={user.id} />
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
