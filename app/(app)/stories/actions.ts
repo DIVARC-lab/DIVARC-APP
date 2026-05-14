@@ -143,7 +143,13 @@ export async function createStory(formData: FormData) {
   });
 
   if (error) {
-    return { ok: false, error: "Publication impossible." };
+    console.error("[stories:createStory]", error);
+    /* Message explicite pour aider au debug : check constraint, RLS,
+     * colonne inexistante… apparaît dans le toast côté user. */
+    return {
+      ok: false,
+      error: `Publication impossible : ${error.message ?? error.code ?? "raison inconnue"}`,
+    };
   }
 
   revalidatePath("/feed");
