@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { isCurrentUserAdmin } from "@/lib/queries/admin";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Pharos / NCMEC — File de signalements" };
 
@@ -43,7 +44,7 @@ export default async function PharosQueuePage() {
 
   return (
     <div className="bg-bg-soft min-h-screen pb-12">
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 pt-8">
+      <Container maxWidth="default" paddingX="page" paddingY="2xl">
         <header className="mb-6">
           <KickerLabel>· Trust & Safety · Autorités</KickerLabel>
           <div className="flex items-baseline justify-between gap-4 flex-wrap">
@@ -238,7 +239,7 @@ export default async function PharosQueuePage() {
             </li>
           </ol>
         </aside>
-      </div>
+      </Container>
     </div>
   );
 }

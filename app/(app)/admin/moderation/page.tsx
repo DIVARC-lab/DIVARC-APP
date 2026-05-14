@@ -13,6 +13,7 @@ import { CATEGORY_BY_ID } from "@/lib/moderation/categories";
 import { createClient } from "@/lib/supabase/server";
 import { ModerationActionPanel } from "./_components/ModerationActionPanel";
 import { ReportListItem } from "./_components/ReportListItem";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Modération — File de revue",
@@ -50,7 +51,7 @@ export default async function ModerationConsolePage({
 
   return (
     <div className="bg-bg-soft min-h-screen pb-12">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-8">
+      <Container maxWidth="full" paddingX="page" paddingY="2xl">
         <header className="mb-6">
           <KickerLabel>· Trust & Safety</KickerLabel>
           <div className="flex items-baseline justify-between gap-4 flex-wrap">
@@ -111,7 +112,7 @@ export default async function ModerationConsolePage({
             </aside>
           ) : null}
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
