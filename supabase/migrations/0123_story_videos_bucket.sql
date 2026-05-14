@@ -55,5 +55,8 @@ create policy "users delete own story videos"
     and auth.uid()::text = (storage.foldername(name))[1]
   );
 
-comment on table storage.buckets is
-  'Inclut le bucket story-videos depuis la migration 0123.';
+-- NOTE : on évite `comment on table storage.buckets` qui demande des
+-- droits OWNER sur le schéma `storage` (ERROR 42501 sur Supabase Cloud,
+-- où l'user postgres n'est pas owner du schéma système). Les
+-- INSERT/UPDATE sur storage.buckets ci-dessus sont autorisés via la
+-- politique storage par défaut.
