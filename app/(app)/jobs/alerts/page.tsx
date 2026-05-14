@@ -11,6 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 import { SavedSearchCard } from "./_components/SavedSearchCard";
 import { CreateAlertCard } from "./_components/CreateAlertCard";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Alertes emploi",
@@ -26,7 +29,8 @@ export default async function AlertsPage() {
   const alerts = await listMySavedSearches(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/jobs"
@@ -65,20 +69,12 @@ export default async function AlertsPage() {
           Mes alertes ({alerts.length})
         </h2>
         {alerts.length === 0 ? (
-          <div className="text-center py-12 px-6 rounded-3xl bg-white border border-line">
-            <div
-              aria-hidden
-              className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream to-gold/15 border border-gold/30 flex items-center justify-center mb-4"
-            >
-              <BellRing className="w-6 h-6 text-gold-deep" aria-hidden />
-            </div>
-            <h3 className="font-display text-xl text-night">
-              Pas encore d&apos;alerte
-            </h3>
-            <p className="mt-2 text-sm text-muted">
-              Crée ta première alerte ci-dessus.
-            </p>
-          </div>
+          <EmptyState
+            icon={BellRing}
+            title="Pas encore d'alerte"
+            body="Crée ta première alerte ci-dessus."
+            tone="default"
+          />
         ) : (
           <ul className="space-y-3">
             {alerts.map((alert) => (
@@ -89,6 +85,7 @@ export default async function AlertsPage() {
           </ul>
         )}
       </section>
-    </div>
+      </Stack>
+    </Container>
   );
 }

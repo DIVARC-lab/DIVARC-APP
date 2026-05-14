@@ -8,6 +8,9 @@ import { APPLICATION_STATUS_META } from "@/lib/utils/jobs";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { WithdrawButton } from "./_components/WithdrawButton";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Mes candidatures",
@@ -32,7 +35,8 @@ export default async function MyApplicationsPage() {
   const applications = await listMyApplications(user.id);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/jobs"
@@ -52,23 +56,14 @@ export default async function MyApplicationsPage() {
       </header>
 
       {applications.length === 0 ? (
-        <div className="text-center py-16 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-4"
-          >
-            <Send className="w-7 h-7 text-night-muted" aria-hidden />
-          </div>
-          <h2 className="font-display text-xl text-night">
-            Pas encore de candidature
-          </h2>
-          <p className="mt-1 text-sm text-muted max-w-sm mx-auto">
-            Parcours les offres et postule en un clic.
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/jobs">Voir les offres</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={Send}
+          title="Pas encore de candidature"
+          body="Parcours les offres et postule en un clic."
+          ctaHref="/jobs"
+          ctaLabel="Voir les offres"
+          tone="default"
+        />
       ) : (
         <ul className="space-y-3">
           {applications.map((application) => {
@@ -122,6 +117,7 @@ export default async function MyApplicationsPage() {
           })}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }
