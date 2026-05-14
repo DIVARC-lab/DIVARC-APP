@@ -120,7 +120,7 @@ export default async function DashboardLayout({
             <main
               id="main-content"
               tabIndex={-1}
-              className="xl:ml-80 min-h-[calc(100vh-56px)] focus:outline-none"
+              className="xl:ml-80 min-h-[calc(100vh-56px)] focus:outline-none overflow-x-hidden"
             >
               {children}
             </main>

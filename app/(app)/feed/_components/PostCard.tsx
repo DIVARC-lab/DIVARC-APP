@@ -84,7 +84,7 @@ function PostCardInner({
   return (
     <article
       ref={mergeRefs<HTMLElement>(impressionRef, dwellRef)}
-      className="w-full max-w-full overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]"
+      className="overflow-hidden rounded-[28px] bg-white shadow-[0_1px_2px_rgba(10,31,68,0.04),0_20px_50px_-28px_rgba(10,31,68,0.22)]"
     >
       {/* Hero media — au-dessus du header pour la 1ère card du feed */}
       {heroMedia && post.video_url ? (
@@ -222,13 +222,13 @@ function PostCardInner({
               <div className="px-[18px] pb-3.5">
                 <div
                   className={cn(
-                    "w-full rounded-[18px] overflow-hidden flex items-center justify-center min-h-[260px] px-6 py-10",
+                    "rounded-[18px] overflow-hidden flex items-center justify-center min-h-[260px] px-6 py-10",
                     palette.bg,
                   )}
                 >
                   <p
                     className={cn(
-                      "w-full text-center font-display italic text-[26px] sm:text-[30px] leading-[1.2] whitespace-pre-wrap break-words",
+                      "text-center font-display italic text-[26px] sm:text-[30px] leading-[1.2] whitespace-pre-wrap break-words",
                       palette.text === "cream" ? "text-cream" : "text-night",
                     )}
                   >
