@@ -80,7 +80,7 @@ export function PersonCard({ person }: PersonCardProps) {
         disabled={pending || requested}
         className={`mt-auto inline-flex items-center justify-center gap-1.5 px-3 h-9 rounded-full text-xs font-semibold transition-all ${
           requested
-            ? "bg-emerald-50 text-emerald-700"
+            ? "bg-gold/15 text-gold-deep"
             : "bg-night text-cream hover:bg-night-soft"
         } disabled:opacity-70`}
       >

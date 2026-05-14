@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { ImageOff, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CATEGORY_META } from "@/lib/utils/categories";
@@ -29,8 +29,17 @@ export function MiniListingCard({ listing }: MiniListingCardProps) {
             unoptimized={listing.cover_url.includes("?")}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-4xl">
-            {meta?.emoji ?? "📦"}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {meta?.emoji ? (
+              <span className="text-4xl" aria-hidden>
+                {meta.emoji}
+              </span>
+            ) : (
+              <ImageOff
+                className="w-9 h-9 text-night-dim/60"
+                aria-hidden
+              />
+            )}
           </div>
         )}
       </div>

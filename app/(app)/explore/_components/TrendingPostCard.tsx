@@ -1,4 +1,4 @@
-import { Heart, MessageCircle } from "lucide-react";
+import { Heart, MessageCircle, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
@@ -32,8 +32,8 @@ export function TrendingPostCard({ post }: TrendingPostCardProps) {
           />
         </div>
       ) : (
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-cream to-gold/15 border border-gold/30 flex items-center justify-center text-3xl shrink-0">
-          ✨
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-cream to-gold/15 border border-gold/30 flex items-center justify-center shrink-0">
+          <Sparkles className="w-7 h-7 text-gold-deep" aria-hidden />
         </div>
       )}
       <div className="flex-1 min-w-0 flex flex-col">
