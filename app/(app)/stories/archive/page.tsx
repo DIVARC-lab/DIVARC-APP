@@ -9,6 +9,7 @@ import { listMyActiveStories } from "@/lib/queries/stories";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Mes stories",
@@ -33,7 +34,7 @@ export default async function StoriesArchivePage() {
   const uniqueText = stories.filter((s) => s.type === "text").length;
 
   return (
-    <div className="px-4 sm:px-10 py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="mb-8">
         <Link
           href="/feed"
@@ -99,7 +100,7 @@ export default async function StoriesArchivePage() {
           })}
         </ul>
       )}
-    </div>
+    </Container>
   );
 }
 
