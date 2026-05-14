@@ -5,6 +5,7 @@ import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listEventReports } from "@/lib/queries/adsEvents";
 import { createClient } from "@/lib/supabase/server";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Reporting events" };
 
@@ -43,7 +44,7 @@ export default async function EventsReportPage({
   });
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
       <Link
         href={`/ads-manager/${accountId}`}
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -182,7 +183,7 @@ export default async function EventsReportPage({
           </table>
         </div>
       )}
-    </div>
+    </Container>
   );
 }
 
