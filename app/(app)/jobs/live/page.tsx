@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/Button";
 import { listUpcomingLiveSessions } from "@/lib/queries/liveSessions";
 import { createClient } from "@/lib/supabase/server";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Lives recrutement",
@@ -21,7 +24,8 @@ export default async function LivePage() {
   const sessions = await listUpcomingLiveSessions();
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-4xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <Link
@@ -49,20 +53,15 @@ export default async function LivePage() {
       </header>
 
       {sessions.length === 0 ? (
-        <div className="text-center py-20 px-6 rounded-3xl bg-white border border-line">
-          <div
-            aria-hidden
-            className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-cream via-bg to-gold/15 border border-gold/30 flex items-center justify-center mb-5"
-          >
-            <Radio className="w-7 h-7 text-gold-deep" aria-hidden />
-          </div>
-          <h2 className="font-display text-2xl text-night">
-            Aucun live programmé
-          </h2>
-          <p className="mt-2 text-muted max-w-sm mx-auto">
-            Sois le premier à programmer une session pour ta communauté.
-          </p>
-        </div>
+        <EmptyState
+          icon={Radio}
+          title="Aucun live programmé"
+          body="Sois le premier à programmer une session pour ta communauté."
+          ctaHref="/jobs/live/new"
+          ctaLabel="Programmer un live"
+          tone="default"
+          size="lg"
+        />
       ) : (
         <ul className="space-y-3">
           {sessions.map((s) => {
@@ -123,6 +122,7 @@ export default async function LivePage() {
           })}
         </ul>
       )}
-    </div>
+      </Stack>
+    </Container>
   );
 }

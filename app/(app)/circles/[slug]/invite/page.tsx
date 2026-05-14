@@ -11,6 +11,7 @@ import { listCircleInvitations } from "@/lib/queries/circle_invitations";
 import { createClient } from "@/lib/supabase/server";
 import { AmbassadorProgress } from "./AmbassadorProgress";
 import { CircleInvitationsManager } from "./CircleInvitationsManager";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Invitations",
@@ -46,7 +47,7 @@ export default async function CircleInvitePage({
   ]);
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-2xl mx-auto w-full">
+    <Container maxWidth="text" paddingX="page" paddingY="3xl">
       <header className="mb-8">
         <Link
           href={`/circles/${slug}`}
@@ -73,6 +74,6 @@ export default async function CircleInvitePage({
         invitations={invitations}
         circleName={circle.name}
       />
-    </div>
+    </Container>
   );
 }

@@ -6,6 +6,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 import { listMyAdAccounts } from "@/lib/queries/ads";
 import { createClient } from "@/lib/supabase/server";
 import { CustomAudienceUploader } from "./CustomAudienceUploader";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = { title: "Upload audience client" };
 
@@ -19,16 +20,16 @@ export default async function CustomAudienceUploadPage() {
   const accounts = await listMyAdAccounts();
   if (accounts.length === 0) {
     return (
-      <div className="px-5 sm:px-8 py-8 max-w-2xl mx-auto">
+      <Container maxWidth="text" paddingX="page" paddingY="3xl">
         <p className="text-[14px] text-night-muted">
           Pas de compte publicitaire. Crée-en un d&apos;abord.
         </p>
-      </div>
+      </Container>
     );
   }
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-2xl mx-auto">
+    <Container maxWidth="text" paddingX="page" paddingY="3xl">
       <Link
         href="/ads-manager/audiences"
         className="inline-flex items-center gap-1.5 text-[12px] font-bold text-night-muted hover:text-night transition-colors mb-4"
@@ -82,6 +83,6 @@ export default async function CustomAudienceUploadPage() {
           </li>
         </ul>
       </section>
-    </div>
+    </Container>
   );
 }
