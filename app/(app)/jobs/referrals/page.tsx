@@ -11,6 +11,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
+import { Stack } from "@/components/primitives/Stack";
 
 export const metadata = {
   title: "Mes cooptations",
@@ -56,7 +58,8 @@ export default async function ReferralsPage({
   }));
 
   return (
-    <div className="px-6 sm:px-10 py-10 max-w-3xl mx-auto w-full space-y-8">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
+      <Stack gap="3xl">
       <header>
         <Link
           href="/jobs"
@@ -123,7 +126,8 @@ export default async function ReferralsPage({
           </ul>
         )
       ) : null}
-    </div>
+      </Stack>
+    </Container>
   );
 }
 
