@@ -15,6 +15,7 @@ import { TransactionList } from "./_components/TransactionList";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { formatPrice } from "@/lib/utils/currency";
+import { Container } from "@/components/primitives/Container";
 
 export const metadata = {
   title: "Wallet",
@@ -63,7 +64,7 @@ export default async function WalletPage() {
   }
 
   return (
-    <div className="px-4 sm:px-10 py-8 sm:py-10 max-w-3xl mx-auto w-full">
+    <Container maxWidth="default" paddingX="page" paddingY="3xl">
       <header className="mb-5">
         <KickerLabel>Wallet</KickerLabel>
         <DisplayHeading size="lg" className="mt-2">
@@ -196,7 +197,7 @@ export default async function WalletPage() {
         </header>
         <TransactionList transactions={transactions.slice(0, 8)} />
       </section>
-    </div>
+    </Container>
   );
 }
 
