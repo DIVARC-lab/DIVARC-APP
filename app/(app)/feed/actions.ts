@@ -683,3 +683,234 @@ export async function deleteComment(commentId: string, postId: string) {
   revalidatePath(`/feed/${postId}`);
   return { ok: true };
 }
+
+/* Partage interne : envoie le lien d'un post dans une conversation existante
+ * (DM ou groupe). Crée le DM si on partage à un ami sans conv préalable. */
+const sharePostSchema = z.object({
+  postId: z.string().uuid(),
+  target: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("conversation"), conversationId: z.string().uuid() }),
+    z.object({ kind: z.literal("user"), userId: z.string().uuid() }),
+  ]),
+  note: z.string().trim().max(280).optional(),
+});
+
+export type SharePostResult =
+  | { ok: true; conversationId: string }
+  | { ok: false; error: string };
+
+export async function sharePostToConversation(input: {
+  postId: string;
+  target:
+    | { kind: "conversation"; conversationId: string }
+    | { kind: "user"; userId: string };
+  note?: string;
+}): Promise<SharePostResult> {
+  const parsed = sharePostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Données invalides." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Vérifie que le post existe et n'est pas supprimé. RLS filtre déjà
+     selon la visibilité ; un post non lisible reviendra null. */
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, deleted_at")
+    .eq("id", parsed.data.postId)
+    .maybeSingle();
+  if (!post || post.deleted_at) {
+    return { ok: false, error: "Post introuvable." };
+  }
+
+  let conversationId: string;
+  if (parsed.data.target.kind === "conversation") {
+    conversationId = parsed.data.target.conversationId;
+  } else {
+    if (parsed.data.target.userId === user.id) {
+      return { ok: false, error: "Tu ne peux pas te partager à toi-même." };
+    }
+    const { data, error } = await supabase.rpc(
+      "get_or_create_direct_conversation",
+      { other_user_id: parsed.data.target.userId },
+    );
+    if (error || !data) {
+      return { ok: false, error: "Impossible d'ouvrir la conversation." };
+    }
+    conversationId = data as string;
+  }
+
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "https://divarc-app.vercel.app";
+  const url = `${origin}/feed/${parsed.data.postId}`;
+  const note = parsed.data.note?.trim();
+  const body = note ? `${note}\n${url}` : url;
+
+  const { error: insertError } = await supabase.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: user.id,
+    type: "link",
+    body,
+  });
+  if (insertError) {
+    console.error("[sharePostToConversation]", insertError);
+    return { ok: false, error: "Échec de l'envoi." };
+  }
+
+  revalidatePath(`/messages/${conversationId}`);
+  revalidatePath("/messages");
+  return { ok: true, conversationId };
+}
+
+/* Liste les cibles de partage interne pour un user :
+ *  - conversations récentes non archivées (DM ou groupe)
+ *  - amis acceptés (pour démarrer un DM si pas de conv préalable)
+ * Pas de RPC dédiée → on utilise la stratégie de ForwardPicker. */
+export type ShareTarget =
+  | {
+      kind: "conversation";
+      id: string;
+      type: "direct" | "group" | "listing_chat" | string;
+      label: string;
+      subtitle: string | null;
+      avatar_url: string | null;
+      last_message_at: string | null;
+    }
+  | {
+      kind: "user";
+      id: string;
+      label: string;
+      subtitle: string | null;
+      avatar_url: string | null;
+    };
+
+export async function listShareTargets(): Promise<{
+  ok: boolean;
+  conversations: ShareTarget[];
+  friends: ShareTarget[];
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, conversations: [], friends: [] };
+
+  /* 1. Conversations récentes (mêmes filtres que ForwardPicker). */
+  const { data: memberRows } = await supabase
+    .from("conversation_members")
+    .select("conversation_id, is_archived")
+    .eq("user_id", user.id);
+
+  const visibleConvIds = (memberRows ?? [])
+    .filter((m) => !m.is_archived)
+    .map((m) => m.conversation_id);
+
+  const conversations: ShareTarget[] = [];
+  const directConvOtherIds = new Set<string>();
+
+  if (visibleConvIds.length > 0) {
+    const { data: convs } = await supabase
+      .from("conversations")
+      .select("id, type, name, avatar_url, last_message_at")
+      .in("id", visibleConvIds)
+      .order("last_message_at", { ascending: false })
+      .limit(30);
+
+    const directIds = (convs ?? [])
+      .filter((c) => c.type === "direct")
+      .map((c) => c.id);
+
+    const otherByConv = new Map<string, string>();
+    if (directIds.length > 0) {
+      const { data: allMembers } = await supabase
+        .from("conversation_members")
+        .select("conversation_id, user_id")
+        .in("conversation_id", directIds);
+      for (const m of allMembers ?? []) {
+        if (m.user_id !== user.id) {
+          otherByConv.set(m.conversation_id, m.user_id);
+          directConvOtherIds.add(m.user_id);
+        }
+      }
+    }
+
+    const profileByUserId = new Map<
+      string,
+      { full_name: string | null; username: string | null; avatar_url: string | null }
+    >();
+    const otherIds = Array.from(otherByConv.values());
+    if (otherIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", otherIds);
+      for (const p of profiles ?? []) profileByUserId.set(p.id, p);
+    }
+
+    for (const c of convs ?? []) {
+      if (c.type === "direct") {
+        const otherId = otherByConv.get(c.id);
+        const profile = otherId ? profileByUserId.get(otherId) : null;
+        const label =
+          profile?.full_name ?? profile?.username ?? "Conversation";
+        conversations.push({
+          kind: "conversation",
+          id: c.id,
+          type: c.type,
+          label,
+          subtitle: profile?.username ? `@${profile.username}` : null,
+          avatar_url: profile?.avatar_url ?? null,
+          last_message_at: c.last_message_at,
+        });
+      } else {
+        conversations.push({
+          kind: "conversation",
+          id: c.id,
+          type: c.type,
+          label: c.name ?? "Groupe",
+          subtitle: c.type === "group" ? "Groupe" : null,
+          avatar_url: c.avatar_url,
+          last_message_at: c.last_message_at,
+        });
+      }
+    }
+  }
+
+  /* 2. Amis acceptés non déjà listés via un DM. */
+  const { data: friendships } = await supabase
+    .from("friendships")
+    .select("requester_id, recipient_id")
+    .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`)
+    .eq("status", "accepted")
+    .limit(100);
+
+  const friendIds = new Set<string>();
+  for (const f of friendships ?? []) {
+    const other = f.requester_id === user.id ? f.recipient_id : f.requester_id;
+    if (other && !directConvOtherIds.has(other)) friendIds.add(other);
+  }
+
+  const friends: ShareTarget[] = [];
+  if (friendIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, username, avatar_url")
+      .in("id", Array.from(friendIds));
+    for (const p of profiles ?? []) {
+      friends.push({
+        kind: "user",
+        id: p.id,
+        label: p.full_name ?? p.username ?? "Ami",
+        subtitle: p.username ? `@${p.username}` : null,
+        avatar_url: p.avatar_url,
+      });
+    }
+    friends.sort((a, b) => a.label.localeCompare(b.label, "fr"));
+  }
+
+  return { ok: true, conversations, friends };
+}
