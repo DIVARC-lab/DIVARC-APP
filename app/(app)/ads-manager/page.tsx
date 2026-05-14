@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { DisplayHeading } from "@/components/ui/DisplayHeading";
 import { KickerLabel } from "@/components/ui/KickerLabel";
+import { Container } from "@/components/primitives/Container";
 import { isCurrentUserAdmin } from "@/lib/queries/admin";
 import {
   checkAdsAvailability,
@@ -53,7 +54,7 @@ export default async function AdsManagerHome() {
   const hasAccount = accounts.length > 0;
 
   return (
-    <div className="px-5 sm:px-8 py-8 max-w-6xl mx-auto">
+    <Container maxWidth="wide" paddingX="page" paddingY="3xl">
       {availability.reason === "tables_missing" ? (
         <MigrationsMissingBanner isAdmin={isAdmin} />
       ) : null}
@@ -340,7 +341,7 @@ export default async function AdsManagerHome() {
           </ul>
         </div>
       </section>
-    </div>
+    </Container>
   );
 }
 
