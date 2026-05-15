@@ -8,6 +8,7 @@ import {
 } from "@/lib/queries/notifications";
 import { listMyCircles } from "@/lib/queries/circles";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { MobileViewportHeight } from "@/components/MobileViewportHeight";
 import { NotificationsRealtime } from "@/components/NotificationsRealtime";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -134,6 +135,7 @@ export default async function DashboardLayout({
             avatarUrl={avatarUrl}
           />
 
+          <MobileViewportHeight />
           <NotificationsRealtime userId={user.id} />
           <PresenceHeartbeat />
           <ThemeProvider initialTheme={profile?.theme ?? "system"} />
