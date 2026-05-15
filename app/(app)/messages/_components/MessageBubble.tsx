@@ -35,6 +35,7 @@ import {
 } from "../message-actions";
 import { AudioPlayer } from "./AudioPlayer";
 import { ForwardPicker } from "./ForwardPicker";
+import { LinkifiedText } from "./LinkifiedText";
 import { MessageActionsSheet } from "./MessageActionsSheet";
 import { MessageReactions } from "./MessageReactions";
 import { ReactionPicker } from "./ReactionPicker";
@@ -708,7 +709,7 @@ export function MessageBubble({
                   ) : null}
                 </div>
                 <p className="whitespace-pre-wrap break-words">
-                  {displayBody}
+                  <LinkifiedText text={displayBody ?? ""} />
                 </p>
                 {message.edited_at ? (
                   <p
