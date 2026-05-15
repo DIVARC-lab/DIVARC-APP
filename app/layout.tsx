@@ -83,13 +83,9 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "#f8f9fb" },
     { media: "(prefers-color-scheme: dark)", color: "#0a1f44" },
   ],
-  width: "device-width",
-  initialScale: 1,
-  /* iOS PWA : `cover` permet à `env(safe-area-inset-*)` de retourner
-     des valeurs non-nulles (notch, home indicator, encoche). Sans ça,
-     les paddings safe-area sont ignorés et le contenu passe sous la
-     status bar ou est mangé par le home indicator. */
-  viewportFit: "cover",
+  /* Le `<meta name="viewport">` est posé manuellement dans le <head>
+     du RootLayout pour inclure `interactive-widget=resizes-content`
+     que l'API Viewport de Next.js ne supporte pas. */
 };
 
 export default function RootLayout({
@@ -102,6 +98,17 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <head>
+        {/* Override viewport meta manuellement pour inclure
+            `interactive-widget=resizes-content` que Next.js Viewport
+            API ne supporte pas. Cette propriété (Safari 17+) demande
+            au navigateur de RÉTRÉCIR le layout viewport quand le
+            clavier ouvre — ainsi `100dvh` reflète bien la zone visible
+            au-dessus du clavier. Sans ça, `100dvh` reste constant et
+            le contenu déborde derrière le clavier en iOS PWA. */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+        />
         <script
           // Bootstrap the theme before React hydrates so we never flash
           // the wrong color scheme.

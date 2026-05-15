@@ -8,10 +8,16 @@
  *    ce qui casse le flex-1 de ConversationView en interne).
  *  - On affiche SOIT la sidebar (sur /messages) SOIT le chat (sur
  *    /messages/[id]) — pas les deux. L'élément visible prend flex-1.
- *  - En conv mobile : pattern "WhatsApp", wrapper en `fixed inset-0`
- *    + height = var(--viewport-visual-h) qui suit le clavier en
+ *  - En conv mobile : pattern "WhatsApp", layout IN-FLOW (pas fixed)
+ *    de hauteur var(--viewport-visual-h) qui suit le clavier en
  *    temps réel via visualViewport. TopBar/BottomNav cachées par
- *    `html.conv-fullscreen` (cf. MobileBodyLock + globals.css).
+ *    `html.conv-fullscreen` (cf. MobileBodyLock + globals.css), shell
+ *    pt/pb retirés en conv-fullscreen, main min-h fixée par CSS.
+ *
+ *    On évite `position: fixed inset-0` : iOS Safari en mode PWA a
+ *    un bug avec les éléments `fixed` à l'intérieur d'un ancêtre
+ *    `overflow: hidden` (cf. `<main>` qui a `overflow-x: hidden`)
+ *    qui les rendait invisibles.
  *
  * Desktop (>=lg) :
  *  - Layout `grid grid-cols-[340px_1fr]` : sidebar + chat side-by-side.
@@ -32,8 +38,10 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
     pathname.startsWith("/messages/") && pathname !== "/messages";
 
   const containerClass = isConvOpen
-    ? /* Conv ouverte : mobile fullscreen fixed, desktop grid normal. */
-      "fixed inset-0 z-30 flex flex-col h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:relative lg:inset-auto lg:z-auto lg:grid lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
+    ? /* Conv ouverte : mobile in-flow flex-col plein écran visible
+         (le shell parent a déjà pt:0 / pb:0 via .conv-fullscreen),
+         desktop grid normal. */
+      "flex flex-col h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:grid lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
     : /* Liste de conv : flex column mobile pour que la sidebar prenne
          toute la hauteur via flex-1, grid sur desktop. */
       "flex flex-col overflow-hidden lg:grid lg:grid-cols-[340px_1fr] h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
