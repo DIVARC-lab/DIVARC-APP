@@ -579,10 +579,11 @@ export async function createCirclePost(formData: FormData) {
   }
 
   /* Verify membership client-side too (RLS will refuse anyway) for
-     a clean error message instead of a generic insert failure. */
+     a clean error message instead of a generic insert failure.
+     On lit aussi le rôle pour le check announcement plus bas. */
   const { data: membership } = await supabase
     .from("circle_members")
-    .select("circle_id")
+    .select("circle_id, role")
     .eq("circle_id", parsed.data.circle_id)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -591,6 +592,35 @@ export async function createCirclePost(formData: FormData) {
       ok: false as const,
       error: "Tu dois être membre du cercle pour poster.",
     };
+  }
+
+  /* Sprint B.3 — si on poste dans un channel announcement, vérifier
+     que l'auteur a le rôle owner/admin/moderator. */
+  if (parsed.data.channel_id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: channel } = await (supabase as any)
+      .from("circle_channels")
+      .select("channel_type")
+      .eq("id", parsed.data.channel_id)
+      .eq("circle_id", parsed.data.circle_id)
+      .maybeSingle();
+    const channelType =
+      (channel as { channel_type?: string } | null)?.channel_type ?? null;
+    if (channelType === "announcement") {
+      const role = (membership as { role?: string }).role ?? null;
+      const canPost =
+        role === "owner" ||
+        role === "admin" ||
+        role === "moderator" ||
+        role === "mod";
+      if (!canPost) {
+        return {
+          ok: false as const,
+          error:
+            "Seuls les admins et modérateurs peuvent publier dans un channel d'annonces.",
+        };
+      }
+    }
   }
 
   /* Sprint B — bypass types Supabase non régénérés. */

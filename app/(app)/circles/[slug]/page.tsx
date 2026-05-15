@@ -184,14 +184,28 @@ export default async function CirclePostsTab({
         activeSlug={activeChannel?.slug ?? null}
       />
 
-      <CirclePostComposer
-        circleId={circle.id}
-        authorName={fullName}
-        authorAvatarUrl={profile?.avatar_url ?? null}
-        flairs={flairs}
-        channelId={activeChannelId}
-        channelName={activeChannel?.name ?? null}
-      />
+      {/* Sprint B.3 — channel announcement : composer locked pour non-admin. */}
+      {activeChannel?.channel_type === "announcement" && !canModerate ? (
+        <div className="rounded-2xl bg-bg-soft border border-line border-dashed p-4 text-center">
+          <p className="text-[13px] text-night-dim leading-relaxed">
+            📢{" "}
+            <span className="font-bold text-night">
+              Channel d&apos;annonces
+            </span>{" "}
+            — seuls les admins et modérateurs peuvent publier ici. Tu reçois
+            une notification à chaque nouvelle annonce.
+          </p>
+        </div>
+      ) : (
+        <CirclePostComposer
+          circleId={circle.id}
+          authorName={fullName}
+          authorAvatarUrl={profile?.avatar_url ?? null}
+          flairs={flairs}
+          channelId={activeChannelId}
+          channelName={activeChannel?.name ?? null}
+        />
+      )}
 
       {/* Filtres tri transparents (URL-driven). */}
       <div className="mt-4 mb-2">

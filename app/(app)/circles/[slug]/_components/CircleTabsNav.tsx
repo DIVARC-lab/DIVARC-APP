@@ -8,6 +8,7 @@ import {
   Calendar,
   GraduationCap,
   HandshakeIcon,
+  Hash,
   Info,
   MessageSquare,
   Mic,
@@ -136,6 +137,13 @@ const ALL_TABS: Tab[] = [
     icon: Bot,
     moduleKey: "bots",
     segment: "/bots",
+    adminOnly: true,
+  },
+  {
+    slug: "channels",
+    label: "Channels",
+    icon: Hash,
+    segment: "/channels",
     adminOnly: true,
   },
 ];
