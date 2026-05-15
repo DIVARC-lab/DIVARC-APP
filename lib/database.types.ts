@@ -1955,6 +1955,140 @@ export type CircleModules = {
   live_rooms: boolean;
   /* Chantier Cercles v3 — AI Assistant FAQ (migration 0136). */
   ai_assistant: boolean;
+  /* Chantier Cercles v4 — Bots & Automation (migration 0138). */
+  bots: boolean;
+};
+
+/* === Chantier Cercles v4 Sprint A — Bots & Automation === */
+
+export type CircleBotType =
+  | "welcome"
+  | "moderation"
+  | "event"
+  | "reminder"
+  | "digest"
+  | "ai_assistant";
+
+/* Configs typées par bot type (validation Zod côté Server Action). */
+export type WelcomeBotConfig = {
+  template: string; // ex: "Bienvenue {{name}} sur {{circle}} !"
+  send_dm?: boolean;
+  checklist_items?: Array<{ label: string; href: string }>;
+};
+
+export type ModerationBotConfig = {
+  blocked_keywords: string[];
+  max_urls_per_message?: number;
+  caps_threshold?: number; // % de caps pour flag
+  auto_action: "hide" | "flag" | "warn";
+  whitelist_roles?: Array<"owner" | "admin" | "moderator">;
+};
+
+export type EventBotConfig = {
+  reminders_at: Array<"7d" | "1d" | "1h" | "live">;
+  template_pattern: string; // ex: "📅 {{event}} commence dans {{time}}"
+};
+
+export type ReminderBotConfig = {
+  template: string;
+  channel?: string; // slug du channel cible
+};
+
+export type DigestBotConfig = {
+  schedule_cron: string; // ex: "0 18 * * 0" pour dimanche 18h
+  include_top_posts?: boolean;
+  include_new_members?: boolean;
+  include_events?: boolean;
+};
+
+export type AIAssistantBotConfig = {
+  knowledge_sources: Array<"rules" | "library" | "posts">;
+  response_style: "concise" | "detailed";
+};
+
+export type CircleBot = {
+  id: string;
+  circle_id: string;
+  bot_type: CircleBotType;
+  name: string;
+  avatar_url: string | null;
+  description: string | null;
+  config: Record<string, unknown>; // typé selon bot_type
+  is_active: boolean;
+  actions_executed_count: number;
+  last_action_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type CircleBotTriggerKind = "event" | "schedule";
+export type CircleBotEvent =
+  | "member_joined"
+  | "member_left"
+  | "post_created"
+  | "chat_message"
+  | "event_created"
+  | "event_starting_soon";
+
+export type CircleBotTrigger = {
+  id: string;
+  bot_id: string;
+  trigger_kind: CircleBotTriggerKind;
+  trigger_event: CircleBotEvent | null;
+  trigger_schedule: string | null; // cron expression
+  conditions: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type CircleBotActionKind =
+  | "post_chat_message"
+  | "send_dm"
+  | "add_tag"
+  | "hide_content"
+  | "flag_for_review"
+  | "create_post"
+  | "mention_role"
+  | "webhook";
+
+export type CircleBotAction = {
+  id: string;
+  bot_id: string;
+  action_kind: CircleBotActionKind;
+  position: number;
+  params: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type CircleBotExecution = {
+  id: string;
+  bot_id: string;
+  trigger_id: string | null;
+  triggered_at: string;
+  context: Record<string, unknown>;
+  status: "success" | "failed" | "skipped";
+  output: string | null;
+  duration_ms: number | null;
+};
+
+/* Aggregate retourné par list_circle_bots RPC. */
+export type CircleBotSummary = Pick<
+  CircleBot,
+  | "id"
+  | "bot_type"
+  | "name"
+  | "avatar_url"
+  | "description"
+  | "is_active"
+  | "actions_executed_count"
+  | "last_action_at"
+  | "config"
+> & {
+  triggers_count: number;
+  actions_count: number;
 };
 
 /* Chantier Cercles v3 — Méta-cercles (Hubs) + Reputation portable. */

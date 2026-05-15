@@ -182,6 +182,8 @@ const createV2Schema = z.object({
     live_rooms: z.boolean().default(true),
     /* Chantier Cercles v3 — AI Assistant FAQ activé par défaut. */
     ai_assistant: z.boolean().default(true),
+    /* Chantier Cercles v4 — Bots & Automation activés par défaut. */
+    bots: z.boolean().default(true),
   }),
   welcome_message: z
     .string()
