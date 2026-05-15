@@ -2074,6 +2074,36 @@ export type CircleBotExecution = {
   duration_ms: number | null;
 };
 
+/* Chantier v4 Sprint B — Channels Discord-style. */
+export type CircleChannelType = "text" | "announcement" | "forum";
+
+export type CircleChannel = {
+  id: string;
+  circle_id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  channel_type: CircleChannelType;
+  position: number;
+  permissions: Record<string, unknown> | null;
+  posts_count: number;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CircleChannelSummary = Pick<
+  CircleChannel,
+  | "id"
+  | "slug"
+  | "name"
+  | "description"
+  | "channel_type"
+  | "position"
+  | "posts_count"
+  | "created_at"
+>;
+
 /* Aggregate retourné par list_circle_bots RPC. */
 export type CircleBotSummary = Pick<
   CircleBot,
