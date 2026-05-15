@@ -6,6 +6,7 @@ import {
   Briefcase,
   Calendar,
   GraduationCap,
+  HandshakeIcon,
   Info,
   MessageSquare,
   Store,
@@ -78,6 +79,13 @@ const ALL_TABS: Tab[] = [
     icon: GraduationCap,
     moduleKey: "mentorship",
     segment: "/mentorship",
+  },
+  {
+    slug: "requests",
+    label: "Demandes & Offres",
+    icon: HandshakeIcon,
+    moduleKey: "requests",
+    segment: "/requests",
   },
   {
     slug: "members",

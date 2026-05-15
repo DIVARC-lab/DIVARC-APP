@@ -1949,6 +1949,49 @@ export type CircleModules = {
   mentorship: boolean;
   /* Chantier Cercles v3 — chat de groupe Realtime (migration 0131). */
   chat: boolean;
+  /* Chantier Cercles v3 — board Demandes & Offres (migration 0133). */
+  requests: boolean;
+};
+
+/* Chantier Cercles v3 — Karma membre (agrégat par cercle). */
+export type CircleMemberKarma = {
+  circle_id: string;
+  user_id: string;
+  points: number;
+  posts_points: number;
+  comments_points: number;
+  reactions_received_points: number;
+  invites_points: number;
+  helpful_points: number;
+  updated_at: string;
+};
+
+/* Chantier Cercles v3 — Demande ou offre d'un membre dans un cercle. */
+export type CircleRequest = {
+  id: string;
+  circle_id: string;
+  author_id: string;
+  kind: "request" | "offer";
+  title: string;
+  body: string | null;
+  tags: string[];
+  budget_amount: number | null;
+  budget_currency: "EUR" | "USD" | "XOF" | "XAF" | "KARMA" | null;
+  is_remote: boolean;
+  location_city: string | null;
+  status: "open" | "in_progress" | "fulfilled" | "closed" | "expired";
+  karma_boost: number;
+  fulfilled_by: string | null;
+  fulfilled_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type CircleRequestWithAuthor = CircleRequest & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  responses_count?: number;
 };
 
 /* Chat de groupe — un message dans circle_chat_messages. */

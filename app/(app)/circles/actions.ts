@@ -168,6 +168,8 @@ const createV2Schema = z.object({
     /* Chantier Cercles v3 — chat de groupe activé par défaut sur
        tous les nouveaux cercles. */
     chat: z.boolean().default(true),
+    /* Chantier Cercles v3 — board Demandes & Offres activé par défaut. */
+    requests: z.boolean().default(true),
   }),
   welcome_message: z
     .string()
