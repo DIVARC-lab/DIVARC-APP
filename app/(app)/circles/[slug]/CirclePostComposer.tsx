@@ -15,6 +15,10 @@ type CirclePostComposerProps = {
   authorAvatarUrl: string | null;
   /* Chantier 3.2 — flairs configurables par cercle. */
   flairs: CircleFlair[];
+  /* Chantier v4 Sprint B — channel actif. Si défini, le post est
+     assigné à ce channel à la création. */
+  channelId?: string | null;
+  channelName?: string | null;
 };
 
 export function CirclePostComposer({
@@ -22,6 +26,8 @@ export function CirclePostComposer({
   authorName,
   authorAvatarUrl,
   flairs,
+  channelId = null,
+  channelName = null,
 }: CirclePostComposerProps) {
   const [body, setBody] = useState("");
   const [flairId, setFlairId] = useState<string | null>(null);
@@ -40,6 +46,7 @@ export function CirclePostComposer({
     formData.set("circle_id", circleId);
     formData.set("body", trimmed);
     if (flairId) formData.set("flair_id", flairId);
+    if (channelId) formData.set("channel_id", channelId);
 
     startTransition(async () => {
       const result = await createCirclePost(formData);
@@ -66,7 +73,11 @@ export function CirclePostComposer({
             ref={ref}
             value={body}
             onChange={(event) => setBody(event.currentTarget.value)}
-            placeholder="Partage avec le cercle…"
+            placeholder={
+              channelName
+                ? `Partage dans #${channelName}…`
+                : "Partage avec le cercle…"
+            }
             maxLength={4000}
             rows={3}
             className="w-full resize-none border-0 focus:outline-none text-sm leading-relaxed bg-transparent placeholder:text-night-dim"

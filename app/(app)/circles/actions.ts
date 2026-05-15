@@ -550,6 +550,12 @@ const circlePostSchema = z.object({
       (v) => (v == null || v === "" ? undefined : v),
       z.string().uuid().optional(),
     ),
+  /* Chantier v4 Sprint B — channel optionnel (FK vers circle_channels). */
+  channel_id: z
+    .preprocess(
+      (v) => (v == null || v === "" ? undefined : v),
+      z.string().uuid().optional(),
+    ),
 });
 
 export async function createCirclePost(formData: FormData) {
@@ -563,6 +569,7 @@ export async function createCirclePost(formData: FormData) {
     circle_id: formData.get("circle_id"),
     body: formData.get("body"),
     flair_id: formData.get("flair_id"),
+    channel_id: formData.get("channel_id"),
   });
   if (!parsed.success) {
     return {
@@ -586,12 +593,15 @@ export async function createCirclePost(formData: FormData) {
     };
   }
 
-  const { error } = await supabase.from("posts").insert({
+  /* Sprint B — bypass types Supabase non régénérés. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("posts").insert({
     author_id: user.id,
     body: parsed.data.body,
     visibility: "private",
     circle_id: parsed.data.circle_id,
     flair_id: parsed.data.flair_id ?? null,
+    channel_id: parsed.data.channel_id ?? null,
   });
 
   if (error) {

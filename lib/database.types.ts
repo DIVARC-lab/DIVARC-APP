@@ -555,6 +555,8 @@ export type Post = {
   /* Chantier Feed v2 (migration 0115) — quote-post. */
   quoted_post_id: string | null;
   quotes_count: number;
+  /* Chantier v4 Sprint B — assignation à un channel du cercle. */
+  channel_id: string | null;
   created_at: string;
   updated_at: string;
   edited_at: string | null;

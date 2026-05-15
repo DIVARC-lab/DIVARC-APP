@@ -413,6 +413,8 @@ export async function listCirclePosts(
   sort: CircleFeedSort = "recent",
   /* Pour 'unread' on lit last_read_at depuis circle_members. */
   unreadSince: string | null = null,
+  /* Chantier v4 Sprint B — filtre par channel (UUID). null = pas de filtre. */
+  channelId: string | null = null,
 ): Promise<PostWithDetails[]> {
   const supabase = await createClient();
   let query = supabase
@@ -423,6 +425,10 @@ export async function listCirclePosts(
     .is("pinned_at", null)
     .eq("status", "published")
     .limit(limit);
+
+  if (channelId) {
+    query = query.eq("channel_id", channelId);
+  }
 
   switch (sort) {
     case "hot_24h":
@@ -475,9 +481,11 @@ export async function listCirclePinnedPosts(
   circleId: string,
   currentUserId: string,
   limit: number = 5,
+  /* Chantier v4 Sprint B — filtre par channel (UUID). null = pas de filtre. */
+  channelId: string | null = null,
 ): Promise<PostWithDetails[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
     .select("*")
     .eq("circle_id", circleId)
@@ -487,6 +495,11 @@ export async function listCirclePinnedPosts(
     .order("pinned_at", { ascending: false })
     .limit(limit);
 
+  if (channelId) {
+    query = query.eq("channel_id", channelId);
+  }
+
+  const { data, error } = await query;
   if (error || !data) return [];
   return attachDetails(data, currentUserId);
 }

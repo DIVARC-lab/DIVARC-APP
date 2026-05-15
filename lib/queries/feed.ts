@@ -200,6 +200,8 @@ async function attachPhotos(
       /* Chantier Feed v2 (migration 0115) — quote-post. */
       quoted_post_id: null,
       quotes_count: 0,
+      /* Chantier v4 Sprint B — channels. */
+      channel_id: null,
       ...videoFields,
       author: authorById.get(row.author_id) ?? null,
       photos: photosByPost.get(row.id) ?? [],

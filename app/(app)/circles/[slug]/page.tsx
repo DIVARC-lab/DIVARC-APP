@@ -2,6 +2,7 @@ import { MessageSquareText } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 import { getCircleBySlug, listCircleFlairs } from "@/lib/queries/circles";
+import { listCircleChannels } from "@/lib/queries/circleChannels";
 import {
   listCirclePinnedPosts,
   listCirclePosts,
@@ -10,13 +11,14 @@ import {
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
+import { ChannelsBar } from "./_components/ChannelsBar";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
 import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
 import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
 type Params = Promise<{ slug: string }>;
-type SearchParamsP = Promise<{ sort?: string }>;
+type SearchParamsP = Promise<{ sort?: string; channel?: string }>;
 
 const VALID_SORTS = new Set<CircleFeedSort>([
   "recent",
@@ -54,6 +56,10 @@ export default async function CirclePostsTab({
   const sort: CircleFeedSort = VALID_SORTS.has(sp.sort as CircleFeedSort)
     ? (sp.sort as CircleFeedSort)
     : "recent";
+  const channelSlugParam =
+    typeof sp.channel === "string" && sp.channel.trim().length > 0
+      ? sp.channel.trim().toLowerCase()
+      : null;
 
   const supabase = await createClient();
   const {
@@ -63,6 +69,16 @@ export default async function CirclePostsTab({
 
   const circle = await getCircleBySlug(slug, user.id);
   if (!circle) notFound();
+
+  /* Sprint B.2 — récupère la liste des channels du cercle (ordonnés par
+     position). Si le user a précisé ?channel=slug, on résout l'UUID. */
+  const channels = circle.is_member
+    ? await listCircleChannels(circle.id)
+    : [];
+  const activeChannel = channelSlugParam
+    ? (channels.find((c) => c.slug === channelSlugParam) ?? null)
+    : null;
+  const activeChannelId = activeChannel?.id ?? null;
 
   const isOwner = circle.owner_id === user.id;
   const canModerate =
@@ -91,10 +107,17 @@ export default async function CirclePostsTab({
     await Promise.all([
       getCurrentProfile(),
       circle.is_member
-        ? listCirclePosts(circle.id, user.id, 30, sort, unreadSince)
+        ? listCirclePosts(
+            circle.id,
+            user.id,
+            30,
+            sort,
+            unreadSince,
+            activeChannelId,
+          )
         : Promise.resolve([]),
       circle.is_member
-        ? listCirclePinnedPosts(circle.id, user.id, 5)
+        ? listCirclePinnedPosts(circle.id, user.id, 5, activeChannelId)
         : Promise.resolve([]),
       circle.is_member ? listCircleFlairs(circle.id) : Promise.resolve([]),
       /* Chantier 5.1 — récupère onboarding_completed_at pour décider du modal. */
@@ -149,14 +172,25 @@ export default async function CirclePostsTab({
       ) : null}
       <div className="flex items-center gap-2 mb-3">
         <MessageSquareText className="w-4 h-4 text-gold-deep" aria-hidden />
-        <KickerLabel>Discussions</KickerLabel>
+        <KickerLabel>
+          {activeChannel ? `# ${activeChannel.name}` : "Discussions"}
+        </KickerLabel>
       </div>
+
+      {/* Sprint B.2 — barre channels (mobile + desktop, horizontale). */}
+      <ChannelsBar
+        circleSlug={slug}
+        channels={channels}
+        activeSlug={activeChannel?.slug ?? null}
+      />
 
       <CirclePostComposer
         circleId={circle.id}
         authorName={fullName}
         authorAvatarUrl={profile?.avatar_url ?? null}
         flairs={flairs}
+        channelId={activeChannelId}
+        channelName={activeChannel?.name ?? null}
       />
 
       {/* Filtres tri transparents (URL-driven). */}
