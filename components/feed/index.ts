@@ -31,8 +31,16 @@ export { CommentsPanel } from "./CommentsPanel";
  * peuvent évoluer sans casser les imports clients. */
 export { PostCard as FeedPostCard } from "@/app/(app)/feed/_components/PostCard";
 export { PhotoCommentsModal as PostMediaViewer } from "@/app/(app)/feed/_components/PhotoCommentsModal";
-export { ReelView as ReelPlayer } from "@/components/reels/ReelView";
+/* `ReelPlayer` = composant standalone autonome (HLS + autoplay + mute)
+ * extrait de la logique de ReelView. `ReelItem` = wrapper d'un Reel
+ * dans la file (= ReelView qui contient toute la logique métier :
+ * actions, watch tracking, cold start). */
+export { ReelPlayer } from "@/components/reels/ReelPlayer";
+export { ReelView as ReelItem } from "@/components/reels/ReelView";
+/* `ReelFeed` / `ReelQueue` sont 2 alias du même composant `ReelsFeed`. */
+export { ReelsFeed as ReelFeed } from "@/components/reels/ReelsFeed";
 export { ReelsFeed as ReelQueue } from "@/components/reels/ReelsFeed";
+export { ReelCommentsSheet } from "@/components/reels/ReelCommentsSheet";
 
 /* Constantes média réexportées pour usage cross-component. */
 export {
