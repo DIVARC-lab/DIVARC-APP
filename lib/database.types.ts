@@ -1947,6 +1947,29 @@ export type CircleModules = {
   wiki: boolean;
   challenges: boolean;
   mentorship: boolean;
+  /* Chantier Cercles v3 — chat de groupe Realtime (migration 0131). */
+  chat: boolean;
+};
+
+/* Chat de groupe — un message dans circle_chat_messages. */
+export type CircleChatMessage = {
+  id: string;
+  circle_id: string;
+  author_id: string;
+  body: string;
+  parent_message_id: string | null;
+  attachments: unknown | null;
+  mentions: string[];
+  created_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+export type CircleChatMessageWithAuthor = CircleChatMessage & {
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  reactions_summary?: Record<string, number>;
+  my_reactions?: string[];
+  replies_count?: number;
 };
 
 /* Migration 0092 — rôles étendus. 'mod' est conservé comme alias legacy

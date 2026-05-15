@@ -165,6 +165,9 @@ const createV2Schema = z.object({
     live_audio: z.boolean().default(false),
     challenges: z.boolean().default(false),
     mentorship: z.boolean().default(false),
+    /* Chantier Cercles v3 — chat de groupe activé par défaut sur
+       tous les nouveaux cercles. */
+    chat: z.boolean().default(true),
   }),
   welcome_message: z
     .string()

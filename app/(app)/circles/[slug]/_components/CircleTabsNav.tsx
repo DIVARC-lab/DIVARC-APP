@@ -34,6 +34,13 @@ const ALL_TABS: Tab[] = [
     segment: "",
   },
   {
+    slug: "chat",
+    label: "Chat",
+    icon: MessageSquare,
+    moduleKey: "chat",
+    segment: "/chat",
+  },
+  {
     slug: "market",
     label: "Marketplace",
     icon: Store,
