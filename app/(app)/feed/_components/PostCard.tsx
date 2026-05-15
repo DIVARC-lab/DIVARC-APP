@@ -159,7 +159,13 @@ function PostCardInner({
         </Link>
       ) : heroMedia && post.photos.length > 0 ? (
         <Link href={`/feed/${post.id}`} className="block">
-          <PostPhotos photos={post.photos} alt={displayName} rounded={false} />
+          <PostPhotos
+            photos={post.photos}
+            alt={displayName}
+            rounded={false}
+            post={post}
+            currentUserId={currentUserId}
+          />
         </Link>
       ) : null}
 
@@ -416,6 +422,8 @@ function PostCardInner({
               photos={post.photos}
               alt={displayName}
               rounded={false}
+              post={post}
+              currentUserId={currentUserId}
             />
           </div>
         </Link>

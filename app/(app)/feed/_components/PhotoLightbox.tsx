@@ -114,7 +114,7 @@ export function PhotoLightbox({
       aria-label="Visionneuse de photos"
       tabIndex={-1}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-[60] bg-night/95 flex flex-col"
+      className="fixed inset-0 z-[60] bg-night flex flex-col"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >

@@ -45,32 +45,76 @@ export function PostVideoPlayer({
       ? `${width} / ${height}`
       : "9 / 16";
 
-  /* React 19 strict : setPlaying du fallback (pas d'IntersectionObserver)
-     déplacé dans queueMicrotask pour éviter set-state-in-effect. */
+  /* Auto-play quand la vidéo est visible. Gère 3 sources de truth :
+   *  1. IntersectionObserver : visibilité scroll
+   *  2. `loadedmetadata` event : src set par useHlsVideo (race async)
+   *  3. onPlay / onPause natifs : sync l'état réel du <video>
+   *
+   * Sans (2), la 1ère tentative play() peut échouer silencieusement car
+   * useHlsVideo set le src dans un useEffect async qui peut ne pas être
+   * résolu au moment où IO fire (= bug "vidéo bloquée au chargement"). */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (typeof IntersectionObserver === "undefined") {
+
+    /* Flag : on veut être en train de jouer (= visible OU déjà décidé). */
+    let wantsPlay = false;
+
+    function tryPlay() {
+      if (!video || !wantsPlay) return;
+      /* play() peut throw NotAllowedError sur iOS sans gesture, ou
+         NotSupportedError si src pas encore set. On ignore : on retry
+         au prochain event (loadedmetadata, canplay). */
       void video.play().catch(() => undefined);
-      queueMicrotask(() => setPlaying(true));
-      return;
     }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.intersectionRatio >= 0.6) {
-            void video.play().catch(() => undefined);
-            setPlaying(true);
-          } else {
-            video.pause();
-            setPlaying(false);
+
+    function onLoadedMetadata() {
+      tryPlay();
+    }
+    function onCanPlay() {
+      tryPlay();
+    }
+    function onPlayEvt() {
+      setPlaying(true);
+    }
+    function onPauseEvt() {
+      setPlaying(false);
+    }
+
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+    video.addEventListener("canplay", onCanPlay);
+    video.addEventListener("play", onPlayEvt);
+    video.addEventListener("pause", onPauseEvt);
+
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver === "undefined") {
+      wantsPlay = true;
+      tryPlay();
+    } else {
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.intersectionRatio >= 0.6) {
+              wantsPlay = true;
+              tryPlay();
+            } else {
+              wantsPlay = false;
+              if (video) video.pause();
+            }
           }
-        }
-      },
-      { threshold: [0, 0.6, 1] },
-    );
-    observer.observe(video);
-    return () => observer.disconnect();
+        },
+        { threshold: [0, 0.6, 1] },
+      );
+      observer.observe(video);
+    }
+
+    return () => {
+      observer?.disconnect();
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      video.removeEventListener("canplay", onCanPlay);
+      video.removeEventListener("play", onPlayEvt);
+      video.removeEventListener("pause", onPauseEvt);
+    };
   }, []);
 
   /* Tap sur la vidéo : passe en mode "expanded" via le store global.

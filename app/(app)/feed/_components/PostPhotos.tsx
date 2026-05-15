@@ -3,13 +3,22 @@
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
-import type { PostPhoto } from "@/lib/database.types";
+import type { PostPhoto, PostWithDetails } from "@/lib/database.types";
+import { PhotoCommentsModal } from "./PhotoCommentsModal";
 import { PhotoLightbox } from "./PhotoLightbox";
 
 type PostPhotosProps = {
   photos: PostPhoto[];
   alt: string;
   rounded?: boolean;
+  /* Si fournis, le click ouvre la modale style Facebook (photo +
+     commentaires latéraux) au lieu de la simple PhotoLightbox. Le
+     feed passe toujours ces props ; la page détail single-post peut
+     les omettre pour garder un viewer photo simple. */
+  post?: PostWithDetails;
+  currentUserId?: string;
+  currentAuthorName?: string | null;
+  currentAuthorAvatarUrl?: string | null;
 };
 
 /* PostPhotos — routeur de layouts photos selon le nombre.
@@ -26,7 +35,15 @@ type PostPhotosProps = {
  *
  * Click photo → ouvre PhotoLightbox sur l'index cliqué (étape 5+6).
  */
-export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
+export function PostPhotos({
+  photos,
+  alt,
+  rounded = true,
+  post,
+  currentUserId,
+  currentAuthorName = null,
+  currentAuthorAvatarUrl = null,
+}: PostPhotosProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (photos.length === 0) return null;
@@ -55,16 +72,34 @@ export function PostPhotos({ photos, alt, rounded = true }: PostPhotosProps) {
       <GridFivePlus photos={photos} alt={alt} rounded={rounded} onPhotoClick={handler} />
     );
 
+  /* Mode "Facebook" : si on a le post complet et l'user courant, on
+     ouvre la modale photo+commentaires latéraux. Sinon fallback sur
+     PhotoLightbox basique (juste la photo, pas de commentaires). */
+  const useCommentsModal = post && currentUserId;
+
   return (
     <>
       {grid}
-      <PhotoLightbox
-        photos={photos}
-        initialIndex={lightboxIndex ?? 0}
-        alt={alt}
-        open={lightboxIndex !== null}
-        onClose={() => setLightboxIndex(null)}
-      />
+      {useCommentsModal ? (
+        <PhotoCommentsModal
+          post={post}
+          photos={photos}
+          initialIndex={lightboxIndex ?? 0}
+          currentUserId={currentUserId}
+          currentAuthorName={currentAuthorName}
+          currentAuthorAvatarUrl={currentAuthorAvatarUrl}
+          open={lightboxIndex !== null}
+          onClose={() => setLightboxIndex(null)}
+        />
+      ) : (
+        <PhotoLightbox
+          photos={photos}
+          initialIndex={lightboxIndex ?? 0}
+          alt={alt}
+          open={lightboxIndex !== null}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </>
   );
 }
