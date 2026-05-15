@@ -79,7 +79,7 @@ export default async function DashboardLayout({
         <VideoPlayerProvider>
         <CryptoProvider>
         <CallProvider currentUserId={user.id}>
-        <div className="min-h-screen bg-bg">
+        <div className="min-h-dvh bg-bg">
           {/* Chantier Feed 6.3 — skip-link a11y. Visible au focus clavier
               (Tab depuis l'URL bar) pour bypass nav et atteindre le contenu. */}
           <a
@@ -98,9 +98,9 @@ export default async function DashboardLayout({
             recentNotifications={recentNotifications}
           />
 
-          {/* Padding-top h-14 pour décaler sous TopBar fixed.
+          {/* Padding-top h-14 + safe-area-inset-top (notch iOS PWA).
               Padding-bottom mobile = espace pour BottomNav h-14 + safe-area. */}
-          <div className="pt-14 pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+          <div className="pt-[calc(56px+env(safe-area-inset-top,0px))] pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
             {/* LeftSidebar : visible UNIQUEMENT xl ≥ 1280px */}
             <aside className="hidden xl:flex xl:flex-col fixed left-0 top-14 bottom-0 w-80 z-30">
               <LeftSidebar
@@ -120,7 +120,7 @@ export default async function DashboardLayout({
             <main
               id="main-content"
               tabIndex={-1}
-              className="xl:ml-80 min-h-[calc(100vh-56px)] focus:outline-none overflow-x-hidden"
+              className="xl:ml-80 min-h-[calc(100dvh-56px)] focus:outline-none overflow-x-hidden"
             >
               {children}
             </main>

@@ -85,6 +85,11 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  /* iOS PWA : `cover` permet à `env(safe-area-inset-*)` de retourner
+     des valeurs non-nulles (notch, home indicator, encoche). Sans ça,
+     les paddings safe-area sont ignorés et le contenu passe sous la
+     status bar ou est mangé par le home indicator. */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -93,18 +93,24 @@ export function TopBar(props: TopBarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 h-14 bg-bg border-b border-line",
+        /* iOS PWA standalone : on étend la hauteur de la TopBar pour
+           inclure le safe-area-inset-top (notch), avec padding-top correspondant.
+           Sans ça, le contenu de la TopBar passe sous la status bar
+           iPhone à encoche. */
+        "fixed top-0 left-0 right-0 z-50 bg-bg border-b border-line",
+        "h-[calc(56px+env(safe-area-inset-top,0px))]",
+        "pt-[env(safe-area-inset-top,0px)]",
       )}
       aria-label="Navigation principale"
     >
       {/* Desktop : visible ≥ lg */}
-      <div className="hidden lg:flex items-center h-full px-4 gap-4 max-w-screen-2xl mx-auto">
+      <div className="hidden lg:flex items-center h-14 px-4 gap-4 max-w-screen-2xl mx-auto">
         <TopBarLeftDesktop />
         <TopBarTabs />
         <TopBarActionsDesktop {...props} />
       </div>
       {/* Mobile : visible < lg */}
-      <div className="lg:hidden h-full">
+      <div className="lg:hidden h-14">
         <TopBarMobile {...props} />
       </div>
     </header>
