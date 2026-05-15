@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -77,6 +77,19 @@ export function MessageThread({
     initialOtherLastReadAt,
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /* Re-sync les states locaux quand la conversation change (sinon le
+     composant garde les messages de la conv précédente si Next.js soft-
+     route sans remount). */
+  useEffect(() => {
+    setMessages(initialMessages);
+    setReactions(initialReactions);
+    setOtherLastReadAt(initialOtherLastReadAt);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps -- on resynce
+       INTENTIONNELLEMENT sur conversationId uniquement, pas sur chaque
+       update de initialMessages côté server (qui ne change pas après
+       SSR de toute façon). */
+  }, [conversationId]);
   const otherUserId = otherMember?.user_id ?? null;
   const { typers } = useTypingChannel(conversationId, currentUserId, null);
 
@@ -227,19 +240,42 @@ export function MessageThread({
     void supabase.rpc("mark_conversation_read", { conv_id: conversationId });
   }, [visibleMessages.length, conversationId]);
 
-  /* Auto-scroll smart : sur le 1er render, jump direct au bottom (pas
-     d'animation), pour les rerenders suivants on ne smooth-scroll QUE si
-     l'utilisateur est déjà près du bas (< 200px). Sinon on préserve sa
-     position (il est probablement en train de relire d'anciens messages). */
+  /* Auto-scroll smart en 3 couches :
+   *  1) RESET `initialScrollDone` quand `conversationId` change → sans
+   *     ça, ouvrir une nouvelle conversation laissait l'ancien flag
+   *     true et l'user voyait le scroll bloqué en haut.
+   *  2) Scroll initial en `useLayoutEffect` au bottom AVANT le paint
+   *     (sinon l'user voit un flash "haut puis bottom").
+   *  3) ResizeObserver sur le scroll container : à chaque fois que la
+   *     hauteur change (image qui charge, message reçu, etc.), si
+   *     l'user est encore en bas (<200px), on re-scroll bottom. C'est
+   *     la pierre angulaire — sans ça, les images qui chargent après
+   *     le mount poussent le contenu et l'apparence est "le chat
+   *     remonte" alors qu'on était bien en bas.
+   */
   const initialScrollDone = useRef(false);
+
+  /* Reset le flag à chaque changement de conv. */
   useEffect(() => {
+    initialScrollDone.current = false;
+  }, [conversationId]);
+
+  /* Jump au bottom AVANT le paint (useLayoutEffect) au mount + chaque
+     fois que la conversation change. */
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     if (!initialScrollDone.current) {
       el.scrollTop = el.scrollHeight;
       initialScrollDone.current = true;
-      return;
     }
+  }, [conversationId, visibleMessages.length]);
+
+  /* Auto-scroll quand un nouveau message arrive (mais que si l'user
+     est déjà près du bas, sinon on respecte sa position de lecture). */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !initialScrollDone.current) return;
     const distanceFromBottom =
       el.scrollHeight - el.scrollTop - el.clientHeight;
     if (distanceFromBottom < 200) {
@@ -248,6 +284,32 @@ export function MessageThread({
       });
     }
   }, [visibleMessages.length]);
+
+  /* ResizeObserver : quand le contenu push (image chargée, attachment
+     rendu), on re-scroll bottom si on était <200px du bas. Empêche
+     l'effet "le chat remonte" perçu par l'user. */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let lastScrollHeight = el.scrollHeight;
+    const observer = new ResizeObserver(() => {
+      const newScrollHeight = el.scrollHeight;
+      if (newScrollHeight === lastScrollHeight) return;
+      const distanceFromBottom =
+        lastScrollHeight - el.scrollTop - el.clientHeight;
+      lastScrollHeight = newScrollHeight;
+      /* Si on était presque en bas, suivre le contenu qui grandit. */
+      if (distanceFromBottom < 200) {
+        el.scrollTop = newScrollHeight;
+      }
+    });
+    observer.observe(el);
+    /* Observe aussi les enfants (chaque message) pour capter
+       l'agrandissement quand une image charge. */
+    const children = el.querySelectorAll("img, video");
+    children.forEach((child) => observer.observe(child));
+    return () => observer.disconnect();
+  }, [conversationId, visibleMessages.length]);
 
   if (visibleMessages.length === 0) {
     return (
