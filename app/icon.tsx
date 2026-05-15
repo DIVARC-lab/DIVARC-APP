@@ -2,8 +2,8 @@ import { ImageResponse } from "next/og";
 
 /* Icon principale 512×512 PNG pour le manifest PWA (Android + browsers).
  *
- * Design : D doré italique stylisé DIVARC sur fond gradient night marine.
- * Pas de border-radius (maskable : Android/Chrome rognent eux-mêmes). */
+ * Design : D doré italique stylisé DIVARC (corps + arc gauche détaché)
+ * sur fond dégradé night marine. SVG source officiel du designer. */
 
 export const runtime = "edge";
 export const size = { width: 512, height: 512 };
@@ -17,23 +17,26 @@ export default function Icon() {
           width: "100%",
           height: "100%",
           background:
-            "linear-gradient(160deg, #14182a 0%, #0a1f44 50%, #1b2d52 100%)",
+            "linear-gradient(180deg, #0A1F44 0%, #12306A 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         <svg
-          width={340}
-          height={340}
-          viewBox="0 0 100 100"
+          width="100%"
+          height="100%"
+          viewBox="0 0 1024 1024"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M 30 22 L 50 18 C 78 18 88 35 88 50 C 88 65 78 82 50 82 L 30 78 L 30 22 Z M 42 32 L 50 30 C 65 30 75 40 75 50 C 75 60 65 70 50 70 L 42 68 L 42 32 Z"
-            fill="#F5BE3D"
-            fillRule="evenodd"
+            d="M380 290 H610 C760 290 845 390 845 512 C845 634 760 734 610 734 H430 L500 650 H600 C690 650 760 595 760 512 C760 429 690 374 600 374 H470 Z"
+            fill="#F4B942"
+          />
+          <path
+            d="M300 690 C370 620 390 560 390 512 C390 464 370 404 300 334 H380 C445 404 475 462 475 512 C475 562 445 620 380 690 Z"
+            fill="#F4B942"
           />
         </svg>
       </div>

@@ -1,151 +1,140 @@
-/* Logo DIVARC + Wordmark — SVG vector haute qualité.
+/* Logo DIVARC + Wordmark — SVG vector source officiel du designer.
  *
- * Caractéristiques visuelles reproduites :
- *  - D doré stylisé italique avec biseaux diagonaux haut-gauche et
- *    bas-gauche (donne le look cursive moderne)
- *  - Counter intérieur strict respectant les proportions de la marque
- *  - Couleur gold deep DIVARC : #F5BE3D
- *  - Wordmark : D doré + I-V-A-R-C en sans-serif géométrique épuré
- *    (stroke uniforme, tracking large, sommets pointus pour V/A)
- *  - Couleur lettres : #0A1F44 (night DIVARC) sur fond clair,
- *    #F5F5DD (cream) sur fond sombre (override via prop letterColor)
+ * 3 marques visuelles distinctes selon le contexte :
  *
- * Avantages SVG vs PNG :
- *  - Net à toute taille (favicon 16px → splash screen 1024px)
- *  - 2-3 KB inline vs 50-100 KB PNG
- *  - Couleurs adaptables dark mode via prop
- *  - 0 network request (inline)
- */
+ * 1) Logo (marque primaire) — viewBox 1024×1024 carré
+ *    Style "iD" cursive : arc gauche night + point doré (figure
+ *    un i) + grand D night. Utilisé en TopBar mobile, contextes
+ *    fond clair. Optionnel `withBackground` ajoute fond cream.
+ *
+ * 2) Icon (app icon PWA) — voir app/icon.tsx, app/apple-icon.tsx
+ *    Style "D doré sur night gradient" : D plein gold + arc détaché
+ *    sur dégradé #0A1F44 → #12306A. Utilisé pour favicon,
+ *    apple-touch-icon, manifest PWA.
+ *
+ * 3) Wordmark — viewBox crop pour cadrer le DIVARC complet
+ *    D doré stylisé (arc + body) + I-V-A-R-C en lettres night
+ *    pleines (paths filled, pas stroke). Lettres customisables
+ *    via prop `letterColor` (dark mode = cream). */
+
+const NIGHT = "#0A1F44";
+const GOLD = "#F4B942";
+const CREAM = "#F8F9FB";
+
+/* ====== Logo (marque primaire — D night + arc i + point doré) ====== */
+
+const LOGO_ARC =
+  "M286 734 C250 570 270 440 340 315 L410 315 C350 435 335 565 374 734 Z";
+const LOGO_D =
+  "M420 172 H610 C760 172 875 295 875 453 C875 610 760 734 610 734 H375 L456 650 H594 C690 650 765 565 765 453 C765 340 690 255 594 255 H500 Z";
+const LOGO_DOT = { cx: 367, cy: 265, r: 33 };
 
 type LogoProps = {
   /** Taille en pixels (le SVG est carré). Défaut 40. */
   size?: number;
   className?: string;
-  /** Couleur du D. Défaut gold deep DIVARC. */
-  color?: string;
+  /** Rendu avec fond cream. Défaut transparent. */
+  withBackground?: boolean;
 };
 
-/* Path D italique stylisé — viewBox 100×100, sommets aux biseaux
- * gauches pour le look cursive de la marque. fillRule="evenodd"
- * crée le trou du counter intérieur. */
-const D_PATH =
-  "M 30 22 L 50 18 C 78 18 88 35 88 50 C 88 65 78 82 50 82 L 30 78 L 30 22 Z " +
-  "M 42 32 L 50 30 C 65 30 75 40 75 50 C 75 60 65 70 50 70 L 42 68 L 42 32 Z";
-
-export function Logo({
-  size = 40,
-  className,
-  color = "#F5BE3D",
-}: LogoProps) {
+export function Logo({ size = 40, className, withBackground = false }: LogoProps) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      viewBox="0 0 1024 1024"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="DIVARC"
       role="img"
     >
-      <path d={D_PATH} fill={color} fillRule="evenodd" />
+      {withBackground ? (
+        <rect width="1024" height="1024" fill={CREAM} />
+      ) : null}
+      <path d={LOGO_ARC} fill={NIGHT} />
+      <circle cx={LOGO_DOT.cx} cy={LOGO_DOT.cy} r={LOGO_DOT.r} fill={GOLD} />
+      <path d={LOGO_D} fill={NIGHT} />
     </svg>
   );
 }
+
+/* ====== Wordmark (D doré + IVARC) ====== */
 
 type WordmarkProps = {
   /** Hauteur en pixels (largeur calculée auto via aspect ratio). Défaut 28. */
   height?: number;
   className?: string;
-  /** Couleur des lettres I-V-A-R-C. Défaut night marine #0A1F44.
-   *  Pour dark mode, passer #F5F5DD ou similaire. */
+  /** Couleur des lettres I-V-A-R-C + corps du D. Défaut night marine.
+   *  Pour dark mode, passer cream/white via cette prop. */
   letterColor?: string;
-  /** Couleur du D doré. Défaut gold deep #F5BE3D. */
-  dColor?: string;
+  /** Couleur de l'arc doré du D. Défaut gold standard #F4B942. */
+  dArcColor?: string;
 };
 
-/* Wordmark "DIVARC" — viewBox 620×100.
- *
- * Composition :
- *  - D doré (chemin réutilisé du logo, scale 0.85)
- *  - Espacement uniforme entre les lettres (~30px tracking)
- *  - I, V, A, R, C dessinés en paths stroke pour finesse uniforme
- *  - strokeWidth 7 = ~7% de la hauteur de la lettre, harmonieux
- *  - strokeLinecap="square" pour le rendu géométrique (pas arrondi)
- *
- * Lettres : chaque path utilise des coordonnées explicites pour un
- * tracking visuellement régulier (compte tenu de la largeur variable
- * de chaque glyphe : I étroit, A/V medium, R/D larges). */
 export function Wordmark({
   height = 28,
   className,
-  letterColor = "#0A1F44",
-  dColor = "#F5BE3D",
+  letterColor = NIGHT,
+  dArcColor = GOLD,
 }: WordmarkProps) {
-  /* Aspect ratio 6.2:1 (620×100). */
-  const width = Math.round(height * 6.2);
+  /* viewBox crop pour cadrer juste le wordmark (le SVG source a
+   * un background rect 1920×1080 mais le wordmark occupe seulement
+   * une bande horizontale au milieu). Crop : x=320 y=380 w=1380 h=240
+   * → aspect ratio 5.75:1. */
+  const aspect = 1380 / 240;
+  const width = Math.round(height * aspect);
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 620 100"
+      viewBox="320 380 1380 240"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="DIVARC"
       role="img"
     >
-      {/* D doré — scale 0.85 du logo, positionné à gauche */}
-      <g transform="translate(0 10) scale(0.85)">
-        <path d={D_PATH} fill={dColor} fillRule="evenodd" />
+      {/* Symbole D — translaté (340, 420) puis paths internes */}
+      <g transform="translate(340 420)">
+        {/* Arc or */}
+        <path
+          d="M0 0 C40 35 40 125 0 160 L28 160 C66 122 66 38 28 0 Z"
+          fill={dArcColor}
+        />
+        {/* Partie night du D */}
+        <path
+          d="M54 0 H102 C152 0 188 34 188 80 C188 126 152 160 102 160 H54 L72 136 H100 C136 136 162 112 162 80 C162 48 136 24 100 24 H72 Z"
+          fill={letterColor}
+        />
       </g>
 
-      {/* I — ligne verticale épaisse */}
-      <line
-        x1="135"
-        y1="20"
-        x2="135"
-        y2="85"
-        stroke={letterColor}
-        strokeWidth="7"
-        strokeLinecap="square"
+      {/* I — rectangle simple */}
+      <rect x="655" y="423" width="18" height="160" fill={letterColor} />
+
+      {/* V — path filled (forme épaisse, pas stroke) */}
+      <path
+        d="M770 423 L820 583 L870 423 H900 L835 583 H805 L740 423 Z"
+        fill={letterColor}
       />
 
-      {/* V — deux diagonales convergentes (pointe en bas) */}
+      {/* A — path filled, deux jambes diagonales */}
       <path
-        d="M 175 20 L 215 85 L 255 20"
-        stroke={letterColor}
-        strokeWidth="7"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
+        d="M1015 583 L1080 423 H1110 L1175 583 H1145 L1095 455 L1045 583 Z"
+        fill={letterColor}
       />
 
-      {/* A — deux diagonales convergentes (pointe en haut), pas de barre horizontale */}
+      {/* R — outer + inner counter (fillRule evenodd pour le trou) */}
       <path
-        d="M 290 85 L 325 20 L 360 85"
-        stroke={letterColor}
-        strokeWidth="7"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
+        d="M1290 423 H1360 C1412 423 1445 452 1445 500 C1445 534 1426 558 1392 568 L1452 583 H1416 L1362 570 H1320 V583 H1290 Z M1320 448 V545 H1358 C1392 545 1415 528 1415 500 C1415 470 1392 448 1358 448 Z"
+        fill={letterColor}
+        fillRule="evenodd"
       />
 
-      {/* R — barre verticale + boucle haut + jambe diagonale */}
+      {/* C — arc épais filled */}
       <path
-        d="M 395 20 L 395 85 M 395 20 L 432 20 C 452 20 462 32 462 45 C 462 58 452 70 432 70 L 395 70 M 432 70 L 465 85"
-        stroke={letterColor}
-        strokeWidth="7"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
-        fill="none"
-      />
-
-      {/* C — arc circulaire ouvert à droite */}
-      <path
-        d="M 605 30 C 595 18 575 15 560 22 C 540 32 530 50 535 65 C 540 82 560 92 580 88 C 595 85 600 78 605 72"
-        stroke={letterColor}
-        strokeWidth="7"
-        strokeLinecap="round"
-        fill="none"
+        d="M1660 454 C1638 434 1614 424 1586 424 C1528 424 1486 462 1486 503 C1486 546 1528 584 1586 584 C1614 584 1638 574 1660 552 L1682 572 C1654 602 1622 614 1582 614 C1508 614 1454 565 1454 503 C1454 441 1508 394 1582 394 C1622 394 1654 406 1682 434 Z"
+        fill={letterColor}
       />
     </svg>
   );
