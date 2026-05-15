@@ -190,3 +190,165 @@ export async function recordStoryView(storyId: string) {
 
   return { ok: true };
 }
+
+/* Chantier Stories v2 — toggle like sur une story (idempotent).
+ * 1 like par user par story max. Si déjà liké → DELETE. Sinon INSERT.
+ * Le trigger SQL maintient likes_count. */
+export async function toggleStoryLike(
+  storyId: string,
+): Promise<{ ok: true; liked: boolean } | { ok: false; error: string }> {
+  const parsed = z.string().uuid().safeParse(storyId);
+  if (!parsed.success) return { ok: false, error: "Story invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { data: existing } = await supabase
+    .from("story_likes")
+    .select("story_id")
+    .eq("story_id", parsed.data)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("story_likes")
+      .delete()
+      .eq("story_id", parsed.data)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Unlike impossible." };
+    return { ok: true, liked: false };
+  }
+
+  const { error } = await supabase
+    .from("story_likes")
+    .insert({ story_id: parsed.data, user_id: user.id });
+  if (error) return { ok: false, error: "Like impossible." };
+  return { ok: true, liked: true };
+}
+
+/* Chantier Stories v2 — envoyer une réponse texte à une story.
+ * Le destinataire (auteur de la story) la verra dans son archive +
+ * pourra ouvrir une conv DM si besoin. */
+const storyReplySchema = z.object({
+  storyId: z.string().uuid(),
+  body: z.string().trim().min(1).max(500),
+});
+
+export async function addStoryReply(
+  storyId: string,
+  body: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = storyReplySchema.safeParse({ storyId, body });
+  if (!parsed.success) {
+    return { ok: false, error: "Réponse invalide (1-500 caractères)." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const { error } = await supabase
+    .from("story_replies")
+    .insert({
+      story_id: parsed.data.storyId,
+      author_id: user.id,
+      body: parsed.data.body,
+    });
+
+  if (error) return { ok: false, error: "Envoi impossible." };
+  return { ok: true };
+}
+
+/* Récupère la liste des viewers d'une story. Réservé à l'auteur via RLS
+ * server-side : on check que current user = author. */
+export type StoryViewerEntry = {
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  viewed_at: string;
+  liked: boolean;
+};
+
+export async function listStoryViewersDetails(
+  storyId: string,
+): Promise<
+  | { ok: true; viewers: StoryViewerEntry[] }
+  | { ok: false; error: string }
+> {
+  const parsed = z.string().uuid().safeParse(storyId);
+  if (!parsed.success) return { ok: false, error: "Story invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  /* Check ownership : seul l'auteur de la story voit les viewers. */
+  const { data: story } = await supabase
+    .from("stories")
+    .select("author_id")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  if (!story) return { ok: false, error: "Story introuvable." };
+  if (story.author_id !== user.id) {
+    return { ok: false, error: "Réservé à l'auteur." };
+  }
+
+  /* Fetch views + likes en parallèle. */
+  const [{ data: views }, { data: likes }] = await Promise.all([
+    supabase
+      .from("story_views")
+      .select("viewer_id, viewed_at")
+      .eq("story_id", parsed.data)
+      .order("viewed_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("story_likes")
+      .select("user_id")
+      .eq("story_id", parsed.data),
+  ]);
+
+  const likedSet = new Set<string>(
+    (likes ?? []).map((l) => l.user_id),
+  );
+  const viewerIds = Array.from(
+    new Set((views ?? []).map((v) => v.viewer_id)),
+  );
+
+  if (viewerIds.length === 0) {
+    return { ok: true, viewers: [] };
+  }
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, username, avatar_url")
+    .in("id", viewerIds);
+
+  const profileById = new Map<
+    string,
+    { full_name: string | null; username: string | null; avatar_url: string | null }
+  >();
+  for (const p of profiles ?? []) profileById.set(p.id, p);
+
+  const viewers: StoryViewerEntry[] = (views ?? []).map((v) => {
+    const profile = profileById.get(v.viewer_id);
+    return {
+      user_id: v.viewer_id,
+      full_name: profile?.full_name ?? null,
+      username: profile?.username ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+      viewed_at: v.viewed_at,
+      liked: likedSet.has(v.viewer_id),
+    };
+  });
+
+  return { ok: true, viewers };
+}

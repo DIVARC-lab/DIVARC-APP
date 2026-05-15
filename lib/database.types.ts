@@ -1454,12 +1454,29 @@ export type Story = {
   aspect_ratio: string | null;
   width: number | null;
   height: number | null;
+  /* Migration 0128 — Stories v2 (likes + replies) */
+  likes_count: number;
+  replies_count: number;
 };
 
 export type StoryView = {
   story_id: string;
   viewer_id: string;
   viewed_at: string;
+};
+
+export type StoryLike = {
+  story_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+export type StoryReply = {
+  id: string;
+  story_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
 };
 
 export type StoryWithAuthor = Story & {
@@ -5346,6 +5363,20 @@ export type Database = {
       story_views: {
         Row: StoryView;
         Insert: Pick<StoryView, "story_id" | "viewer_id">;
+        Update: never;
+        Relationships: [];
+      };
+      story_likes: {
+        Row: StoryLike;
+        Insert: Pick<StoryLike, "story_id" | "user_id"> &
+          Partial<Pick<StoryLike, "created_at">>;
+        Update: never;
+        Relationships: [];
+      };
+      story_replies: {
+        Row: StoryReply;
+        Insert: Pick<StoryReply, "story_id" | "author_id" | "body"> &
+          Partial<Pick<StoryReply, "id" | "created_at">>;
         Update: never;
         Relationships: [];
       };

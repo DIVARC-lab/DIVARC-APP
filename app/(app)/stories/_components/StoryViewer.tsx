@@ -12,7 +12,14 @@ import { cn } from "@/lib/utils/cn";
 import { formatRelative } from "@/lib/utils/relativeTime";
 import type { StoryGroup } from "@/lib/database.types";
 import { getFilterCss } from "@/lib/stories/filters";
-import { deleteStory, recordStoryView } from "../actions";
+import {
+  addStoryReply,
+  deleteStory,
+  listStoryViewersDetails,
+  recordStoryView,
+  toggleStoryLike,
+  type StoryViewerEntry,
+} from "../actions";
 
 const STORY_DURATION_MS = 6_000;
 
@@ -43,6 +50,13 @@ export function StoryViewer({
   const [storyIndex, setStoryIndex] = useState(initialPos.storyIndex);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+
+  /* Chantier Stories v2 — state local pour like + reply + viewers modal. */
+  const [liked, setLiked] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [viewersOpen, setViewersOpen] = useState(false);
+  const [viewersList, setViewersList] = useState<StoryViewerEntry[]>([]);
+  const [viewersLoading, setViewersLoading] = useState(false);
   /* Compteur de stories vues — ad servie tous les 8 (densité brief 6-10/ad). */
   const storiesViewedRef = useRef(0);
   const [showAd, setShowAd] = useState(false);
@@ -180,6 +194,56 @@ export function StoryViewer({
         toast.success("Story supprimée.");
         close();
       }
+    });
+  }
+
+  /* Reset like + reply state quand on change de story. */
+  useEffect(() => {
+    setLiked(false);
+    setReplyText("");
+    setViewersOpen(false);
+  }, [currentStory?.id]);
+
+  function handleToggleLike() {
+    if (!currentStory) return;
+    const next = !liked;
+    setLiked(next);
+    startTransition(async () => {
+      const res = await toggleStoryLike(currentStory.id);
+      if (!res.ok) {
+        setLiked(!next);
+        toast.error(res.error);
+      }
+    });
+  }
+
+  function handleSendReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentStory) return;
+    const trimmed = replyText.trim();
+    if (trimmed.length === 0) return;
+    const sent = trimmed;
+    setReplyText("");
+    startTransition(async () => {
+      const res = await addStoryReply(currentStory.id, sent);
+      if (res.ok) {
+        toast.success("Réponse envoyée.");
+      } else {
+        setReplyText(sent);
+        toast.error(res.error);
+      }
+    });
+  }
+
+  function handleOpenViewers() {
+    if (!currentStory) return;
+    setPaused(true);
+    setViewersOpen(true);
+    setViewersLoading(true);
+    listStoryViewersDetails(currentStory.id).then((res) => {
+      setViewersLoading(false);
+      if (res.ok) setViewersList(res.viewers);
+      else toast.error(res.error);
     });
   }
 
@@ -385,12 +449,24 @@ export function StoryViewer({
         ) : null}
 
         {isOwn ? (
-          <footer className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white/12 backdrop-blur-md text-cream text-xs font-semibold">
+          <footer
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className="absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-2"
+          >
+            {/* Compteur vues clicable → ouvre modale viewers liste. */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenViewers();
+              }}
+              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-white/12 backdrop-blur-md text-cream text-xs font-semibold hover:bg-white/20 transition-colors"
+            >
               <Eye className="w-3.5 h-3.5 text-gold" aria-hidden />
               {currentStory.views_count} vue
               {currentStory.views_count > 1 ? "s" : ""}
-            </span>
+            </button>
             <button
               type="button"
               onClick={(e) => {
@@ -406,28 +482,145 @@ export function StoryViewer({
           <footer
             onMouseDown={(e) => e.stopPropagation()}
             onTouchStart={(e) => e.stopPropagation()}
-            className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-2"
+            className="absolute bottom-4 left-4 right-4 z-10"
           >
-            <input
-              type="text"
-              placeholder={`Réponds à ${displayName.split(" ")[0] ?? displayName}…`}
-              onClick={(e) => {
-                e.stopPropagation();
-                setPaused(true);
-              }}
-              onBlur={() => setPaused(false)}
-              className="flex-1 h-11 px-4 rounded-full bg-white/12 backdrop-blur-md text-cream placeholder:text-cream/55 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 border border-cream/15"
-            />
-            <button
-              type="button"
-              aria-label="J'aime"
-              className="w-11 h-11 rounded-full bg-white/12 backdrop-blur-md text-cream hover:text-gold flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
+            <form
+              onSubmit={handleSendReply}
+              className="flex items-center gap-2"
             >
-              <Heart className="w-5 h-5" aria-hidden />
-            </button>
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.currentTarget.value)}
+                placeholder={`Réponds à ${displayName.split(" ")[0] ?? displayName}…`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPaused(true);
+                }}
+                onFocus={() => setPaused(true)}
+                onBlur={() => setPaused(false)}
+                maxLength={500}
+                className="flex-1 h-11 px-4 rounded-full bg-white/12 backdrop-blur-md text-cream placeholder:text-cream/55 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 border border-cream/15"
+              />
+              {replyText.trim().length > 0 ? (
+                <button
+                  type="submit"
+                  disabled={pending}
+                  aria-label="Envoyer la réponse"
+                  className="px-4 h-11 rounded-full bg-gold text-night text-xs font-extrabold tracking-wide hover:bg-gold-soft transition-colors disabled:opacity-50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Envoyer
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleLike();
+                  }}
+                  aria-label={liked ? "Retirer le like" : "J'aime"}
+                  className={cn(
+                    "w-11 h-11 rounded-full backdrop-blur-md flex items-center justify-center transition-all",
+                    liked
+                      ? "bg-rose-500 text-cream scale-110"
+                      : "bg-white/12 text-cream hover:text-gold",
+                  )}
+                >
+                  <Heart
+                    className={cn("w-5 h-5", liked && "fill-current")}
+                    aria-hidden
+                  />
+                </button>
+              )}
+            </form>
           </footer>
         )}
+
+        {/* Modale viewers list (auteur uniquement, ouverte via compteur vues). */}
+        {viewersOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Liste des viewers"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                e.stopPropagation();
+                setViewersOpen(false);
+                setPaused(false);
+              }
+            }}
+            className="absolute inset-0 z-30 bg-night/70 backdrop-blur-md flex items-end sm:items-center justify-center"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-md max-h-[70vh] bg-bg rounded-t-3xl sm:rounded-3xl border border-line overflow-hidden flex flex-col"
+            >
+              <header className="px-5 pt-5 pb-3 border-b border-line flex items-center gap-2">
+                <Eye className="w-4 h-4 text-gold-deep" aria-hidden />
+                <h2 className="text-sm font-bold text-night flex-1">
+                  Vues par {viewersList.length} personne
+                  {viewersList.length > 1 ? "s" : ""}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewersOpen(false);
+                    setPaused(false);
+                  }}
+                  aria-label="Fermer"
+                  className="w-8 h-8 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted"
+                >
+                  <X className="w-4 h-4" aria-hidden />
+                </button>
+              </header>
+              <div className="flex-1 overflow-y-auto p-3">
+                {viewersLoading ? (
+                  <p className="text-center py-8 text-xs text-muted">
+                    Chargement…
+                  </p>
+                ) : viewersList.length === 0 ? (
+                  <p className="text-center py-8 text-xs text-muted italic">
+                    Personne n&apos;a encore vu cette story.
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {viewersList.map((viewer) => (
+                      <li
+                        key={viewer.user_id}
+                        className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-night/5"
+                      >
+                        <Avatar
+                          src={viewer.avatar_url}
+                          fullName={
+                            viewer.full_name ?? viewer.username ?? "Utilisateur"
+                          }
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-night truncate">
+                            {viewer.full_name ?? viewer.username ?? "Utilisateur"}
+                          </p>
+                          <p className="text-[11px] text-night-muted">
+                            {formatRelative(viewer.viewed_at)}
+                          </p>
+                        </div>
+                        {viewer.liked ? (
+                          <Heart
+                            className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0"
+                            aria-label="A aimé"
+                          />
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Nav indicator hidden but uses these icons for visual */}
         <ChevronLeft className="hidden" />
