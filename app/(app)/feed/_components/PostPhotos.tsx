@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import type { PostPhoto, PostWithDetails } from "@/lib/database.types";
 import {
   classifyMediaShape,
+  pickObjectFit,
   SHAPE_ASPECT_CLASS,
   SHAPE_SIZES,
 } from "@/lib/feed/mediaFormat";
@@ -124,11 +125,14 @@ function Single({
 }) {
   /* Formats Facebook officiels : 4:5 portrait (1080×1350), 1.91:1
      paysage (1200×630), 1:1 carré (1080×1080), 9:16 reel (1080×1920).
-     Le wrapper applique l'aspect-ratio exact ; `object-cover` centre
-     le média sans étirement. Container responsive (largeur = parent),
-     hauteur calculée automatiquement par le navigateur. */
+     Le wrapper applique l'aspect-ratio exact ; `pickObjectFit` choisit
+     entre `cover` (recadrage imperceptible, sujet centré) et `contain`
+     (letterbox, ratio source intact) selon l'écart au format Facebook
+     le plus proche. Container responsive (largeur = parent), hauteur
+     calculée automatiquement par le navigateur. */
   const dims = readPhotoDims(photo);
   const shape = classifyMediaShape(dims.w, dims.h);
+  const fit = pickObjectFit(dims.w, dims.h, shape);
 
   return (
     <button
@@ -146,7 +150,10 @@ function Single({
           alt={alt}
           fill
           sizes={SHAPE_SIZES[shape]}
-          className="object-cover object-center"
+          className={cn(
+            "object-center",
+            fit === "cover" ? "object-cover" : "object-contain",
+          )}
           unoptimized={photo.url.includes("?")}
         />
       </div>

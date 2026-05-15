@@ -75,3 +75,37 @@ export const SHAPE_MAX_HEIGHT: Record<MediaShape, string> = {
   square: "",
   reel: "max-h-[720px]",
 };
+
+/* Décide entre `object-cover` (crop centré) et `object-contain`
+ * (letterbox bandes noires) selon l'écart entre le ratio source et le
+ * ratio container :
+ *
+ * Si l'écart est faible (<8%), `object-cover` recadre légèrement —
+ * imperceptible pour l'œil, recadrage centré (le sujet principal est
+ * généralement au centre du cadre). Si l'écart est grand (>8%), on
+ * passe en `object-contain` avec fond noir : on garde le ratio exact
+ * du média (aucune perte de sujet) au prix de bandes en marge.
+ *
+ * Évite les cas où le format Facebook ne matche pas du tout le ratio
+ * source (p.ex. photo 21:9 ultra-panoramique classifiée "landscape"
+ * 1.91:1 → cover couperait les bords latéraux). */
+export function pickObjectFit(
+  sourceWidth: number | null | undefined,
+  sourceHeight: number | null | undefined,
+  shape: MediaShape,
+): "cover" | "contain" {
+  if (!sourceWidth || !sourceHeight || sourceWidth <= 0 || sourceHeight <= 0) {
+    return "cover";
+  }
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = FB_FORMAT[shape].ratio;
+  const drift = Math.abs(sourceRatio - targetRatio) / targetRatio;
+  return drift > 0.08 ? "contain" : "cover";
+}
+
+/* Breakpoints UI alignés sur Tailwind (référence design). */
+export const BREAKPOINTS = {
+  mobile: 640,
+  tablet: 1024,
+  desktop: 1280,
+} as const;
