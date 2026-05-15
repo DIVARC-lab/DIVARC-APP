@@ -92,6 +92,7 @@ type TopBarProps = {
 export function TopBar(props: TopBarProps) {
   return (
     <header
+      data-global-topbar
       className={cn(
         /* iOS PWA standalone : on étend la hauteur de la TopBar pour
            inclure le safe-area-inset-top (notch), avec padding-top correspondant.

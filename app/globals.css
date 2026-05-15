@@ -178,6 +178,36 @@ body {
   }
 }
 
+/* ===== Mode conv mobile "WhatsApp" =====
+   Quand l'user ouvre une conversation en mobile, la page prend 100%
+   du viewport visuel. La TopBar globale et la MobileBottomNav sont
+   cachées (gain ~110px en haut + ~56px en bas) — comme WhatsApp /
+   Messenger. Le ChatHeader interne prend le relais en haut, le
+   composer en bas. Désactivé sur desktop (lg ≥ 1024px) où le layout
+   split (sidebar + chat) reste affiché. */
+@media (max-width: 1023px) {
+  html.conv-fullscreen [data-global-topbar],
+  html.conv-fullscreen [data-mobile-bottom-nav] {
+    display: none;
+  }
+  /* Le wrapper (app)/layout a `pt-[calc(56px+safe-area-top)]` et
+     `pb-[calc(56px+safe-area-bottom)]` pour réserver l'espace
+     TopBar + BottomNav. En mode conv fullscreen ces espaces n'ont
+     plus lieu d'être. */
+  html.conv-fullscreen [data-app-shell] {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  html.conv-fullscreen [data-app-shell] [data-app-main] {
+    min-height: var(--viewport-visual-h, 100dvh);
+  }
+  /* ChatHeader prend en charge le safe-area-top (notch) puisque la
+     TopBar globale est masquée. Sur desktop env() = 0 = no-op. */
+  html.conv-fullscreen [data-chat-header] {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
 /* Make `bg-white` adaptive in dark mode (cards, modals, headers, etc.) */
 [data-theme="dark"] .bg-white {
   background-color: var(--color-surface) !important;

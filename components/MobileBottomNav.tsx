@@ -111,6 +111,7 @@ export function MobileBottomNav({
   return (
     <>
       <nav
+        data-mobile-bottom-nav
         aria-label="Navigation principale"
         /* Clamp la safe-area à max 12px : sur iPhone Pro avec 34px de
            home indicator zone, le menu paraissait flotter trop haut

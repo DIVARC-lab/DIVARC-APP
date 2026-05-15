@@ -2,32 +2,30 @@
 
 import { useEffect } from "react";
 
-/* Bloque le scroll du body en mode mobile pour la vue conversation.
+/* Mode "WhatsApp" pour la conversation mobile :
  *
- * Pourquoi : sur iOS PWA, quand l'input prend focus et que le clavier
- * apparaît, iOS tente de "scroll into view" le focused input. Comme
- * le wrapper (app) a `min-h-dvh` (= la hauteur viewport sans clavier),
- * il est plus grand que la zone visible avec clavier ouvert. iOS
- * scrolle alors le body pour amener l'input visible — ce qui pousse
- * tout le reste (ChatHeader, messages) hors écran par le haut.
+ *  1. Lock le scroll du body (`position: fixed`) pour qu'iOS ne puisse
+ *     pas scroller la page hors écran quand le clavier ouvre.
+ *  2. Ajoute la class `html.conv-fullscreen` qui cache la TopBar globale
+ *     et la MobileBottomNav (via CSS dans globals.css) — la conv prend
+ *     ainsi 100% du viewport visuel comme WhatsApp / Messenger.
+ *  3. Au unmount : restore complet (body styles + scroll position +
+ *     class) pour que l'user retombe pile sur la liste des conv là où
+ *     il était.
  *
- * Avec body en `position: fixed`, le body NE PEUT PLUS scroller. iOS
- * n'a pas le choix : l'input doit rester à sa position dans le flow
- * (qui, grâce à --viewport-visual-h, est juste au-dessus du clavier).
- * ChatHeader reste visible en haut. Composer reste collé au-dessus
- * du clavier. Tout marche.
- *
- * Restore complet au unmount : on remet le body comme on l'a trouvé
- * et on restaure la scroll position pour que l'user retombe sur la
- * liste des conversations là où il était. */
+ *  Effet combiné avec --viewport-visual-h (cf. MobileViewportHeight) :
+ *  - ChatHeader collé en haut (avec safe-area-top intégré)
+ *  - MessageThread scroll en interne
+ *  - Composer collé au-dessus du clavier (le conteneur shrink avec
+ *    visualViewport.height en temps réel)
+ *  - Aucun scroll possible du body */
 export function MobileBodyLock() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    /* Seulement en mobile (<lg = 1024px). Sur desktop, le layout est
-       split sidebar + chat, pas de problème de clavier. */
     const isMobile = window.matchMedia("(max-width: 1023px)").matches;
     if (!isMobile) return;
 
+    const html = document.documentElement;
     const body = document.body;
     const scrollY = window.scrollY;
     const previous = {
@@ -41,12 +39,14 @@ export function MobileBodyLock() {
     body.style.position = "fixed";
     body.style.width = "100%";
     body.style.top = `-${scrollY}px`;
+    html.classList.add("conv-fullscreen");
 
     return () => {
       body.style.overflow = previous.overflow;
       body.style.position = previous.position;
       body.style.width = previous.width;
       body.style.top = previous.top;
+      html.classList.remove("conv-fullscreen");
       window.scrollTo(0, scrollY);
     };
   }, []);

@@ -23,25 +23,22 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
     pathname.startsWith("/messages/") && pathname !== "/messages";
 
   /* Hauteur du conteneur :
-     - `var(--viewport-visual-h, 100dvh)` = vraie hauteur visible iOS
-       PWA (réagit au clavier via visualViewport API, posée par
-       <MobileViewportHeight/>). Fallback 100dvh hors PWA / desktop.
-     - 56px TopBar + env(safe-area-inset-top) [notch iOS PWA] consommés
-       par le padding-top du wrapper (app)/layout.
-     - Sur /messages (sidebar visible mobile) : on retire en plus 56px
-       BottomNav + safe-area-bottom (clamp 12px).
-     - Sur /messages/<id> mobile (chat visible) : pas de soustraction
-       safe-area-bottom ici (le composer applique sa propre pb).
-     - Sur desktop (lg+) : pas de safe-area-top (pas iOS PWA), pas de
-       BottomNav. */
-  const heightClass = isConvOpen
-    ? "h-[calc(var(--viewport-visual-h,100dvh)-56px-env(safe-area-inset-top,0px))] lg:h-[calc(100dvh-56px)]"
-    : "h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
+     - Sur /messages/<id> mobile (chat visible) : pattern "WhatsApp".
+       Le wrapper se positionne en `fixed inset-0` et prend
+       `var(--viewport-visual-h, 100dvh)` (réagit au clavier en temps
+       réel via visualViewport). TopBar globale + BottomNav cachées
+       par html.conv-fullscreen (cf. MobileBodyLock + globals.css),
+       donc plus aucune soustraction à faire ici. Sur desktop : grid
+       classique sidebar+chat.
+     - Sur /messages (sidebar mobile pleine page) : layout normal dans
+       le flow, on retire TopBar (56 + safe-area-top) + BottomNav
+       (56 + safe-area-bottom clamp 12). */
+  const containerClass = isConvOpen
+    ? "fixed inset-0 z-30 grid h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:relative lg:inset-auto lg:z-auto lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
+    : "grid overflow-hidden lg:grid-cols-[340px_1fr] h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
 
   return (
-    <div
-      className={`grid lg:grid-cols-[340px_1fr] overflow-hidden ${heightClass}`}
-    >
+    <div className={containerClass}>
       <aside
         className={
           isConvOpen

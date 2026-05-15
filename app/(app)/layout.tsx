@@ -100,8 +100,13 @@ export default async function DashboardLayout({
           />
 
           {/* Padding-top h-14 + safe-area-inset-top (notch iOS PWA).
-              Padding-bottom mobile = espace pour BottomNav h-14 + safe-area. */}
-          <div className="pt-[calc(56px+env(safe-area-inset-top,0px))] pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+              Padding-bottom mobile = espace pour BottomNav h-14 + safe-area.
+              data-app-shell : cible CSS pour le mode conv fullscreen
+              mobile (cf. globals.css) qui retire ces paddings. */}
+          <div
+            data-app-shell
+            className="pt-[calc(56px+env(safe-area-inset-top,0px))] pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0"
+          >
             {/* LeftSidebar : visible UNIQUEMENT xl ≥ 1280px */}
             <aside className="hidden xl:flex xl:flex-col fixed left-0 top-14 bottom-0 w-80 z-30">
               <LeftSidebar
@@ -120,6 +125,7 @@ export default async function DashboardLayout({
                 1200px marketplace, etc.). */}
             <main
               id="main-content"
+              data-app-main
               tabIndex={-1}
               className="xl:ml-80 min-h-[calc(100dvh-56px)] focus:outline-none overflow-x-hidden"
             >
