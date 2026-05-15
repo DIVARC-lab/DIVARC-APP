@@ -2,25 +2,32 @@
 
 import { useEffect } from "react";
 
-/* Sync de la hauteur du viewport VISUEL iOS PWA en CSS var.
+/* Sync de la zone visible iOS PWA (visualViewport) en CSS vars.
  *
- * Pourquoi : `100dvh` change avec la URL bar Safari MAIS PAS avec le
- * clavier en PWA standalone iOS. Quand le clavier ouvre :
- *   - dvh garde l'ancienne valeur
- *   - le conteneur messages dépasse derrière le clavier
- *   - iOS scroll le body pour amener l'input visible
- *   - ChatHeader sort par le haut + composer flotte mal positionné
+ * Pourquoi : iOS PWA gère le clavier de deux façons (selon version) :
+ *  - Avec `interactive-widget=resizes-content` (iOS 17.4+) : le LAYOUT
+ *    viewport rétrécit avec le clavier, donc `100dvh` reflète bien la
+ *    zone visible. visualViewport.offsetTop reste à 0.
+ *  - Sans (iOS <17 ou comportement par défaut) : seule la zone visuelle
+ *    rétrécit, le layout viewport reste plein écran. iOS DÉCALE alors
+ *    le visualViewport vers le BAS (offsetTop > 0) pour amener
+ *    l'input visible. Conséquence : le contenu in-flow (à layout y=0)
+ *    n'est plus dans la zone visible.
  *
- * Fix : on écoute `visualViewport.resize` et on expose la VRAIE hauteur
- * visible en CSS var `--viewport-visual-h`. Les composants critiques
- * (MessagesLayoutWrapper) l'utilisent à la place de `100dvh` quand
- * disponible.
+ * On expose deux CSS vars que MessagesLayoutWrapper utilise :
+ *  --viewport-visual-h        : hauteur visible (= visualViewport.height)
+ *  --viewport-visual-offset-top : décalage iOS (= visualViewport.offsetTop)
  *
- * Coût : 1 listener resize passive + 1 style.setProperty par event.
- * Aucun re-render React.
+ * Le wrapper messages applique :
+ *  - height = --viewport-visual-h  (le wrapper fait la taille visible)
+ *  - margin-top = --viewport-visual-offset-top  (le wrapper suit le
+ *    décalage iOS et reste aligné sur la zone visible)
  *
- * Fallback gracieux : si l'API n'existe pas, on ne fait rien et le CSS
- * tombe sur la valeur dvh par défaut (var(--viewport-visual-h, 100dvh)). */
+ * Effet : ChatHeader collé en haut du visible, composer collé en bas
+ * (juste au-dessus du clavier), peu importe la version iOS.
+ *
+ * Coût : 1 listener resize + 1 listener scroll passifs sur visualViewport,
+ * rAF throttle, 2 style.setProperty par event. Zéro re-render React. */
 export function MobileViewportHeight() {
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -29,24 +36,20 @@ export function MobileViewportHeight() {
 
     const root = document.documentElement;
     let rafId: number | null = null;
-    let pendingHeight: number | null = null;
 
-    function applyHeight() {
+    function applyAll() {
       rafId = null;
-      if (pendingHeight !== null) {
-        root.style.setProperty(
-          "--viewport-visual-h",
-          `${pendingHeight}px`,
-        );
-        pendingHeight = null;
-      }
+      if (!vv) return;
+      root.style.setProperty("--viewport-visual-h", `${vv.height}px`);
+      root.style.setProperty(
+        "--viewport-visual-offset-top",
+        `${vv.offsetTop}px`,
+      );
     }
 
     function update() {
-      if (!vv) return;
-      pendingHeight = vv.height;
       if (rafId === null) {
-        rafId = requestAnimationFrame(applyHeight);
+        rafId = requestAnimationFrame(applyAll);
       }
     }
 
@@ -58,6 +61,7 @@ export function MobileViewportHeight() {
       vv.removeEventListener("scroll", update);
       if (rafId !== null) cancelAnimationFrame(rafId);
       root.style.removeProperty("--viewport-visual-h");
+      root.style.removeProperty("--viewport-visual-offset-top");
     };
   }, []);
 

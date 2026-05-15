@@ -38,10 +38,16 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
     pathname.startsWith("/messages/") && pathname !== "/messages";
 
   const containerClass = isConvOpen
-    ? /* Conv ouverte : mobile in-flow flex-col plein écran visible
-         (le shell parent a déjà pt:0 / pb:0 via .conv-fullscreen),
-         desktop grid normal. */
-      "flex flex-col h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:grid lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
+    ? /* Conv ouverte mobile : wrapper in-flow qui suit EXACTEMENT le
+         visualViewport iOS via 2 CSS vars :
+           height = --viewport-visual-h (zone visible au-dessus du
+                                          clavier)
+           margin-top = --viewport-visual-offset-top (décalage iOS
+                                                      pour scroll input)
+         Avec margin-top (et pas transform), on évite de créer un
+         nouveau containing block pour les enfants `position: fixed`
+         (menus, sheets, dialogs). Desktop : grid sidebar+chat normal. */
+      "flex flex-col h-[var(--viewport-visual-h,100dvh)] mt-[var(--viewport-visual-offset-top,0px)] overflow-hidden lg:mt-0 lg:grid lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
     : /* Liste de conv : flex column mobile pour que la sidebar prenne
          toute la hauteur via flex-1, grid sur desktop. */
       "flex flex-col overflow-hidden lg:grid lg:grid-cols-[340px_1fr] h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
