@@ -379,7 +379,11 @@ export function MessageThread({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-y-auto px-4 sm:px-6 py-6"
+      /* `overflow-x-hidden` + `overscroll-x-none` : empêche un long
+         mot / URL / image trop large dans une bubble de déclencher
+         un scroll horizontal sur iOS Safari, ce qui décalait toute
+         la conv vers la gauche/droite (bug report user). */
+      className="flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none px-4 sm:px-6 py-6"
     >
       {pinnedMessages.length > 0 ? (
         <PinnedMessagesBar
