@@ -1,12 +1,21 @@
 "use client";
 
-/* Wrapper client pour la layout messages : sur mobile (<lg, c'est-à-dire
- * <1024px), on affiche SOIT la sidebar (sur /messages) SOIT le chat (sur
- * /messages/[id]) — pas les deux. Sur desktop (>=lg) les deux côte à côte.
+/* Wrapper client pour la layout messages.
  *
- * Hauteur : 100dvh - 56px (TopBar) sur desktop ; sur mobile en plus -
- * 56px (BottomNav). On utilise dvh pour gérer correctement la barre
- * d'URL Safari qui change la viewport. */
+ * Mobile (<lg = 1024px) :
+ *  - Layout `flex flex-col` simple (PAS grid : avec grid sans
+ *    grid-template-rows explicite, la row a hauteur auto = contenu,
+ *    ce qui casse le flex-1 de ConversationView en interne).
+ *  - On affiche SOIT la sidebar (sur /messages) SOIT le chat (sur
+ *    /messages/[id]) — pas les deux. L'élément visible prend flex-1.
+ *  - En conv mobile : pattern "WhatsApp", wrapper en `fixed inset-0`
+ *    + height = var(--viewport-visual-h) qui suit le clavier en
+ *    temps réel via visualViewport. TopBar/BottomNav cachées par
+ *    `html.conv-fullscreen` (cf. MobileBodyLock + globals.css).
+ *
+ * Desktop (>=lg) :
+ *  - Layout `grid grid-cols-[340px_1fr]` : sidebar + chat side-by-side.
+ *  - Pas de fullscreen ni body lock : la TopBar reste visible. */
 
 import { usePathname } from "next/navigation";
 
@@ -22,28 +31,24 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
   const isConvOpen =
     pathname.startsWith("/messages/") && pathname !== "/messages";
 
-  /* Hauteur du conteneur :
-     - Sur /messages/<id> mobile (chat visible) : pattern "WhatsApp".
-       Le wrapper se positionne en `fixed inset-0` et prend
-       `var(--viewport-visual-h, 100dvh)` (réagit au clavier en temps
-       réel via visualViewport). TopBar globale + BottomNav cachées
-       par html.conv-fullscreen (cf. MobileBodyLock + globals.css),
-       donc plus aucune soustraction à faire ici. Sur desktop : grid
-       classique sidebar+chat.
-     - Sur /messages (sidebar mobile pleine page) : layout normal dans
-       le flow, on retire TopBar (56 + safe-area-top) + BottomNav
-       (56 + safe-area-bottom clamp 12). */
   const containerClass = isConvOpen
-    ? "fixed inset-0 z-30 grid h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:relative lg:inset-auto lg:z-auto lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
-    : "grid overflow-hidden lg:grid-cols-[340px_1fr] h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
+    ? /* Conv ouverte : mobile fullscreen fixed, desktop grid normal. */
+      "fixed inset-0 z-30 flex flex-col h-[var(--viewport-visual-h,100dvh)] overflow-hidden lg:relative lg:inset-auto lg:z-auto lg:grid lg:grid-cols-[340px_1fr] lg:h-[calc(100dvh-56px)]"
+    : /* Liste de conv : flex column mobile pour que la sidebar prenne
+         toute la hauteur via flex-1, grid sur desktop. */
+      "flex flex-col overflow-hidden lg:grid lg:grid-cols-[340px_1fr] h-[calc(var(--viewport-visual-h,100dvh)-56px-56px-env(safe-area-inset-top,0px)-min(env(safe-area-inset-bottom,0px),12px))] lg:h-[calc(100dvh-56px)]";
 
   return (
     <div className={containerClass}>
       <aside
         className={
           isConvOpen
-            ? "hidden lg:flex lg:flex-col min-h-0"
-            : "flex flex-col min-h-0"
+            ? /* Cachée en mobile (conv visible à la place), visible
+                 desktop dans la 1ère col du grid. */
+              "hidden lg:flex lg:flex-col min-h-0"
+            : /* Visible en mobile (flex-1 prend toute la hauteur du
+                 parent flex-col), passe en grid item sur desktop. */
+              "flex-1 min-h-0 flex flex-col lg:flex-initial"
         }
       >
         {sidebar}
@@ -51,8 +56,12 @@ export function MessagesLayoutWrapper({ sidebar, children }: Props) {
       <section
         className={
           isConvOpen
-            ? "flex flex-col bg-bg overflow-hidden min-h-0"
-            : "hidden lg:flex lg:flex-col bg-bg overflow-hidden min-h-0"
+            ? /* Visible en mobile (flex-1 prend toute la hauteur du
+                 parent flex-col), passe en grid item sur desktop. */
+              "flex-1 min-h-0 flex flex-col bg-bg overflow-hidden lg:flex-initial"
+            : /* Cachée en mobile (sidebar visible à la place), visible
+                 desktop dans la 2e col du grid. */
+              "hidden lg:flex lg:flex-col bg-bg overflow-hidden min-h-0"
         }
       >
         {children}
