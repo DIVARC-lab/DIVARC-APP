@@ -84,9 +84,17 @@ export async function sendCircleChatMessage(
   }
 
   /* Chantier Cercles v4 — déclenche bots avec trigger chat_message
-     (ex: ModeratorBot peut hide_content si keyword matche). */
+     (ex: ModeratorBot peut hide_content si keyword matche). Le rôle
+     de l'auteur est passé pour que les conditions exclude_roles
+     (whitelist admin/mod) fonctionnent. */
   try {
     const { executeBotsForEvent } = await import("@/lib/bots/engine");
+    const { data: member } = await (supabase as SupabaseAny)
+      .from("circle_members")
+      .select("role")
+      .eq("circle_id", parsed.data.circleId)
+      .eq("user_id", user.id)
+      .maybeSingle();
     await executeBotsForEvent(
       supabase,
       parsed.data.circleId,
@@ -95,6 +103,7 @@ export async function sendCircleChatMessage(
         user_id: user.id,
         chat_message_id: data.id,
         body: parsed.data.body,
+        author_role: member?.role ?? null,
       },
     );
   } catch (botErr) {

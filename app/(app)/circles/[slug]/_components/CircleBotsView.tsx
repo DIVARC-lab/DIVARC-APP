@@ -28,6 +28,7 @@ import type {
 import { cn } from "@/lib/utils/cn";
 import {
   deleteCircleBot,
+  installModeratorBot,
   installWelcomeBot,
   toggleCircleBot,
   updateCircleBotConfig,
@@ -65,7 +66,7 @@ const PRESETS: BotPreset[] = [
       "Détecte automatiquement les messages contenant des mots-clés blacklistés, trop d'URLs, ou en CAPS LOCK. Hide ou flag selon config.",
     icon: Shield,
     iconColor: "text-rose-600",
-    available: false,
+    available: true,
   },
   {
     type: "event",
@@ -123,24 +124,53 @@ export function CircleBotsView({
   );
 
   function handleInstall(type: CircleBotType, template?: string) {
-    if (type !== "welcome") {
-      toast("Ce bot sera disponible bientôt (V2)");
+    if (type === "welcome") {
+      startTransition(async () => {
+        const res = await installWelcomeBot({
+          circleId,
+          circleSlug,
+          template:
+            template ??
+            "Bienvenue {{name}} dans {{circle}} 👋 N'hésite pas à te présenter !",
+        });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        toast.success("BienvenueBot activé ✓");
+        window.location.reload();
+      });
       return;
     }
+    if (type === "moderation") {
+      /* L'install moderation passe par un modal séparé avec config
+         spécifique (blacklist, etc.). On ouvre directement. */
+      return;
+    }
+    toast("Ce bot sera disponible bientôt (V2)");
+  }
+
+  function handleInstallModeration(args: {
+    blacklist: string[];
+    maxUrls?: number;
+    capsThreshold?: number;
+    autoAction: "hide_content" | "flag_for_review";
+  }) {
     startTransition(async () => {
-      const res = await installWelcomeBot({
+      const res = await installModeratorBot({
         circleId,
         circleSlug,
-        template:
-          template ??
-          "Bienvenue {{name}} dans {{circle}} 👋 N'hésite pas à te présenter !",
+        blacklist: args.blacklist,
+        maxUrls: args.maxUrls,
+        capsThreshold: args.capsThreshold,
+        autoAction: args.autoAction,
+        whitelistRoles: ["owner", "admin", "moderator", "mod"],
       });
       if (!res.ok) {
         toast.error(res.error);
         return;
       }
-      toast.success("BienvenueBot activé ✓");
-      /* Refresh : pour V1 simple, on reload la page. V2 = SWR. */
+      toast.success("ModérateurBot activé ✓");
       window.location.reload();
     });
   }
@@ -397,6 +427,18 @@ export function CircleBotsView({
         />
       ) : null}
 
+      {/* Install Moderator Bot Modal */}
+      {installingType === "moderation" ? (
+        <InstallModerationModal
+          onCancel={() => setInstallingType(null)}
+          onConfirm={(args) => {
+            handleInstallModeration(args);
+            setInstallingType(null);
+          }}
+          pending={pending}
+        />
+      ) : null}
+
       {/* Config existing bot */}
       {configuringBot ? (
         <ConfigureBotModal
@@ -630,5 +672,197 @@ function ConfigureBotModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function InstallModerationModal({
+  onCancel,
+  onConfirm,
+  pending,
+}: {
+  onCancel: () => void;
+  onConfirm: (args: {
+    blacklist: string[];
+    maxUrls?: number;
+    capsThreshold?: number;
+    autoAction: "hide_content" | "flag_for_review";
+  }) => void;
+  pending: boolean;
+}) {
+  const [blacklistRaw, setBlacklistRaw] = useState(
+    "spam, scam, arnaque, crypto-pump, viagra",
+  );
+  const [maxUrls, setMaxUrls] = useState("3");
+  const [capsThreshold, setCapsThreshold] = useState("80");
+  const [autoAction, setAutoAction] = useState<"hide_content" | "flag_for_review">(
+    "hide_content",
+  );
+
+  function submit() {
+    const blacklist = blacklistRaw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter((s) => s.length > 0);
+    const maxUrlsNum = maxUrls.trim() === "" ? undefined : Number(maxUrls);
+    const capsNum = capsThreshold.trim() === "" ? undefined : Number(capsThreshold);
+
+    onConfirm({
+      blacklist,
+      maxUrls:
+        typeof maxUrlsNum === "number" && !Number.isNaN(maxUrlsNum)
+          ? maxUrlsNum
+          : undefined,
+      capsThreshold:
+        typeof capsNum === "number" && !Number.isNaN(capsNum) ? capsNum : undefined,
+      autoAction,
+    });
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Configurer ModérateurBot"
+      className="fixed inset-0 z-50 bg-night/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="w-full max-w-lg bg-bg rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+        <header className="flex items-center justify-between mb-4">
+          <h2 className="font-display italic text-xl text-night flex items-center gap-2">
+            <Shield className="w-5 h-5 text-rose-600" aria-hidden />
+            ModérateurBot
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Fermer"
+            className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </header>
+
+        <p className="text-[12px] text-night-muted leading-relaxed mb-4">
+          Le bot scanne chaque message du chat et déclenche l&apos;action
+          configurée si une règle matche. Les rôles owner/admin/modérateur
+          sont automatiquement exemptés.
+        </p>
+
+        <div className="space-y-4">
+          <ModField
+            label="Mots-clés blacklistés"
+            hint="Séparés par virgules. Le message contient au moins un de ces mots → trigger fire."
+          >
+            <textarea
+              value={blacklistRaw}
+              onChange={(e) => setBlacklistRaw(e.target.value)}
+              rows={3}
+              placeholder="spam, scam, crypto-pump"
+              className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[14px] resize-y"
+            />
+          </ModField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <ModField label="Max URLs / message" hint="Trigger si > N URLs">
+              <input
+                type="number"
+                min={0}
+                max={20}
+                value={maxUrls}
+                onChange={(e) => setMaxUrls(e.target.value)}
+                placeholder="3"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[14px]"
+              />
+            </ModField>
+            <ModField label="Seuil caps (%)" hint="Trigger si > N% de CAPS">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={capsThreshold}
+                onChange={(e) => setCapsThreshold(e.target.value)}
+                placeholder="80"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[14px]"
+              />
+            </ModField>
+          </div>
+
+          <ModField label="Action automatique">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAutoAction("hide_content")}
+                className={cn(
+                  "flex-1 h-10 rounded-xl text-[12px] font-bold transition-colors",
+                  autoAction === "hide_content"
+                    ? "bg-rose-500 text-white"
+                    : "bg-white border border-line text-night-muted hover:border-night/30",
+                )}
+              >
+                Masquer auto
+              </button>
+              <button
+                type="button"
+                onClick={() => setAutoAction("flag_for_review")}
+                className={cn(
+                  "flex-1 h-10 rounded-xl text-[12px] font-bold transition-colors",
+                  autoAction === "flag_for_review"
+                    ? "bg-night text-cream"
+                    : "bg-white border border-line text-night-muted hover:border-night/30",
+                )}
+              >
+                Signaler modos
+              </button>
+            </div>
+          </ModField>
+        </div>
+
+        <div className="flex items-center gap-2 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 h-10 rounded-full bg-night/5 text-night font-bold text-[13px]"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending}
+            className="flex-1 h-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-bold text-[13px] disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="w-4 h-4 mx-auto animate-spin" aria-hidden />
+            ) : (
+              "Activer"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModField({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] font-bold uppercase tracking-wider text-night-muted mb-1">
+        {label}
+      </span>
+      {children}
+      {hint ? (
+        <p className="mt-1 text-[10px] text-night-muted/80 leading-relaxed">{hint}</p>
+      ) : null}
+    </label>
   );
 }

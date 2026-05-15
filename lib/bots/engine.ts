@@ -104,6 +104,18 @@ function evaluateConditions(
     if (role && conditions.exclude_roles.includes(role)) return false;
   }
 
+  /* caps_threshold (0-100) : % de caractères en CAPS dans le body
+     au-dessus duquel le trigger fire. Ignore les messages courts
+     (< 10 caractères alphabétiques) pour éviter les faux positifs
+     (acronymes courants : "OK", "ASAP"). */
+  if (typeof conditions.caps_threshold === "number") {
+    const letters = body.replace(/[^A-Za-zÀ-ÿ]/g, "");
+    if (letters.length < 10) return false; /* body trop court */
+    const caps = letters.replace(/[^A-ZÀ-Ý]/g, "").length;
+    const pct = (caps / letters.length) * 100;
+    if (pct < conditions.caps_threshold) return false;
+  }
+
   return true;
 }
 

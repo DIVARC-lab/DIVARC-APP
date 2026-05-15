@@ -90,6 +90,118 @@ export async function installWelcomeBot(
   return { ok: true as const, botId: bot.id };
 }
 
+/* === ModeratorBot install (rules-based V1) ============================ */
+
+const installModeratorSchema = z.object({
+  circleId: z.string().uuid(),
+  circleSlug: z.string().min(1),
+  blacklist: z.array(z.string().min(1).max(60)).max(50).default([]),
+  maxUrls: z.number().int().min(0).max(20).optional(),
+  capsThreshold: z.number().int().min(0).max(100).optional(),
+  autoAction: z.enum(["hide_content", "flag_for_review"]).default("hide_content"),
+  whitelistRoles: z
+    .array(z.enum(["owner", "admin", "moderator", "mod"]))
+    .default(["owner", "admin", "moderator", "mod"]),
+});
+
+export async function installModeratorBot(
+  args: z.infer<typeof installModeratorSchema>,
+) {
+  const parsed = installModeratorSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Invalid",
+    };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié" };
+
+  /* Construit les conditions selon ce qui est paramétré.
+     min_urls = "≥ N URLs détectées" → trigger fire. On veut fire
+     quand le user dépasse maxUrls, donc min_urls = maxUrls+1. */
+  const conditions: Record<string, unknown> = {
+    exclude_roles: parsed.data.whitelistRoles,
+  };
+  if (parsed.data.blacklist.length > 0) {
+    conditions.keywords_any = parsed.data.blacklist;
+  }
+  if (typeof parsed.data.maxUrls === "number" && parsed.data.maxUrls >= 0) {
+    conditions.min_urls = parsed.data.maxUrls + 1;
+  }
+  if (
+    typeof parsed.data.capsThreshold === "number" &&
+    parsed.data.capsThreshold > 0
+  ) {
+    conditions.caps_threshold = parsed.data.capsThreshold;
+  }
+
+  /* Création atomique bot + trigger + action. */
+  const { data: bot, error: botError } = await (supabase as SupabaseAny)
+    .from("circle_bots")
+    .insert({
+      circle_id: parsed.data.circleId,
+      bot_type: "moderation",
+      name: "ModérateurBot",
+      avatar_url: null,
+      description:
+        "Détecte automatiquement les messages contenant des mots-clés blacklistés, trop d'URLs, ou en CAPS LOCK.",
+      config: {
+        blacklist: parsed.data.blacklist,
+        max_urls: parsed.data.maxUrls ?? null,
+        caps_threshold: parsed.data.capsThreshold ?? null,
+        auto_action: parsed.data.autoAction,
+        whitelist_roles: parsed.data.whitelistRoles,
+      },
+      is_active: true,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (botError || !bot) {
+    return { ok: false as const, error: botError?.message ?? "Bot insert failed" };
+  }
+
+  /* Trigger : chat_message avec les conditions. */
+  const { error: triggerError } = await (supabase as SupabaseAny)
+    .from("circle_bot_triggers")
+    .insert({
+      bot_id: bot.id,
+      trigger_kind: "event",
+      trigger_event: "chat_message",
+      conditions,
+    });
+
+  if (triggerError) {
+    await (supabase as SupabaseAny).from("circle_bots").delete().eq("id", bot.id);
+    return { ok: false as const, error: `Trigger : ${triggerError.message}` };
+  }
+
+  /* Action : hide_content ou flag_for_review selon config. */
+  const { error: actionError } = await (supabase as SupabaseAny)
+    .from("circle_bot_actions")
+    .insert({
+      bot_id: bot.id,
+      action_kind: parsed.data.autoAction,
+      position: 0,
+      params: {
+        reason: "Modération automatique : règle déclenchée",
+      },
+    });
+
+  if (actionError) {
+    await (supabase as SupabaseAny).from("circle_bots").delete().eq("id", bot.id);
+    return { ok: false as const, error: `Action : ${actionError.message}` };
+  }
+
+  revalidatePath(`/circles/${parsed.data.circleSlug}/bots`);
+  return { ok: true as const, botId: bot.id };
+}
+
 const toggleSchema = z.object({
   botId: z.string().uuid(),
   circleSlug: z.string().min(1),
