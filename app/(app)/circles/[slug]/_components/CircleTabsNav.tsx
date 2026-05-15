@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  Bot,
   BookOpen,
   Briefcase,
   Calendar,
@@ -127,6 +128,14 @@ const ALL_TABS: Tab[] = [
     label: "Analytics",
     icon: BarChart3,
     segment: "/analytics",
+    adminOnly: true,
+  },
+  {
+    slug: "bots",
+    label: "Bots",
+    icon: Bot,
+    moduleKey: "bots",
+    segment: "/bots",
     adminOnly: true,
   },
 ];

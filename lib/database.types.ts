@@ -2246,7 +2246,10 @@ export type CircleRequestWithAuthor = CircleRequest & {
 export type CircleChatMessage = {
   id: string;
   circle_id: string;
-  author_id: string;
+  /* Chantier v4 — nullable si bot_id défini (message posté par bot). */
+  author_id: string | null;
+  /* Chantier v4 — bot qui a posté ce message (migration 0139). */
+  bot_id?: string | null;
   body: string;
   parent_message_id: string | null;
   attachments: unknown | null;
@@ -2258,6 +2261,14 @@ export type CircleChatMessage = {
 
 export type CircleChatMessageWithAuthor = CircleChatMessage & {
   author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  /* Chantier v4 — si bot_id défini, l'auteur du message est un bot
+     plutôt qu'un user humain. Mutuellement exclusif avec author. */
+  bot?: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    bot_type: string;
+  } | null;
   reactions_summary?: Record<string, number>;
   my_reactions?: string[];
   replies_count?: number;

@@ -91,18 +91,32 @@ export function CircleChatView({
         },
         async (payload) => {
           const row = payload.new as CircleChatMessageWithAuthor;
-          /* Récupère le profil de l'auteur (RLS l'autorise si membre). */
-          const { data: author } = await supabase
-            .from("profiles")
-            .select("id, full_name, username, avatar_url")
-            .eq("id", row.author_id)
-            .maybeSingle();
+          /* Récupère le profil de l'auteur OU les infos du bot.
+             RLS l'autorise si membre. */
+          let author: CircleChatMessageWithAuthor["author"] = null;
+          let bot: CircleChatMessageWithAuthor["bot"] = null;
+          if (row.author_id) {
+            const { data } = await supabase
+              .from("profiles")
+              .select("id, full_name, username, avatar_url")
+              .eq("id", row.author_id)
+              .maybeSingle();
+            author = data ?? null;
+          } else if (row.bot_id) {
+            /* eslint-disable @typescript-eslint/no-explicit-any */
+            const { data } = await (supabase as any)
+              .from("circle_bots")
+              .select("id, name, avatar_url, bot_type")
+              .eq("id", row.bot_id)
+              .maybeSingle();
+            bot = data ?? null;
+          }
           /* Ignore les replies (gérés via thread panel séparé V2). */
           if (row.parent_message_id) return;
           setMessages((prev) => {
             /* Déduplique par id (optimistic ajout déjà visible). */
             if (prev.some((m) => m.id === row.id)) return prev;
-            return [...prev, { ...row, author: author ?? null }];
+            return [...prev, { ...row, author, bot }];
           });
           /* Mark read si on est sur la page (visible). */
           if (document.visibilityState === "visible") {
@@ -333,19 +347,37 @@ function ChatMessageItem({
   onReact: (emoji: string) => void;
 }) {
   const author = message.author;
-  const displayName = author?.full_name ?? author?.username ?? "Utilisateur";
+  const bot = message.bot;
+  const isBot = !!bot;
+  const displayName = isBot
+    ? bot.name
+    : author?.full_name ?? author?.username ?? "Utilisateur";
   const [showReactions, setShowReactions] = useState(false);
 
   return (
     <div className="group flex items-start gap-2.5">
-      <Avatar
-        src={author?.avatar_url ?? null}
-        fullName={displayName}
-        size="sm"
-      />
+      {isBot ? (
+        /* Bot avatar : carré rounded avec icon 🤖 ou avatar_url custom. */
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/30 flex items-center justify-center shrink-0">
+          <span className="text-[14px]" aria-hidden>
+            🤖
+          </span>
+        </div>
+      ) : (
+        <Avatar
+          src={author?.avatar_url ?? null}
+          fullName={displayName}
+          size="sm"
+        />
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-0.5">
           <span className="text-[13px] font-bold text-night">{displayName}</span>
+          {isBot ? (
+            <span className="inline-flex items-center px-1.5 h-4 rounded-full bg-gold/15 text-gold-deep text-[9px] font-extrabold uppercase tracking-[0.08em]">
+              Bot
+            </span>
+          ) : null}
           <span className="text-[11px] text-night-muted tabular-nums">
             {formatRelative(message.created_at)}
           </span>
@@ -384,7 +416,9 @@ function ChatMessageItem({
         ) : null}
       </div>
 
-      {/* Hover actions : reactions picker + delete (own) */}
+      {/* Hover actions : reactions picker + delete (own). Caché pour
+          les messages bot (V1 : pas de réactions/delete sur bot). */}
+      {isBot ? null : (
       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
         <div className="relative">
           <button
@@ -425,6 +459,7 @@ function ChatMessageItem({
           </button>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

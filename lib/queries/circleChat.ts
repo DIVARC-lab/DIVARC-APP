@@ -56,21 +56,33 @@ export async function listCircleChatMessages(
 
   const messageIds = rows.map((m) => m.id);
 
-  const [{ data: authors }, { data: reactions }, { data: repliesAgg }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, username, avatar_url")
-      .in("id", authorIds),
-    (supabase as SupabaseAny)
-      .from("circle_chat_reactions")
-      .select("message_id, emoji, user_id")
-      .in("message_id", messageIds),
-    (supabase as SupabaseAny)
-      .from("circle_chat_messages")
-      .select("parent_message_id")
-      .in("parent_message_id", messageIds)
-      .is("deleted_at", null),
-  ]);
+  /* Récupère aussi les bots qui ont posté des messages (bot_id défini). */
+  const botIds = Array.from(
+    new Set(rows.map((m) => (m as { bot_id?: string }).bot_id).filter(Boolean) as string[]),
+  );
+
+  const [{ data: authors }, { data: reactions }, { data: repliesAgg }, { data: bots }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", authorIds),
+      (supabase as SupabaseAny)
+        .from("circle_chat_reactions")
+        .select("message_id, emoji, user_id")
+        .in("message_id", messageIds),
+      (supabase as SupabaseAny)
+        .from("circle_chat_messages")
+        .select("parent_message_id")
+        .in("parent_message_id", messageIds)
+        .is("deleted_at", null),
+      botIds.length > 0
+        ? (supabase as SupabaseAny)
+            .from("circle_bots")
+            .select("id, name, avatar_url, bot_type")
+            .in("id", botIds)
+        : Promise.resolve({ data: [] }),
+    ]);
 
   const authorById = new Map<string, ProfileLite>();
   for (const a of (authors ?? []) as ProfileLite[]) authorById.set(a.id, a);
@@ -104,15 +116,33 @@ export async function listCircleChatMessages(
     );
   }
 
+  /* Index bots par id. */
+  const botById = new Map<
+    string,
+    { id: string; name: string; avatar_url: string | null; bot_type: string }
+  >();
+  for (const b of (bots ?? []) as Array<{
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    bot_type: string;
+  }>) {
+    botById.set(b.id, b);
+  }
+
   /* On inverse pour retourner chronologique ASC (bottom = plus récent). */
   return rows
-    .map((m) => ({
-      ...m,
-      author: authorById.get(m.author_id) ?? null,
-      reactions_summary: reactionsByMsg.get(m.id)?.summary ?? {},
-      my_reactions: reactionsByMsg.get(m.id)?.mine ?? [],
-      replies_count: repliesCountByParent.get(m.id) ?? 0,
-    }))
+    .map((m) => {
+      const botId = (m as { bot_id?: string | null }).bot_id ?? null;
+      return {
+        ...m,
+        author: m.author_id ? authorById.get(m.author_id) ?? null : null,
+        bot: botId ? botById.get(botId) ?? null : null,
+        reactions_summary: reactionsByMsg.get(m.id)?.summary ?? {},
+        my_reactions: reactionsByMsg.get(m.id)?.mine ?? [],
+        replies_count: repliesCountByParent.get(m.id) ?? 0,
+      };
+    })
     .reverse() as CircleChatMessageWithAuthor[];
 }
 
@@ -145,6 +175,6 @@ export async function listCircleChatReplies(
 
   return rows.map((m) => ({
     ...m,
-    author: authorById.get(m.author_id) ?? null,
+    author: m.author_id ? authorById.get(m.author_id) ?? null : null,
   })) as CircleChatMessageWithAuthor[];
 }
