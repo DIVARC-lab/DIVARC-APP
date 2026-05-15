@@ -347,6 +347,17 @@ export async function executeBotsForSchedule(
     const errors: string[] = [];
     let executed = 0;
 
+    /* Pour DigestBot : enrichit le context avec données du cercle
+       (top posts 7j, new members 7j, events upcoming) pour que les
+       templates {{top_posts}} etc. fonctionnent. */
+    const baseContext: ExecutionContext = {
+      trigger_id: trigger.id,
+      schedule_fired_at: now.toISOString(),
+    };
+    if (bot.bot_type === "digest") {
+      Object.assign(baseContext, await fetchDigestContext(supabase, bot.circle_id));
+    }
+
     for (const action of bot.actions
       .filter((a) => a.is_active)
       .sort((a, b) => a.position - b.position)) {
@@ -357,7 +368,7 @@ export async function executeBotsForSchedule(
           circle_id: bot.circle_id,
           action_kind: action.action_kind,
           params: action.params,
-          context: { trigger_id: trigger.id, schedule_fired_at: now.toISOString() },
+          context: baseContext,
         });
         executed++;
       } catch (err) {
@@ -369,7 +380,7 @@ export async function executeBotsForSchedule(
     await logExecution(supabase, {
       bot_id: bot.id,
       trigger_id: trigger.id,
-      context: { trigger_id: trigger.id, schedule_fired_at: now.toISOString() },
+      context: baseContext,
       status: errors.length === 0 ? "success" : "failed",
       output: errors.length > 0 ? errors.join("; ") : `${executed} actions`,
       duration_ms: Date.now() - start,
@@ -422,4 +433,77 @@ export function cronMatchesMinute(expr: string, now: Date): boolean {
     matches(mon, nowMon) &&
     matches(dow, nowDow)
   );
+}
+
+/* === DigestBot : enrichissement du context avec données du cercle ===
+ *
+ * Appelé avant l'exécution des actions d'un DigestBot pour injecter
+ * dans le template les variables :
+ *   - {{circle}}        : nom du cercle
+ *   - {{top_posts}}     : liste formattée des 3 top posts (7j)
+ *   - {{new_members}}   : compteur nouveaux membres (7j)
+ *   - {{events_upcoming}} : prochains events (7j)
+ *   - {{period}}        : "cette semaine" (V2 : daily/monthly/etc.)
+ *
+ * Retourne un partial context. Toutes les requêtes SELECT côté Supabase
+ * doivent réussir même avec RLS car le caller (cron) utilise un client
+ * admin (service_role key). */
+async function fetchDigestContext(
+  supabase: SupabaseAny,
+  circleId: string,
+): Promise<Record<string, string>> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date();
+  const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  /* Nom du cercle. */
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("name")
+    .eq("id", circleId)
+    .maybeSingle();
+  const circleName = (circle as { name?: string } | null)?.name ?? "ce cercle";
+
+  /* Top 3 posts derniers 7j (par engagement = likes + comments). */
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("id, body, author_id")
+    .eq("circle_id", circleId)
+    .is("deleted_at", null)
+    .gte("created_at", sevenDaysAgo)
+    .limit(3);
+  const topPosts = ((posts as Array<{ body: string | null }> | null) ?? [])
+    .map((p, i) => `${i + 1}. ${(p.body ?? "(sans texte)").slice(0, 80)}`)
+    .join("\n");
+
+  /* Nouveaux membres derniers 7j. */
+  const { count: newMembersCount } = await supabase
+    .from("circle_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("circle_id", circleId)
+    .gte("joined_at", sevenDaysAgo);
+
+  /* Events à venir dans les 7 prochains jours. */
+  const { data: events } = await supabase
+    .from("circle_events")
+    .select("title, starts_at")
+    .eq("circle_id", circleId)
+    .gte("starts_at", now.toISOString())
+    .lte("starts_at", oneWeekFromNow)
+    .limit(3);
+  const eventsList = ((events as Array<{ title: string; starts_at: string }> | null) ?? [])
+    .map(
+      (e) =>
+        `• ${e.title} — ${new Date(e.starts_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" })}`,
+    )
+    .join("\n");
+
+  return {
+    circle_name: circleName,
+    top_posts: topPosts.length > 0 ? topPosts : "(aucun post cette semaine)",
+    new_members: String(newMembersCount ?? 0),
+    events_upcoming:
+      eventsList.length > 0 ? eventsList : "(aucun événement prévu)",
+    period: "cette semaine",
+  };
 }

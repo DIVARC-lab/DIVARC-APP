@@ -316,6 +316,115 @@ export async function installReminderBot(
   return { ok: true as const, botId: bot.id };
 }
 
+/* === DigestBot install (cron-based avec context enrichi) ============== */
+
+const DEFAULT_DIGEST_TEMPLATE = `📰 Récap de {{period}} dans {{circle_name}}
+
+🔝 Top posts :
+{{top_posts}}
+
+👋 Nouveaux membres : {{new_members}}
+
+📅 Événements à venir :
+{{events_upcoming}}
+
+Bonne semaine ! ✨`;
+
+const installDigestSchema = z.object({
+  circleId: z.string().uuid(),
+  circleSlug: z.string().min(1),
+  template: z.string().min(20).max(4000).default(DEFAULT_DIGEST_TEMPLATE),
+  /* Cron expression UTC pour le digest. Default : dimanche 18h UTC. */
+  schedule: z.string().min(5).max(80).default("0 18 * * 0"),
+  name: z.string().min(2).max(80).default("DigestBot"),
+});
+
+export async function installDigestBot(args: z.infer<typeof installDigestSchema>) {
+  const parsed = installDigestSchema.safeParse(args);
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Invalid",
+    };
+  }
+  /* Reuse the validator from installReminderBot since same format. */
+  const parts = parsed.data.schedule.trim().split(/\s+/);
+  if (parts.length !== 5 || !parts.every((p) => p === "*" || /^\d+$/.test(p))) {
+    return {
+      ok: false as const,
+      error: "Cron invalide. Format 5 champs UTC, chiffres ou '*'.",
+    };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié" };
+
+  const { data: bot, error: botError } = await (supabase as SupabaseAny)
+    .from("circle_bots")
+    .insert({
+      circle_id: parsed.data.circleId,
+      bot_type: "digest",
+      name: parsed.data.name,
+      avatar_url: null,
+      description:
+        "Résumé hebdomadaire personnalisé (top posts, nouveaux membres, events).",
+      config: {
+        template: parsed.data.template,
+        schedule: parsed.data.schedule,
+      },
+      is_active: true,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (botError || !bot) {
+    return {
+      ok: false as const,
+      error: botError?.message ?? "Bot insert failed",
+    };
+  }
+
+  const { error: triggerError } = await (supabase as SupabaseAny)
+    .from("circle_bot_triggers")
+    .insert({
+      bot_id: bot.id,
+      trigger_kind: "schedule",
+      trigger_schedule: parsed.data.schedule,
+      conditions: {},
+    });
+
+  if (triggerError) {
+    await (supabase as SupabaseAny).from("circle_bots").delete().eq("id", bot.id);
+    return {
+      ok: false as const,
+      error: `Trigger : ${triggerError.message}`,
+    };
+  }
+
+  const { error: actionError } = await (supabase as SupabaseAny)
+    .from("circle_bot_actions")
+    .insert({
+      bot_id: bot.id,
+      action_kind: "post_chat_message",
+      position: 0,
+      params: { template: parsed.data.template },
+    });
+
+  if (actionError) {
+    await (supabase as SupabaseAny).from("circle_bots").delete().eq("id", bot.id);
+    return {
+      ok: false as const,
+      error: `Action : ${actionError.message}`,
+    };
+  }
+
+  revalidatePath(`/circles/${parsed.data.circleSlug}/bots`);
+  return { ok: true as const, botId: bot.id };
+}
+
 const toggleSchema = z.object({
   botId: z.string().uuid(),
   circleSlug: z.string().min(1),

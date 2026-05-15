@@ -28,6 +28,7 @@ import type {
 import { cn } from "@/lib/utils/cn";
 import {
   deleteCircleBot,
+  installDigestBot,
   installModeratorBot,
   installReminderBot,
   installWelcomeBot,
@@ -91,10 +92,10 @@ const PRESETS: BotPreset[] = [
     type: "digest",
     name: "DigestBot",
     description:
-      "Résumé hebdomadaire personnalisé pour chaque membre : top posts, nouveaux membres, événements à venir.",
+      "Résumé hebdomadaire automatique : top posts, nouveaux membres, événements à venir. Variables {{top_posts}}, {{new_members}}, {{events_upcoming}}.",
     icon: MessageSquare,
     iconColor: "text-purple-600",
-    available: false,
+    available: true,
   },
   {
     type: "ai_assistant",
@@ -143,11 +144,33 @@ export function CircleBotsView({
       });
       return;
     }
-    /* Les installs moderation/reminder passent par des modals séparés
-       avec config spécifique. Ouverture via setInstallingType qui
-       est géré par le rendu des modals plus bas. */
-    if (type === "moderation" || type === "reminder") return;
+    /* Les installs moderation/reminder/digest passent par des modals
+       séparés avec config spécifique. Ouverture via setInstallingType
+       qui est géré par le rendu des modals plus bas. */
+    if (type === "moderation" || type === "reminder" || type === "digest") return;
     toast("Ce bot sera disponible bientôt (V2)");
+  }
+
+  function handleInstallDigest(args: {
+    name: string;
+    template: string;
+    schedule: string;
+  }) {
+    startTransition(async () => {
+      const res = await installDigestBot({
+        circleId,
+        circleSlug,
+        name: args.name,
+        template: args.template,
+        schedule: args.schedule,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("DigestBot activé ✓");
+      window.location.reload();
+    });
   }
 
   function handleInstallModeration(args: {
@@ -467,6 +490,18 @@ export function CircleBotsView({
           onCancel={() => setInstallingType(null)}
           onConfirm={(args) => {
             handleInstallReminder(args);
+            setInstallingType(null);
+          }}
+          pending={pending}
+        />
+      ) : null}
+
+      {/* Install Digest Bot Modal */}
+      {installingType === "digest" ? (
+        <InstallDigestModal
+          onCancel={() => setInstallingType(null)}
+          onConfirm={(args) => {
+            handleInstallDigest(args);
             setInstallingType(null);
           }}
           pending={pending}
@@ -1093,6 +1128,200 @@ function InstallReminderModal({
             onClick={submit}
             disabled={pending}
             className="flex-1 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-[13px] disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="w-4 h-4 mx-auto animate-spin" aria-hidden />
+            ) : (
+              "Activer"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Presets cron digest (UTC). */
+const DIGEST_SCHEDULE_PRESETS: Array<{
+  id: string;
+  label: string;
+  cron: string;
+}> = [
+  {
+    id: "sunday-18utc",
+    label: "Dimanche 18h",
+    cron: "0 18 * * 0",
+  },
+  {
+    id: "monday-8utc",
+    label: "Lundi 8h",
+    cron: "0 8 * * 1",
+  },
+  {
+    id: "friday-16utc",
+    label: "Vendredi 16h",
+    cron: "0 16 * * 5",
+  },
+  {
+    id: "custom",
+    label: "Personnalisé",
+    cron: "",
+  },
+];
+
+const DIGEST_DEFAULT_TEMPLATE = `📰 Récap de {{period}} dans {{circle_name}}
+
+🔝 Top posts :
+{{top_posts}}
+
+👋 Nouveaux membres : {{new_members}}
+
+📅 Événements à venir :
+{{events_upcoming}}
+
+Bonne semaine ! ✨`;
+
+function InstallDigestModal({
+  onCancel,
+  onConfirm,
+  pending,
+}: {
+  onCancel: () => void;
+  onConfirm: (args: { name: string; template: string; schedule: string }) => void;
+  pending: boolean;
+}) {
+  const [name, setName] = useState("DigestBot");
+  const [template, setTemplate] = useState(DIGEST_DEFAULT_TEMPLATE);
+  const [presetId, setPresetId] = useState("sunday-18utc");
+  const [customCron, setCustomCron] = useState("0 18 * * 0");
+
+  const preset = DIGEST_SCHEDULE_PRESETS.find((p) => p.id === presetId);
+  const schedule = presetId === "custom" ? customCron : preset?.cron ?? "";
+
+  function submit() {
+    if (name.trim().length < 2) {
+      toast.error("Le nom doit faire au moins 2 caractères");
+      return;
+    }
+    if (template.trim().length < 20) {
+      toast.error("Le template doit faire au moins 20 caractères");
+      return;
+    }
+    onConfirm({ name: name.trim(), template: template.trim(), schedule });
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Configurer DigestBot"
+      className="fixed inset-0 z-50 bg-night/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="w-full max-w-lg bg-bg rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+        <header className="flex items-center justify-between mb-4">
+          <h2 className="font-display italic text-xl text-night flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-purple-600" aria-hidden />
+            DigestBot
+          </h2>
+          <button
+            type="button"
+            onClick={onCancel}
+            aria-label="Fermer"
+            className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </header>
+
+        <p className="text-[12px] text-night-muted leading-relaxed mb-4">
+          Résumé automatique posté dans le chat. Le bot remplace
+          dynamiquement les variables avec les vraies données du cercle :{" "}
+          <code className="px-1 py-0.5 rounded bg-night/5">{"{{top_posts}}"}</code>,{" "}
+          <code className="px-1 py-0.5 rounded bg-night/5">{"{{new_members}}"}</code>,{" "}
+          <code className="px-1 py-0.5 rounded bg-night/5">{"{{events_upcoming}}"}</code>,{" "}
+          <code className="px-1 py-0.5 rounded bg-night/5">{"{{circle_name}}"}</code>.
+        </p>
+
+        <div className="space-y-4">
+          <ModField label="Nom">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={80}
+              className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[14px]"
+            />
+          </ModField>
+
+          <ModField
+            label="Template digest"
+            hint="Le bot remplace les variables {{...}} par les données réelles du cercle."
+          >
+            <textarea
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+              rows={10}
+              maxLength={4000}
+              className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[12.5px] font-mono resize-y"
+            />
+          </ModField>
+
+          <ModField label="Fréquence">
+            <div className="grid grid-cols-2 gap-2">
+              {DIGEST_SCHEDULE_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPresetId(p.id)}
+                  className={cn(
+                    "h-10 px-3 rounded-xl text-[11.5px] font-bold transition-colors text-left",
+                    presetId === p.id
+                      ? "bg-purple-600 text-white"
+                      : "bg-white border border-line text-night-muted hover:border-night/30",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </ModField>
+
+          {presetId === "custom" ? (
+            <ModField label="Cron expression (UTC)">
+              <input
+                type="text"
+                value={customCron}
+                onChange={(e) => setCustomCron(e.target.value)}
+                placeholder="0 18 * * 0"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-line text-[14px] font-mono"
+              />
+            </ModField>
+          ) : null}
+
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+            <p className="text-[11px] font-bold text-purple-900 mb-1">
+              ⏰ Schedule actif
+            </p>
+            <code className="text-[11px] text-purple-800 font-mono">{schedule}</code>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 h-10 rounded-full bg-night/5 text-night font-bold text-[13px]"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending}
+            className="flex-1 h-10 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-[13px] disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="w-4 h-4 mx-auto animate-spin" aria-hidden />
