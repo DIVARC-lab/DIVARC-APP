@@ -36,6 +36,7 @@ export { PhotoCommentsModal as PostMediaViewer } from "@/app/(app)/feed/_compone
  * dans la file (= ReelView qui contient toute la logique métier :
  * actions, watch tracking, cold start). */
 export { ReelPlayer } from "@/components/reels/ReelPlayer";
+export { ReelActions } from "@/components/reels/ReelActions";
 export { ReelView as ReelItem } from "@/components/reels/ReelView";
 /* `ReelFeed` / `ReelQueue` sont 2 alias du même composant `ReelsFeed`. */
 export { ReelsFeed as ReelFeed } from "@/components/reels/ReelsFeed";
