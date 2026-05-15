@@ -113,7 +113,7 @@ export function ChatHeader({
   }
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <header className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-6 py-2.5 sm:py-3 border-b border-line bg-white">
         <Link
           href="/messages"
