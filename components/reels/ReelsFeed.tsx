@@ -224,6 +224,14 @@ export function ReelsFeed({
         </Link>
       </header>
 
+      {/* Préchargement du reel suivant : un <video preload="auto">
+          caché bufferise déjà le contenu pour que le swipe vers le
+          reel N+1 démarre sans latence. On préchargne UN seul reel à
+          la fois pour ne pas saturer la bande passante. HLS skip (le
+          src nécessite hls.js attach manuel) — seul le MP4 standard
+          est préchargé ici. */}
+      <PreloadNextReel reels={reels} activeReelId={activeReelId} />
+
       {/* Container scroll-snap fullscreen.
           Mobile : pleine largeur. Desktop : container 9:16 centré.  */}
       <div
@@ -281,6 +289,36 @@ function TabBtn({
     >
       {children}
     </button>
+  );
+}
+
+function PreloadNextReel({
+  reels,
+  activeReelId,
+}: {
+  reels: ReelWithDetails[];
+  activeReelId: string | null;
+}) {
+  if (!activeReelId) return null;
+  const idx = reels.findIndex((r) => r.id === activeReelId);
+  if (idx === -1) return null;
+  const next = reels[idx + 1];
+  if (!next) return null;
+  /* HLS .m3u8 ne se préfetche pas via <video preload="auto"> sans
+     hls.js attach. On précharge donc UNIQUEMENT le MP4 fallback. Le
+     poster est aussi déjà en BlurHash dans le DOM via ReelView. */
+  if (!next.video_url) return null;
+  return (
+    <video
+      key={next.id}
+      src={next.video_url}
+      preload="auto"
+      muted
+      playsInline
+      aria-hidden
+      tabIndex={-1}
+      className="hidden"
+    />
   );
 }
 

@@ -31,6 +31,7 @@ import {
   MessageCircle,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -217,21 +218,43 @@ export function PhotoCommentsModal({
             </div>
           ) : null}
 
-          {/* Photo centrée, object-contain = jamais cropée, voir intégralement. */}
+          {/* Photo centrée. AnimatePresence + drag horizontal Motion :
+              transition fade/slide + swipe gesture pour navigation.
+              `object-contain` = la photo est toujours intégralement
+              visible (jamais cropée). */}
           <div
-            className="relative w-full flex-1 min-h-0"
+            className="relative w-full flex-1 min-h-0 overflow-hidden"
             onClick={handleBackdropClick}
           >
-            <Image
-              key={photo.id}
-              src={photo.url}
-              alt={displayName}
-              fill
-              sizes="(max-width: 1280px) 100vw, 60vw"
-              priority
-              className="object-contain"
-              unoptimized={photo.url.includes("?")}
-            />
+            <AnimatePresence mode="popLayout" initial={false} custom={index}>
+              <motion.div
+                key={photo.id}
+                className="absolute inset-0"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                drag={single ? false : "x"}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.18}
+                onDragEnd={(_, info) => {
+                  if (Math.abs(info.offset.x) < 80) return;
+                  if (info.offset.x > 0) goPrev();
+                  else goNext();
+                }}
+              >
+                <Image
+                  src={photo.url}
+                  alt={displayName}
+                  fill
+                  sizes="(max-width: 1280px) 100vw, 60vw"
+                  priority
+                  className="object-contain object-center select-none pointer-events-none"
+                  unoptimized={photo.url.includes("?")}
+                  draggable={false}
+                />
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Chevrons desktop. */}
