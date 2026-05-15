@@ -495,6 +495,29 @@ export async function joinCircle(circleId: string) {
     };
   }
 
+  /* Chantier Cercles v4 — déclenche bots avec trigger member_joined.
+     Récupère user_full_name + circle_name pour les templates. */
+  try {
+    const { executeBotsForEvent } = await import("@/lib/bots/engine");
+    const [{ data: profile }, { data: circle }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, username")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase.from("circles").select("name").eq("id", circleId).maybeSingle(),
+    ]);
+    await executeBotsForEvent(supabase, circleId, "member_joined", {
+      user_id: user.id,
+      user_full_name: profile?.full_name ?? null,
+      user_username: profile?.username ?? null,
+      circle_name: circle?.name ?? null,
+    });
+  } catch (botErr) {
+    /* Les erreurs bot ne doivent pas bloquer le join. Log silent. */
+    console.error("[joinCircle] bot engine error:", botErr);
+  }
+
   revalidatePath("/circles");
   return { ok: true as const };
 }

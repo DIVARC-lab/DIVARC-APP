@@ -83,6 +83,24 @@ export async function sendCircleChatMessage(
     return { ok: false, error: error?.message ?? "Insert failed" };
   }
 
+  /* Chantier Cercles v4 — déclenche bots avec trigger chat_message
+     (ex: ModeratorBot peut hide_content si keyword matche). */
+  try {
+    const { executeBotsForEvent } = await import("@/lib/bots/engine");
+    await executeBotsForEvent(
+      supabase,
+      parsed.data.circleId,
+      "chat_message",
+      {
+        user_id: user.id,
+        chat_message_id: data.id,
+        body: parsed.data.body,
+      },
+    );
+  } catch (botErr) {
+    console.error("[sendCircleChatMessage] bot engine error:", botErr);
+  }
+
   revalidatePath(`/circles/${parsed.data.circleSlug}/chat`);
   return { ok: true, message: data as CircleChatMessage };
 }
