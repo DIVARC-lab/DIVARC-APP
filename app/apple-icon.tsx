@@ -1,8 +1,13 @@
 import { ImageResponse } from "next/og";
 
-/* Génère dynamiquement l'apple-touch-icon (180×180 PNG) requis par
- * iOS Safari pour "Ajouter à l'écran d'accueil". Sans ce fichier,
- * iOS refuse l'install ou utilise une capture d'écran générique. */
+/* apple-touch-icon (180×180 PNG) requis par iOS Safari pour "Ajouter
+ * à l'écran d'accueil". Sans ce fichier, iOS utilise une capture
+ * d'écran générique au lieu de l'icône.
+ *
+ * Note : iOS ajoute automatiquement le border-radius et le mask
+ * (squircle). Donc on ne met PAS de border-radius dans le SVG.
+ * Le fond est carré plein pour que le squircle iOS le rogne
+ * proprement. */
 
 export const runtime = "edge";
 export const size = { width: 180, height: 180 };
@@ -15,35 +20,25 @@ export default function AppleIcon() {
         style={{
           width: "100%",
           height: "100%",
-          background: "#0A1F44",
+          background:
+            "linear-gradient(160deg, #14182a 0%, #0a1f44 50%, #1b2d52 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          borderRadius: 40,
         }}
       >
         <svg
           width={120}
           height={120}
-          viewBox="0 0 120 120"
+          viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M40 30 L40 90"
-            stroke="#F4B942"
-            strokeWidth={10}
-            strokeLinecap="round"
+            d="M 30 22 L 50 18 C 78 18 88 35 88 50 C 88 65 78 82 50 82 L 30 78 L 30 22 Z M 42 32 L 50 30 C 65 30 75 40 75 50 C 75 60 65 70 50 70 L 42 68 L 42 32 Z"
+            fill="#F5BE3D"
+            fillRule="evenodd"
           />
-          <path
-            d="M40 30 Q90 30 90 60 Q90 90 40 90"
-            stroke="#F8F9FB"
-            strokeWidth={10}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <circle cx={40} cy={30} r={7} fill="#F4B942" />
-          <circle cx={40} cy={90} r={7} fill="#F4B942" />
         </svg>
       </div>
     ),

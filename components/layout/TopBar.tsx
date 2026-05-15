@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Logo } from "@/components/Logo";
+import { Logo, Wordmark } from "@/components/Logo";
 import type { NotificationWithActor } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 import { NotificationsDropdown } from "./NotificationsDropdown";
@@ -123,10 +123,9 @@ function TopBarLeftDesktop() {
   return (
     <div className="flex items-center gap-3 shrink-0">
       <Link href="/feed" className="flex items-center gap-2.5" aria-label="DIVARC accueil">
-        <Logo size={36} />
-        <span className="font-display italic text-[18px] text-night leading-none">
-          DIVARC
-        </span>
+        {/* Sur desktop, le Wordmark inclut déjà le D doré + DIVARC en
+            sans-serif. Pas besoin du Logo séparé. */}
+        <Wordmark height={26} />
       </Link>
       <DesktopSearchBar />
     </div>
