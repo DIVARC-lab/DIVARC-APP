@@ -82,6 +82,7 @@ export default async function CircleLayout({
       <CircleTabsNav
         circleSlug={slug}
         modules={circle.modules ?? null}
+        currentRole={circle.my_role}
       />
 
       <div className="mx-auto w-full max-w-2xl lg:max-w-5xl pt-4">

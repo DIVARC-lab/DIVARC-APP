@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   BookOpen,
   Briefcase,
   Calendar,
@@ -8,11 +9,12 @@ import {
   Info,
   MessageSquare,
   Store,
+  Trophy,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { CircleModules } from "@/lib/database.types";
+import type { CircleModules, CircleRole } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 
 type Tab = {
@@ -23,6 +25,8 @@ type Tab = {
   moduleKey?: keyof CircleModules;
   /* path relatif depuis /circles/[slug] — vide = root (Posts). */
   segment: string;
+  /* Si true : visible uniquement pour les owner + admin. */
+  adminOnly?: boolean;
 };
 
 const ALL_TABS: Tab[] = [
@@ -82,25 +86,45 @@ const ALL_TABS: Tab[] = [
     segment: "/members",
   },
   {
+    slug: "leaderboard",
+    label: "Classement",
+    icon: Trophy,
+    segment: "/leaderboard",
+  },
+  {
     slug: "about",
     label: "À propos",
     icon: Info,
     segment: "/about",
+  },
+  /* Onglets admin (filtrés par adminOnly + rôle courant). */
+  {
+    slug: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    segment: "/analytics",
+    adminOnly: true,
   },
 ];
 
 type Props = {
   circleSlug: string;
   modules: CircleModules | null;
+  /* Rôle du user courant — filtre les onglets adminOnly. */
+  currentRole?: CircleRole | null;
 };
 
-export function CircleTabsNav({ circleSlug, modules }: Props) {
+export function CircleTabsNav({ circleSlug, modules, currentRole }: Props) {
   const pathname = usePathname();
   const basePath = `/circles/${circleSlug}`;
   const currentSegment = pathname.replace(basePath, "").replace(/\/$/, "") || "";
 
-  /* Filtre par modules activés. social_feed/members/about toujours visibles. */
+  const isAdmin = currentRole === "owner" || currentRole === "admin";
+
+  /* Filtre par modules activés. social_feed/members/about toujours visibles.
+     adminOnly réservé aux owner+admin. */
   const visible = ALL_TABS.filter((tab) => {
+    if (tab.adminOnly && !isAdmin) return false;
     if (!tab.moduleKey) return true;
     if (tab.moduleKey === "social_feed") return true;
     return modules?.[tab.moduleKey] === true;
