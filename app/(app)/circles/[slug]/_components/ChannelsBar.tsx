@@ -26,7 +26,10 @@ export function ChannelsBar({ circleSlug, channels, activeSlug }: Props) {
   const allActive = activeSlug === null;
 
   function hrefFor(channelSlug: string | null): string {
-    const sp = new URLSearchParams(params);
+    /* Next.js 16 : `useSearchParams()` retourne ReadonlyURLSearchParams.
+       On passe par .toString() pour construire un URLSearchParams mutable
+       sans dépendre de la signature exacte du constructeur. */
+    const sp = new URLSearchParams(params?.toString() ?? "");
     if (channelSlug) sp.set("channel", channelSlug);
     else sp.delete("channel");
     const qs = sp.toString();
