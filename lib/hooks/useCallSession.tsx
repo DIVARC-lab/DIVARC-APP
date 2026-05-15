@@ -17,7 +17,11 @@
  *      subscribe call channel
  *   2. User clique Accept → getUserMedia + create PC + send "accepted"
  *   3. Reçoit offer → applyOffer → createAnswer → send answer
- *   4. ICE flow + connected → in-call + mark_call_connected */
+ *   4. ICE flow + connected → in-call + mark_call_connected
+ *
+ * Audio + vidéo : kind="video" demande aussi la caméra à getUserMedia
+ * et offre du video dans le SDP. Mute video et switch camera (front/back)
+ * sont aussi exposés pour les appels vidéo. */
 
 import {
   createContext,
@@ -115,8 +119,17 @@ type CallChannel = ReturnType<typeof subscribeCallChannel>;
 
 type CallContextValue = {
   state: LocalCallState;
+  /** Kind du call courant (null si idle). Permet à CallOverlay de
+   *  décider quel layout afficher (audio vs vidéo). */
+  callKind: CallKind | null;
   remoteStream: MediaStream | null;
+  /** Stream local (audio + video si video call) pour preview locale. */
+  localStream: MediaStream | null;
   isMuted: boolean;
+  isVideoMuted: boolean;
+  /** Facing mode courant de la caméra (vidéo only). null hors appel
+   *  vidéo ou si pas encore résolu. */
+  cameraFacing: "user" | "environment" | null;
   startCall: (params: {
     conversationId: string;
     peerId: string;
@@ -126,6 +139,8 @@ type CallContextValue = {
   rejectCall: () => Promise<void>;
   hangup: (reason?: string) => Promise<void>;
   toggleMute: () => void;
+  toggleVideo: () => void;
+  switchCamera: () => Promise<void>;
 };
 
 const CallContext = createContext<CallContextValue | null>(null);
@@ -144,8 +159,14 @@ export function CallProvider({
   children: React.ReactNode;
 }) {
   const [state, setState] = useState<LocalCallState>({ kind: "idle" });
+  const [callKind, setCallKind] = useState<CallKind | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<
+    "user" | "environment" | null
+  >(null);
 
   /* Refs mutables (non-React). */
   const webrtcRef = useRef<WebRTCClient | null>(null);
@@ -177,7 +198,11 @@ export function CallProvider({
     pendingIceRef.current = [];
     calleeAcceptedRef.current = false;
     setRemoteStream(null);
+    setLocalStream(null);
     setIsMuted(false);
+    setIsVideoMuted(false);
+    setCallKind(null);
+    setCameraFacing(null);
   }, []);
 
   const endCall = useCallback(
@@ -299,6 +324,9 @@ export function CallProvider({
             log("inbox: already in call, ignoring");
             return prev;
           }
+          /* Mémorise le kind du call entrant (audio/video) pour que
+             CallOverlay affiche le bon layout. */
+          setCallKind(payload.kind);
           /* Démarre la sonnerie inbound (peut être muet sur iOS Safari
              si pas de user gesture récent, mais l'overlay reste visible). */
           startInbound();
@@ -358,55 +386,65 @@ export function CallProvider({
         return;
       }
 
-      /* 1. Permission micro. */
+      /* 1. Permission micro (+ caméra si vidéo). */
       let webrtc: WebRTCClient;
       try {
-        webrtc = await createWebRTCClient({
-          onIceCandidate: async (candidate) => {
-            log("caller: local ICE");
-            await callChannelRef.current?.send({
-              type: "ice",
-              candidate,
-              from: currentUserId,
-            });
-          },
-          onRemoteTrack: (stream) => {
-            log("caller: remote track");
-            setRemoteStream(stream);
-          },
-          onConnectionState: async (cs) => {
-            log("caller: connection state", cs);
-            if (cs === "connected") {
-              setState((cur) => {
-                if (cur.kind === "connecting" || cur.kind === "ringing-outbound") {
-                  void rpcMarkCallConnected(cur.callId);
-                  return {
-                    kind: "in-call",
-                    callId: cur.callId,
-                    conversationId: cur.conversationId,
-                    peerId: cur.peerId,
-                    startedAt: cur.startedAt,
-                    connectedAt: Date.now(),
-                  };
-                }
-                return cur;
+        webrtc = await createWebRTCClient(
+          {
+            onIceCandidate: async (candidate) => {
+              log("caller: local ICE");
+              await callChannelRef.current?.send({
+                type: "ice",
+                candidate,
+                from: currentUserId,
               });
-            } else if (cs === "failed" || cs === "disconnected") {
-              await endCall("failed", `connection ${cs}`);
-            }
+            },
+            onRemoteTrack: (stream) => {
+              log("caller: remote track");
+              setRemoteStream(stream);
+            },
+            onConnectionState: async (cs) => {
+              log("caller: connection state", cs);
+              if (cs === "connected") {
+                setState((cur) => {
+                  if (cur.kind === "connecting" || cur.kind === "ringing-outbound") {
+                    void rpcMarkCallConnected(cur.callId);
+                    return {
+                      kind: "in-call",
+                      callId: cur.callId,
+                      conversationId: cur.conversationId,
+                      peerId: cur.peerId,
+                      startedAt: cur.startedAt,
+                      connectedAt: Date.now(),
+                    };
+                  }
+                  return cur;
+                });
+              } else if (cs === "failed" || cs === "disconnected") {
+                await endCall("failed", `connection ${cs}`);
+              }
+            },
           },
-        });
+          kind,
+        );
         log("startCall: webrtc ready");
       } catch (err) {
         console.error("[startCall:getUserMedia]", err);
         toast.error(
           err instanceof Error
-            ? `Micro indisponible : ${err.message}`
-            : "Micro indisponible.",
+            ? kind === "video"
+              ? `Caméra/micro indisponibles : ${err.message}`
+              : `Micro indisponible : ${err.message}`
+            : kind === "video"
+              ? "Caméra ou micro indisponibles."
+              : "Micro indisponible.",
         );
         return;
       }
       webrtcRef.current = webrtc;
+      setLocalStream(webrtc.localStream);
+      setCallKind(kind);
+      if (kind === "video") setCameraFacing("user");
 
       /* 2. Crée la session DB via RPC direct (pas de Server Action,
          pour éviter le wrap Next.js qui masque les erreurs DB). */
@@ -489,59 +527,71 @@ export function CallProvider({
     log("acceptCall");
     /* Stop la sonnerie inbound : le user a décroché. */
     stopRingtone();
-    const { callId } = state;
+
+    /* On utilise le callKind mémorisé via le payload inbox. Fallback
+       audio si jamais on n'a pas le kind (ne devrait pas arriver). */
+    const acceptKind: CallKind = callKind ?? "audio";
 
     let webrtc: WebRTCClient;
     try {
-      webrtc = await createWebRTCClient({
-        onIceCandidate: async (candidate) => {
-          log("callee: local ICE");
-          await callChannelRef.current?.send({
-            type: "ice",
-            candidate,
-            from: currentUserId,
-          });
-        },
-        onRemoteTrack: (stream) => {
-          log("callee: remote track");
-          setRemoteStream(stream);
-        },
-        onConnectionState: async (cs) => {
-          log("callee: connection state", cs);
-          if (cs === "connected") {
-            setState((cur) => {
-              if (
-                cur.kind === "connecting" ||
-                cur.kind === "ringing-inbound"
-              ) {
-                void rpcMarkCallConnected(cur.callId);
-                return {
-                  kind: "in-call",
-                  callId: cur.callId,
-                  conversationId: cur.conversationId,
-                  peerId: cur.peerId,
-                  startedAt: cur.startedAt,
-                  connectedAt: Date.now(),
-                };
-              }
-              return cur;
+      webrtc = await createWebRTCClient(
+        {
+          onIceCandidate: async (candidate) => {
+            log("callee: local ICE");
+            await callChannelRef.current?.send({
+              type: "ice",
+              candidate,
+              from: currentUserId,
             });
-          } else if (cs === "failed" || cs === "disconnected") {
-            await endCall("failed", `connection ${cs}`);
-          }
+          },
+          onRemoteTrack: (stream) => {
+            log("callee: remote track");
+            setRemoteStream(stream);
+          },
+          onConnectionState: async (cs) => {
+            log("callee: connection state", cs);
+            if (cs === "connected") {
+              setState((cur) => {
+                if (
+                  cur.kind === "connecting" ||
+                  cur.kind === "ringing-inbound"
+                ) {
+                  void rpcMarkCallConnected(cur.callId);
+                  return {
+                    kind: "in-call",
+                    callId: cur.callId,
+                    conversationId: cur.conversationId,
+                    peerId: cur.peerId,
+                    startedAt: cur.startedAt,
+                    connectedAt: Date.now(),
+                  };
+                }
+                return cur;
+              });
+            } else if (cs === "failed" || cs === "disconnected") {
+              await endCall("failed", `connection ${cs}`);
+            }
+          },
         },
-      });
+        acceptKind,
+      );
     } catch (err) {
       console.error("[acceptCall:getUserMedia]", err);
       toast.error(
         err instanceof Error
-          ? `Micro indisponible : ${err.message}`
-          : "Micro indisponible.",
+          ? acceptKind === "video"
+            ? `Caméra/micro indisponibles : ${err.message}`
+            : `Micro indisponible : ${err.message}`
+          : acceptKind === "video"
+            ? "Caméra ou micro indisponibles."
+            : "Micro indisponible.",
       );
       await endCall("failed", "no microphone");
       return;
     }
     webrtcRef.current = webrtc;
+    setLocalStream(webrtc.localStream);
+    if (acceptKind === "video") setCameraFacing("user");
 
     /* Le channel est déjà subscribed via le useEffect ringing-inbound.
        Envoie "accepted" → le caller crée et envoie l'offer. */
@@ -562,7 +612,7 @@ export function CallProvider({
           }
         : cur,
     );
-  }, [currentUserId, state, endCall]);
+  }, [currentUserId, state, callKind, endCall]);
 
   const rejectCall = useCallback(async () => {
     if (!currentUserId || state.kind !== "ringing-inbound") return;
@@ -598,6 +648,25 @@ export function CallProvider({
     });
   }, []);
 
+  const toggleVideo = useCallback(() => {
+    setIsVideoMuted((prev) => {
+      const next = !prev;
+      webrtcRef.current?.setVideoMuted(next);
+      return next;
+    });
+  }, []);
+
+  const switchCamera = useCallback(async () => {
+    const webrtc = webrtcRef.current;
+    if (!webrtc || webrtc.kind !== "video") return;
+    const newFacing = await webrtc.switchCamera();
+    if (newFacing) {
+      setCameraFacing(newFacing);
+    } else {
+      toast("Caméra arrière indisponible sur cet appareil.");
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       teardown();
@@ -607,15 +676,36 @@ export function CallProvider({
   const value = useMemo<CallContextValue>(
     () => ({
       state,
+      callKind,
       remoteStream,
+      localStream,
       isMuted,
+      isVideoMuted,
+      cameraFacing,
       startCall,
       acceptCall,
       rejectCall,
       hangup,
       toggleMute,
+      toggleVideo,
+      switchCamera,
     }),
-    [state, remoteStream, isMuted, startCall, acceptCall, rejectCall, hangup, toggleMute],
+    [
+      state,
+      callKind,
+      remoteStream,
+      localStream,
+      isMuted,
+      isVideoMuted,
+      cameraFacing,
+      startCall,
+      acceptCall,
+      rejectCall,
+      hangup,
+      toggleMute,
+      toggleVideo,
+      switchCamera,
+    ],
   );
 
   return <CallContext.Provider value={value}>{children}</CallContext.Provider>;

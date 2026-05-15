@@ -94,11 +94,7 @@ export function ChatHeader({
       toast.error("Pas de destinataire pour l'appel.");
       return;
     }
-    if (kind === "video") {
-      toast("Visio disponible avec le Chantier 2 V2.");
-      return;
-    }
-    await startCall({ conversationId, peerId: otherUserId, kind: "audio" });
+    await startCall({ conversationId, peerId: otherUserId, kind });
   }
 
   /* Click sur la zone nom/avatar :
@@ -231,8 +227,8 @@ export function ChatHeader({
                 type="button"
                 onClick={() => void handleStartCall("video")}
                 aria-label="Appel vidéo"
-                title="Visio (bientôt)"
-                className="hidden sm:flex w-9 h-9 rounded-full hover:bg-night/5 items-center justify-center text-night-muted hover:text-night transition-colors shrink-0"
+                title="Appel vidéo"
+                className="w-9 h-9 rounded-full hover:bg-night/5 flex items-center justify-center text-night-muted hover:text-night transition-colors shrink-0"
               >
                 <Video className="w-4 h-4" aria-hidden />
               </button>
