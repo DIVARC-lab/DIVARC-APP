@@ -4,6 +4,11 @@ import { Play, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useHlsVideo } from "@/components/video/useHlsVideo";
 import { useVideoPlayer } from "@/components/video/VideoPlayerProvider";
+import {
+  classifyMediaShape,
+  SHAPE_ASPECT_CLASS,
+  SHAPE_MAX_HEIGHT,
+} from "@/lib/feed/mediaFormat";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
@@ -39,8 +44,17 @@ export function PostVideoPlayer({
   /* Hook HLS — fallback gracieux MP4 si pas de m3u8. */
   useHlsVideo(videoRef, hlsUrl ?? null, url);
 
-  // Aspect ratio from intrinsic dimensions, default 9:16 (vertical reel)
-  const aspect =
+  /* Classification du format selon les dimensions Facebook officielles :
+     reel 9:16 (1080×1920), portrait 4:5 (1080×1350), carré 1:1
+     (1080×1080), paysage 1.91:1 (1200×630). Le container applique
+     l'aspect-ratio exact ; <video> en object-cover center pour éviter
+     tout étirement ou crop hors zone. */
+  const shape = classifyMediaShape(width, height);
+  const aspectClass = SHAPE_ASPECT_CLASS[shape];
+  const maxHeightClass = SHAPE_MAX_HEIGHT[shape];
+  /* Pour l'expand vers le player global, on garde le ratio source
+     précis (les vidéos verticales atypiques sont préservées). */
+  const aspectRatioCSS =
     width && height && width > 0 && height > 0
       ? `${width} / ${height}`
       : "9 / 16";
@@ -132,7 +146,7 @@ export function PostVideoPlayer({
         mp4Url: url,
         posterUrl: thumbnailUrl,
         durationMs,
-        aspectRatio: aspect,
+        aspectRatio: aspectRatioCSS,
         postId,
         loop: durationMs !== null && durationMs < 30_000,
       },
@@ -155,15 +169,18 @@ export function PostVideoPlayer({
   if (isActive) {
     return (
       <div
-        className="relative bg-night overflow-hidden mx-auto flex items-center justify-center max-h-[640px] max-w-full"
-        style={{ aspectRatio: aspect }}
+        className={cn(
+          "relative bg-night overflow-hidden mx-auto flex items-center justify-center w-full",
+          aspectClass,
+          maxHeightClass,
+        )}
       >
         {thumbnailUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={thumbnailUrl}
             alt=""
-            className="w-full h-full object-cover opacity-50"
+            className="w-full h-full object-cover object-center opacity-50"
           />
         ) : null}
         <span className="absolute text-cream/80 text-[11px] uppercase tracking-wider font-bold bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-sm">
@@ -175,8 +192,11 @@ export function PostVideoPlayer({
 
   return (
     <div
-      className="relative bg-night overflow-hidden mx-auto max-h-[640px] max-w-full"
-      style={{ aspectRatio: aspect }}
+      className={cn(
+        "relative bg-night overflow-hidden mx-auto w-full",
+        aspectClass,
+        maxHeightClass,
+      )}
     >
       <video
         ref={videoRef}
@@ -186,7 +206,7 @@ export function PostVideoPlayer({
         muted
         preload="metadata"
         onClick={expandToOverlay}
-        className="w-full h-full object-cover cursor-pointer"
+        className="w-full h-full object-cover object-center cursor-pointer"
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-night/40 via-transparent to-transparent" />

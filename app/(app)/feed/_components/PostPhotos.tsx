@@ -4,6 +4,11 @@ import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import type { PostPhoto, PostWithDetails } from "@/lib/database.types";
+import {
+  classifyMediaShape,
+  SHAPE_ASPECT_CLASS,
+  SHAPE_SIZES,
+} from "@/lib/feed/mediaFormat";
 import { PhotoCommentsModal } from "./PhotoCommentsModal";
 import { PhotoLightbox } from "./PhotoLightbox";
 
@@ -117,39 +122,72 @@ function Single({
   rounded: boolean;
   onClick: (e: React.MouseEvent) => void;
 }) {
-  const nativeRatio = computeAspectRatio(photo);
+  /* Formats Facebook officiels : 4:5 portrait (1080×1350), 1.91:1
+     paysage (1200×630), 1:1 carré (1080×1080), 9:16 reel (1080×1920).
+     Le wrapper applique l'aspect-ratio exact ; `object-cover` centre
+     le média sans étirement. Container responsive (largeur = parent),
+     hauteur calculée automatiquement par le navigateur. */
+  const dims = readPhotoDims(photo);
+  const shape = classifyMediaShape(dims.w, dims.h);
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="Agrandir la photo"
       className={cn(
-        "relative w-full bg-night/5 overflow-hidden cursor-zoom-in",
+        "relative w-full bg-night/5 overflow-hidden cursor-zoom-in flex items-center justify-center",
         rounded && "rounded-2xl",
       )}
     >
-      <div
-        className={cn(
-          "relative w-full",
-          !nativeRatio && "aspect-[4/5] sm:aspect-[16/10]",
-        )}
-        style={
-          nativeRatio
-            ? ({ aspectRatio: String(nativeRatio) } as React.CSSProperties)
-            : undefined
-        }
-      >
+      <div className={cn("relative w-full", SHAPE_ASPECT_CLASS[shape])}>
         <Image
           src={photo.url}
           alt={alt}
           fill
-          sizes="(max-width: 640px) 100vw, 600px"
-          className="object-cover"
+          sizes={SHAPE_SIZES[shape]}
+          className="object-cover object-center"
           unoptimized={photo.url.includes("?")}
         />
       </div>
     </button>
   );
+}
+
+/* Lit width/height d'une PostPhoto en gérant tous les cas (props
+ * width/height directes OU champ `aspect_ratio` sérialisé "w/h").
+ * Retourne null/null si rien d'utilisable (le classifier tombera sur
+ * "square" par défaut). */
+function readPhotoDims(photo: PostPhoto): {
+  w: number | null;
+  h: number | null;
+} {
+  if (
+    photo.width &&
+    photo.height &&
+    Number.isFinite(photo.width) &&
+    Number.isFinite(photo.height) &&
+    photo.width > 0 &&
+    photo.height > 0
+  ) {
+    return { w: photo.width, h: photo.height };
+  }
+  if (photo.aspect_ratio) {
+    const raw = photo.aspect_ratio.trim();
+    if (raw.includes("/")) {
+      const [w, h] = raw.split("/").map(Number);
+      if (w && h && Number.isFinite(w) && Number.isFinite(h)) {
+        return { w, h };
+      }
+    } else {
+      const num = Number(raw);
+      if (Number.isFinite(num) && num > 0) {
+        /* Si on n'a que le ratio, on synthétise (1080, 1080/ratio). */
+        return { w: 1080, h: 1080 / num };
+      }
+    }
+  }
+  return { w: null, h: null };
 }
 
 /* ============ Layout : 2 photos (FB-style grille 2×1) ============ */
@@ -384,34 +422,5 @@ function GridFivePlus({
   );
 }
 
-/* ============ Helpers ============ */
-
-function computeAspectRatio(photo: PostPhoto): number | null {
-  const MIN = 0.75;
-  const MAX = 1.91;
-
-  if (photo.aspect_ratio) {
-    const raw = photo.aspect_ratio.trim();
-    let value: number | null = null;
-    if (raw.includes("/")) {
-      const [w, h] = raw.split("/").map(Number);
-      if (w && h && Number.isFinite(w) && Number.isFinite(h)) value = w / h;
-    } else {
-      const num = Number(raw);
-      if (Number.isFinite(num) && num > 0) value = num;
-    }
-    if (value !== null) return Math.min(Math.max(value, MIN), MAX);
-  }
-
-  if (
-    photo.width &&
-    photo.height &&
-    Number.isFinite(photo.width) &&
-    Number.isFinite(photo.height) &&
-    photo.height > 0
-  ) {
-    return Math.min(Math.max(photo.width / photo.height, MIN), MAX);
-  }
-
-  return null;
-}
+/* Helpers : classification de format média + lecture des dimensions
+   sont définies inline / importées depuis `lib/feed/mediaFormat.ts`. */
