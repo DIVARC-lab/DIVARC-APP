@@ -286,20 +286,45 @@ export function MessageThread({
   }, [visibleMessages.length]);
 
   /* ResizeObserver : quand le contenu push (image chargée, attachment
-     rendu), on re-scroll bottom si on était <200px du bas. Empêche
-     l'effet "le chat remonte" perçu par l'user. */
+     rendu) OU quand le viewport shrink (clavier iOS ouvre), on
+     re-scroll bottom si l'user était près du bas. Empêche l'effet
+     "le chat remonte" perçu par l'user.
+
+     On track `wasNearBottom` via un scroll listener : ainsi quand le
+     clavier ouvre et que clientHeight diminue (sans que scrollHeight
+     ne bouge), on sait quand même si l'user voyait le bas juste
+     avant le resize, et on suit. */
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    /* Au mount/changement de conv, on scroll au bas (cf. useLayoutEffect
+       plus haut) — donc on commence "au bas". */
+    let wasNearBottom = true;
     let lastScrollHeight = el.scrollHeight;
+    let lastClientHeight = el.clientHeight;
+
+    function onScroll() {
+      if (!el) return;
+      wasNearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+
     const observer = new ResizeObserver(() => {
       const newScrollHeight = el.scrollHeight;
-      if (newScrollHeight === lastScrollHeight) return;
-      const distanceFromBottom =
-        lastScrollHeight - el.scrollTop - el.clientHeight;
+      const newClientHeight = el.clientHeight;
+      const changed =
+        newScrollHeight !== lastScrollHeight ||
+        newClientHeight !== lastClientHeight;
+      if (!changed) return;
       lastScrollHeight = newScrollHeight;
-      /* Si on était presque en bas, suivre le contenu qui grandit. */
-      if (distanceFromBottom < 200) {
+      lastClientHeight = newClientHeight;
+      /* Si l'user voyait le bas AVANT ce resize, on suit. Couvre :
+         - Nouveau message reçu / image chargée (scrollHeight grandit)
+         - Clavier iOS ouvre, clientHeight shrink (mais scrollHeight
+           pareil) — on re-aligne sur le bas pour que le dernier
+           message reste visible juste au-dessus du clavier. */
+      if (wasNearBottom) {
         el.scrollTop = newScrollHeight;
       }
     });
@@ -308,7 +333,10 @@ export function MessageThread({
        l'agrandissement quand une image charge. */
     const children = el.querySelectorAll("img, video");
     children.forEach((child) => observer.observe(child));
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      el.removeEventListener("scroll", onScroll);
+    };
   }, [conversationId, visibleMessages.length]);
 
   if (visibleMessages.length === 0) {
