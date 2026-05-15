@@ -259,6 +259,10 @@ STABLE
 SECURITY INVOKER
 SET search_path = public
 AS $$
+  /* Note : la table `posts` ne stocke pas likes_count/comments_count
+     dénormalisés. On calcule via subqueries agrégées (limite p_limit
+     petite donc perf OK). Si besoin de scaler, basculer sur la
+     materialized view `post_engagement_stats`. */
   SELECT
     p.id AS post_id,
     p.circle_id,
@@ -267,8 +271,11 @@ AS $$
     c.emoji AS circle_emoji,
     p.author_id,
     LEFT(COALESCE(p.body, ''), 280) AS body,
-    p.likes_count,
-    p.comments_count,
+    (SELECT COUNT(*)::int FROM public.post_likes WHERE post_id = p.id)
+      AS likes_count,
+    (SELECT COUNT(*)::int FROM public.post_comments
+      WHERE post_id = p.id AND deleted_at IS NULL)
+      AS comments_count,
     p.created_at
   FROM public.circle_hub_circles hc
   JOIN public.circles c ON c.id = hc.circle_id
