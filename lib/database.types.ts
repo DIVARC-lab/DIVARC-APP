@@ -1075,6 +1075,17 @@ export type PostWithDetails = Post & {
      si non hydratés par la query. */
   poll?: PostPollWithDetails | null;
   tagged_users?: PostTaggedUserDetail[];
+  /* Aperçu inline des 2 derniers commentaires top-level (FB-style).
+     Hydraté via RPC get_preview_comments dans listFeedPosts. */
+  preview_comments?: PostPreviewComment[];
+};
+
+export type PostPreviewComment = {
+  id: string;
+  body: string;
+  created_at: string;
+  author_id: string;
+  author: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
 export type CommentWithAuthor = PostComment & {

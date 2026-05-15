@@ -93,6 +93,7 @@ async function attachDetails(
     pollRows,
     userVoteRows,
     taggedUserRows,
+    previewCommentRows,
   ] = await Promise.all([
     supabase
       .from("post_photos")
@@ -141,6 +142,29 @@ async function attachDetails(
       .from("post_tagged_users")
       .select("post_id, user_id")
       .in("post_id", postIds),
+    /* Chantier Feed FB-style — 2 derniers commentaires top-level par
+       post pour l'aperçu inline sous chaque card. RPC migration 0130.
+       Cast `as never` car les types Supabase n'incluent pas encore
+       cette RPC (régénération manuelle requise hors de cette PR). */
+    (supabase.rpc as never as (
+      fn: string,
+      args: { p_post_ids: string[]; p_limit: number },
+    ) => Promise<{
+      data: Array<{
+        id: string;
+        post_id: string;
+        body: string;
+        created_at: string;
+        author_id: string;
+        author_full_name: string | null;
+        author_username: string | null;
+        author_avatar_url: string | null;
+      }> | null;
+      error: unknown;
+    }>)("get_preview_comments", {
+      p_post_ids: postIds,
+      p_limit: 2,
+    }),
   ]);
 
   /* Tagged users : 2e query pour récupérer les profils. */
@@ -276,6 +300,52 @@ async function attachDetails(
     taggedByPost.set(tag.post_id, arr);
   }
 
+  /* Preview comments : indexer par post_id. RPC retourne déjà triés
+     par created_at ASC dans chaque groupe (les 2 derniers chronos). */
+  type PreviewRow = {
+    id: string;
+    post_id: string;
+    body: string;
+    created_at: string;
+    author_id: string;
+    author_full_name: string | null;
+    author_username: string | null;
+    author_avatar_url: string | null;
+  };
+  const previewByPost = new Map<
+    string,
+    Array<{
+      id: string;
+      body: string;
+      created_at: string;
+      author_id: string;
+      author: {
+        id: string;
+        full_name: string | null;
+        username: string | null;
+        avatar_url: string | null;
+      } | null;
+    }>
+  >();
+  for (const row of (previewCommentRows.data ?? []) as PreviewRow[]) {
+    const arr = previewByPost.get(row.post_id) ?? [];
+    arr.push({
+      id: row.id,
+      body: row.body,
+      created_at: row.created_at,
+      author_id: row.author_id,
+      author: row.author_id
+        ? {
+            id: row.author_id,
+            full_name: row.author_full_name,
+            username: row.author_username,
+            avatar_url: row.author_avatar_url,
+          }
+        : null,
+    });
+    previewByPost.set(row.post_id, arr);
+  }
+
   return rows.map((row) => {
     const poll = pollByPost.get(row.id);
     const tagged = taggedByPost.get(row.id) ?? [];
@@ -295,6 +365,7 @@ async function attachDetails(
           }
         : null,
       tagged_users: tagged,
+      preview_comments: previewByPost.get(row.id) ?? [],
     };
   });
 }

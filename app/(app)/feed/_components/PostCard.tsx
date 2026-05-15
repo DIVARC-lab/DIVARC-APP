@@ -30,6 +30,7 @@ import { BookmarkButton } from "./BookmarkButton";
 import { ReactionsBar } from "./ReactionsBar";
 import { PostMenu } from "./PostMenu";
 import { SharePostButton } from "./SharePostButton";
+import { PreviewComments } from "@/components/feed/PreviewComments";
 import { WhyThisPost } from "@/components/feed/WhyThisPost";
 import type { RankingSignalDisplay } from "@/components/feed/WhyThisPost";
 import { useTrackImpression } from "@/lib/hooks/useTrackImpression";
@@ -465,6 +466,19 @@ function PostCardInner({
             ) : null}
           </div>
         </a>
+      ) : null}
+
+      {/* Aperçu inline des derniers commentaires (style Facebook).
+          Affiché entre le corps du post et l'InteractionBar. Le clic
+          sur "Voir les N commentaires" ouvre le modal détail desktop
+          ou nav /feed/[id] sur mobile (PreviewComments décide). */}
+      {post.preview_comments && post.preview_comments.length > 0 ? (
+        <PreviewComments
+          postId={post.id}
+          comments={post.preview_comments}
+          totalCount={post.comments_count}
+          onSeeAll={() => setDetailOpen(true)}
+        />
       ) : null}
 
       {showActions ? (
