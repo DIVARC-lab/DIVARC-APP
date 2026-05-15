@@ -1951,6 +1951,55 @@ export type CircleModules = {
   chat: boolean;
   /* Chantier Cercles v3 — board Demandes & Offres (migration 0133). */
   requests: boolean;
+  /* Chantier Cercles v3 — Live audio/video rooms (migration 0135). */
+  live_rooms: boolean;
+  /* Chantier Cercles v3 — AI Assistant FAQ (migration 0136). */
+  ai_assistant: boolean;
+};
+
+/* Source utilisée pour générer une réponse AI (post, rule, library). */
+export type CircleAISource = {
+  type: "post" | "rule" | "library";
+  id: string;
+  title: string;
+  snippet: string;
+  rank: number;
+};
+
+export type CircleAIQA = {
+  id: string;
+  circle_id: string;
+  user_id: string;
+  question: string;
+  answer: string | null;
+  sources: CircleAISource[];
+  confidence: number;
+  user_feedback: "useful" | "not_useful" | null;
+  created_at: string;
+};
+
+/* Chantier Cercles v3 — Live audio/video room d'un cercle. */
+export type CircleLiveRoom = {
+  id: string;
+  circle_id: string;
+  host_id: string;
+  kind: "audio" | "video";
+  title: string;
+  description: string | null;
+  status: "scheduled" | "live" | "ended" | "cancelled";
+  scheduled_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  recording_url: string | null;
+  participants_count: number;
+  peak_participants: number;
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CircleLiveRoomWithHost = CircleLiveRoom & {
+  host: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
 };
 
 /* Chantier Cercles v3 — Karma membre (agrégat par cercle). */

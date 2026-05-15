@@ -178,6 +178,10 @@ const createV2Schema = z.object({
     chat: z.boolean().default(true),
     /* Chantier Cercles v3 — board Demandes & Offres activé par défaut. */
     requests: z.boolean().default(true),
+    /* Chantier Cercles v3 — Live audio/video rooms activé par défaut. */
+    live_rooms: z.boolean().default(true),
+    /* Chantier Cercles v3 — AI Assistant FAQ activé par défaut. */
+    ai_assistant: z.boolean().default(true),
   }),
   welcome_message: z
     .string()
