@@ -195,7 +195,7 @@ RETURNS TABLE (
   name text,
   description text,
   channel_type text,
-  position integer,
+  "position" integer,
   posts_count integer,
   created_at TIMESTAMPTZ
 )
@@ -205,11 +205,11 @@ SECURITY INVOKER
 SET search_path = public
 AS $$
   SELECT
-    id, slug, name, description, channel_type, position, posts_count, created_at
+    id, slug, name, description, channel_type, "position", posts_count, created_at
   FROM public.circle_channels
   WHERE circle_id = p_circle_id
     AND archived_at IS NULL
-  ORDER BY position ASC, created_at ASC;
+  ORDER BY "position" ASC, created_at ASC;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.list_circle_channels(UUID) TO authenticated;
