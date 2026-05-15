@@ -594,32 +594,47 @@ export async function createCirclePost(formData: FormData) {
     };
   }
 
-  /* Sprint B.3 — si on poste dans un channel announcement, vérifier
-     que l'auteur a le rôle owner/admin/moderator. */
+  /* Sprint B.3/B.5 — si on poste dans un channel, vérifier la
+     permission post selon le type ET les permissions custom du channel. */
   if (parsed.data.channel_id) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: channel } = await (supabase as any)
       .from("circle_channels")
-      .select("channel_type")
+      .select("channel_type, permissions")
       .eq("id", parsed.data.channel_id)
       .eq("circle_id", parsed.data.circle_id)
       .maybeSingle();
-    const channelType =
-      (channel as { channel_type?: string } | null)?.channel_type ?? null;
-    if (channelType === "announcement") {
-      const role = (membership as { role?: string }).role ?? null;
-      const canPost =
-        role === "owner" ||
-        role === "admin" ||
-        role === "moderator" ||
-        role === "mod";
-      if (!canPost) {
-        return {
-          ok: false as const,
-          error:
-            "Seuls les admins et modérateurs peuvent publier dans un channel d'annonces.",
-        };
-      }
+    if (!channel) {
+      return { ok: false as const, error: "Channel introuvable." };
+    }
+    const { canPostInChannel } = await import(
+      "@/lib/utils/circleChannelPermissions"
+    );
+    const role = ((membership as { role?: string }).role ?? null) as
+      | import("@/lib/database.types").CircleRole
+      | null;
+    if (
+      !canPostInChannel(
+        {
+          channel_type: (channel as {
+            channel_type: import("@/lib/database.types").CircleChannelType;
+          }).channel_type,
+          permissions:
+            (channel as {
+              permissions: import("@/lib/database.types").CircleChannelPermissions | null;
+            }).permissions ?? null,
+        },
+        role,
+      )
+    ) {
+      const isAnnouncement =
+        (channel as { channel_type: string }).channel_type === "announcement";
+      return {
+        ok: false as const,
+        error: isAnnouncement
+          ? "Seuls les admins et modérateurs peuvent publier dans un channel d'annonces."
+          : "Tu n'as pas la permission de publier dans ce channel.",
+      };
     }
   }
 

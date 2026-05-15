@@ -21,7 +21,11 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { KickerLabel } from "@/components/ui/KickerLabel";
-import type { CircleChannelSummary } from "@/lib/database.types";
+import type {
+  CircleChannelPermissions,
+  CircleChannelSummary,
+  CircleRole,
+} from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 import {
   archiveCircleChannel,
@@ -79,6 +83,7 @@ export function CircleChannelsView({
     slug: string;
     description: string;
     channel_type: ChannelType;
+    permissions: CircleChannelPermissions | null;
   }) {
     startTransition(async () => {
       const res = await createCircleChannel({
@@ -88,6 +93,7 @@ export function CircleChannelsView({
         slug: args.slug,
         description: args.description,
         channel_type: args.channel_type,
+        permissions: args.permissions,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -104,6 +110,7 @@ export function CircleChannelsView({
     name: string;
     description: string;
     channel_type: ChannelType;
+    permissions: CircleChannelPermissions | null;
   }) {
     startTransition(async () => {
       const res = await updateCircleChannel({
@@ -112,6 +119,7 @@ export function CircleChannelsView({
         name: args.name,
         description: args.description,
         channel_type: args.channel_type,
+        permissions: args.permissions,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -311,6 +319,7 @@ export function CircleChannelsView({
               name: args.name,
               description: args.description,
               channel_type: args.channel_type,
+              permissions: args.permissions,
             })
           }
           isPending={isPending}
@@ -329,6 +338,7 @@ type FormPayload = {
   slug: string;
   description: string;
   channel_type: ChannelType;
+  permissions: CircleChannelPermissions | null;
 };
 
 type ModalProps = {
@@ -338,6 +348,16 @@ type ModalProps = {
   onSubmit: (args: FormPayload) => void;
   isPending: boolean;
 };
+
+const ROLE_OPTIONS: { value: CircleRole; label: string }[] = [
+  { value: "owner", label: "Propriétaire" },
+  { value: "admin", label: "Admin" },
+  { value: "moderator", label: "Modérateur" },
+  { value: "mod", label: "Mod" },
+  { value: "ambassador", label: "Ambassadeur" },
+  { value: "contributor", label: "Contributeur" },
+  { value: "member", label: "Membre" },
+];
 
 function ChannelFormModal({
   mode,
@@ -352,6 +372,40 @@ function ChannelFormModal({
   const [channelType, setChannelType] = useState<ChannelType>(
     initial?.channel_type ?? "text",
   );
+
+  /* Sprint B.5 — permissions custom. État local : viewMode/postMode
+     valent 'default' (=hérite type) ou 'custom' (=array de rôles). */
+  const initialPermissions = initial?.permissions ?? null;
+  const [viewMode, setViewMode] = useState<"default" | "custom">(
+    initialPermissions?.view !== undefined ? "custom" : "default",
+  );
+  const [postMode, setPostMode] = useState<"default" | "custom">(
+    initialPermissions?.post !== undefined ? "custom" : "default",
+  );
+  const [viewRoles, setViewRoles] = useState<CircleRole[]>(
+    initialPermissions?.view ?? ["owner", "admin", "moderator"],
+  );
+  const [postRoles, setPostRoles] = useState<CircleRole[]>(
+    initialPermissions?.post ?? ["owner", "admin", "moderator"],
+  );
+
+  function buildPermissions(): CircleChannelPermissions | null {
+    if (viewMode === "default" && postMode === "default") return null;
+    const permissions: CircleChannelPermissions = {};
+    if (viewMode === "custom") permissions.view = viewRoles;
+    if (postMode === "custom") permissions.post = postRoles;
+    return permissions;
+  }
+
+  function toggleRole(
+    list: CircleRole[],
+    setter: (r: CircleRole[]) => void,
+    role: CircleRole,
+  ) {
+    setter(
+      list.includes(role) ? list.filter((r) => r !== role) : [...list, role],
+    );
+  }
 
   /* Auto-slugify le name en mode création (jusqu'à ce que user édite slug). */
   const [slugDirty, setSlugDirty] = useState(false);
@@ -379,6 +433,7 @@ function ChannelFormModal({
       slug: slug.trim(),
       description: description.trim(),
       channel_type: channelType,
+      permissions: buildPermissions(),
     });
   }
 
@@ -510,6 +565,40 @@ function ChannelFormModal({
               })}
             </div>
           </div>
+
+          {/* Sprint B.5 — Permissions custom (override par rôle). */}
+          <details className="rounded-xl border border-line bg-bg-soft/40">
+            <summary className="cursor-pointer text-[12px] font-bold text-night px-3 py-2 select-none">
+              Permissions avancées (optionnel)
+            </summary>
+            <div className="px-3 pb-3 pt-1 space-y-4 text-[12px]">
+              <p className="text-night-dim leading-relaxed">
+                Par défaut, les permissions suivent le type de channel.
+                Active ces réglages uniquement pour restreindre l&apos;accès
+                à certains rôles.
+              </p>
+
+              <PermissionSection
+                label="Voir ce channel"
+                mode={viewMode}
+                roles={viewRoles}
+                onModeChange={setViewMode}
+                onToggleRole={(role) =>
+                  toggleRole(viewRoles, setViewRoles, role)
+                }
+              />
+
+              <PermissionSection
+                label="Publier dans ce channel"
+                mode={postMode}
+                roles={postRoles}
+                onModeChange={setPostMode}
+                onToggleRole={(role) =>
+                  toggleRole(postRoles, setPostRoles, role)
+                }
+              />
+            </div>
+          </details>
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-2">
@@ -526,6 +615,87 @@ function ChannelFormModal({
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/* Sprint B.5 — section permissions (réutilisée pour view et post). */
+type PermissionSectionProps = {
+  label: string;
+  mode: "default" | "custom";
+  roles: CircleRole[];
+  onModeChange: (mode: "default" | "custom") => void;
+  onToggleRole: (role: CircleRole) => void;
+};
+
+function PermissionSection({
+  label,
+  mode,
+  roles,
+  onModeChange,
+  onToggleRole,
+}: PermissionSectionProps) {
+  return (
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-night mb-1.5">
+        {label}
+      </p>
+      <div className="flex gap-1.5 mb-2">
+        <button
+          type="button"
+          onClick={() => onModeChange("default")}
+          aria-pressed={mode === "default"}
+          className={cn(
+            "inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold transition-colors",
+            mode === "default"
+              ? "bg-night text-bg"
+              : "bg-white border border-line text-night-dim hover:border-night/30",
+          )}
+        >
+          Par défaut
+        </button>
+        <button
+          type="button"
+          onClick={() => onModeChange("custom")}
+          aria-pressed={mode === "custom"}
+          className={cn(
+            "inline-flex items-center h-7 px-3 rounded-full text-[11px] font-bold transition-colors",
+            mode === "custom"
+              ? "bg-night text-bg"
+              : "bg-white border border-line text-night-dim hover:border-night/30",
+          )}
+        >
+          Rôles spécifiques
+        </button>
+      </div>
+      {mode === "custom" ? (
+        <div className="grid grid-cols-2 gap-1.5">
+          {ROLE_OPTIONS.map((opt) => {
+            const checked = roles.includes(opt.value);
+            return (
+              <label
+                key={opt.value}
+                className={cn(
+                  "flex items-center gap-2 h-8 px-2.5 rounded-lg border cursor-pointer transition-colors",
+                  checked
+                    ? "border-night bg-night/5"
+                    : "border-line bg-white hover:border-night/30",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggleRole(opt.value)}
+                  className="rounded border-line"
+                />
+                <span className="text-[11px] font-bold text-night">
+                  {opt.label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

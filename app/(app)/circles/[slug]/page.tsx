@@ -11,6 +11,7 @@ import {
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
+import { canPostInChannel } from "@/lib/utils/circleChannelPermissions";
 import { ChannelsBar } from "./_components/ChannelsBar";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
 import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
@@ -79,9 +80,10 @@ export default async function CirclePostsTab({
   if (!circle) notFound();
 
   /* Sprint B.2 — récupère la liste des channels du cercle (ordonnés par
-     position). Si le user a précisé ?channel=slug, on résout l'UUID. */
+     position). Sprint B.5 — passe le rôle pour filtrer les channels
+     dont permissions.view exclut l'user. */
   const channels = circle.is_member
-    ? await listCircleChannels(circle.id)
+    ? await listCircleChannels(circle.id, circle.my_role ?? null)
     : [];
   const activeChannel = channelSlugParam
     ? (channels.find((c) => c.slug === channelSlugParam) ?? null)
@@ -209,16 +211,36 @@ export default async function CirclePostsTab({
         activeSlug={activeChannel?.slug ?? null}
       />
 
-      {/* Sprint B.3 — channel announcement : composer locked pour non-admin. */}
-      {activeChannel?.channel_type === "announcement" && !canModerate ? (
+      {/* Sprint B.3/B.5 — composer locked si user pas autorisé à
+          poster (announcement par défaut + permissions custom V5). */}
+      {activeChannel &&
+      !canPostInChannel(
+        {
+          channel_type: activeChannel.channel_type,
+          permissions: activeChannel.permissions ?? null,
+        },
+        circle.my_role ?? null,
+      ) ? (
         <div className="rounded-2xl bg-bg-soft border border-line border-dashed p-4 text-center">
           <p className="text-[13px] text-night-dim leading-relaxed">
-            📢{" "}
-            <span className="font-bold text-night">
-              Channel d&apos;annonces
-            </span>{" "}
-            — seuls les admins et modérateurs peuvent publier ici. Tu reçois
-            une notification à chaque nouvelle annonce.
+            {activeChannel.channel_type === "announcement" ? (
+              <>
+                📢{" "}
+                <span className="font-bold text-night">
+                  Channel d&apos;annonces
+                </span>{" "}
+                — seuls les admins et modérateurs peuvent publier ici. Tu
+                reçois une notification à chaque nouvelle annonce.
+              </>
+            ) : (
+              <>
+                🔒{" "}
+                <span className="font-bold text-night">
+                  Channel à accès restreint
+                </span>{" "}
+                — la publication dans ce channel est réservée à certains rôles.
+              </>
+            )}
           </p>
         </div>
       ) : (

@@ -2079,6 +2079,20 @@ export type CircleBotExecution = {
 /* Chantier v4 Sprint B — Channels Discord-style. */
 export type CircleChannelType = "text" | "announcement" | "forum";
 
+/* Sprint B.5 — Permissions custom par channel (override des defaults
+ * par type). null/empty = comportement par défaut selon channel_type :
+ *   text          : view=tous membres, post=tous membres
+ *   announcement  : view=tous membres, post=owner/admin/moderator/mod
+ *   forum         : view=tous membres, post=tous membres
+ *
+ * Un rôle dans la liste = autorisé. Array vide [] = personne (équivaut
+ * à "désactivé"). Si une clé est absente, on hérite des defaults par
+ * type. */
+export type CircleChannelPermissions = {
+  view?: CircleRole[];
+  post?: CircleRole[];
+};
+
 export type CircleChannel = {
   id: string;
   circle_id: string;
@@ -2087,7 +2101,7 @@ export type CircleChannel = {
   description: string | null;
   channel_type: CircleChannelType;
   position: number;
-  permissions: Record<string, unknown> | null;
+  permissions: CircleChannelPermissions | null;
   posts_count: number;
   archived_at: string | null;
   created_at: string;
@@ -2104,7 +2118,10 @@ export type CircleChannelSummary = Pick<
   | "position"
   | "posts_count"
   | "created_at"
->;
+> & {
+  /* Sprint B.5 — permissions custom (peut être null si non set). */
+  permissions?: CircleChannelPermissions | null;
+};
 
 /* Aggregate retourné par list_circle_bots RPC. */
 export type CircleBotSummary = Pick<

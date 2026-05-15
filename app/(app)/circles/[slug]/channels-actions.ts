@@ -17,6 +17,27 @@ const slugRegex = /^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$/;
 
 const channelTypeSchema = z.enum(["text", "announcement", "forum"]);
 
+const circleRoleSchema = z.enum([
+  "owner",
+  "admin",
+  "moderator",
+  "mod",
+  "ambassador",
+  "contributor",
+  "member",
+]);
+
+/* Sprint B.5 — Permissions custom par channel.
+ * `view` ou `post` absent (undefined) = hérite des defaults par type.
+ * Array vide [] = personne (champ explicite). */
+const permissionsSchema = z
+  .object({
+    view: z.array(circleRoleSchema).optional(),
+    post: z.array(circleRoleSchema).optional(),
+  })
+  .nullable()
+  .optional();
+
 const createSchema = z.object({
   circleId: z.string().uuid(),
   circleSlug: z.string().min(1),
@@ -33,6 +54,7 @@ const createSchema = z.object({
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
   channel_type: channelTypeSchema.default("text"),
+  permissions: permissionsSchema,
 });
 
 const updateSchema = z.object({
@@ -46,6 +68,7 @@ const updateSchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v.length > 0 ? v : null)),
   channel_type: channelTypeSchema.optional(),
+  permissions: permissionsSchema,
 });
 
 const archiveSchema = z.object({
@@ -111,6 +134,7 @@ export async function createCircleChannel(
       description: parsed.data.description,
       channel_type: parsed.data.channel_type,
       position: nextPosition,
+      permissions: parsed.data.permissions ?? null,
     });
 
   if (error) {
@@ -157,6 +181,8 @@ export async function updateCircleChannel(
     patch.description = parsed.data.description;
   if (parsed.data.channel_type !== undefined)
     patch.channel_type = parsed.data.channel_type;
+  if (parsed.data.permissions !== undefined)
+    patch.permissions = parsed.data.permissions;
   if (Object.keys(patch).length === 0) {
     return { ok: true as const };
   }
