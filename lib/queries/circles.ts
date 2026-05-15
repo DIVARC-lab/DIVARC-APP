@@ -451,6 +451,19 @@ export async function getCircleBySlug(
   return enriched ?? null;
 }
 
+/* Chantier Cercles v3 — Sous-cercles enfants d'un cercle parent. */
+export async function listSubCircles(
+  parentCircleId: string,
+): Promise<import("@/lib/database.types").SubCircleSummary[]> {
+  const supabase = await createClient();
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data, error } = await (supabase as any).rpc("list_sub_circles", {
+    p_parent_id: parentCircleId,
+  });
+  if (error || !data) return [];
+  return data as import("@/lib/database.types").SubCircleSummary[];
+}
+
 /* Chantier 5.4 — Récompenses ambassadeur d'un user dans un cercle. */
 export async function getCircleAmbassadorReward(
   userId: string,

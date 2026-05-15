@@ -2105,6 +2105,28 @@ export type Circle = {
   /* Lifecycle. */
   archived_at: string | null;
   updated_at: string;
+  /* Chantier Cercles v3 — Sous-cercles imbriqués (migration 0134). */
+  parent_circle_id: string | null;
+  depth: number;
+  sub_circles_count: number;
+  /* Chantier Cercles v3 — Cercles éphémères (migration 0134). */
+  lifecycle: "permanent" | "ephemeral" | "archived_ephemeral";
+  expires_at: string | null;
+  event_anchor_id: string | null;
+};
+
+/* Sous-cercle vu depuis la liste enfants d'un cercle parent. */
+export type SubCircleSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  emoji: string | null;
+  members_count: number;
+  vitality_score: number;
+  lifecycle: "permanent" | "ephemeral" | "archived_ephemeral";
+  expires_at: string | null;
+  created_at: string;
 };
 
 export type CircleMember = {

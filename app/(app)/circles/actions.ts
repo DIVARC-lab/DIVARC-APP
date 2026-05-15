@@ -154,6 +154,14 @@ const createV2Schema = z.object({
     .enum(["instant", "request", "invite_only", "paid", "quiz"])
     .default("instant"),
   visibility: z.enum(["public", "unlisted", "invite_only"]).default("public"),
+  /* Chantier Cercles v3 — Sous-cercles imbriqués. parent_circle_id
+     pointe vers le cercle parent (admin requis sur ce parent côté
+     trigger SQL). null = cercle racine. */
+  parent_circle_id: z.string().uuid().nullable().optional(),
+  /* Chantier Cercles v3 — Cercles éphémères. lifecycle=ephemeral
+     + expires_at requis. Auto-archive après expires_at via cron RPC. */
+  lifecycle: z.enum(["permanent", "ephemeral"]).default("permanent"),
+  expires_at: z.string().datetime().nullable().optional(),
   modules: z.object({
     social_feed: z.boolean().default(true),
     marketplace: z.boolean().default(false),
@@ -249,6 +257,10 @@ export async function createCircleV2(
         /* Conserve la sémantique legacy is_private pour les queries v1. */
         is_private: parsed.data.type === "private" || parsed.data.type === "hidden",
         owner_id: user.id,
+        /* Chantier Cercles v3 — Sous-cercles + éphémères */
+        parent_circle_id: parsed.data.parent_circle_id ?? null,
+        lifecycle: parsed.data.lifecycle,
+        expires_at: parsed.data.expires_at ?? null,
       })
       .select("id, slug")
       .single();

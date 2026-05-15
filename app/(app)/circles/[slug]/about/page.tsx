@@ -18,6 +18,7 @@ import { getCircleBySlug, listCircleRules } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
 import type { CircleRule } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
+import { SubCirclesPanel } from "../_components/SubCirclesPanel";
 
 type Params = Promise<{ slug: string }>;
 
@@ -190,6 +191,13 @@ export default async function CircleAboutTab({
           </div>
         </div>
       </div>
+
+      {/* Sous-cercles (Chantier v3) */}
+      <SubCirclesPanel
+        parentCircleId={circle.id}
+        parentSlug={circle.slug}
+        myRole={circle.my_role}
+      />
 
       {/* CTA Signaler */}
       <div className="pt-3">

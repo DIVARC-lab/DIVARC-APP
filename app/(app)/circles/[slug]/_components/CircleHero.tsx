@@ -1,4 +1,4 @@
-import { ArrowLeft, Lock, MapPin, Users2 } from "lucide-react";
+import { ArrowLeft, Hourglass, Lock, MapPin, Users2 } from "lucide-react";
 import Link from "next/link";
 import { ArcDeco } from "@/components/marketing/ArcDeco";
 import type {
@@ -78,13 +78,23 @@ export function CircleHero({
           <ArrowLeft className="w-4 h-4" aria-hidden />
         </Link>
 
-        {/* Type badge */}
-        {circle.is_private || circle.type === "private" ? (
-          <span className="absolute top-3 right-3 inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-night/85 backdrop-blur-sm text-cream text-[11px] font-bold">
-            <Lock className="w-3 h-3" aria-hidden />
-            Privé
-          </span>
-        ) : null}
+        {/* Type badge + lifecycle badge (Chantier Cercles v3) */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+          {circle.is_private || circle.type === "private" ? (
+            <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-night/85 backdrop-blur-sm text-cream text-[11px] font-bold">
+              <Lock className="w-3 h-3" aria-hidden />
+              Privé
+            </span>
+          ) : null}
+          {circle.lifecycle === "ephemeral" && circle.expires_at ? (
+            <EphemeralBadge expiresAt={circle.expires_at} />
+          ) : null}
+          {circle.lifecycle === "archived_ephemeral" ? (
+            <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-night-muted/80 backdrop-blur-sm text-cream text-[11px] font-bold">
+              Archivé
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {/* Identity block — overlap cover */}
@@ -162,5 +172,30 @@ export function CircleHero({
         <div className="mt-4 pb-4">{actionsSlot}</div>
       </div>
     </header>
+  );
+}
+
+/* Badge éphémère avec countdown jours. Affiché dans le hero quand
+ * lifecycle = 'ephemeral'. */
+function EphemeralBadge({ expiresAt }: { expiresAt: string }) {
+  const expires = new Date(expiresAt);
+  const now = new Date();
+  const diffMs = expires.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const label =
+    diffDays <= 0
+      ? "Expiré"
+      : diffDays === 1
+        ? "Termine demain"
+        : diffDays <= 7
+          ? `${diffDays} jours restants`
+          : diffDays <= 30
+            ? `${Math.ceil(diffDays / 7)} sem restantes`
+            : `${Math.ceil(diffDays / 30)} mois restants`;
+  return (
+    <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-rose-500/95 backdrop-blur-sm text-white text-[11px] font-bold">
+      <Hourglass className="w-3 h-3" aria-hidden />
+      {label}
+    </span>
   );
 }
