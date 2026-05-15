@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ChatHeader } from "../_components/ChatHeader";
 import { ConversationReadRefresher } from "../_components/ConversationReadRefresher";
 import { ConversationView } from "../_components/ConversationView";
+import { MobileBodyLock } from "../_components/MobileBodyLock";
 import { getSecretStatus } from "../secret-actions";
 
 type Params = Promise<{ id: string }>;
@@ -93,6 +94,10 @@ export default async function ConversationPage({ params }: { params: Params }) {
 
   return (
     <>
+      {/* Lock body scroll en mobile : empêche iOS de scroller la page
+          pour positionner l'input visible quand le clavier ouvre
+          (sans ça, ChatHeader + messages sortent hors écran). */}
+      <MobileBodyLock />
       {/* Force router.refresh() au mount pour que le layout (TopBar +
           MobileBottomNav avec badges unread) reflète le mark-as-read
           effectué juste au-dessus côté server. */}
