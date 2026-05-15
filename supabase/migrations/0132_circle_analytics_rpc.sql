@@ -283,8 +283,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+  /* Toutes les CTE exposent `user_id` pour uniformiser le UNION
+     et les JOINs en aval. `author_id` (posts/comments) est aliasé. */
   WITH posts_by_user AS (
-    SELECT author_id, COUNT(*) AS cnt
+    SELECT author_id AS user_id, COUNT(*) AS cnt
       FROM public.posts
      WHERE circle_id = p_circle_id
        AND deleted_at IS NULL
@@ -292,7 +294,7 @@ AS $$
      GROUP BY author_id
   ),
   comments_by_user AS (
-    SELECT c.author_id, COUNT(*) AS cnt
+    SELECT c.author_id AS user_id, COUNT(*) AS cnt
       FROM public.post_comments c
       JOIN public.posts p ON p.id = c.post_id
      WHERE p.circle_id = p_circle_id
@@ -311,7 +313,7 @@ AS $$
   contributors AS (
     SELECT user_id FROM posts_by_user
     UNION
-    SELECT author_id FROM comments_by_user
+    SELECT user_id FROM comments_by_user
     UNION
     SELECT user_id FROM reactions_received
   )
@@ -329,8 +331,8 @@ AS $$
   FROM contributors c
   JOIN public.circle_members m ON m.user_id = c.user_id AND m.circle_id = p_circle_id
   JOIN public.profiles p ON p.id = c.user_id
-  LEFT JOIN posts_by_user pb ON pb.author_id = c.user_id
-  LEFT JOIN comments_by_user cb ON cb.author_id = c.user_id
+  LEFT JOIN posts_by_user pb ON pb.user_id = c.user_id
+  LEFT JOIN comments_by_user cb ON cb.user_id = c.user_id
   LEFT JOIN reactions_received rr ON rr.user_id = c.user_id
   WHERE m.status = 'active'
   ORDER BY score DESC, posts_count DESC
