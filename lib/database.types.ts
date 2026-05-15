@@ -1957,6 +1957,71 @@ export type CircleModules = {
   ai_assistant: boolean;
 };
 
+/* Chantier Cercles v3 — Méta-cercles (Hubs) + Reputation portable. */
+export type CircleHub = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  emoji: string | null;
+  cover_url: string | null;
+  color_accent: string;
+  owner_id: string;
+  primary_category: string | null;
+  tags: string[];
+  visibility: "public" | "unlisted";
+  join_policy: "open" | "approval";
+  circles_count: number;
+  members_aggregate: number;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HubCircleSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  emoji: string | null;
+  members_count: number;
+  vitality_score: number;
+  primary_category: string | null;
+  joined_at: string;
+};
+
+export type HubFeedPost = {
+  post_id: string;
+  circle_id: string;
+  circle_slug: string;
+  circle_name: string;
+  circle_emoji: string | null;
+  author_id: string;
+  body: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+};
+
+export type UserGlobalReputation = {
+  total_karma: number;
+  circles_count: number;
+  top_circles: Array<{
+    circle_id: string;
+    circle_slug: string;
+    circle_name: string;
+    circle_emoji: string | null;
+    points: number;
+  }>;
+  badges: Array<{
+    circle_id: string;
+    circle_slug: string;
+    circle_name: string;
+    role: string;
+  }>;
+};
+
 /* Source utilisée pour générer une réponse AI (post, rule, library). */
 export type CircleAISource = {
   type: "post" | "rule" | "library";

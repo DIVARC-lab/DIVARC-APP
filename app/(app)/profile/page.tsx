@@ -23,6 +23,7 @@ import { getProProfile } from "@/lib/queries/profilePro";
 import { countMyProfileViews } from "@/lib/queries/profileViews";
 import { safeDate, safeDaysSince } from "@/lib/utils/date";
 import { AvatarUpload } from "./AvatarUpload";
+import { UserReputationCard } from "@/components/circles/UserReputationCard";
 import { JournalPanel } from "./JournalPanel";
 import { PreferencesForm } from "./PreferencesForm";
 import { ProfileForm } from "./ProfileForm";
@@ -220,6 +221,9 @@ export default async function ProfilePage({
 
         <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
           <PublicPreview profile={profile} email={user.email ?? ""} />
+
+          {/* Chantier Cercles v3 — Réputation portable cross-cercles. */}
+          <UserReputationCard userId={user.id} />
 
           <article className="p-6 rounded-3xl bg-night text-cream border border-night/40 shadow-soft grain relative overflow-hidden">
             <div className="pointer-events-none absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gold/30 blur-2xl" />

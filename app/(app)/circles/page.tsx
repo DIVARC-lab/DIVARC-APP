@@ -177,6 +177,13 @@ export default async function CirclesPage({
                 <Eye className="w-3.5 h-3.5" aria-hidden />
                 Comment on trie
               </Link>
+              <Link
+                href="/circles/hubs"
+                className="inline-flex items-center justify-center gap-1.5 h-12 px-4 rounded-full bg-gold/10 text-gold-deep font-bold text-[12px] hover:bg-gold/20 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" aria-hidden />
+                Hubs
+              </Link>
             </div>
           </div>
         </header>
