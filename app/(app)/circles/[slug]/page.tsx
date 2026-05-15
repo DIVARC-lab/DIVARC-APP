@@ -14,6 +14,7 @@ import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { ChannelsBar } from "./_components/ChannelsBar";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
 import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
+import { ForumSortFilters } from "./_components/ForumSortFilters";
 import { CircleModeratablePost } from "./CircleModeratablePost";
 import { CirclePostComposer } from "./CirclePostComposer";
 
@@ -26,7 +27,12 @@ const VALID_SORTS = new Set<CircleFeedSort>([
   "hot_7d",
   "mine",
   "unread",
+  "hot",
+  "top",
 ]);
+
+/* Sprint B.4 — sorts disponibles dans un channel forum (Reddit-style). */
+const FORUM_SORTS = new Set<CircleFeedSort>(["hot", "recent", "top"]);
 
 export async function generateMetadata({ params }: { params: Params }) {
   const { slug } = await params;
@@ -53,9 +59,11 @@ export default async function CirclePostsTab({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
-  const sort: CircleFeedSort = VALID_SORTS.has(sp.sort as CircleFeedSort)
+  const rawSort: CircleFeedSort | null = VALID_SORTS.has(
+    sp.sort as CircleFeedSort,
+  )
     ? (sp.sort as CircleFeedSort)
-    : "recent";
+    : null;
   const channelSlugParam =
     typeof sp.channel === "string" && sp.channel.trim().length > 0
       ? sp.channel.trim().toLowerCase()
@@ -79,6 +87,23 @@ export default async function CirclePostsTab({
     ? (channels.find((c) => c.slug === channelSlugParam) ?? null)
     : null;
   const activeChannelId = activeChannel?.id ?? null;
+  const isForumChannel = activeChannel?.channel_type === "forum";
+
+  /* Sprint B.4 — sort par défaut adapté au type de channel :
+       - forum  → 'hot'   (Reddit-style)
+       - autres → 'recent'
+     Si l'user a forcé un sort via URL, on respecte SAUF si incompatible
+     avec le contexte (ex: 'top' demandé sur channel non-forum). */
+  let sort: CircleFeedSort;
+  if (rawSort) {
+    if (isForumChannel) {
+      sort = FORUM_SORTS.has(rawSort) ? rawSort : "hot";
+    } else {
+      sort = ["hot", "top"].includes(rawSort) ? "recent" : rawSort;
+    }
+  } else {
+    sort = isForumChannel ? "hot" : "recent";
+  }
 
   const isOwner = circle.owner_id === user.id;
   const canModerate =
@@ -207,12 +232,29 @@ export default async function CirclePostsTab({
         />
       )}
 
-      {/* Filtres tri transparents (URL-driven). */}
+      {/* Filtres tri (URL-driven). Forum channels = Hot/New/Top
+          Reddit-style ; autres = filters classiques (Récents/24h/7j/…). */}
       <div className="mt-4 mb-2">
-        <CircleFeedSortFilters
-          basePath={`/circles/${slug}`}
-          initialSort={sort}
-        />
+        {isForumChannel ? (
+          <ForumSortFilters
+            basePath={`/circles/${slug}`}
+            initialSort={
+              (sort === "hot" || sort === "top" || sort === "recent"
+                ? sort
+                : "hot") as "hot" | "recent" | "top"
+            }
+          />
+        ) : (
+          <CircleFeedSortFilters
+            basePath={`/circles/${slug}`}
+            initialSort={
+              (sort === "hot" || sort === "top" ? "recent" : sort) as Exclude<
+                CircleFeedSort,
+                "hot" | "top"
+              >
+            }
+          />
+        )}
       </div>
 
       {/* Pinned (toujours visibles, indépendant du tri). */}

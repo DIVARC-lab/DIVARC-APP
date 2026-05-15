@@ -398,13 +398,18 @@ export async function listFeedPosts(
   return attachDetails(data, currentUserId);
 }
 
-/* Chantier 3.2 — Tris transparents pour le feed d'un cercle. */
+/* Chantier 3.2 — Tris transparents pour le feed d'un cercle.
+ * Sprint B.4 : ajout de 'hot' et 'top' pour les channels forum
+ * (Reddit-style). 'hot' = posts récents (72h) triés par upvotes,
+ * 'top' = upvotes desc all-time. */
 export type CircleFeedSort =
   | "recent"
   | "hot_24h"
   | "hot_7d"
   | "mine"
-  | "unread";
+  | "unread"
+  | "hot"
+  | "top";
 
 export async function listCirclePosts(
   circleId: string,
@@ -465,6 +470,24 @@ export async function listCirclePosts(
       } else {
         query = query.order("created_at", { ascending: false });
       }
+      break;
+    case "hot":
+      /* Sprint B.4 forum — posts <72h triés par votes net (approx Reddit
+         Hot). Pour un vrai score Hot pondéré par l'âge, RPC dédiée en V2. */
+      query = query
+        .gt(
+          "created_at",
+          new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
+        )
+        .order("upvotes", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      break;
+    case "top":
+      /* Sprint B.4 forum — all-time top par upvotes. */
+      query = query
+        .order("upvotes", { ascending: false, nullsFirst: false })
+        .order("helpful_marks", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
       break;
     case "recent":
     default:
