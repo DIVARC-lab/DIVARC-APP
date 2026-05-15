@@ -137,10 +137,15 @@ export function ContentCreatorModal({
             className={cn(
               "relative flex flex-col overflow-hidden",
               isStory
-                ? "w-full h-[100dvh] bg-black text-cream"
+                ? /* Hauteur = min(100dvh, --viewport-visual-h) : sur iOS
+                     PWA, --viewport-visual-h rétrécit en temps réel
+                     avec le clavier → le modal story suit sans déborder. */
+                  "w-full bg-black text-cream h-[min(100dvh,var(--viewport-visual-h,100dvh))]"
                 : [
                     "w-full sm:w-[90%] sm:max-w-3xl",
-                    "h-[95dvh] sm:h-auto sm:max-h-[90vh]",
+                    /* Mobile : 95% du viewport visible (auto-shrink iOS).
+                       Desktop sm+ : h-auto + max-h-[90vh] standard. */
+                    "h-[min(95dvh,var(--viewport-visual-h,95dvh))] sm:h-auto sm:max-h-[90vh]",
                     "bg-bg sm:bg-bg",
                     "rounded-t-3xl sm:rounded-[20px]",
                     "shadow-[0_-30px_80px_-30px_rgba(10,31,68,0.55)] sm:shadow-[0_40px_100px_-30px_rgba(10,31,68,0.55)]",

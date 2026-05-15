@@ -1409,7 +1409,18 @@ function ChipPill({
   );
 }
 
-/* Modal full-screen : fond bg-soft (proto), backdrop fermable au clic. */
+/* Modal full-screen : fond bg-soft (proto), backdrop fermable au clic.
+ *
+ * iOS PWA stabilisation (cf. MobileBodyLock pour messages) :
+ *  - Body lock en `position: fixed` pendant l'ouverture → empêche
+ *    iOS de scroller la page derrière + de pousser le modal au focus
+ *    du textarea (cause du bug "le composer saute/bug à la frappe").
+ *  - Hauteur du modal = `--viewport-visual-h` (zone visible iOS qui
+ *    rétrécit avec le clavier via visualViewport API). Sans ça, le
+ *    modal a 100vh et déborde derrière le clavier.
+ *  - Top compensé par `--viewport-visual-offset-top` pour suivre le
+ *    décalage iOS quand l'OS shift le visualViewport pour positionner
+ *    l'input visible. */
 function Modal({
   children,
   onClose,
@@ -1417,12 +1428,39 @@ function Modal({
   children: React.ReactNode;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const previous = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      width: body.style.width,
+      top: body.style.top,
+    };
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.width = "100%";
+    body.style.top = `-${scrollY}px`;
+    return () => {
+      body.style.overflow = previous.overflow;
+      body.style.position = previous.position;
+      body.style.width = previous.width;
+      body.style.top = previous.top;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Nouveau post"
-      className="fixed inset-0 z-50 bg-bg-soft overflow-y-auto"
+      className="fixed inset-x-0 z-50 bg-bg-soft overflow-y-auto"
+      style={{
+        top: "var(--viewport-visual-offset-top, 0px)",
+        height: "var(--viewport-visual-h, 100dvh)",
+      }}
     >
       {/* Backdrop click handler — invisible button derrière le contenu */}
       <button

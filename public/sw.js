@@ -8,7 +8,7 @@
 //  - Push : prêt à recevoir des notifications quand le backend
 //    enverra des web-push events (VAPID config future).
 
-const CACHE_NAME = "divarc-v18";
+const CACHE_NAME = "divarc-v19";
 const OFFLINE_URL = "/offline";
 
 const ASSETS_TO_CACHE = [
