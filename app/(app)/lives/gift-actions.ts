@@ -1,13 +1,18 @@
 "use server";
 
-/* Étape 16 — Server Action sendVirtualGift.
+/* Étape 36/60 — Server Action sendVirtualGift étendu :
  *
- * Crée une Stripe Checkout Session (mode=payment) sur le compte connecté
- * du host. App fee 10% pour DIVARC, le reste va au host.
+ *   - recipientUserId : destinataire (host par défaut ou guest sur panel)
+ *   - comboGiftId / comboCount : pour les envois successifs <5s
  *
- * INSERT live_gift_sends status='pending'. Le webhook
- * checkout.session.completed (divarc_kind='virtual_gift') confirme le
- * paiement et incrémente revenue_total_cents sur le live.
+ * Logique combo :
+ *   1. Si le sender a déjà envoyé le même gift dans cette session dans
+ *      les 5 dernières secondes → on récupère le combo_id existant.
+ *   2. Sinon on génère un nouveau combo_id.
+ *   3. combo_count = +1 par envoi.
+ *
+ * Le client peut détecter le combo localement et envoyer
+ * recipientUserId + previousComboId pour cohérence.
  */
 
 import { z } from "zod";
@@ -21,6 +26,7 @@ type SupabaseAny = any;
 const schema = z.object({
   sessionId: z.string().uuid(),
   giftId: z.string().min(1).max(40),
+  recipientUserId: z.string().uuid().optional(),
 });
 
 export async function sendVirtualGift(args: z.infer<typeof schema>) {
@@ -41,7 +47,6 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Non authentifié." };
 
-  /* Lit le cadeau dans le catalogue. */
   const { data: gift } = await (supabase as SupabaseAny)
     .from("virtual_gifts")
     .select("id, label, amount_cents, is_active")
@@ -60,7 +65,6 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
     return { ok: false as const, error: "Ce cadeau n'est plus disponible." };
   }
 
-  /* Lit le live + host. */
   const { data: room } = await (supabase as SupabaseAny)
     .from("circle_live_rooms")
     .select("id, host_id, title, status")
@@ -74,12 +78,6 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
     status: string;
   };
 
-  if (r.host_id === user.id) {
-    return {
-      ok: false as const,
-      error: "Tu ne peux pas t'envoyer un cadeau à toi-même.",
-    };
-  }
   if (r.status !== "live") {
     return {
       ok: false as const,
@@ -87,29 +85,74 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
     };
   }
 
-  /* Compte connecté Stripe du host. */
-  const { data: hostProfile } = await supabase
-    .from("profiles")
-    .select("stripe_connect_account_id, stripe_charges_enabled")
-    .eq("id", r.host_id)
-    .maybeSingle();
-  const account =
-    (hostProfile as { stripe_connect_account_id?: string | null } | null)
-      ?.stripe_connect_account_id ?? null;
-  const chargesEnabled =
-    (hostProfile as { stripe_charges_enabled?: boolean } | null)
-      ?.stripe_charges_enabled ?? false;
-  if (!account) {
+  /* Destinataire : guest sur panel ou host par défaut. */
+  const recipientUserId = parsed.data.recipientUserId ?? r.host_id;
+
+  /* On ne peut pas s'envoyer un cadeau. */
+  if (recipientUserId === user.id) {
     return {
       ok: false as const,
-      error: "Ce host n'a pas connecté son compte Stripe.",
+      error: "Tu ne peux pas t'envoyer un cadeau à toi-même.",
     };
   }
-  if (!chargesEnabled) {
+
+  /* Vérifie que le recipient est bien host OU sur le panel. */
+  if (recipientUserId !== r.host_id) {
+    const { data: panelMember } = await (supabase as SupabaseAny)
+      .from("live_panel_participants")
+      .select("user_id")
+      .eq("session_id", r.id)
+      .eq("user_id", recipientUserId)
+      .is("left_panel_at", null)
+      .maybeSingle();
+    if (!panelMember) {
+      return {
+        ok: false as const,
+        error: "Le destinataire n'est pas sur le panel.",
+      };
+    }
+  }
+
+  /* Compte Stripe Connect du destinataire. */
+  const { data: recipientProfile } = await supabase
+    .from("profiles")
+    .select("stripe_connect_account_id, stripe_charges_enabled")
+    .eq("id", recipientUserId)
+    .maybeSingle();
+  const account =
+    (recipientProfile as { stripe_connect_account_id?: string | null } | null)
+      ?.stripe_connect_account_id ?? null;
+  const chargesEnabled =
+    (recipientProfile as { stripe_charges_enabled?: boolean } | null)
+      ?.stripe_charges_enabled ?? false;
+  if (!account || !chargesEnabled) {
     return {
       ok: false as const,
-      error: "Le compte Stripe du host n'est pas encore actif.",
+      error: "Le compte Stripe du destinataire n'est pas actif.",
     };
+  }
+
+  /* Combo detection : last gift_send même giftId par même user dans <5s. */
+  const fiveSecAgo = new Date(Date.now() - 5_000).toISOString();
+  const { data: lastSend } = await (supabase as SupabaseAny)
+    .from("live_gift_sends")
+    .select("combo_id, combo_count")
+    .eq("session_id", r.id)
+    .eq("viewer_id", user.id)
+    .eq("gift_id", g.id)
+    .gte("created_at", fiveSecAgo)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let comboId: string | null = null;
+  let comboCount = 1;
+  if (lastSend) {
+    const ls = lastSend as { combo_id: string | null; combo_count: number };
+    comboId = ls.combo_id ?? crypto.randomUUID();
+    comboCount = (ls.combo_count ?? 1) + 1;
+  } else {
+    comboId = crypto.randomUUID();
   }
 
   /* Répartition 90/10. */
@@ -152,16 +195,22 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
           divarc_kind: "virtual_gift",
           divarc_session_id: r.id,
           divarc_host_id: r.host_id,
+          divarc_recipient_id: recipientUserId,
           divarc_viewer_id: user.id,
           divarc_gift_id: g.id,
+          divarc_combo_id: comboId,
+          divarc_combo_count: String(comboCount),
         },
       },
       metadata: {
         divarc_kind: "virtual_gift",
         divarc_session_id: r.id,
         divarc_host_id: r.host_id,
+        divarc_recipient_id: recipientUserId,
         divarc_viewer_id: user.id,
         divarc_gift_id: g.id,
+        divarc_combo_id: comboId,
+        divarc_combo_count: String(comboCount),
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -169,11 +218,12 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
     { stripeAccount: account },
   );
 
-  /* INSERT live_gift_sends pending. */
+  /* INSERT live_gift_sends pending avec combo. */
   await (supabase as SupabaseAny).from("live_gift_sends").insert({
     session_id: r.id,
     viewer_id: user.id,
     host_id: r.host_id,
+    recipient_user_id: recipientUserId,
     gift_id: g.id,
     amount_cents: g.amount_cents,
     currency: "EUR",
@@ -181,7 +231,14 @@ export async function sendVirtualGift(args: z.infer<typeof schema>) {
     host_amount_cents: hostAmount,
     platform_amount_cents: appFeeAmount,
     status: "pending",
+    combo_id: comboId,
+    combo_count: comboCount,
   });
 
-  return { ok: true as const, url: session.url };
+  return {
+    ok: true as const,
+    url: session.url,
+    comboId,
+    comboCount,
+  };
 }
