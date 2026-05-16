@@ -12,6 +12,7 @@ import {
   Map as MapIcon,
   MessageCircle,
   Network,
+  Radio,
   Search,
   Settings,
   Sparkles,
@@ -44,6 +45,7 @@ type Shortcut = {
 
 const SHORTCUTS: Shortcut[] = [
   { href: "/messages", label: "Discussions", icon: MessageCircle },
+  { href: "/lives", label: "Lives", icon: Radio },
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/jobs", label: "Emploi", icon: Briefcase },
   { href: "/wallet", label: "Wallet", icon: Wallet },
@@ -54,7 +56,6 @@ const SHORTCUTS: Shortcut[] = [
   { href: "/circles", label: "Cercles", icon: Users },
   { href: "/explore", label: "Découvrir", icon: Compass },
   { href: "/network", label: "Réseau pro", icon: Network },
-  { href: "/calendar", label: "Événements", icon: Calendar },
 ];
 
 type MobileMenuSheetProps = {
