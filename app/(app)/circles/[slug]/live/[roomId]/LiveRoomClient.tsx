@@ -179,8 +179,14 @@ export function LiveRoomClient({
       data-lk-theme="default"
       className="h-full bg-night relative"
       onDisconnected={() => {
+        /* Defer la navigation au tick suivant pour laisser LiveKit
+           finir de détacher ses <video>/<audio> imperativement avant
+           que React démonte l'arbre. Sinon erreur React "insertBefore
+           failed" (conflit reconciliation vs DOM mutations LiveKit). */
         toast("Tu as quitté la salle.");
-        router.replace(`/circles/${circleSlug}/live`);
+        window.setTimeout(() => {
+          router.replace(`/circles/${circleSlug}/live`);
+        }, 50);
       }}
       onError={(err) => {
         console.error("[LiveKit]", err);
