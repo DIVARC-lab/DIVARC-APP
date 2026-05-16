@@ -33,11 +33,11 @@ import { GiftPanel } from "./GiftPanel";
 import { LiveChatPanel } from "./LiveChatPanel";
 import { LiveGoalBar } from "./LiveGoalBar";
 import { LiveHeartsLayer } from "./LiveHeartsLayer";
-import { LiveLikeButton } from "./LiveLikeButton";
 import { LiveLikesProvider } from "./LiveLikesContext";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTapToLikeOverlay } from "./LiveTapToLikeOverlay";
 import { LiveTipsModal } from "./LiveTipsModal";
+import { RailLikeButton } from "./RailLikeButton";
 import { RaiseHandButton } from "./RaiseHandButton";
 import { SubscribeCreatorModal } from "./SubscribeCreatorModal";
 import { SuperChatTicker } from "./SuperChatTicker";
@@ -234,125 +234,187 @@ export function LiveViewerClient({
           <GiftAnimationOverlay sessionId={sessionId} />
         </div>
 
-        {/* Étape 17 — Barre objectif (overlay bottom-left, polling 6s) */}
-        <div className="absolute bottom-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+        {/* Étape 17 — Barre objectif (overlay milieu-gauche). */}
+        <div className="absolute top-20 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <LiveGoalBar sessionId={sessionId} />
         </div>
-      </div>
 
-      {/* Info bar : avatar host + actions */}
-      <div className="bg-night/95 backdrop-blur-md border-t border-cream/10 px-4 py-3">
-        <div className="flex items-center gap-3 mb-2.5">
+        {/* TOP overlay : host card flottante avec follow + abonné. */}
+        <div className="absolute top-3 left-3 right-3 z-30 flex items-start gap-2 pointer-events-none">
           {host ? (
-            <>
+            <div className="pointer-events-auto inline-flex items-center gap-2 max-w-[60%] bg-night/70 backdrop-blur-md rounded-full pl-1 pr-3 py-1 border border-cream/15 shadow-lg">
               <Avatar
                 src={host.avatar_url}
                 fullName={host.full_name ?? host.username ?? "Streamer"}
-                size="md"
+                size="sm"
               />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold text-cream truncate">
+              <div className="min-w-0">
+                <p className="text-[11.5px] font-extrabold text-cream truncate leading-tight">
                   {host.full_name ?? host.username ?? "Streamer"}
                 </p>
                 {host.username ? (
-                  <p className="text-[11px] text-cream/60 truncate">
+                  <p className="text-[9.5px] text-cream/60 truncate leading-tight">
                     @{host.username}
                   </p>
                 ) : null}
               </div>
-            </>
-          ) : (
-            <div className="flex-1" />
-          )}
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={handleFollow}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cream/10 text-cream hover:bg-cream/20 transition-colors"
-              aria-label="Suivre"
-              title="Suivre"
-            >
-              <UserPlus className="w-3.5 h-3.5" aria-hidden />
-            </button>
-            {host ? (
               <button
                 type="button"
                 onClick={() => setSubOpen(true)}
-                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-gold text-night text-[11px] font-bold hover:bg-gold/90 transition-colors"
+                className="ml-1 inline-flex items-center gap-1 h-6 px-2 rounded-full bg-gradient-to-r from-rose-500 to-fuchsia-500 text-white text-[9.5px] font-extrabold uppercase tracking-wider hover:from-rose-600 hover:to-fuchsia-600 transition-all"
               >
-                <Sparkles className="w-3.5 h-3.5" aria-hidden />
-                S&apos;abonner
+                <Sparkles className="w-2.5 h-2.5" aria-hidden />
+                Abo
               </button>
-            ) : null}
+            </div>
+          ) : null}
+          <div className="ml-auto pointer-events-auto inline-flex items-center gap-1.5 bg-night/70 backdrop-blur-md rounded-full px-3 h-8 border border-cream/15">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-cream">
+              Live
+            </span>
           </div>
         </div>
 
-        {description ? (
-          <p className="text-[11.5px] text-cream/70 leading-relaxed mb-2 line-clamp-2">
-            {description}
-          </p>
-        ) : null}
+        {/* RIGHT RAIL : actions verticales sticky (TikTok-style). */}
+        <div className="absolute right-3 bottom-20 z-30 flex flex-col items-center gap-3 pointer-events-auto">
+          <button
+            type="button"
+            onClick={handleFollow}
+            aria-label="Suivre"
+            className="group flex flex-col items-center gap-0.5"
+          >
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-night/70 backdrop-blur-md border border-cream/15 text-cream group-hover:bg-cream/15 transition-colors shadow-lg active:scale-90">
+              <UserPlus className="w-5 h-5" aria-hidden />
+            </span>
+            <span className="text-[9px] font-bold text-cream/80 drop-shadow">
+              Suivre
+            </span>
+          </button>
 
-        {tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {tags.slice(0, 6).map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center h-5 px-2 rounded-full bg-cream/10 text-cream/80 text-[10px] font-bold"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
+          {/* Like via context : bouton large vertical avec count. */}
+          <RailLikeButton />
 
-        <div className="flex items-center gap-2">
           {chatEnabled ? (
             <button
               type="button"
               onClick={() => setChatOpen(true)}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream hover:bg-cream/20 text-[11px] font-bold transition-colors"
+              aria-label="Chat"
+              className="group flex flex-col items-center gap-0.5"
             >
-              <MessageSquare className="w-3.5 h-3.5" aria-hidden />
-              Chat
+              <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-night/70 backdrop-blur-md border border-cream/15 text-cream group-hover:bg-cream/15 transition-colors shadow-lg active:scale-90">
+                <MessageSquare className="w-5 h-5" aria-hidden />
+              </span>
+              <span className="text-[9px] font-bold text-cream/80 drop-shadow">
+                Chat
+              </span>
             </button>
           ) : null}
-          <RaiseHandButton sessionId={sessionId} />
-          <LiveLikeButton />
+
           <button
             type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream hover:bg-cream/20 text-[11px] font-bold transition-colors"
+            onClick={() => setGiftsOpen(true)}
+            aria-label="Envoyer un cadeau"
+            className="group flex flex-col items-center gap-0.5"
           >
-            <Share2 className="w-3.5 h-3.5" aria-hidden />
-            Partager
+            <span className="relative inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-rose-500 text-white transition-all shadow-[0_4px_20px_-2px_rgba(244,114,182,0.5)] active:scale-90 group-hover:shadow-[0_4px_30px_-2px_rgba(244,114,182,0.7)]">
+              <Gift className="w-5 h-5" aria-hidden strokeWidth={2.4} />
+              {/* Pulsing ring */}
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full ring-2 ring-amber-300/50 animate-pulse"
+              />
+            </span>
+            <span className="text-[9px] font-extrabold text-amber-200 drop-shadow">
+              Cadeau
+            </span>
           </button>
+
           {tipsEnabled ? (
             <button
               type="button"
               onClick={() => setTipsOpen(true)}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-rose-500 text-cream hover:bg-rose-600 text-[11px] font-bold transition-colors"
+              aria-label="Pourboire"
+              className="group flex flex-col items-center gap-0.5"
             >
-              <Heart className="w-3.5 h-3.5" aria-hidden />
-              Tip
+              <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-rose-500/90 backdrop-blur-md text-white shadow-lg transition-colors group-hover:bg-rose-500 active:scale-90">
+                <Heart
+                  className="w-5 h-5 fill-current"
+                  aria-hidden
+                  strokeWidth={2}
+                />
+              </span>
+              <span className="text-[9px] font-extrabold text-rose-200 drop-shadow">
+                Tip
+              </span>
             </button>
           ) : null}
+
+          <RaiseHandButton sessionId={sessionId} />
+
           <button
             type="button"
-            onClick={() => setGiftsOpen(true)}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-amber-400 text-amber-950 hover:bg-amber-300 text-[11px] font-bold transition-colors"
+            onClick={handleShare}
+            aria-label="Partager"
+            className="group flex flex-col items-center gap-0.5"
           >
-            <Gift className="w-3.5 h-3.5" aria-hidden />
-            Cadeau
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-night/70 backdrop-blur-md border border-cream/15 text-cream group-hover:bg-cream/15 transition-colors shadow-lg active:scale-90">
+              <Share2 className="w-5 h-5" aria-hidden />
+            </span>
+            <span className="text-[9px] font-bold text-cream/80 drop-shadow">
+              Partager
+            </span>
           </button>
+
           <button
             type="button"
             onClick={handleReport}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream/70 hover:bg-rose-500/20 hover:text-rose-300 text-[11px] font-bold transition-colors ml-auto"
+            aria-label="Signaler"
+            className="group flex flex-col items-center gap-0.5"
           >
-            <Flag className="w-3.5 h-3.5" aria-hidden />
-            Signaler
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-night/70 backdrop-blur-md border border-cream/15 text-cream/60 group-hover:bg-rose-500/20 group-hover:text-rose-300 transition-colors shadow-lg active:scale-90">
+              <Flag className="w-4 h-4" aria-hidden />
+            </span>
           </button>
+        </div>
+
+        {/* BOTTOM : titre + tags + chat input inline. */}
+        <div className="absolute left-0 right-0 bottom-0 z-30 px-3 pb-3 pt-8 pointer-events-none bg-gradient-to-t from-night via-night/80 to-transparent">
+          <div className="max-w-[calc(100%-72px)] pointer-events-auto">
+            <h2 className="text-[14px] font-extrabold text-cream drop-shadow line-clamp-2 mb-1">
+              {title}
+            </h2>
+            {tags.length > 0 ? (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {tags.slice(0, 5).map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center h-5 px-2 rounded-full bg-cream/15 backdrop-blur-md text-cream/90 text-[9.5px] font-bold border border-cream/10"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {description ? (
+              <p className="text-[11px] text-cream/80 leading-snug line-clamp-2 drop-shadow mb-2">
+                {description}
+              </p>
+            ) : null}
+            {chatEnabled ? (
+              <button
+                type="button"
+                onClick={() => setChatOpen(true)}
+                className="inline-flex items-center w-full max-w-xs h-9 px-4 rounded-full bg-night/70 backdrop-blur-md border border-cream/15 text-cream/60 hover:text-cream hover:bg-night/85 text-[12px] transition-colors"
+              >
+                <MessageSquare
+                  className="w-3.5 h-3.5 mr-2"
+                  aria-hidden
+                />
+                Ajoute un commentaire…
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 

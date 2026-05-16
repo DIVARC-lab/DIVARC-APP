@@ -1,16 +1,13 @@
 "use client";
 
-/* Bouton "Demander la parole" côté viewer.
+/* Bouton "Lever la main" — variante rail vertical TikTok-style.
  *
  * États :
- *   idle      → bouton "Lever la main" (clic ouvre prompt)
- *   pending   → "Demande en attente…" (clic = annuler)
- *   approved  → "Tu es sur scène" + bouton "Couper le micro" (V2)
- *   denied/revoked/cancelled → refresh à idle
- *
- * Polling 4s pour catch le changement de status. */
+ *   idle      → icône Hand neutre
+ *   pending   → icône Hand ambre + dot animée
+ *   approved  → icône Hand emerald (on scène) */
 
-import { Hand, Loader2, X } from "lucide-react";
+import { Hand, Loader2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -31,7 +28,6 @@ export function RaiseHandButton({ sessionId }: Props) {
 
   useEffect(() => {
     let alive = true;
-
     async function refresh() {
       try {
         const supabase = createClient();
@@ -42,8 +38,6 @@ export function RaiseHandButton({ sessionId }: Props) {
         );
         if (!alive) return;
         const s = (data as Status | null) ?? "idle";
-        /* On considère denied/cancelled/revoked comme idle pour permettre
-           une nouvelle demande après cooldown UX (V1 simple). */
         if (s === "denied" || s === "cancelled" || s === "revoked") {
           setStatus("idle");
         } else {
@@ -53,7 +47,6 @@ export function RaiseHandButton({ sessionId }: Props) {
         /* silencieux */
       }
     }
-
     void refresh();
     const id = window.setInterval(refresh, 4000);
     return () => {
@@ -62,7 +55,20 @@ export function RaiseHandButton({ sessionId }: Props) {
     };
   }, [sessionId]);
 
-  function handleRequest() {
+  function handleClick() {
+    if (isPending) return;
+    if (status === "pending") {
+      startTransition(async () => {
+        const res = await cancelMyStageRequest({ sessionId });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        setStatus("idle");
+      });
+      return;
+    }
+    if (status === "approved") return;
     startTransition(async () => {
       const res = await requestJoinStage({ sessionId });
       if (!res.ok) {
@@ -74,58 +80,55 @@ export function RaiseHandButton({ sessionId }: Props) {
     });
   }
 
-  function handleCancel() {
-    startTransition(async () => {
-      const res = await cancelMyStageRequest({ sessionId });
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      setStatus("idle");
-    });
-  }
+  const variantClass =
+    status === "approved"
+      ? "bg-emerald-500 text-white border-emerald-300/30"
+      : status === "pending"
+        ? "bg-amber-400 text-amber-950 border-amber-300/40"
+        : "bg-night/70 backdrop-blur-md border-cream/15 text-cream group-hover:bg-cream/15";
 
-  if (status === "approved") {
-    return (
-      <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-500 text-white text-[11px] font-bold">
-        <Hand className="w-3.5 h-3.5" aria-hidden />
-        Sur scène
-      </span>
-    );
-  }
+  const labelText =
+    status === "approved"
+      ? "Sur scène"
+      : status === "pending"
+        ? "En attente"
+        : "Demander";
 
-  if (status === "pending") {
-    return (
-      <button
-        type="button"
-        onClick={handleCancel}
-        disabled={isPending}
-        className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-amber-400 text-amber-950 hover:bg-amber-300 text-[11px] font-bold transition-colors disabled:opacity-60"
-        title="Annuler ma demande"
-      >
-        {isPending ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
-        ) : (
-          <X className="w-3.5 h-3.5" aria-hidden />
-        )}
-        En attente…
-      </button>
-    );
-  }
+  const labelColor =
+    status === "approved"
+      ? "text-emerald-300"
+      : status === "pending"
+        ? "text-amber-300"
+        : "text-cream/80";
 
   return (
     <button
       type="button"
-      onClick={handleRequest}
+      onClick={handleClick}
       disabled={isPending}
-      className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream hover:bg-cream/20 text-[11px] font-bold transition-colors disabled:opacity-60"
+      aria-label={labelText}
+      className="group flex flex-col items-center gap-0.5"
     >
-      {isPending ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
-      ) : (
-        <Hand className="w-3.5 h-3.5" aria-hidden />
-      )}
-      Lever la main
+      <span
+        className={`relative inline-flex items-center justify-center w-11 h-11 rounded-full border transition-colors shadow-lg active:scale-90 ${variantClass}`}
+      >
+        {isPending ? (
+          <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
+        ) : (
+          <Hand className="w-5 h-5" aria-hidden />
+        )}
+        {status === "pending" ? (
+          <span
+            aria-hidden
+            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-night animate-pulse"
+          />
+        ) : null}
+      </span>
+      <span
+        className={`text-[9px] font-extrabold drop-shadow ${labelColor}`}
+      >
+        {labelText}
+      </span>
     </button>
   );
 }
