@@ -12,6 +12,9 @@
  *   spécifié de méthode de livraison. */
 
 export const APP_FEE_BPS = 500;
+/* Sprint C — Application fee pour les abonnements cercles premium.
+ * 10 % (1000 bps) — aligné sur Patreon/Mighty Networks. */
+export const SUBSCRIPTION_APP_FEE_BPS = 1000;
 export const BUYER_PROTECTION_FLAT_CENTS = 0;
 export const SHIPPING_FLAT_CENTS_DEFAULT = 0;
 

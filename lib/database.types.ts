@@ -2421,6 +2421,42 @@ export type Circle = {
   lifecycle: "permanent" | "ephemeral" | "archived_ephemeral";
   expires_at: string | null;
   event_anchor_id: string | null;
+  /* Sprint C — Cercles payants (migration 0142). */
+  is_paid: boolean;
+  price_cents: number | null;
+  currency: "EUR";
+  billing_period: "monthly";
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
+  trial_days: number;
+};
+
+/* Sprint C — Souscription d'un user à un cercle payant. */
+export type CircleSubscriptionStatus =
+  | "incomplete"
+  | "incomplete_expired"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "paused";
+
+export type CircleSubscription = {
+  id: string;
+  circle_id: string;
+  user_id: string;
+  stripe_subscription_id: string;
+  stripe_customer_id: string;
+  stripe_price_id: string;
+  status: CircleSubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  trial_ends_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 /* Sous-cercle vu depuis la liste enfants d'un cercle parent. */

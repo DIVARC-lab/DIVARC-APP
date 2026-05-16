@@ -12,8 +12,10 @@ import { getCurrentProfile } from "@/lib/queries/profile";
 import { createClient } from "@/lib/supabase/server";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { canPostInChannel } from "@/lib/utils/circleChannelPermissions";
+import { userHasPaidAccessToCircle } from "@/lib/queries/circles";
 import { ChannelsBar } from "./_components/ChannelsBar";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
+import { CirclePaywall } from "./_components/CirclePaywall";
 import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
 import { ForumSortFilters } from "./_components/ForumSortFilters";
 import { CircleModeratablePost } from "./CircleModeratablePost";
@@ -164,6 +166,25 @@ export default async function CirclePostsTab({
     circle.is_member &&
     !(ownMembership as { onboarding_completed_at?: string | null } | null)
       ?.onboarding_completed_at;
+
+  /* Sprint C — Paywall : si le cercle est payant et l'user n'a pas
+     d'abonnement actif, on remplace le feed par le paywall. Le owner
+     et les subscribers actifs passent à travers. */
+  const hasPaidAccess = circle.is_paid
+    ? await userHasPaidAccessToCircle(circle.id, user.id)
+    : true;
+
+  if (circle.is_paid && !hasPaidAccess) {
+    return (
+      <CirclePaywall
+        circleId={circle.id}
+        circleSlug={slug}
+        circleName={circle.name}
+        priceCents={circle.price_cents ?? 0}
+        trialDays={circle.trial_days}
+      />
+    );
+  }
 
   if (!circle.is_member) {
     return (

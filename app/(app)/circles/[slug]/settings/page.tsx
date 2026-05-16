@@ -7,6 +7,7 @@ import { DangerZoneForm } from "./_components/DangerZoneForm";
 import { EditAccessForm } from "./_components/EditAccessForm";
 import { EditIdentityForm } from "./_components/EditIdentityForm";
 import { EditModulesForm } from "./_components/EditModulesForm";
+import { EditMonetizationForm } from "./_components/EditMonetizationForm";
 import { SettingsSection } from "./_components/SettingsSection";
 
 type Params = Promise<{ slug: string }>;
@@ -39,6 +40,18 @@ export default async function CircleSettingsPage({
   /* Permission stricte : owner ou admin uniquement. */
   const isOwner = circle.owner_id === user.id;
   const isAdmin = circle.my_role === "admin";
+
+  /* Sprint C — Stripe Connect status du owner (utilisé pour gating UI
+     monétisation). */
+  const { data: ownerProfile } = await supabase
+    .from("profiles")
+    .select("stripe_charges_enabled")
+    .eq("id", circle.owner_id)
+    .maybeSingle();
+  const stripeReady =
+    (ownerProfile as { stripe_charges_enabled?: boolean } | null)
+      ?.stripe_charges_enabled ?? false;
+
   if (!isOwner && !isAdmin) {
     return (
       <div className="px-5 sm:px-8 py-10 text-center">
@@ -140,6 +153,22 @@ export default async function CircleSettingsPage({
             </li>
           </ul>
         </SettingsSection>
+
+        {isOwner ? (
+          <SettingsSection
+            title="Monétisation"
+            description="Active un abonnement mensuel pour réserver l'accès aux membres premium. DIVARC retient 10 %, tu gardes 90 %."
+          >
+            <EditMonetizationForm
+              circleId={circle.id}
+              circleSlug={circle.slug}
+              isPaid={circle.is_paid}
+              priceCents={circle.price_cents ?? null}
+              trialDays={circle.trial_days}
+              stripeReady={stripeReady}
+            />
+          </SettingsSection>
+        ) : null}
 
         {isOwner ? (
           <SettingsSection

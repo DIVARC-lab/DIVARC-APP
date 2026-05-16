@@ -464,6 +464,26 @@ export async function listSubCircles(
   return data as import("@/lib/database.types").SubCircleSummary[];
 }
 
+/* Sprint C — Vérifie si l'user a accès payant à un cercle.
+ * Utilise le RPC has_paid_access (migration 0142) :
+ *  - cercle gratuit → true toujours
+ *  - owner → true
+ *  - subscription trialing/active/past_due → true
+ *  - sinon → false (paywall doit s'afficher) */
+export async function userHasPaidAccessToCircle(
+  circleId: string,
+  userId: string,
+): Promise<boolean> {
+  const supabase = await createClient();
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data, error } = await (supabase as any).rpc("has_paid_access", {
+    p_circle_id: circleId,
+    p_user_id: userId,
+  });
+  if (error) return false;
+  return Boolean(data);
+}
+
 /* Chantier 5.4 — Récompenses ambassadeur d'un user dans un cercle. */
 export async function getCircleAmbassadorReward(
   userId: string,

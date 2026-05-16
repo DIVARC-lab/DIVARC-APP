@@ -1,19 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/client";
 
-/* Chantier 5 — Webhook Stripe.
+/* Chantier 5 + Sprint C — Webhook Stripe.
  *
- * Évènements traités V1 :
- *   - checkout.session.completed     → order paid
+ * Évènements traités :
+ *   - checkout.session.completed     → order paid OU subscription created
  *   - payment_intent.succeeded       → backup pour checkout
  *   - payment_intent.payment_failed  → order pending_payment retour
  *   - charge.refunded                → order refunded
  *   - account.updated                → sync statut Connect du seller
+ *   - customer.subscription.created  → sync circle_subscriptions (Sprint C)
+ *   - customer.subscription.updated  → sync circle_subscriptions
+ *   - customer.subscription.deleted  → mark canceled
  *
  * Important : configurer le webhook côté Stripe Dashboard avec le secret
- * STRIPE_WEBHOOK_SECRET (env var). Sans ça, on rejette tous les events. */
+ * STRIPE_WEBHOOK_SECRET (env var). Sans ça, on rejette tous les events.
+ *
+ * Sprint C : les subscriptions sont créées sur les comptes connectés des
+ * owners de cercle. Le webhook reçoit les events avec event.account =
+ * compte Stripe du owner. On utilise admin client pour bypasser RLS lors
+ * de l'UPSERT (write cross-user). */
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +133,92 @@ export async function POST(req: NextRequest) {
             stripe_connect_updated_at: new Date().toISOString(),
           })
           .eq("stripe_connect_account_id", account.id);
+        break;
+      }
+      /* ============================================================
+       * Sprint C — Subscription cercle (compte connecté)
+       * ============================================================ */
+      case "customer.subscription.created":
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const sub = event.data.object as Stripe.Subscription;
+        const circleId = sub.metadata?.divarc_circle_id ?? null;
+        const userId = sub.metadata?.divarc_user_id ?? null;
+        if (!circleId || !userId) {
+          /* Pas une subscription DIVARC — ignore. */
+          break;
+        }
+
+        /* Items[0] = la ligne principale, dont le price.id sert de ref.
+           Depuis Stripe API 2025-09-30+, current_period_* est sur items. */
+        const firstItem = sub.items?.data?.[0];
+        const stripePriceId = firstItem?.price?.id ?? "";
+
+        /* On utilise l'admin client pour bypasser RLS (insert
+           cross-user nécessaire). */
+        let admin;
+        try {
+          admin = createAdminClient();
+        } catch {
+          /* En l'absence de service role key, on tombe sur le client
+             user → RLS bloque. Le webhook devra être re-essayé une fois
+             la clé configurée. */
+          admin = supabase;
+        }
+
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const itemPeriodStart = (firstItem as any)?.current_period_start as
+          | number
+          | undefined;
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const itemPeriodEnd = (firstItem as any)?.current_period_end as
+          | number
+          | undefined;
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const subPeriodStart = (sub as any).current_period_start as
+          | number
+          | undefined;
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const subPeriodEnd = (sub as any).current_period_end as
+          | number
+          | undefined;
+        const periodStartTs =
+          itemPeriodStart ?? subPeriodStart ?? Math.floor(Date.now() / 1000);
+        const periodEndTs =
+          itemPeriodEnd ?? subPeriodEnd ?? Math.floor(Date.now() / 1000);
+
+        const periodStart = new Date(periodStartTs * 1000).toISOString();
+        const periodEnd = new Date(periodEndTs * 1000).toISOString();
+        const trialEnd = sub.trial_end
+          ? new Date(sub.trial_end * 1000).toISOString()
+          : null;
+        const canceledAt = sub.canceled_at
+          ? new Date(sub.canceled_at * 1000).toISOString()
+          : null;
+
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        await (admin as any)
+          .from("circle_subscriptions")
+          .upsert(
+            {
+              circle_id: circleId,
+              user_id: userId,
+              stripe_subscription_id: sub.id,
+              stripe_customer_id:
+                typeof sub.customer === "string"
+                  ? sub.customer
+                  : sub.customer?.id ?? "",
+              stripe_price_id: stripePriceId,
+              status: sub.status,
+              current_period_start: periodStart,
+              current_period_end: periodEnd,
+              cancel_at_period_end: sub.cancel_at_period_end ?? false,
+              canceled_at: canceledAt,
+              trial_ends_at: trialEnd,
+            },
+            { onConflict: "stripe_subscription_id" },
+          );
+
         break;
       }
       default:
