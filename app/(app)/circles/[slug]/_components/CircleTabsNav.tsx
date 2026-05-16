@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { CircleModules, CircleRole } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
 
@@ -179,21 +179,6 @@ export function CircleTabsNav({ circleSlug, modules, currentRole }: Props) {
 
   const isAdmin = currentRole === "owner" || currentRole === "admin";
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLLIElement>(null);
-
-  /* Close menu au clic ailleurs. */
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-    if (menuOpen) {
-      document.addEventListener("mousedown", onDocClick);
-      return () => document.removeEventListener("mousedown", onDocClick);
-    }
-  }, [menuOpen]);
 
   /* Filtre par modules + rôle. */
   const visible = ALL_TABS.filter((tab) => {
@@ -253,9 +238,13 @@ export function CircleTabsNav({ circleSlug, modules, currentRole }: Props) {
             );
           })}
 
-          {/* Bouton "Plus" avec dropdown des onglets secondaires. */}
+          {/* Bouton "Plus" — le dropdown est rendu HORS du <li> car le
+              parent overflow-x-auto clip les enfants en absolute
+              (limitation CSS : overflow-x non-visible force aussi
+              overflow-y). Donc dropdown = fixed + backdrop fullscreen
+              pour fermer au clic ailleurs. */}
           {secondary.length > 0 ? (
-            <li className="relative" ref={menuRef}>
+            <li className="relative">
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
@@ -292,57 +281,64 @@ export function CircleTabsNav({ circleSlug, modules, currentRole }: Props) {
                   />
                 ) : null}
               </button>
-
-              {menuOpen ? (
-                <div
-                  role="menu"
-                  className="absolute right-3 top-full mt-1 w-64 rounded-2xl bg-white border border-line shadow-2xl overflow-hidden z-40"
-                >
-                  <ul className="py-1 max-h-[70vh] overflow-y-auto">
-                    {secondary.map((tab) => {
-                      const href = `${basePath}${tab.segment}`;
-                      const active = currentSegment === tab.segment;
-                      const Icon = tab.icon;
-                      return (
-                        <li key={tab.slug}>
-                          <Link
-                            href={href}
-                            scroll={false}
-                            onClick={() => setMenuOpen(false)}
-                            className={cn(
-                              "flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors",
-                              active
-                                ? "bg-gold/10 text-night font-bold"
-                                : "text-night hover:bg-bg-soft",
-                            )}
-                            aria-current={active ? "page" : undefined}
-                          >
-                            <Icon
-                              className={cn(
-                                "w-4 h-4 shrink-0",
-                                active
-                                  ? "text-gold-deep"
-                                  : "text-night-dim",
-                              )}
-                              aria-hidden
-                            />
-                            <span className="flex-1">{tab.label}</span>
-                            {tab.adminOnly ? (
-                              <span className="text-[9px] font-bold uppercase tracking-wider text-gold-deep bg-gold/15 px-1.5 py-0.5 rounded-full">
-                                Admin
-                              </span>
-                            ) : null}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
             </li>
           ) : null}
         </ul>
       </div>
+
+      {/* Dropdown "Plus" — fixed, hors du flow scrollable. */}
+      {menuOpen && secondary.length > 0 ? (
+        <>
+          {/* Backdrop transparent fullscreen pour fermer au clic ailleurs. */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div
+            role="menu"
+            className="fixed top-12 right-3 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white border border-line shadow-2xl overflow-hidden z-50"
+          >
+            <ul className="py-1 max-h-[70vh] overflow-y-auto">
+              {secondary.map((tab) => {
+                const href = `${basePath}${tab.segment}`;
+                const active = currentSegment === tab.segment;
+                const Icon = tab.icon;
+                return (
+                  <li key={tab.slug}>
+                    <Link
+                      href={href}
+                      scroll={false}
+                      onClick={() => setMenuOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-2.5 text-[13px] transition-colors",
+                        active
+                          ? "bg-gold/10 text-night font-bold"
+                          : "text-night hover:bg-bg-soft",
+                      )}
+                      aria-current={active ? "page" : undefined}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 shrink-0",
+                          active ? "text-gold-deep" : "text-night-dim",
+                        )}
+                        aria-hidden
+                      />
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.adminOnly ? (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-gold-deep bg-gold/15 px-1.5 py-0.5 rounded-full">
+                          Admin
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
+      ) : null}
     </nav>
   );
 }
