@@ -38,13 +38,19 @@ export type LiveLayoutKind =
   | "pk_battle"
   | "audio_only";
 
-export function computeLayoutFromCount(guestsCount: number): LiveLayoutKind {
+function computeLayoutFromCountInternal(guestsCount: number): LiveLayoutKind {
   const total = 1 + Math.max(0, guestsCount);
   if (total <= 1) return "solo";
   if (total === 2) return "panel_2";
   if (total <= 4) return "panel_4";
   if (total <= 6) return "panel_6";
   return "panel_8";
+}
+
+export async function computeLayoutFromCount(
+  guestsCount: number,
+): Promise<LiveLayoutKind> {
+  return computeLayoutFromCountInternal(guestsCount);
 }
 
 /* ============================================================
@@ -553,7 +559,7 @@ export async function acceptGuestRequest(args: z.infer<typeof acceptSchema>) {
 
   /* Update layout selon nouveau count. */
   const newGuestsCount = (panelCount ?? 0) + 1;
-  const newLayout = computeLayoutFromCount(newGuestsCount);
+  const newLayout = computeLayoutFromCountInternal(newGuestsCount);
   await (admin as SupabaseAny)
     .from("circle_live_rooms")
     .update({ layout: newLayout })
@@ -657,7 +663,7 @@ export async function removeGuestFromPanel(
     .select("*", { count: "exact", head: true })
     .eq("session_id", parsed.data.sessionId)
     .is("left_panel_at", null);
-  const newLayout = computeLayoutFromCount(remaining ?? 0);
+  const newLayout = computeLayoutFromCountInternal(remaining ?? 0);
   await (admin as SupabaseAny)
     .from("circle_live_rooms")
     .update({ layout: newLayout })

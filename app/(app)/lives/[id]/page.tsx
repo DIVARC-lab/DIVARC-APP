@@ -9,11 +9,11 @@
 
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CircleDot } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isLiveKitConfigured } from "@/lib/livekit/server";
 import { LiveReplayPlayer } from "./LiveReplayPlayer";
-import { LiveViewerClient } from "./LiveViewerClient";
+import { LiveViewerV2 } from "./v2/LiveViewerV2";
 
 type Params = Promise<{ id: string }>;
 
@@ -37,7 +37,7 @@ export default async function LiveViewerPage({
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds, like_count",
+      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, viewers_current, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds, like_count, layout",
     )
     .eq("id", id)
     .maybeSingle();
@@ -58,12 +58,21 @@ export default async function LiveViewerPage({
     started_at: string | null;
     participants_count: number;
     peak_participants: number;
+    viewers_current: number;
     chat_enabled: boolean;
     is_tips_enabled: boolean;
     vod_url: string | null;
     vod_thumbnail_url: string | null;
     vod_duration_seconds: number | null;
     like_count: number;
+    layout:
+      | "solo"
+      | "panel_2"
+      | "panel_4"
+      | "panel_6"
+      | "panel_8"
+      | "pk_battle"
+      | "audio_only";
   };
 
   /* Host doit aller au studio. */
@@ -159,58 +168,79 @@ export default async function LiveViewerPage({
 
   const configured = isLiveKitConfigured();
 
-  return (
-    <div className="flex flex-col min-h-[calc(100dvh-56px)] bg-night text-cream">
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-cream/10">
+  /* Récupère les guests sur le panel actif. */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data: panelData } = await (supabase as any)
+    .from("live_panel_participants")
+    .select(
+      "user_id, username, avatar_url, position, is_muted, is_video_off, gifts_received_during_session",
+    )
+    .eq("session_id", r.id)
+    .is("left_panel_at", null)
+    .order("position", { ascending: true });
+
+  const guests = (panelData ?? []) as Array<{
+    user_id: string;
+    username: string | null;
+    avatar_url: string | null;
+    position: number;
+    is_muted: boolean;
+    is_video_off: boolean;
+    gifts_received_during_session: number;
+  }>;
+
+  if (!configured) {
+    return (
+      <div className="absolute inset-0 bg-black text-cream flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-[14px] font-bold">Lecture indisponible</p>
+        <p className="mt-2 text-[12px] text-cream/60 max-w-md leading-relaxed">
+          LiveKit n&apos;est pas configuré côté serveur.
+        </p>
         <Link
           href="/lives"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cream/10 hover:bg-cream/20 transition-colors"
-          aria-label="Retour"
+          className="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-gold text-night text-[12px] font-bold"
         >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
+          <ArrowLeft className="w-3 h-3" aria-hidden /> Retour
         </Link>
-        <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-cream/60">
-            {r.kind === "audio" ? "Audio room" : "Vidéo room"}
-            {r.category ? ` · #${r.category}` : ""}
-          </p>
-          <h1 className="text-[15px] font-bold truncate">{r.title}</h1>
-        </div>
-        {r.status === "live" ? (
-          <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-rose-600 text-white text-[10px] font-bold uppercase tracking-wider">
-            <CircleDot className="w-3 h-3 animate-pulse" aria-hidden />
-            Live · {r.participants_count}
-          </span>
-        ) : null}
-      </header>
+      </div>
+    );
+  }
 
-      <main className="flex-1 relative">
-        {!configured ? (
-          <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-            <p className="text-[14px] font-bold text-cream">
-              Lecture indisponible
-            </p>
-            <p className="mt-2 text-[12px] text-cream/60 max-w-md leading-relaxed">
-              LiveKit n&apos;est pas configuré côté serveur. L&apos;admin doit
-              définir les variables d&apos;environnement.
-            </p>
-          </div>
-        ) : (
-          <LiveViewerClient
-            sessionId={r.id}
-            kind={r.kind}
-            title={r.title}
-            description={r.description}
-            tags={r.tags}
-            chatEnabled={r.chat_enabled}
-            tipsEnabled={r.is_tips_enabled}
-            host={host}
-            currentUserId={user.id}
-            hostId={r.host_id}
-            initialLikeCount={r.like_count ?? 0}
-          />
-        )}
-      </main>
+  /* Fullscreen TikTok V2 — pas de header séparé, tout est overlay. */
+  if (!host) {
+    return null;
+  }
+
+  /* Layout server-side : utilise le layout DB si présent, fallback solo. */
+  const validLayouts = [
+    "solo",
+    "panel_2",
+    "panel_4",
+    "panel_6",
+    "panel_8",
+    "audio_only",
+  ] as const;
+  type LayoutKind = (typeof validLayouts)[number];
+  const layout: LayoutKind = validLayouts.includes(
+    r.layout as LayoutKind,
+  )
+    ? (r.layout as LayoutKind)
+    : "solo";
+
+  return (
+    <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
+      <LiveViewerV2
+        sessionId={r.id}
+        title={r.title}
+        host={host}
+        chatEnabled={r.chat_enabled}
+        tipsEnabled={r.is_tips_enabled}
+        initialViewers={r.viewers_current ?? r.participants_count ?? 0}
+        initialLikeCount={r.like_count ?? 0}
+        layout={layout}
+        initialGuests={guests}
+        currentUserId={user.id}
+      />
     </div>
   );
 }
