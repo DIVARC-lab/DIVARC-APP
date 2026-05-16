@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { LivePollWidget } from "./LivePollWidget";
 
 type Host = {
   id: string;
@@ -178,6 +179,11 @@ export function LiveViewerClient({
         >
           <VideoConference />
         </LiveKitRoom>
+
+        {/* Étape 11 — Widget poll live (overlay top-right, polling 2s) */}
+        <div className="absolute top-3 right-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+          <LivePollWidget sessionId={sessionId} />
+        </div>
       </div>
 
       {/* Info bar : avatar host + actions */}
