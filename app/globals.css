@@ -396,3 +396,30 @@ input:focus-visible,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+ * Sprint Live — Mode immersif salle live + masque chat natif
+ * ============================================================
+ * Approche via classe body (toggle dans useEffect) plutôt que via
+ * className conditionnel sur le wrapper React. Sinon : changer la
+ * className remount le DOM tree → casse les refs internes que
+ * LiveKit gère imperativement → erreur "insertBefore failed" quand
+ * on active/désactive la cam ou qu'on quitte la salle.
+ */
+body.divarc-live-immersive {
+  overflow: hidden;
+}
+body.divarc-live-immersive [data-live-immersive-target] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+}
+
+/* Masque le chat natif de VideoConference (on a notre propre
+ * LiveCustomChat avec auto-close mobile). */
+.lk-chat-toggle,
+button[data-lk-source="chat"],
+.lk-room-container .lk-chat,
+.lk-room-container [class*="ChatPanel"] {
+  display: none !important;
+}

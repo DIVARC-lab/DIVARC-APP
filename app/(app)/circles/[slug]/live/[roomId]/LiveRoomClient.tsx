@@ -98,6 +98,21 @@ export function LiveRoomClient({
     }
   }
 
+  /* Sprint Live UX — Toggle classe body pour activer le mode immersif
+     via CSS (globals.css). On NE change PAS la className du wrapper
+     interne (sinon LiveKit casse ses refs DOM imperative → erreur
+     "insertBefore failed" en activant la cam ou en quittant). */
+  useEffect(() => {
+    if (immersive) {
+      document.body.classList.add("divarc-live-immersive");
+    } else {
+      document.body.classList.remove("divarc-live-immersive");
+    }
+    return () => {
+      document.body.classList.remove("divarc-live-immersive");
+    };
+  }, [immersive]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -186,26 +201,17 @@ export function LiveRoomClient({
   }
 
   return (
+    /* Sprint Live — Wrapper STABLE (className inchangée). Le mode
+       immersif est appliqué via body.divarc-live-immersive +
+       [data-live-immersive-target] dans globals.css. Le CSS pour
+       cacher le chat natif est aussi dans globals.css.
+       NE PAS changer la className conditionnellement ici, sinon
+       LiveKit casse ses refs DOM imperatives (cam toggle → erreur
+       insertBefore). */
     <div
-      className={
-        /* Mode immersif : couvre TOUT (au-dessus du header DIVARC,
-           tabs, footer mobile, etc.). Sinon flux normal de la page. */
-        immersive
-          ? "fixed inset-0 z-[200] bg-night"
-          : "absolute inset-0 bg-night"
-      }
+      data-live-immersive-target
+      className="absolute inset-0 bg-night"
     >
-      {/* CSS pour cacher le chat natif de VideoConference et son
-          toggle dans la ControlBar (on a notre propre Chat custom). */}
-      <style jsx global>{`
-        .lk-chat-toggle,
-        button[data-lk-source="chat"],
-        .lk-room-container .lk-chat,
-        .lk-room-container [class*="ChatPanel"] {
-          display: none !important;
-        }
-      `}</style>
-
       <LiveKitRoom
         token={token}
         serverUrl={wsUrl}
