@@ -1,16 +1,25 @@
 "use client";
 
 /* Bottom-sheet "+" pour les fonctionnalités secondaires du composer.
- * V1 expose : Fichier, Localisation, Sondage. D'autres viendront en V2
- * (contact, événement, paiement, etc.). */
+ *
+ * Options DIVARC natives :
+ *   Stickers, GIFs, Fichier, Image, Sondage, Paiement, Position,
+ *   Contact, Post DIVARC, Profil, Annonce, Offre emploi, Cercle,
+ *   Événement, Audio musique. */
 
 import {
+  Briefcase,
+  Calendar,
+  Compass,
   FileText,
   ImageIcon,
   MapPin,
   Music,
+  ShoppingBag,
   Smile,
+  User,
   Vote,
+  Wallet,
   X,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -22,6 +31,14 @@ type ComposerExtrasSheetProps = {
   onPickFile: () => void;
   onOpenStickers: () => void;
   onOpenGifs: () => void;
+  onOpenPoll?: () => void;
+  onOpenPayment?: () => void;
+  onSharePost?: () => void;
+  onShareProfile?: () => void;
+  onShareListing?: () => void;
+  onShareJob?: () => void;
+  onShareCircle?: () => void;
+  onShareEvent?: () => void;
 };
 
 export function ComposerExtrasSheet({
@@ -30,6 +47,14 @@ export function ComposerExtrasSheet({
   onPickFile,
   onOpenStickers,
   onOpenGifs,
+  onOpenPoll,
+  onOpenPayment,
+  onSharePost,
+  onShareProfile,
+  onShareListing,
+  onShareJob,
+  onShareCircle,
+  onShareEvent,
 }: ComposerExtrasSheetProps) {
   useEffect(() => {
     if (!open) return;
@@ -47,6 +72,14 @@ export function ComposerExtrasSheet({
     onClose();
   }
 
+  function wrap(fn?: () => void, fallback?: string) {
+    return () => {
+      onClose();
+      if (fn) fn();
+      else if (fallback) handleNotReady(fallback);
+    };
+  }
+
   const items: Array<{
     icon: typeof FileText;
     label: string;
@@ -58,50 +91,90 @@ export function ComposerExtrasSheet({
       icon: Smile,
       label: "Stickers",
       sub: "Emojis géants",
-      onClick: () => {
-        onClose();
-        onOpenStickers();
-      },
+      onClick: wrap(onOpenStickers),
       color: "bg-gold/20 text-gold-deep",
     },
     {
       icon: ImageIcon,
       label: "GIFs",
       sub: "Recherche Giphy",
-      onClick: () => {
-        onClose();
-        onOpenGifs();
-      },
+      onClick: wrap(onOpenGifs),
       color: "bg-violet-50 text-violet-600",
     },
     {
       icon: FileText,
       label: "Fichier",
-      sub: "PDF, doc, archive…",
-      onClick: () => {
-        onPickFile();
-        onClose();
-      },
+      sub: "PDF, doc…",
+      onClick: wrap(onPickFile),
       color: "bg-blue-50 text-blue-600",
-    },
-    {
-      icon: MapPin,
-      label: "Localisation",
-      sub: "Partage ta position",
-      onClick: () => handleNotReady("Localisation"),
-      color: "bg-emerald-50 text-emerald-600",
     },
     {
       icon: Vote,
       label: "Sondage",
-      sub: "Crée un vote rapide",
-      onClick: () => handleNotReady("Sondage"),
+      sub: "Crée un vote",
+      onClick: wrap(onOpenPoll, "Sondage"),
       color: "bg-rose-50 text-rose-600",
+    },
+    {
+      icon: Wallet,
+      label: "Paiement",
+      sub: "Envoie de l'argent",
+      onClick: wrap(onOpenPayment, "Paiement"),
+      color: "bg-gold/20 text-gold-deep",
+    },
+    {
+      icon: MapPin,
+      label: "Position",
+      sub: "Partage ta position",
+      onClick: () => handleNotReady("Position"),
+      color: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      icon: FileText,
+      label: "Post DIVARC",
+      sub: "Partage un post",
+      onClick: wrap(onSharePost, "Partage post"),
+      color: "bg-indigo-50 text-indigo-600",
+    },
+    {
+      icon: User,
+      label: "Profil",
+      sub: "Partage un user",
+      onClick: wrap(onShareProfile, "Partage profil"),
+      color: "bg-fuchsia-50 text-fuchsia-600",
+    },
+    {
+      icon: ShoppingBag,
+      label: "Annonce",
+      sub: "Marketplace",
+      onClick: wrap(onShareListing, "Partage annonce"),
+      color: "bg-orange-50 text-orange-600",
+    },
+    {
+      icon: Briefcase,
+      label: "Emploi",
+      sub: "Offre de job",
+      onClick: wrap(onShareJob, "Partage offre"),
+      color: "bg-cyan-50 text-cyan-600",
+    },
+    {
+      icon: Compass,
+      label: "Cercle",
+      sub: "Invite à un cercle",
+      onClick: wrap(onShareCircle, "Partage cercle"),
+      color: "bg-amber-50 text-amber-700",
+    },
+    {
+      icon: Calendar,
+      label: "Événement",
+      sub: "Partage un event",
+      onClick: wrap(onShareEvent, "Partage événement"),
+      color: "bg-emerald-50 text-emerald-600",
     },
     {
       icon: Music,
       label: "Audio",
-      sub: "Partage un son",
+      sub: "Son externe",
       onClick: () => handleNotReady("Audio musique"),
       color: "bg-pink-50 text-pink-600",
     },
@@ -124,7 +197,9 @@ export function ComposerExtrasSheet({
           className="mx-auto mt-2.5 mb-3 w-10 h-1 rounded-full bg-night/15"
         />
         <header className="flex items-center justify-between px-4 pb-2">
-          <h2 className="text-sm font-bold text-night">Plus</h2>
+          <h2 className="text-sm font-bold text-night">
+            <em className="italic text-gold-deep font-display">Partager</em>
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -134,7 +209,7 @@ export function ComposerExtrasSheet({
             <X className="w-4 h-4" aria-hidden />
           </button>
         </header>
-        <div className="grid grid-cols-4 gap-2 px-3 pb-3">
+        <div className="grid grid-cols-4 gap-2 px-3 pb-3 max-h-[60vh] overflow-y-auto">
           {items.map((item) => {
             const Icon = item.icon;
             return (
