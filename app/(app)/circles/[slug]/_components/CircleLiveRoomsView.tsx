@@ -241,13 +241,15 @@ function LiveRoomCard({
 
         {/* Actions */}
         <div className="flex flex-col gap-1.5 shrink-0">
-          {isLive && !isHost ? (
+          {/* Sprint E (LiveKit) — Le host PEUT et DOIT rejoindre sa
+              propre salle pour la live (sinon personne ne lui répond). */}
+          {isLive ? (
             <button
               type="button"
               onClick={onJoin}
               className="inline-flex items-center h-8 px-3 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-[11px] font-bold"
             >
-              Rejoindre
+              {isHost ? "Entrer dans ma salle" : "Rejoindre"}
             </button>
           ) : null}
           {isHost && isLive ? (
