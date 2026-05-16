@@ -44,6 +44,10 @@ const PROFILE_DEFAULTS: Omit<
   | "stripe_payouts_enabled"
   | "stripe_details_submitted"
   | "stripe_connect_updated_at"
+  /* Sprint F (migration 0145) — Streaks gérés côté DB. */
+  | "current_streak"
+  | "longest_streak"
+  | "last_active_day"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -241,6 +245,14 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     stripe_connect_updated_at:
       (data as { stripe_connect_updated_at?: string | null })
         .stripe_connect_updated_at ?? null,
+    /* Sprint F (migration 0145) — Streaks. Defaults tolérants si la
+       migration n'est pas encore appliquée. */
+    current_streak:
+      (data as { current_streak?: number }).current_streak ?? 0,
+    longest_streak:
+      (data as { longest_streak?: number }).longest_streak ?? 0,
+    last_active_day:
+      (data as { last_active_day?: string | null }).last_active_day ?? null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

@@ -143,6 +143,10 @@ export type Profile = {
   stripe_payouts_enabled: boolean;
   stripe_details_submitted: boolean;
   stripe_connect_updated_at: string | null;
+  /* Sprint F (migration 0145) — Streaks. */
+  current_streak: number;
+  longest_streak: number;
+  last_active_day: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -3319,6 +3323,51 @@ export type CircleNotificationPreference = {
   circle_id: string;
   mode: CircleNotificationMode;
   updated_at: string;
+};
+
+/* Sprint F — Gamification (migration 0145). */
+export type QuestPeriod = "daily" | "weekly";
+
+export type Quest = {
+  id: string;
+  title: string;
+  description: string;
+  period: QuestPeriod;
+  criteria: { kind: string; target: number };
+  xp_reward: number;
+  icon: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type UserQuestProgress = {
+  user_id: string;
+  quest_id: string;
+  period_key: string;
+  progress: number;
+  completed_at: string | null;
+  claimed_at: string | null;
+  updated_at: string;
+};
+
+export type QuestWithProgress = Quest & {
+  progress: number;
+  completed_at: string | null;
+  claimed_at: string | null;
+};
+
+export type CircleLeaderboardSort = "karma" | "posts" | "comments" | "streak";
+
+export type CircleLeaderboardRow = {
+  user_id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  karma_30d: number;
+  posts_30d: number;
+  comments_30d: number;
+  current_streak: number;
+  score: number;
 };
 
 /* V3.5 — user_notification_preferences (migration 0057). 1 row par user,
