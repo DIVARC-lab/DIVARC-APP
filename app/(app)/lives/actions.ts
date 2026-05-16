@@ -244,6 +244,44 @@ export async function startLiveStreamSession(
     .eq("id", parsed.data.sessionId);
   if (error) return { ok: false as const, error: error.message };
 
+  /* Étape 21 — Démarre RoomCompositeEgress si is_recording=true. */
+  if (status === "scheduled") {
+    try {
+      const { data: recRoom } = await (supabase as SupabaseAny)
+        .from("circle_live_rooms")
+        .select("is_recording")
+        .eq("id", parsed.data.sessionId)
+        .maybeSingle();
+      const isRecording =
+        (recRoom as { is_recording?: boolean } | null)?.is_recording ?? false;
+      if (isRecording) {
+        const { startRoomRecording, isEgressConfigured } = await import(
+          "@/lib/livekit/egress"
+        );
+        if (isEgressConfigured()) {
+          const startRes = await startRoomRecording(parsed.data.sessionId);
+          if (startRes.ok) {
+            await (supabase as SupabaseAny).from("live_recordings").insert({
+              session_id: parsed.data.sessionId,
+              host_id: user.id,
+              egress_id: startRes.egressId,
+              file_path: startRes.filepath,
+              status: "starting",
+              storage_provider: "supabase",
+            });
+          } else {
+            console.error(
+              "[startLiveStreamSession] egress failed:",
+              startRes.error,
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[startLiveStreamSession] recording setup failed", err);
+    }
+  }
+
   /* Étape 20 — Notif push aux followers + amis (uniquement à la
      première transition scheduled → live, pas sur re-call). */
   if (status === "scheduled") {
@@ -331,6 +369,34 @@ export async function endLiveStreamSession(
     })
     .eq("id", parsed.data.sessionId);
   if (error) return { ok: false as const, error: error.message };
+
+  /* Étape 21 — Stop egress si actif. Le webhook LiveKit egress_ended
+     finalisera l'enregistrement (URL + duration + size). */
+  try {
+    const { data: recordings } = await (supabase as SupabaseAny)
+      .from("live_recordings")
+      .select("id, egress_id, status")
+      .eq("session_id", parsed.data.sessionId)
+      .in("status", ["starting", "recording"]);
+    const active = (recordings ?? []) as Array<{
+      id: string;
+      egress_id: string | null;
+      status: string;
+    }>;
+    if (active.length > 0) {
+      const { stopRoomRecording } = await import("@/lib/livekit/egress");
+      for (const rec of active) {
+        if (!rec.egress_id) continue;
+        await stopRoomRecording(rec.egress_id);
+        await (supabase as SupabaseAny)
+          .from("live_recordings")
+          .update({ status: "stopping" })
+          .eq("id", rec.id);
+      }
+    }
+  } catch (err) {
+    console.error("[endLiveStreamSession] egress stop failed", err);
+  }
 
   revalidatePath("/lives");
   revalidatePath(`/lives/${parsed.data.sessionId}`);
