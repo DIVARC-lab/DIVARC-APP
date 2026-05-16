@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils/cn";
 import type { PostWithDetails } from "@/lib/database.types";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { pinCirclePost, unpinCirclePost } from "../actions";
+import { SummarizeThreadButton } from "./_components/SummarizeThreadButton";
 
 type CircleModeratablePostProps = {
   post: PostWithDetails;
@@ -70,6 +71,13 @@ export function CircleModeratablePost({
         </button>
       ) : null}
       <PostCard post={post} currentUserId={currentUserId} />
+      {/* Sprint G.2 — bouton "Résumer ce thread" (visible si ≥5 comments). */}
+      <div className="mt-1.5">
+        <SummarizeThreadButton
+          postId={post.id}
+          commentsCount={post.comments_count ?? 0}
+        />
+      </div>
     </div>
   );
 }

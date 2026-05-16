@@ -12,6 +12,7 @@ import {
   Info,
   MessageSquare,
   Mic,
+  Search,
   Sparkles,
   Store,
   Trophy,
@@ -122,6 +123,12 @@ const ALL_TABS: Tab[] = [
     label: "À propos",
     icon: Info,
     segment: "/about",
+  },
+  {
+    slug: "search",
+    label: "Recherche",
+    icon: Search,
+    segment: "/search",
   },
   /* Onglets admin (filtrés par adminOnly + rôle courant). */
   {
