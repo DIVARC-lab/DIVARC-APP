@@ -126,6 +126,13 @@ export default async function CircleLiveRoomPage({
             roomTitle={r.title}
             roomKind={r.kind}
             circleSlug={slug}
+            isModerator={
+              circle.owner_id === user.id ||
+              circle.my_role === "admin" ||
+              circle.my_role === "moderator" ||
+              circle.my_role === "mod" ||
+              r.host_id === user.id
+            }
           />
         )}
       </main>
