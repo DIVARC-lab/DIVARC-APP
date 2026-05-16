@@ -9,11 +9,26 @@
 
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
+/* unaccent(text) n'est pas IMMUTABLE par défaut. Wrapper immutable
+   pour permettre l'usage dans une colonne générée. */
+CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT public.unaccent('public.unaccent'::regdictionary, $1);
+$$;
+
 /* Colonne générée tsvector pour FTS rapide. */
 ALTER TABLE public.messages
   ADD COLUMN IF NOT EXISTS body_search tsvector
   GENERATED ALWAYS AS (
-    to_tsvector('french', coalesce(unaccent(body), ''))
+    to_tsvector(
+      'french'::regconfig,
+      coalesce(public.immutable_unaccent(body), '')
+    )
   ) STORED;
 
 CREATE INDEX IF NOT EXISTS idx_messages_body_search
@@ -61,14 +76,14 @@ AS $$
     p.username AS sender_username,
     p.full_name AS sender_full_name,
     p.avatar_url AS sender_avatar_url,
-    ts_rank(m.body_search, websearch_to_tsquery('french', unaccent(p_query))) AS rank
+    ts_rank(m.body_search, websearch_to_tsquery('french'::regconfig, public.immutable_unaccent(p_query))) AS rank
   FROM public.messages m
   JOIN public.conversations c ON c.id = m.conversation_id
   JOIN public.conversation_members cm
     ON cm.conversation_id = m.conversation_id AND cm.user_id = auth.uid()
   LEFT JOIN public.profiles p ON p.id = m.sender_id
   WHERE m.deleted_at IS NULL
-    AND m.body_search @@ websearch_to_tsquery('french', unaccent(p_query))
+    AND m.body_search @@ websearch_to_tsquery('french'::regconfig, public.immutable_unaccent(p_query))
     AND (p_conversation_id IS NULL OR m.conversation_id = p_conversation_id)
   ORDER BY rank DESC, m.created_at DESC
   LIMIT GREATEST(LEAST(p_limit, 200), 1);
