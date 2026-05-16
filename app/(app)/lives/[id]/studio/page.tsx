@@ -120,6 +120,7 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
             kind={r.kind}
             title={r.title}
             currentStatus={r.status}
+            hostId={r.host_id}
           />
         )}
       </main>

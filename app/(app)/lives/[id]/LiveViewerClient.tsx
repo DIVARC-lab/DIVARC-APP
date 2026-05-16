@@ -14,13 +14,23 @@
 import "@livekit/components-styles";
 
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
-import { Flag, Gift, Heart, Loader2, Share2, Sparkles, UserPlus } from "lucide-react";
+import {
+  Flag,
+  Gift,
+  Heart,
+  Loader2,
+  MessageSquare,
+  Share2,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { GiftAnimationOverlay } from "./GiftAnimationOverlay";
 import { GiftPanel } from "./GiftPanel";
+import { LiveChatPanel } from "./LiveChatPanel";
 import { LiveGoalBar } from "./LiveGoalBar";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTipsModal } from "./LiveTipsModal";
@@ -43,6 +53,8 @@ type Props = {
   chatEnabled: boolean;
   tipsEnabled: boolean;
   host: Host;
+  currentUserId: string;
+  hostId: string;
 };
 
 type TokenResponse = {
@@ -58,8 +70,11 @@ export function LiveViewerClient({
   title,
   description,
   tags,
+  chatEnabled,
   tipsEnabled,
   host,
+  currentUserId,
+  hostId,
 }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -68,6 +83,7 @@ export function LiveViewerClient({
   const [tipsOpen, setTipsOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [giftsOpen, setGiftsOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -279,6 +295,16 @@ export function LiveViewerClient({
         ) : null}
 
         <div className="flex items-center gap-2">
+          {chatEnabled ? (
+            <button
+              type="button"
+              onClick={() => setChatOpen(true)}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream hover:bg-cream/20 text-[11px] font-bold transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" aria-hidden />
+              Chat
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleShare}
@@ -326,6 +352,14 @@ export function LiveViewerClient({
         sessionId={sessionId}
         open={giftsOpen}
         onClose={() => setGiftsOpen(false)}
+      />
+
+      <LiveChatPanel
+        sessionId={sessionId}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        currentUserId={currentUserId}
+        hostId={hostId}
       />
 
       {host ? (

@@ -145,6 +145,8 @@ export default async function LiveViewerPage({
             chatEnabled={r.chat_enabled}
             tipsEnabled={r.is_tips_enabled}
             host={host}
+            currentUserId={user.id}
+            hostId={r.host_id}
           />
         )}
       </main>

@@ -22,7 +22,7 @@ import {
   VideoConference,
   type LocalUserChoices,
 } from "@livekit/components-react";
-import { Loader2, Radio, Square, Target, Vote } from "lucide-react";
+import { Loader2, MessageSquare, Radio, Square, Target, Vote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ import {
   startLiveStreamSession,
 } from "../../actions";
 import { GiftAnimationOverlay } from "../GiftAnimationOverlay";
+import { LiveChatPanel } from "../LiveChatPanel";
 import { LiveGoalBar } from "../LiveGoalBar";
 import { SuperChatTicker } from "../SuperChatTicker";
 import { CreateGoalModal } from "./CreateGoalModal";
@@ -41,6 +42,7 @@ type Props = {
   kind: "audio" | "video";
   title: string;
   currentStatus: "scheduled" | "live" | "ended" | "cancelled";
+  hostId: string;
 };
 
 type TokenResponse = {
@@ -54,6 +56,7 @@ export function LiveStudioClient({
   sessionId,
   kind,
   currentStatus,
+  hostId,
 }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -63,6 +66,7 @@ export function LiveStudioClient({
   const [status, setStatus] = useState(currentStatus);
   const [pollModalOpen, setPollModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -231,6 +235,16 @@ export function LiveStudioClient({
           {status === "live" ? (
             <button
               type="button"
+              onClick={() => setChatOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream/15 text-cream border border-cream/20 backdrop-blur text-[11px] font-bold hover:bg-cream/25 transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" aria-hidden />
+              Chat
+            </button>
+          ) : null}
+          {status === "live" ? (
+            <button
+              type="button"
               onClick={() => setGoalModalOpen(true)}
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream/15 text-cream border border-cream/20 backdrop-blur text-[11px] font-bold hover:bg-cream/25 transition-colors"
             >
@@ -292,6 +306,16 @@ export function LiveStudioClient({
         sessionId={sessionId}
         open={goalModalOpen}
         onClose={() => setGoalModalOpen(false)}
+      />
+
+      {/* Drawer chat live (étape 18). Host = ses propres messages mais
+          peut supprimer ceux des autres. */}
+      <LiveChatPanel
+        sessionId={sessionId}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        currentUserId={hostId}
+        hostId={hostId}
       />
     </div>
   );
