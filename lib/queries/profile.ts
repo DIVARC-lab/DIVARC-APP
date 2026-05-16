@@ -51,6 +51,10 @@ const PROFILE_DEFAULTS: Omit<
   /* Sprint Auth Onboarding (migration 0148) — DOB/gender. */
   | "date_of_birth"
   | "gender"
+  /* Sprint Recsys (migration 0154) — Zone domicile gérée côté DB. */
+  | "home_lat"
+  | "home_lng"
+  | "home_radius_km"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -263,6 +267,23 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       ((data as { gender?: Profile["gender"] }).gender ?? null) as
         | Profile["gender"]
         | null,
+    /* Sprint Recsys (migration 0154). Defaults tolérants si la migration
+       n'est pas encore appliquée. */
+    home_lat:
+      (data as { home_lat?: number | string | null }).home_lat != null
+        ? Number((data as { home_lat?: number | string | null }).home_lat)
+        : null,
+    home_lng:
+      (data as { home_lng?: number | string | null }).home_lng != null
+        ? Number((data as { home_lng?: number | string | null }).home_lng)
+        : null,
+    home_radius_km:
+      (data as { home_radius_km?: number | string | null }).home_radius_km != null
+        ? Number(
+            (data as { home_radius_km?: number | string | null })
+              .home_radius_km,
+          )
+        : 5.0,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

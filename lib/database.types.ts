@@ -150,6 +150,10 @@ export type Profile = {
   /* Sprint Auth Onboarding (migration 0148) — Champs signup étendu. */
   date_of_birth: string | null; /* ISO YYYY-MM-DD */
   gender: ProfileGender | null;
+  /* Sprint Recsys (migration 0154) — Zone domicile pour geo candidates. */
+  home_lat: number | null;
+  home_lng: number | null;
+  home_radius_km: number;
   created_at: string;
   updated_at: string;
 };
