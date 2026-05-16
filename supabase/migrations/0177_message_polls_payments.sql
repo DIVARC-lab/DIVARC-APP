@@ -6,21 +6,30 @@
 -- 3. Crée table message_payments (Stripe checkout integration)
 -- ============================================================================
 
--- Étend le check constraint sur messages.type. On lit la définition
--- actuelle et on ajoute les nouveaux types.
+-- Étend le check constraint sur messages.type avec une UNION des
+-- anciens noms (0073 : voice, audio, location_live, link, call_record)
+-- et des nouveaux noms TikTok-natifs. Garde la rétro-compat pour les
+-- rows existantes.
 ALTER TABLE public.messages
   DROP CONSTRAINT IF EXISTS messages_type_check;
 ALTER TABLE public.messages
   ADD CONSTRAINT messages_type_check
   CHECK (type IN (
     'text', 'system',
-    'image', 'video', 'voice_note', 'audio_file',
-    'document', 'location', 'live_location',
+    -- 0073 (anciens noms, gardés pour rétro-compat)
+    'image', 'video',
+    'voice', 'audio',
+    'document',
+    'location', 'location_live',
     'contact', 'sticker', 'gif',
+    'link', 'call_record',
+    -- Aliases nouveaux + ajouts DIVARC natifs
+    'voice_note', 'audio_file', 'live_location',
+    'link_preview', 'call_log',
     'poll', 'payment',
     'event_invite', 'post_share', 'profile_share',
     'listing_share', 'job_share', 'circle_invite',
-    'link_preview', 'call_log', 'ai_response'
+    'ai_response'
   ));
 
 -- ============================================================================
