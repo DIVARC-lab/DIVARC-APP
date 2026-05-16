@@ -98,6 +98,40 @@ export const EVENT_TYPES = {
 
   /* === NOTIFS === */
   NOTIFICATION_CLICK: "notification.click",
+
+  /* === Sprint Recsys 2026 — Events lifecycle additionnels ===
+     Couvre les besoins du brief moteur de recommandation : tracking
+     session, app foreground/background, navigation feed, geo
+     positionnel, et signaux de proximité sociale fins. */
+
+  /* Session / App lifecycle. */
+  SESSION_START: "session.start",
+  SESSION_END: "session.end",
+  APP_FOREGROUND: "app.foreground",
+  APP_BACKGROUND: "app.background",
+
+  /* Feed navigation. */
+  FEED_REFRESH: "feed.refresh",
+  FEED_END_REACHED: "feed.end_reached",
+  FEED_SCROLL_BACK_TO_TOP: "feed.scroll_back_to_top",
+
+  /* Geo. */
+  GEO_LOCATION_UPDATED: "geo.location_updated",
+  GEO_PLACE_DETECTED: "geo.place_detected",
+  LOCATION_FOLLOW: "location.follow",
+
+  /* Cercle interactions implicites. */
+  CIRCLE_VISIT: "circle.visit",
+  CIRCLE_DWELL: "circle.dwell",
+
+  /* Search / Post interactions implicites. */
+  SEARCH_REFINE: "search.refine",
+  POST_DOUBLE_TAP: "post.double_tap",
+  POST_LONG_PRESS: "post.long_press",
+
+  /* Relations sociales fines. */
+  USER_CLOSE_FRIEND_ADD: "user.close_friend_add",
+  USER_CLOSE_FRIEND_REMOVE: "user.close_friend_remove",
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];

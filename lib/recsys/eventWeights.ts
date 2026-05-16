@@ -99,6 +99,38 @@ export const EVENT_WEIGHTS: Record<string, number> = {
 
   // === NOTIFS ===
   "notification.click": 1,
+
+  // === Sprint Recsys 2026 — Events lifecycle additionnels ===
+  // Pas de poids direct sur le ranker pour les events session/app
+  // (purement analytics), mais on les insère pour le user profile builder
+  // (active_hours, sessions_per_day, session_duration_avg).
+  "session.start": 0,
+  "session.end": 0,
+  "app.foreground": 0,
+  "app.background": 0,
+
+  // Feed navigation — signal d'intérêt mou si refresh fréquent.
+  "feed.refresh": 0.2,
+  "feed.end_reached": 0.3,
+  "feed.scroll_back_to_top": 0.5,
+
+  // Geo — signal contextuel, pas direct.
+  "geo.location_updated": 0,
+  "geo.place_detected": 0.3,
+  "location.follow": 5,
+
+  // Cercle interactions implicites.
+  "circle.visit": 1,
+  "circle.dwell": 1.5,
+
+  // Search / Post interactions implicites.
+  "search.refine": 1.5,
+  "post.double_tap": 3, // = post.like rapide
+  "post.long_press": 0.8, // = ouverture reaction picker
+
+  // Relations sociales fines.
+  "user.close_friend_add": 10, // signal très fort
+  "user.close_friend_remove": -3,
 };
 
 /* Set d'events critiques qui doivent flush immédiatement le batch (pas
