@@ -14,7 +14,11 @@ import { getCircleBySlug } from "@/lib/queries/circles";
 import {
   getCircleAnalytics,
   getCircleDailyActivity,
+  getCircleFunnel,
+  getCircleRetentionCohorts,
   getCircleTopContributors,
+  type CircleRetentionCohort,
+  type CircleFunnel,
 } from "@/lib/queries/circleAnalytics";
 import { cn } from "@/lib/utils/cn";
 
@@ -52,10 +56,12 @@ export default async function CircleAnalyticsPage({
     redirect(`/circles/${slug}`);
   }
 
-  const [kpi, daily, top] = await Promise.all([
+  const [kpi, daily, top, cohorts, funnel] = await Promise.all([
     getCircleAnalytics(circle.id),
     getCircleDailyActivity(circle.id, 30),
     getCircleTopContributors(circle.id, { periodDays: 30, limit: 10 }),
+    getCircleRetentionCohorts(circle.id, 6),
+    getCircleFunnel(circle.id),
   ]);
 
   if (!kpi) {
@@ -147,6 +153,12 @@ export default async function CircleAnalyticsPage({
         </h2>
         <CircleAnalyticsChart data={daily} />
       </section>
+
+      {/* Sprint H.2 — Funnel acquisition + churn 30j */}
+      {funnel ? <FunnelSection funnel={funnel} /> : null}
+
+      {/* Sprint H.1 — Retention cohorts (6 mois). */}
+      {cohorts.length > 0 ? <CohortsSection cohorts={cohorts} /> : null}
 
       {/* Top contributors */}
       <section>
@@ -250,6 +262,161 @@ function KPICard({
         <p className="text-[11px] text-night-muted mt-1">{subValue}</p>
       ) : null}
     </div>
+  );
+}
+
+/* ============================================================
+ * Sprint H.1 — Cohorts retention table
+ * ============================================================ */
+
+function CohortsSection({ cohorts }: { cohorts: CircleRetentionCohort[] }) {
+  /* Détermine le nombre de colonnes M+N à afficher (= longueur max). */
+  const maxLen = Math.max(...cohorts.map((c) => c.retention_pct?.length ?? 0));
+  return (
+    <section>
+      <h2 className="text-sm font-bold text-night uppercase tracking-wider mb-1">
+        Cohortes de rétention
+      </h2>
+      <p className="text-[11px] text-night-muted mb-3 leading-relaxed">
+        Pour chaque mois où des membres ont rejoint, % qui reviennent encore
+        à M+1, M+2... Bon signal = chiffres stables après le 1er mois.
+      </p>
+      <div className="overflow-x-auto bg-white border border-line rounded-3xl">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="border-b border-line bg-bg-soft/40">
+              <th className="text-left px-3 py-2 font-bold text-night-muted">
+                Cohort
+              </th>
+              <th className="text-right px-3 py-2 font-bold text-night-muted">
+                Taille
+              </th>
+              {Array.from({ length: maxLen }).map((_, i) => (
+                <th
+                  key={i}
+                  className="text-right px-3 py-2 font-bold text-night-muted tabular-nums"
+                >
+                  M+{i}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {cohorts.map((c) => (
+              <tr key={c.cohort_month}>
+                <td className="px-3 py-2 font-bold text-night">
+                  {new Date(c.cohort_month).toLocaleDateString("fr-FR", {
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </td>
+                <td className="text-right px-3 py-2 tabular-nums text-night-muted">
+                  {c.cohort_size}
+                </td>
+                {Array.from({ length: maxLen }).map((_, i) => {
+                  const v = c.retention_pct?.[i];
+                  if (v === undefined || v === null) {
+                    return (
+                      <td
+                        key={i}
+                        className="text-right px-3 py-2 text-night-muted/40 tabular-nums"
+                      >
+                        —
+                      </td>
+                    );
+                  }
+                  return (
+                    <td
+                      key={i}
+                      className={cn(
+                        "text-right px-3 py-2 tabular-nums font-bold",
+                        v >= 50
+                          ? "text-emerald-600"
+                          : v >= 20
+                            ? "text-night"
+                            : "text-rose-600",
+                      )}
+                    >
+                      {v}%
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+ * Sprint H.2 — Funnel + Churn cards
+ * ============================================================ */
+
+function FunnelSection({ funnel }: { funnel: CircleFunnel }) {
+  const steps = [
+    { label: "Joined 30j", value: funnel.joined_30d },
+    {
+      label: "A posté",
+      value: funnel.first_post_30d,
+      sublabel: `${funnel.conv_join_to_post_pct}% des joins`,
+    },
+    { label: "Actifs 30j", value: funnel.active_30d },
+    {
+      label: "Contributeurs",
+      value: funnel.contributors_30d,
+      sublabel: `${funnel.conv_active_to_contributor_pct}% des actifs`,
+    },
+  ];
+  return (
+    <section>
+      <h2 className="text-sm font-bold text-night uppercase tracking-wider mb-1">
+        Funnel & churn (30j)
+      </h2>
+      <p className="text-[11px] text-night-muted mb-3 leading-relaxed">
+        Du join jusqu&apos;à la contribution. Plus l&apos;écart se resserre
+        entre les étapes, mieux ton onboarding fonctionne.
+      </p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {steps.map((s, idx) => (
+          <div
+            key={s.label}
+            className="bg-white border border-line rounded-2xl p-3.5"
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-night-muted mb-1">
+              {idx + 1}. {s.label}
+            </p>
+            <p className="text-[22px] font-extrabold tabular-nums text-night leading-none">
+              {s.value}
+            </p>
+            {s.sublabel ? (
+              <p className="mt-1 text-[10.5px] text-night-muted">
+                {s.sublabel}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 rounded-2xl bg-rose-50 border border-rose-200 p-3.5 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-rose-700 mb-0.5">
+            Churn 30j
+          </p>
+          <p className="text-[12px] text-night-muted">
+            Membres ayant quitté ou décroché (inactifs &gt; 60j).
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[22px] font-extrabold tabular-nums text-rose-600 leading-none">
+            {funnel.churn_rate_30d}%
+          </p>
+          <p className="text-[10.5px] text-night-muted mt-1">
+            {funnel.churned_30d} / {funnel.total_members}
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

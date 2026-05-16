@@ -86,3 +86,50 @@ export async function getCircleTopContributors(
   if (error || !data) return [];
   return data as CircleTopContributor[];
 }
+
+/* ============================================================
+ * Sprint H — Analytics Premium (Migration 0146)
+ * ============================================================ */
+
+export type CircleRetentionCohort = {
+  cohort_month: string; // 'YYYY-MM-DD' (1er du mois)
+  cohort_size: number;
+  retention_pct: number[]; // index 0 = M+0, 1 = M+1, ...
+};
+
+export type CircleFunnel = {
+  joined_30d: number;
+  first_post_30d: number;
+  active_30d: number;
+  contributors_30d: number;
+  total_members: number;
+  churned_30d: number;
+  churn_rate_30d: number;
+  conv_join_to_post_pct: number;
+  conv_active_to_contributor_pct: number;
+};
+
+export async function getCircleRetentionCohorts(
+  circleId: string,
+  months: number = 6,
+): Promise<CircleRetentionCohort[]> {
+  const supabase = await createClient();
+  const { data, error } = await (supabase as SupabaseAny).rpc(
+    "get_circle_retention_cohorts",
+    { p_circle_id: circleId, p_months: months },
+  );
+  if (error || !data) return [];
+  return data as CircleRetentionCohort[];
+}
+
+export async function getCircleFunnel(
+  circleId: string,
+): Promise<CircleFunnel | null> {
+  const supabase = await createClient();
+  const { data, error } = await (supabase as SupabaseAny).rpc(
+    "get_circle_funnel_and_churn",
+    { p_circle_id: circleId },
+  );
+  if (error || !data) return null;
+  return data as CircleFunnel;
+}
