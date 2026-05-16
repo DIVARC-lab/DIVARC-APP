@@ -22,7 +22,7 @@ import {
   VideoConference,
   type LocalUserChoices,
 } from "@livekit/components-react";
-import { Loader2, Radio, Square } from "lucide-react";
+import { Loader2, Radio, Square, Vote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ import {
   endLiveStreamSession,
   startLiveStreamSession,
 } from "../../actions";
+import { CreatePollModal } from "./CreatePollModal";
 
 type Props = {
   sessionId: string;
@@ -56,6 +57,7 @@ export function LiveStudioClient({
   const [error, setError] = useState<string | null>(null);
   const [choices, setChoices] = useState<LocalUserChoices | null>(null);
   const [status, setStatus] = useState(currentStatus);
+  const [pollModalOpen, setPollModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -204,8 +206,18 @@ export function LiveStudioClient({
       >
         <VideoConference />
 
-        {/* Overlay top-right : bouton Démarrer / Terminer */}
+        {/* Overlay top-right : Nouveau sondage (si live) + Démarrer/Terminer */}
         <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+          {status === "live" ? (
+            <button
+              type="button"
+              onClick={() => setPollModalOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-gold text-night text-[11px] font-bold hover:bg-gold/90 transition-colors"
+            >
+              <Vote className="w-3.5 h-3.5" aria-hidden />
+              Sondage
+            </button>
+          ) : null}
           {status === "live" ? (
             <button
               type="button"
@@ -237,6 +249,13 @@ export function LiveStudioClient({
           )}
         </div>
       </LiveKitRoom>
+
+      {/* Modal création poll (host only, rendu en portal effectif via fixed) */}
+      <CreatePollModal
+        sessionId={sessionId}
+        open={pollModalOpen}
+        onClose={() => setPollModalOpen(false)}
+      />
     </div>
   );
 }
