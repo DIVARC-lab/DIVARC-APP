@@ -3305,6 +3305,20 @@ export type Notification = {
 
 export type NotificationWithActor = Notification & {
   actor: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+  /* Sprint D.1 — Score de pertinence (présent uniquement quand fetched
+     via rank_user_notifications RPC). */
+  relevance_score?: number | null;
+};
+
+/* Sprint D.2 — Préférences notif par cercle (migration 0144).
+ * 1 ligne par (user, circle). Absence = 'all' implicite. */
+export type CircleNotificationMode = "all" | "mentions_only" | "muted";
+
+export type CircleNotificationPreference = {
+  user_id: string;
+  circle_id: string;
+  mode: CircleNotificationMode;
+  updated_at: string;
 };
 
 /* V3.5 — user_notification_preferences (migration 0057). 1 row par user,

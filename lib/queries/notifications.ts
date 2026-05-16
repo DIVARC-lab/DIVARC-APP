@@ -6,19 +6,45 @@ import type {
   Profile,
 } from "@/lib/database.types";
 
+/* Sprint D.1 — Mode de tri des notifications.
+ *  - "chronological" : tri DESC sur created_at (legacy)
+ *  - "ranked"        : tri par score de pertinence (RPC rank_user_notifications)
+ */
+export type NotificationSortMode = "chronological" | "ranked";
+
 export async function listNotificationsForUser(
   userId: string,
   limit: number = 50,
+  mode: NotificationSortMode = "ranked",
 ): Promise<NotificationWithActor[]> {
   const supabase = await createClient();
-  const { data: rows, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
 
-  if (error || !rows) return [];
+  type Row = Notification & { relevance_score?: number | string };
+  let rows: Row[] | null = null;
+
+  if (mode === "ranked") {
+    /* RPC dédié — combine type_weight + recency + actor_affinity + unread. */
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    const { data, error } = await (supabase as any).rpc(
+      "rank_user_notifications",
+      { p_user_id: userId, p_limit: limit },
+    );
+    if (!error && data) {
+      rows = data as Row[];
+    }
+  }
+
+  /* Fallback : chronological (mode legacy ou RPC down). */
+  if (!rows) {
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    rows = data as unknown as Row[];
+  }
 
   const actorIds = Array.from(
     new Set(

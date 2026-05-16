@@ -3,7 +3,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCircleBySlug } from "@/lib/queries/circles";
 import { createClient } from "@/lib/supabase/server";
-import type { CircleNotificationPreferences } from "@/lib/database.types";
+import type {
+  CircleNotificationMode,
+  CircleNotificationPreferences,
+} from "@/lib/database.types";
+import { CircleMuteModeForm } from "./_components/CircleMuteModeForm";
 import { NotificationPrefsForm } from "./_components/NotificationPrefsForm";
 
 type Params = Promise<{ slug: string }>;
@@ -52,6 +56,17 @@ export default async function CircleNotificationsPage({
     .eq("user_id", user.id)
     .maybeSingle();
 
+  /* Sprint D.2 — mode mute global pour ce cercle. */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data: muteRow } = await (supabase as any)
+    .from("circle_notification_preferences")
+    .select("mode")
+    .eq("user_id", user.id)
+    .eq("circle_id", circle.id)
+    .maybeSingle();
+  const muteMode: CircleNotificationMode =
+    ((muteRow as { mode?: CircleNotificationMode } | null)?.mode) ?? "all";
+
   const prefs =
     ((member as { notifications?: CircleNotificationPreferences } | null)
       ?.notifications) ?? DEFAULT_PREFS;
@@ -88,6 +103,12 @@ export default async function CircleNotificationsPage({
         Tu décides ce que tu veux recevoir, à quelle fréquence. Ces préférences
         ne s&apos;appliquent qu&apos;à ce cercle.
       </p>
+
+      <CircleMuteModeForm
+        circleId={circle.id}
+        circleSlug={slug}
+        initial={muteMode}
+      />
 
       <NotificationPrefsForm circleId={circle.id} initial={initial} />
 

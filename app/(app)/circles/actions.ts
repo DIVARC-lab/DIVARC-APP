@@ -640,14 +640,18 @@ export async function createCirclePost(formData: FormData) {
 
   /* Sprint B — bypass types Supabase non régénérés. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from("posts").insert({
-    author_id: user.id,
-    body: parsed.data.body,
-    visibility: "private",
-    circle_id: parsed.data.circle_id,
-    flair_id: parsed.data.flair_id ?? null,
-    channel_id: parsed.data.channel_id ?? null,
-  });
+  const { data: inserted, error } = await (supabase as any)
+    .from("posts")
+    .insert({
+      author_id: user.id,
+      body: parsed.data.body,
+      visibility: "private",
+      circle_id: parsed.data.circle_id,
+      flair_id: parsed.data.flair_id ?? null,
+      channel_id: parsed.data.channel_id ?? null,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     return { ok: false as const, error: "Publication impossible." };
@@ -656,10 +660,35 @@ export async function createCirclePost(formData: FormData) {
   /* Find slug to revalidate the right page. */
   const { data: circle } = await supabase
     .from("circles")
-    .select("slug")
+    .select("slug, name")
     .eq("id", parsed.data.circle_id)
     .maybeSingle();
-  if (circle?.slug) revalidatePath(`/circles/${circle.slug}`);
+  const circleSlug = (circle as { slug?: string } | null)?.slug ?? null;
+  const circleName = (circle as { name?: string } | null)?.name ?? null;
+  if (circleSlug) revalidatePath(`/circles/${circleSlug}`);
+
+  /* Sprint D.3 — Hook web push pour posts dans un channel announcement.
+     Fire-and-forget : la réponse user n'attend pas la propagation push. */
+  if (parsed.data.channel_id && inserted) {
+    try {
+      const postId =
+        (inserted as { id?: string } | null)?.id ?? null;
+      const { pushAnnouncementToCircleMembers } = await import(
+        "@/lib/push/circleAnnouncement"
+      );
+      void pushAnnouncementToCircleMembers({
+        circleId: parsed.data.circle_id,
+        circleSlug,
+        circleName,
+        channelId: parsed.data.channel_id,
+        authorId: user.id,
+        postId,
+        body: parsed.data.body,
+      });
+    } catch (pushErr) {
+      console.error("[createCirclePost] push hook failed:", pushErr);
+    }
+  }
 
   return { ok: true as const };
 }
