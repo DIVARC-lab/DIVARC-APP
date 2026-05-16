@@ -11,9 +11,9 @@ import {
   useInteractions,
   useRole,
 } from "@floating-ui/react";
-import { Info, Settings, ThumbsDown, UserX } from "lucide-react";
+import { Info, Loader2, Settings, ThumbsDown, UserX } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/tracking/eventTracker";
 
@@ -46,6 +46,57 @@ type WhyThisPostProps = {
 export function WhyThisPost({ postId, authorId, signals = [] }: WhyThisPostProps) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  /* Sprint Recsys Étape 19 — Si signals n'est pas fourni par le parent
+     (cas hors feed personnalisé : circles, profile, etc.), on fetch
+     /api/feed/posts/[postId]/explain au moment de l'ouverture du popover.
+     L'API appelle la RPC explain_post_ranking et renvoie 6 raisons FR. */
+  const [fetchedSignals, setFetchedSignals] = useState<RankingSignalDisplay[] | null>(null);
+  const [fetching, setFetching] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (signals.length > 0) return; // déjà fournis par le parent
+    if (fetchedSignals !== null) return; // déjà fetched
+
+    let alive = true;
+    setFetching(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/feed/posts/${postId}/explain`);
+        if (!res.ok) {
+          if (alive) setFetchedSignals([]);
+          return;
+        }
+        const data = (await res.json()) as {
+          reasons?: Array<{
+            kind: string;
+            weight: number;
+            text: string;
+          }>;
+        };
+        if (alive) {
+          setFetchedSignals(
+            (data.reasons ?? []).map((r) => ({
+              type: r.kind,
+              label: r.text,
+              weight: r.weight,
+            })),
+          );
+        }
+      } catch {
+        if (alive) setFetchedSignals([]);
+      } finally {
+        if (alive) setFetching(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [open, postId, signals.length, fetchedSignals]);
+
+  const displaySignals: RankingSignalDisplay[] =
+    signals.length > 0 ? signals : (fetchedSignals ?? []);
 
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -126,8 +177,16 @@ export function WhyThisPost({ postId, authorId, signals = [] }: WhyThisPostProps
             </h3>
           </header>
           <ul className="px-4 pb-3 space-y-1.5">
-            {signals.length > 0 ? (
-              signals.slice(0, 3).map((sig, i) => (
+            {fetching && displaySignals.length === 0 ? (
+              <li className="flex items-center gap-2 text-[13px] text-night-soft leading-snug">
+                <Loader2
+                  className="w-3.5 h-3.5 animate-spin text-night-dim"
+                  aria-hidden
+                />
+                <span>Analyse en cours…</span>
+              </li>
+            ) : displaySignals.length > 0 ? (
+              displaySignals.slice(0, 5).map((sig, i) => (
                 <li
                   key={i}
                   className="flex items-start gap-2 text-[13px] text-night-soft leading-snug"
