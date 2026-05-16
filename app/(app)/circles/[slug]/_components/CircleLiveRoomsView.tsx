@@ -139,16 +139,6 @@ export function CircleLiveRoomsView({
         </div>
       )}
 
-      {/* Info ré-utilisation infra WebRTC */}
-      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-[12px] text-rose-900/80 leading-relaxed">
-        <p className="font-bold mb-1">⚡ Live rooms V1 — Beta</p>
-        <p>
-          La structure data + permissions est en place. L&apos;intégration
-          audio/vidéo multi-participants (au-delà du 1-1 existant) arrive
-          dans une prochaine itération.
-        </p>
-      </div>
-
       {creating ? (
         <CreateRoomModal
           circleId={circleId}

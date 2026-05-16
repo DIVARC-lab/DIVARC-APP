@@ -1,28 +1,34 @@
 "use client";
 
-/* Sprint E (LiveKit) — Client component qui monte la LiveKitRoom.
+/* Sprint E (LiveKit) — Client component utilisant VideoConference,
+ * le composant tout-en-un de @livekit/components-react.
  *
  * Flow :
- *  1. Mount → fetch /api/circles/live/[roomId]/token (auth + grants)
- *  2. PreJoin : choix mic/cam + préview avant connect
- *  3. Connect → VideoConference (vidéo) ou AudioConference custom (audio)
- *  4. Disconnect → redirect /circles/[slug]/live (avec router.replace)
+ *  1. Fetch token via /api/circles/live/[roomId]/token
+ *  2. PreJoin : preview caméra/micro + choix nom avant connect
+ *  3. VideoConference : grille auto + ControlBar + audio mixdown
+ *  4. Disconnect → redirect /circles/[slug]/live
  *
- * Pour les rooms audio, on n'active pas la caméra par défaut et on
- * cache les video tiles (juste pastilles avec nom + speaking indicator). */
+ * VideoConference inclut :
+ *   - Auto-publish des tracks audio (+ vidéo si video={true})
+ *   - GridLayout / FocusLayout adaptatif
+ *   - ParticipantTile pour chaque peer
+ *   - ControlBar (mic / cam / screenshare / leave)
+ *   - RoomAudioRenderer (mixdown audio des autres)
+ *   - StartAudio (fallback autoplay blocage browser)
+ *   - ConnectionStateToast (notif si reconnect/disconnect)
+ *
+ * Pour les rooms audio-only on cache la cam au PreJoin + on désactive
+ * la pub vidéo dans LiveKitRoom. */
 
 import "@livekit/components-styles";
 
 import {
-  ControlBar,
-  GridLayout,
   LiveKitRoom,
-  ParticipantTile,
-  RoomAudioRenderer,
-  StartAudio,
-  useTracks,
+  PreJoin,
+  VideoConference,
+  type LocalUserChoices,
 } from "@livekit/components-react";
-import { RoomEvent, Track } from "livekit-client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,15 +47,12 @@ type TokenResponse = {
   canPublish: boolean;
 };
 
-export function LiveRoomClient({
-  roomId,
-  roomKind,
-  circleSlug,
-}: Props) {
+export function LiveRoomClient({ roomId, roomKind, circleSlug }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [choices, setChoices] = useState<LocalUserChoices | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -60,9 +63,7 @@ export function LiveRoomClient({
           const data = (await res.json().catch(() => ({}))) as {
             error?: string;
           };
-          if (alive) {
-            setError(data.error ?? "token_failed");
-          }
+          if (alive) setError(data.error ?? "token_failed");
           return;
         }
         const data = (await res.json()) as TokenResponse;
@@ -79,15 +80,14 @@ export function LiveRoomClient({
     };
   }, [roomId]);
 
+  /* === États dégradés === */
   if (error) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 text-center">
         <p className="text-[14px] font-bold text-cream">
           Impossible de rejoindre cette salle.
         </p>
-        <p className="mt-2 text-[12px] text-cream/60">
-          Code : {error}
-        </p>
+        <p className="mt-2 text-[12px] text-cream/60">Code : {error}</p>
         <button
           type="button"
           onClick={() => router.replace(`/circles/${circleSlug}/live`)}
@@ -104,19 +104,53 @@ export function LiveRoomClient({
       <div className="h-full flex flex-col items-center justify-center p-6 text-center">
         <Loader2 className="w-6 h-6 animate-spin text-cream" aria-hidden />
         <p className="mt-3 text-[12px] text-cream/60">
-          Connexion à la salle…
+          Préparation de la salle…
         </p>
       </div>
     );
   }
 
+  /* === PreJoin : choix mic/cam + preview avant connect === */
+  if (!choices) {
+    return (
+      <div className="h-full flex items-center justify-center p-4 bg-night">
+        <div
+          className="w-full max-w-2xl rounded-3xl bg-cream/5 border border-cream/10 p-5"
+          data-lk-theme="default"
+        >
+          <h2 className="text-[14px] font-bold text-cream mb-1 text-center">
+            Prêt à rejoindre la salle ?
+          </h2>
+          <p className="text-[11.5px] text-cream/60 text-center mb-4">
+            Vérifie ton micro{roomKind === "video" ? " et ta caméra" : ""}{" "}
+            avant de te connecter.
+          </p>
+          <PreJoin
+            defaults={{
+              videoEnabled: roomKind === "video",
+              audioEnabled: true,
+            }}
+            onSubmit={(values) => setChoices(values)}
+            onError={(err) => {
+              console.error("[PreJoin] error", err);
+              toast.error(
+                "Impossible d'accéder à ton micro ou ta caméra. Vérifie les permissions du navigateur.",
+              );
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /* === Connect to LiveKit room === */
   return (
     <LiveKitRoom
       token={token}
       serverUrl={wsUrl}
       connect={true}
-      audio={true}
-      video={roomKind === "video"}
+      audio={choices.audioEnabled}
+      video={roomKind === "video" ? choices.videoEnabled : false}
       data-lk-theme="default"
       className="h-full bg-night"
       onDisconnected={() => {
@@ -128,61 +162,7 @@ export function LiveRoomClient({
         toast.error(`Erreur live : ${err.message}`);
       }}
     >
-      {roomKind === "video" ? <VideoConferenceLayout /> : <AudioConferenceLayout />}
-      <RoomAudioRenderer />
-      <StartAudio label="Activer le son" />
-      <div className="absolute bottom-0 inset-x-0 px-3 py-3 bg-gradient-to-t from-night via-night/80 to-transparent">
-        <ControlBar
-          controls={{
-            microphone: true,
-            camera: roomKind === "video",
-            screenShare: roomKind === "video",
-            chat: false,
-            leave: true,
-          }}
-          variation="minimal"
-        />
-      </div>
+      <VideoConference />
     </LiveKitRoom>
-  );
-}
-
-/* Layout vidéo : grille de tiles classique. */
-function VideoConferenceLayout() {
-  const tracks = useTracks(
-    [
-      { source: Track.Source.Camera, withPlaceholder: true },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-    ],
-    { onlySubscribed: false, updateOnlyOn: [RoomEvent.ActiveSpeakersChanged] },
-  );
-
-  return (
-    <div className="absolute inset-0 pb-24">
-      <GridLayout tracks={tracks} style={{ height: "100%" }}>
-        <ParticipantTile />
-      </GridLayout>
-    </div>
-  );
-}
-
-/* Layout audio : pastilles compactes, indicateur de speaking. */
-function AudioConferenceLayout() {
-  const tracks = useTracks([
-    { source: Track.Source.Microphone, withPlaceholder: true },
-  ]);
-
-  return (
-    <div className="absolute inset-0 pb-24 overflow-y-auto p-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {tracks.map((trackRef, i) => (
-          <ParticipantTile
-            key={trackRef.participant.identity + i}
-            trackRef={trackRef}
-            className="aspect-square !rounded-full !overflow-hidden bg-cream/5"
-          />
-        ))}
-      </div>
-    </div>
   );
 }
