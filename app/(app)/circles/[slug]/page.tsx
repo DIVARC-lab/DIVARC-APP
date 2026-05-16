@@ -313,6 +313,7 @@ export default async function CirclePostsTab({
                   post={post}
                   currentUserId={user.id}
                   canModerate={canModerate}
+                  circleSlug={slug}
                 />
               </li>
             ))}
@@ -344,21 +345,16 @@ export default async function CirclePostsTab({
             </p>
           ) : null}
           <ul className="mt-1.5 space-y-4">
-            {posts.map((post) =>
-              canModerate ? (
-                <li key={post.id}>
-                  <CircleModeratablePost
-                    post={post}
-                    currentUserId={user.id}
-                    canModerate
-                  />
-                </li>
-              ) : (
-                <li key={post.id}>
-                  <PostCard post={post} currentUserId={user.id} />
-                </li>
-              ),
-            )}
+            {posts.map((post) => (
+              <li key={post.id}>
+                <CircleModeratablePost
+                  post={post}
+                  currentUserId={user.id}
+                  canModerate={canModerate}
+                  circleSlug={slug}
+                />
+              </li>
+            ))}
           </ul>
         </>
       ) : null}

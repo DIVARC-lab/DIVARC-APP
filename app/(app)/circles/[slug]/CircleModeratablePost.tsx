@@ -7,18 +7,23 @@ import { cn } from "@/lib/utils/cn";
 import type { PostWithDetails } from "@/lib/database.types";
 import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { pinCirclePost, unpinCirclePost } from "../actions";
+import { ReportButton } from "./_components/ReportButton";
 import { SummarizeThreadButton } from "./_components/SummarizeThreadButton";
 
 type CircleModeratablePostProps = {
   post: PostWithDetails;
   currentUserId: string;
   canModerate: boolean;
+  /* Sprint J — passé pour le bouton ReportButton (revalidatePath
+     ciblée). Optionnel pour back-compat ; si absent, bouton caché. */
+  circleSlug?: string;
 };
 
 export function CircleModeratablePost({
   post,
   currentUserId,
   canModerate,
+  circleSlug,
 }: CircleModeratablePostProps) {
   const [pending, startTransition] = useTransition();
   const isPinned = !!post.pinned_at;
@@ -71,12 +76,23 @@ export function CircleModeratablePost({
         </button>
       ) : null}
       <PostCard post={post} currentUserId={currentUserId} />
-      {/* Sprint G.2 — bouton "Résumer ce thread" (visible si ≥5 comments). */}
-      <div className="mt-1.5">
+      {/* Sprint G.2 + J — outils inline sous le post (résumé thread,
+          signalement). Les non-auteurs voient "Signaler". */}
+      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
         <SummarizeThreadButton
           postId={post.id}
           commentsCount={post.comments_count ?? 0}
         />
+        {circleSlug &&
+        post.circle_id &&
+        post.author_id !== currentUserId ? (
+          <ReportButton
+            circleId={post.circle_id}
+            circleSlug={circleSlug}
+            targetKind="post"
+            targetId={post.id}
+          />
+        ) : null}
       </div>
     </div>
   );
