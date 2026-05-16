@@ -32,8 +32,13 @@ import { GiftAnimationOverlay } from "./GiftAnimationOverlay";
 import { GiftPanel } from "./GiftPanel";
 import { LiveChatPanel } from "./LiveChatPanel";
 import { LiveGoalBar } from "./LiveGoalBar";
+import { LiveHeartsLayer } from "./LiveHeartsLayer";
+import { LiveLikeButton } from "./LiveLikeButton";
+import { LiveLikesProvider } from "./LiveLikesContext";
 import { LivePollWidget } from "./LivePollWidget";
+import { LiveTapToLikeOverlay } from "./LiveTapToLikeOverlay";
 import { LiveTipsModal } from "./LiveTipsModal";
+import { RaiseHandButton } from "./RaiseHandButton";
 import { SubscribeCreatorModal } from "./SubscribeCreatorModal";
 import { SuperChatTicker } from "./SuperChatTicker";
 
@@ -55,6 +60,7 @@ type Props = {
   host: Host;
   currentUserId: string;
   hostId: string;
+  initialLikeCount: number;
 };
 
 type TokenResponse = {
@@ -75,6 +81,7 @@ export function LiveViewerClient({
   host,
   currentUserId,
   hostId,
+  initialLikeCount,
 }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -177,6 +184,7 @@ export function LiveViewerClient({
   }
 
   return (
+    <LiveLikesProvider sessionId={sessionId} initialCount={initialLikeCount}>
     <div
       data-live-immersive-target
       className="absolute inset-0 bg-night flex flex-col"
@@ -216,6 +224,10 @@ export function LiveViewerClient({
         <div className="absolute top-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <SuperChatTicker sessionId={sessionId} />
         </div>
+
+        {/* Tap zone pour double-tap = like (TikTok-like).
+            z-15 : entre la vidéo (z-0) et les overlays (z-20+) */}
+        <LiveTapToLikeOverlay />
 
         {/* Étape 16 — Animations cadeaux qui montent (overlay full, polling 3s) */}
         <div className="absolute inset-0 z-20 pointer-events-none">
@@ -305,6 +317,8 @@ export function LiveViewerClient({
               Chat
             </button>
           ) : null}
+          <RaiseHandButton sessionId={sessionId} />
+          <LiveLikeButton />
           <button
             type="button"
             onClick={handleShare}
@@ -370,6 +384,10 @@ export function LiveViewerClient({
           onClose={() => setSubOpen(false)}
         />
       ) : null}
+
+      {/* Layer global cœurs flottants (fixed, z-40). */}
+      <LiveHeartsLayer />
     </div>
+    </LiveLikesProvider>
   );
 }

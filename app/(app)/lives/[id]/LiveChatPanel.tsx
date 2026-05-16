@@ -1,14 +1,12 @@
 "use client";
 
-/* Étape 18 — Drawer chat live (right side ou bottom sheet mobile).
+/* Drawer chat live avec Supabase Realtime (instantané TikTok-like).
  *
- * - Charge les 50 derniers messages au mount via RPC
- * - Polling 2s avec param since=lastTimestamp pour récupérer les nouveaux
+ * - Initial load : 50 derniers messages via RPC
+ * - Realtime subscribe sur live_chat_messages WHERE session_id=X
+ *   → INSERT/UPDATE/DELETE broadcastés instantanément (~100ms)
  * - Form input rate-limited côté DB (1 msg / 2s) — UI affiche cooldown
  * - Host peut supprimer (X) sur hover ; user peut supprimer son propre msg
- *
- * Note : on n'utilise pas Supabase Realtime ici pour V1 (cohérent avec
- * polls/super-chats/gifts). Migration vers Realtime en V2 si besoin.
  */
 
 import {
@@ -21,6 +19,7 @@ import {
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { createClient } from "@/lib/supabase/client";
 import {
   deleteLiveChatMessage,
   sendLiveChatMessage,
@@ -45,7 +44,6 @@ type Props = {
   hostId: string;
 };
 
-const POLL_INTERVAL_MS = 2000;
 const COOLDOWN_MS = 2000;
 
 export function LiveChatPanel({
@@ -64,56 +62,104 @@ export function LiveChatPanel({
   const lastTimestampRef = useRef<string | null>(null);
   const isHost = currentUserId === hostId;
 
-  /* Initial load + polling. */
+  /* Initial load + Supabase Realtime subscribe.
+     - 1 fetch initial pour les 50 derniers messages
+     - 1 channel "live-chat-{sessionId}" qui écoute INSERT/DELETE de la
+       table live_chat_messages filtré par session_id
+     - INSERT → ajoute au state. Si profile pas en cache, on fetch
+       à la volée (1 select rapide). */
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    let timer: number | null = null;
 
-    async function poll(initial: boolean) {
+    async function loadInitial() {
       try {
-        const since = initial ? null : lastTimestampRef.current;
         const url = new URL(
           `/api/lives/${sessionId}/chat`,
           window.location.origin,
         );
-        if (since) url.searchParams.set("since", since);
-        if (initial) url.searchParams.set("limit", "50");
-
+        url.searchParams.set("limit", "50");
         const res = await fetch(url.toString(), { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as { items: Msg[] };
         if (!alive) return;
-
-        if (initial) {
-          setMessages(data.items);
-          const last = data.items[data.items.length - 1];
-          lastTimestampRef.current = last?.created_at ?? null;
-        } else if (data.items.length > 0) {
-          setMessages((prev) => {
-            const existing = new Set(prev.map((m) => m.id));
-            const merged = [...prev];
-            for (const m of data.items) {
-              if (!existing.has(m.id)) merged.push(m);
-            }
-            return merged;
-          });
-          const last = data.items[data.items.length - 1];
-          if (last) lastTimestampRef.current = last.created_at;
-        }
+        setMessages(data.items);
+        const last = data.items[data.items.length - 1];
+        lastTimestampRef.current = last?.created_at ?? null;
       } catch {
         /* silencieux */
       }
     }
 
-    void poll(true);
-    timer = window.setInterval(() => {
-      void poll(false);
-    }, POLL_INTERVAL_MS);
+    void loadInitial();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`live-chat-${sessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "live_chat_messages",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        async (payload) => {
+          if (!alive) return;
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          const row = payload.new as any;
+          if (row.deleted_at) return;
+
+          /* Fetch profile pour avatar + nom (Realtime ne joint pas). */
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          const { data: prof } = await (supabase as any)
+            .from("profiles")
+            .select("full_name, username, avatar_url")
+            .eq("id", row.user_id)
+            .maybeSingle();
+          if (!alive) return;
+
+          const msg: Msg = {
+            id: row.id,
+            user_id: row.user_id,
+            content: row.content,
+            is_pinned: row.is_pinned ?? false,
+            created_at: row.created_at,
+            full_name: prof?.full_name ?? null,
+            username: prof?.username ?? null,
+            avatar_url: prof?.avatar_url ?? null,
+          };
+
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          lastTimestampRef.current = msg.created_at;
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "live_chat_messages",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          if (!alive) return;
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          const row = payload.new as any;
+          /* Soft-delete = filter out. */
+          if (row.deleted_at) {
+            setMessages((prev) => prev.filter((m) => m.id !== row.id));
+          }
+        },
+      )
+      .subscribe();
 
     return () => {
       alive = false;
-      if (timer !== null) window.clearInterval(timer);
+      void supabase.removeChannel(channel);
     };
   }, [sessionId, open]);
 

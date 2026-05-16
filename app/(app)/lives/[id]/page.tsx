@@ -37,7 +37,7 @@ export default async function LiveViewerPage({
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds",
+      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds, like_count",
     )
     .eq("id", id)
     .maybeSingle();
@@ -63,6 +63,7 @@ export default async function LiveViewerPage({
     vod_url: string | null;
     vod_thumbnail_url: string | null;
     vod_duration_seconds: number | null;
+    like_count: number;
   };
 
   /* Host doit aller au studio. */
@@ -206,6 +207,7 @@ export default async function LiveViewerPage({
             host={host}
             currentUserId={user.id}
             hostId={r.host_id}
+            initialLikeCount={r.like_count ?? 0}
           />
         )}
       </main>

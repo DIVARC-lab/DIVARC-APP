@@ -63,6 +63,53 @@ export async function muteParticipantTrackInLiveRoom(
   }
 }
 
+/* Étape 26 — Grant/revoke publish dynamiquement.
+ *
+ * Quand un viewer demande la parole et que le host approuve, on upgrade
+ * ses permissions LiveKit via updateParticipant. Pas besoin de rejoin :
+ * LiveKit propage les permissions live. */
+export async function grantPublishToLiveParticipant(
+  roomId: string,
+  participantIdentity: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const svc = getRoomService();
+  if (!svc) return { ok: false, error: "LiveKit non configuré." };
+  try {
+    await svc.updateParticipant(roomId, participantIdentity, undefined, {
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Échec upgrade.",
+    };
+  }
+}
+
+export async function revokePublishFromLiveParticipant(
+  roomId: string,
+  participantIdentity: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const svc = getRoomService();
+  if (!svc) return { ok: false, error: "LiveKit non configuré." };
+  try {
+    await svc.updateParticipant(roomId, participantIdentity, undefined, {
+      canPublish: false,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Échec revoke.",
+    };
+  }
+}
+
 export async function listLiveRoomParticipants(
   roomId: string,
 ): Promise<

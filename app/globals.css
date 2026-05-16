@@ -385,6 +385,17 @@ input:focus-visible,
   animation: ping-once 0.7s ease-out forwards;
 }
 
+/* Live — cœurs flottants au like (TikTok-like). */
+@keyframes heart-float {
+  0%   { opacity: 0; transform: translate(var(--x, 0px), 0) scale(0.5) rotate(-12deg); }
+  15%  { opacity: 1; transform: translate(var(--x, 0px), -10px) scale(1.1) rotate(8deg); }
+  85%  { opacity: 1; transform: translate(var(--x, 0px), -180px) scale(0.9) rotate(-6deg); }
+  100% { opacity: 0; transform: translate(var(--x, 0px), -240px) scale(0.7) rotate(4deg); }
+}
+.animate-heart-float {
+  animation: heart-float 2200ms ease-out forwards;
+}
+
 /* Live — cadeaux virtuels qui montent et disparaissent (étape 16). */
 @keyframes gift-rise {
   0%   { opacity: 0; transform: translateY(0)     scale(0.5); }

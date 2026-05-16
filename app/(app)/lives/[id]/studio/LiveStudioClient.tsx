@@ -22,7 +22,7 @@ import {
   VideoConference,
   type LocalUserChoices,
 } from "@livekit/components-react";
-import { Loader2, MessageSquare, Radio, Square, Target, Vote } from "lucide-react";
+import { Hand, Loader2, MessageSquare, Radio, Square, Target, Vote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ import { SuperChatTicker } from "../SuperChatTicker";
 import { CreateGoalModal } from "./CreateGoalModal";
 import { CreatePollModal } from "./CreatePollModal";
 import { LiveDurationBadge } from "./LiveDurationBadge";
+import { StageRequestsPanel } from "./StageRequestsPanel";
 
 type Props = {
   sessionId: string;
@@ -72,7 +73,34 @@ export function LiveStudioClient({
   const [pollModalOpen, setPollModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [stagePanelOpen, setStagePanelOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [startedAt, setStartedAt] = useState<string | null>(initialStartedAt);
+
+  /* Polling léger pour le badge "demandes pendantes" sur le bouton
+     même quand le panel est fermé. */
+  useEffect(() => {
+    if (status !== "live") return;
+    let alive = true;
+    async function refresh() {
+      try {
+        const res = await fetch(`/api/lives/${sessionId}/stage-requests`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { items: unknown[] };
+        if (alive) setPendingRequestsCount(data.items.length);
+      } catch {
+        /* silencieux */
+      }
+    }
+    void refresh();
+    const id = window.setInterval(refresh, 5000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [sessionId, status]);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -256,6 +284,21 @@ export function LiveStudioClient({
           {status === "live" ? (
             <button
               type="button"
+              onClick={() => setStagePanelOpen(true)}
+              className="relative inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream/15 text-cream border border-cream/20 backdrop-blur text-[11px] font-bold hover:bg-cream/25 transition-colors"
+            >
+              <Hand className="w-3.5 h-3.5" aria-hidden />
+              Demandes
+              {pendingRequestsCount > 0 ? (
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-rose-500 text-white text-[9px] font-extrabold px-1 ring-2 ring-night">
+                  {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
+          {status === "live" ? (
+            <button
+              type="button"
               onClick={() => setChatOpen(true)}
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream/15 text-cream border border-cream/20 backdrop-blur text-[11px] font-bold hover:bg-cream/25 transition-colors"
             >
@@ -337,6 +380,14 @@ export function LiveStudioClient({
         onClose={() => setChatOpen(false)}
         currentUserId={hostId}
         hostId={hostId}
+      />
+
+      {/* Panneau modération demandes raise hand. */}
+      <StageRequestsPanel
+        sessionId={sessionId}
+        open={stagePanelOpen}
+        onClose={() => setStagePanelOpen(false)}
+        onPendingCountChange={setPendingRequestsCount}
       />
     </div>
   );
