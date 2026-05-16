@@ -26,6 +26,7 @@ import { StoriesRow } from "./_components/StoriesRow";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
 import { ColdStartBanner } from "./_components/ColdStartBanner";
+import { LivesNowCarousel } from "./_components/LivesNowCarousel";
 import { FeedPostList } from "./_components/FeedPostList";
 import { KeyboardShortcuts } from "./_components/KeyboardShortcuts";
 import { PullToRefresh } from "./_components/PullToRefresh";
@@ -229,6 +230,11 @@ export default async function FeedPage({
               currentUserAvatarUrl={profile?.avatar_url ?? null}
               currentUserName={fullName}
             />
+
+            {/* Chantier Live Streaming — Étape 8 : carrousel "En direct
+                maintenant". Caché si aucun live actif (component retourne
+                null). RLS visibility appliqué via la RPC. */}
+            <LivesNowCarousel userId={user.id} />
 
             {/* Composer chip — trigger du ContentCreatorModal global. */}
             <div className="px-4 sm:px-6 pb-3.5">
