@@ -24,6 +24,7 @@ import {
 import {
   Loader2,
   Maximize2,
+  MessageSquare,
   Minimize2,
   Shield,
 } from "lucide-react";
@@ -31,6 +32,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LiveAdminPanel } from "./LiveAdminPanel";
+import { LiveCustomChat } from "./LiveCustomChat";
 
 type Props = {
   roomId: string;
@@ -54,31 +56,45 @@ export function LiveRoomClient({
   const [error, setError] = useState<string | null>(null);
   const [choices, setChoices] = useState<LocalUserChoices | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [immersive, setImmersive] = useState(false);
 
   /* Fullscreen API natif (cache barre URL mobile + status bar).
      Listener pour sync l'état si l'user fait Échap. */
   useEffect(() => {
     function onChange() {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      const fs = Boolean(document.fullscreenElement);
+      setIsFullscreen(fs);
+      /* Synchronise le mode immersif CSS avec le vrai fullscreen :
+         si l'user fait Échap pour quitter, on retire l'immersif. */
+      if (!fs) setImmersive(false);
     }
     document.addEventListener("fullscreenchange", onChange);
     return () =>
       document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  async function toggleFullscreen() {
+  /* Mode immersif = combine 2 effets pour vraiment couvrir l'écran :
+     1. CSS fixed inset-0 z-[200] sur le wrapper LiveKitRoom →
+        couvre tout le reste de l'app DIVARC (header, nav, etc.).
+     2. requestFullscreen() natif quand dispo → cache aussi la barre
+        URL du browser et la status bar (Android Chrome, desktop).
+     iOS Safari : seul l'effet CSS s'applique (requestFullscreen
+     non supporté sur les elements génériques), mais la barre URL
+     se cache déjà au scroll. */
+  async function toggleImmersive() {
+    const wantImmersive = !immersive;
+    setImmersive(wantImmersive);
     try {
-      if (!document.fullscreenElement) {
+      if (wantImmersive && !document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-      } else {
+      } else if (!wantImmersive && document.fullscreenElement) {
         await document.exitFullscreen();
       }
     } catch (err) {
-      console.error("[fullscreen]", err);
-      toast.error(
-        "Plein écran non supporté par ce navigateur (iOS Safari le bloque).",
-      );
+      /* Pas d'erreur visible : l'effet CSS suffit pour 95 % de l'UX. */
+      console.warn("[fullscreen API]", err);
     }
   }
 
@@ -170,63 +186,102 @@ export function LiveRoomClient({
   }
 
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={wsUrl}
-      connect={true}
-      audio={choices.audioEnabled}
-      video={roomKind === "video" ? choices.videoEnabled : false}
-      data-lk-theme="default"
-      className="h-full bg-night relative"
-      onDisconnected={() => {
-        /* Defer la navigation au tick suivant pour laisser LiveKit
-           finir de détacher ses <video>/<audio> imperativement avant
-           que React démonte l'arbre. Sinon erreur React "insertBefore
-           failed" (conflit reconciliation vs DOM mutations LiveKit). */
-        toast("Tu as quitté la salle.");
-        window.setTimeout(() => {
-          router.replace(`/circles/${circleSlug}/live`);
-        }, 50);
-      }}
-      onError={(err) => {
-        console.error("[LiveKit]", err);
-        toast.error(`Erreur live : ${err.message}`);
-      }}
+    <div
+      className={
+        /* Mode immersif : couvre TOUT (au-dessus du header DIVARC,
+           tabs, footer mobile, etc.). Sinon flux normal de la page. */
+        immersive
+          ? "fixed inset-0 z-[200] bg-night"
+          : "absolute inset-0 bg-night"
+      }
     >
-      <VideoConference chatMessageFormatter={undefined} />
+      {/* CSS pour cacher le chat natif de VideoConference et son
+          toggle dans la ControlBar (on a notre propre Chat custom). */}
+      <style jsx global>{`
+        .lk-chat-toggle,
+        button[data-lk-source="chat"],
+        .lk-room-container .lk-chat,
+        .lk-room-container [class*="ChatPanel"] {
+          display: none !important;
+        }
+      `}</style>
 
-      {/* Overlay top-right : Plein écran + Modération */}
-      <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          aria-label={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-night/80 text-cream border border-cream/20 backdrop-blur hover:bg-night transition-colors"
-        >
-          {isFullscreen ? (
-            <Minimize2 className="w-4 h-4" aria-hidden />
-          ) : (
-            <Maximize2 className="w-4 h-4" aria-hidden />
-          )}
-        </button>
-        {isModerator ? (
+      <LiveKitRoom
+        token={token}
+        serverUrl={wsUrl}
+        connect={true}
+        audio={choices.audioEnabled}
+        video={roomKind === "video" ? choices.videoEnabled : false}
+        data-lk-theme="default"
+        className="h-full bg-night relative"
+        onDisconnected={() => {
+          /* Defer la navigation au tick suivant pour laisser LiveKit
+             finir de détacher ses <video>/<audio> imperativement avant
+             que React démonte l'arbre. Sinon "insertBefore failed". */
+          toast("Tu as quitté la salle.");
+          window.setTimeout(() => {
+            router.replace(`/circles/${circleSlug}/live`);
+          }, 50);
+        }}
+        onError={(err) => {
+          console.error("[LiveKit]", err);
+          toast.error(`Erreur live : ${err.message}`);
+        }}
+      >
+        <VideoConference chatMessageFormatter={undefined} />
+
+        {/* Overlay top-right : Plein écran + Chat + Modération */}
+        <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setAdminOpen((v) => !v)}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-night/80 text-cream border border-cream/20 backdrop-blur hover:bg-night transition-colors text-[11px] font-bold"
+            onClick={toggleImmersive}
+            aria-label={immersive ? "Quitter le plein écran" : "Plein écran"}
+            title={immersive ? "Quitter le plein écran" : "Plein écran"}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-night/80 text-cream border border-cream/20 backdrop-blur hover:bg-night transition-colors"
           >
-            <Shield className="w-3.5 h-3.5" aria-hidden />
-            {adminOpen ? "Fermer" : "Modération"}
+            {immersive ? (
+              <Minimize2 className="w-4 h-4" aria-hidden />
+            ) : (
+              <Maximize2 className="w-4 h-4" aria-hidden />
+            )}
           </button>
-        ) : null}
-      </div>
+          <button
+            type="button"
+            onClick={() => setChatOpen((v) => !v)}
+            aria-label="Chat"
+            title="Chat"
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-full border border-cream/20 backdrop-blur transition-colors ${
+              chatOpen
+                ? "bg-cream text-night"
+                : "bg-night/80 text-cream hover:bg-night"
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" aria-hidden />
+          </button>
+          {isModerator ? (
+            <button
+              type="button"
+              onClick={() => setAdminOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-night/80 text-cream border border-cream/20 backdrop-blur hover:bg-night transition-colors text-[11px] font-bold"
+            >
+              <Shield className="w-3.5 h-3.5" aria-hidden />
+              {adminOpen ? "Fermer" : "Modération"}
+            </button>
+          ) : null}
+        </div>
 
-      {adminOpen && isModerator ? (
-        <LiveAdminPanel
-          roomId={roomId}
-          onClose={() => setAdminOpen(false)}
+        {adminOpen && isModerator ? (
+          <LiveAdminPanel
+            roomId={roomId}
+            onClose={() => setAdminOpen(false)}
+          />
+        ) : null}
+
+        <LiveCustomChat
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
         />
-      ) : null}
-    </LiveKitRoom>
+      </LiveKitRoom>
+    </div>
   );
 }
