@@ -2246,28 +2246,139 @@ export type CircleAIQA = {
   created_at: string;
 };
 
-/* Chantier Cercles v3 — Live audio/video room d'un cercle. */
-export type CircleLiveRoom = {
+/* Chantier Live Streaming DIVARC — Étape 2.
+ * Migration 0155 généralise circle_live_rooms : lives publics + cercle +
+ * tags + monétisation + modération + VOD. */
+
+export type LiveVisibility =
+  | "public"
+  | "unlisted"
+  | "friends_only"
+  | "circle"
+  | "subscribers_only"
+  | "private";
+
+export type LiveCategory =
+  | "just_chatting"
+  | "gaming"
+  | "music"
+  | "art"
+  | "cooking"
+  | "sports"
+  | "education"
+  | "news"
+  | "tech"
+  | "business"
+  | "lifestyle"
+  | "beauty"
+  | "fashion"
+  | "travel"
+  | "fitness"
+  | "asmr"
+  | "podcast"
+  | "interview"
+  | "event"
+  | "q_and_a";
+
+export type LiveStatus = "scheduled" | "live" | "ended" | "cancelled";
+
+export type LiveKind = "audio" | "video";
+
+export type AutoModLevel = "off" | "low" | "medium" | "high" | "strict";
+
+export type LiveAgeRestriction = "13+" | "16+" | "18+";
+
+export type SimulcastDestination = {
+  platform: "youtube" | "twitch" | "facebook" | "kick" | "custom_rtmp";
+  rtmp_url: string;
+  stream_key_encrypted: string;
+  is_active: boolean;
+};
+
+/* Live stream session (anciennement CircleLiveRoom — généralisé migration
+ * 0155). Le type CircleLiveRoom reste un alias pour back-compat Sprint E.
+ * Note : à ne pas confondre avec LiveSession (Sprint Jobs) qui désigne
+ * les sessions live recrutement. */
+export type LiveStreamSession = {
   id: string;
-  circle_id: string;
+  /* circle_id nullable depuis migration 0155 (lives publics). */
+  circle_id: string | null;
   host_id: string;
-  kind: "audio" | "video";
+  kind: LiveKind;
   title: string;
   description: string | null;
-  status: "scheduled" | "live" | "ended" | "cancelled";
+  status: LiveStatus;
   scheduled_at: string | null;
   started_at: string | null;
   ended_at: string | null;
   recording_url: string | null;
   participants_count: number;
   peak_participants: number;
+  /* Migration 0155 — Identité étendue. */
+  visibility: LiveVisibility;
+  category: LiveCategory | null;
+  tags: string[];
+  language: string;
+  thumbnail_url: string | null;
+  age_restriction: LiveAgeRestriction | null;
+  /* Migration 0155 — Chat config & modération. */
+  chat_enabled: boolean;
+  chat_followers_only: boolean;
+  chat_subscribers_only: boolean;
+  chat_slow_mode_seconds: number;
+  chat_emote_only: boolean;
+  auto_mod_level: AutoModLevel;
+  /* Migration 0155 — Monétisation. */
+  is_super_chat_enabled: boolean;
+  is_virtual_gifts_enabled: boolean;
+  is_tips_enabled: boolean;
+  is_subscribers_only_stream: boolean;
+  revenue_total_cents: number;
+  /* Migration 0155 — Engagement counters étendus. */
+  viewers_unique_total: number;
+  chat_messages_count: number;
+  reactions_count: number;
+  follows_gained: number;
+  /* Migration 0155 — VOD. */
+  vod_thumbnail_url: string | null;
+  vod_duration_seconds: number | null;
+  transcript_url: string | null;
+  is_recording: boolean;
+  /* Migration 0155 — Simulcast V2 ready. */
+  simulcast_destinations: SimulcastDestination[];
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type CircleLiveRoomWithHost = CircleLiveRoom & {
+/* Alias rétro-compat. Le code Sprint E utilisait CircleLiveRoom — on garde
+ * pour ne pas casser les imports existants. */
+export type CircleLiveRoom = LiveStreamSession;
+
+export type CircleLiveRoomWithHost = LiveStreamSession & {
   host: Pick<Profile, "id" | "full_name" | "username" | "avatar_url"> | null;
+};
+
+export type LiveStreamSessionWithHost = CircleLiveRoomWithHost;
+
+/* Row retourné par list_live_now() RPC (sous-set des colonnes). */
+export type LiveNowItem = {
+  id: string;
+  host_id: string;
+  circle_id: string | null;
+  title: string;
+  description: string | null;
+  kind: LiveKind;
+  category: LiveCategory | null;
+  tags: string[];
+  language: string;
+  thumbnail_url: string | null;
+  visibility: LiveVisibility;
+  status: LiveStatus;
+  started_at: string | null;
+  participants_count: number;
+  peak_participants: number;
+  viewers_unique_total: number;
 };
 
 /* Chantier Cercles v3 — Karma membre (agrégat par cercle). */
