@@ -518,6 +518,21 @@ export async function joinCircle(circleId: string) {
     console.error("[joinCircle] bot engine error:", botErr);
   }
 
+  /* Sprint I — Hook webhook sortant member.joined. */
+  try {
+    const { deliverCircleWebhook } = await import(
+      "@/lib/webhooks/delivery"
+    );
+    void deliverCircleWebhook({
+      event: "member.joined",
+      circle_id: circleId,
+      occurred_at: new Date().toISOString(),
+      data: { user_id: user.id },
+    });
+  } catch (whErr) {
+    console.error("[joinCircle] webhook hook failed:", whErr);
+  }
+
   revalidatePath("/circles");
   return { ok: true as const };
 }
@@ -687,6 +702,30 @@ export async function createCirclePost(formData: FormData) {
       });
     } catch (pushErr) {
       console.error("[createCirclePost] push hook failed:", pushErr);
+    }
+  }
+
+  /* Sprint I — Hook webhook sortant : fire post.created vers les
+     intégrations externes configurées par les admins du cercle. */
+  if (inserted) {
+    try {
+      const postId = (inserted as { id?: string } | null)?.id ?? null;
+      const { deliverCircleWebhook } = await import(
+        "@/lib/webhooks/delivery"
+      );
+      void deliverCircleWebhook({
+        event: "post.created",
+        circle_id: parsed.data.circle_id,
+        occurred_at: new Date().toISOString(),
+        data: {
+          post_id: postId,
+          author_id: user.id,
+          channel_id: parsed.data.channel_id ?? null,
+          body_preview: parsed.data.body.slice(0, 280),
+        },
+      });
+    } catch (whErr) {
+      console.error("[createCirclePost] webhook hook failed:", whErr);
     }
   }
 

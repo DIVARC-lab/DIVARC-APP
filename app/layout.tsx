@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toaster } from "@/components/Toaster";
 import { themeBootstrapScript } from "@/components/ThemeProvider";
 import { PWARegister } from "@/components/PWARegister";
@@ -116,6 +117,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-bg text-fg">
+        <OfflineBanner />
         {children}
         <Toaster />
         <PWARegister />
