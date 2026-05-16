@@ -452,7 +452,7 @@ AS $$
        AND is_banned = false
   ),
   karma AS (
-    SELECT user_id, COALESCE(SUM(amount), 0)::integer AS karma_30d
+    SELECT user_id, COALESCE(SUM(delta), 0)::integer AS karma_30d
       FROM public.circle_karma_ledger
      WHERE circle_id = p_circle_id
        AND created_at > now() - interval '30 days'
