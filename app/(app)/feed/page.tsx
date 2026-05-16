@@ -26,6 +26,7 @@ import { StoriesRow } from "./_components/StoriesRow";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
 import { ColdStartBanner } from "./_components/ColdStartBanner";
+import { FriendsLiveBanner } from "./_components/FriendsLiveBanner";
 import { LivesNowCarousel } from "./_components/LivesNowCarousel";
 import { FeedPostList } from "./_components/FeedPostList";
 import { KeyboardShortcuts } from "./_components/KeyboardShortcuts";
@@ -235,6 +236,11 @@ export default async function FeedPage({
                 maintenant". Caché si aucun live actif (component retourne
                 null). RLS visibility appliqué via la RPC. */}
             <LivesNowCarousel userId={user.id} />
+
+            {/* Étape 10 — Banner "Tes amis sont en direct" : liste
+                compacte des lives des connexions (follows + friends).
+                Retourne null si zéro. */}
+            <FriendsLiveBanner userId={user.id} />
 
             {/* Composer chip — trigger du ContentCreatorModal global. */}
             <div className="px-4 sm:px-6 pb-3.5">
