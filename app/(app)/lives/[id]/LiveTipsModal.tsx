@@ -8,7 +8,7 @@
  * Style dark cohérent avec studio (bg cream/5 backdrop-blur). 90/10
  * split (host 90% / DIVARC 10%) calculé côté server action. */
 
-import { Heart, Loader2, X } from "lucide-react";
+import { Heart, Loader2, Sparkles, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createLiveTipCheckout } from "../tip-actions";
@@ -19,6 +19,46 @@ const QUICK_AMOUNTS = [
   { label: "5 €", value: 500 },
   { label: "10 €", value: 1000 },
 ];
+
+/* Étape 14 — Tiers super-chat (synchro avec migration 0158 et webhook). */
+function computeSuperChatTier(amountCents: number): number {
+  if (amountCents >= 10000) return 7;
+  if (amountCents >= 5000) return 6;
+  if (amountCents >= 2000) return 5;
+  if (amountCents >= 1000) return 4;
+  if (amountCents >= 500) return 3;
+  if (amountCents >= 200) return 2;
+  return 1;
+}
+
+function pinDurationLabel(tier: number): string {
+  switch (tier) {
+    case 7:
+      return "1 heure";
+    case 6:
+      return "30 minutes";
+    case 5:
+      return "10 minutes";
+    case 4:
+      return "5 minutes";
+    case 3:
+      return "2 minutes";
+    case 2:
+      return "30 secondes";
+    default:
+      return "pas épinglé (highlight seulement)";
+  }
+}
+
+const TIER_BADGE_BG: Record<number, string> = {
+  1: "bg-blue-500",
+  2: "bg-teal-500",
+  3: "bg-emerald-500",
+  4: "bg-amber-400 text-amber-950",
+  5: "bg-orange-500",
+  6: "bg-rose-600",
+  7: "bg-fuchsia-600",
+};
 
 type Props = {
   sessionId: string;
@@ -31,6 +71,7 @@ export function LiveTipsModal({ sessionId, open, onClose }: Props) {
   const [customMode, setCustomMode] = useState(false);
   const [customEuros, setCustomEuros] = useState("");
   const [message, setMessage] = useState("");
+  const [isSuperChat, setIsSuperChat] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function reset() {
@@ -38,6 +79,7 @@ export function LiveTipsModal({ sessionId, open, onClose }: Props) {
     setCustomMode(false);
     setCustomEuros("");
     setMessage("");
+    setIsSuperChat(false);
   }
 
   function handleClose() {
@@ -73,11 +115,16 @@ export function LiveTipsModal({ sessionId, open, onClose }: Props) {
       toast.error("Maximum 500 €.");
       return;
     }
+    if (isSuperChat && message.trim().length === 0) {
+      toast.error("Le message est obligatoire pour un super-chat.");
+      return;
+    }
     startTransition(async () => {
       const res = await createLiveTipCheckout({
         sessionId,
         amountCents,
         message: message.trim() || undefined,
+        isSuperChat,
       });
       if (!res.ok) {
         toast.error(res.error);
@@ -184,17 +231,67 @@ export function LiveTipsModal({ sessionId, open, onClose }: Props) {
           ) : null}
         </fieldset>
 
-        {/* Message optionnel */}
+        {/* Toggle super-chat */}
+        <button
+          type="button"
+          onClick={() => setIsSuperChat((v) => !v)}
+          className={`w-full mb-3 flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors ${
+            isSuperChat
+              ? "bg-fuchsia-500/20 border-fuchsia-300/50 text-fuchsia-100"
+              : "bg-cream/5 border-cream/15 text-cream/80 hover:bg-cream/10"
+          }`}
+          aria-pressed={isSuperChat}
+        >
+          <span className="flex items-center gap-2">
+            <Sparkles
+              className={`w-3.5 h-3.5 ${isSuperChat ? "text-fuchsia-200" : "text-cream/60"}`}
+              aria-hidden
+            />
+            <span className="text-[12px] font-bold">
+              {isSuperChat ? "Mode super-chat activé" : "Activer le mode super-chat"}
+            </span>
+          </span>
+          <span
+            className={`inline-flex items-center w-9 h-5 rounded-full transition-colors ${
+              isSuperChat ? "bg-fuchsia-500" : "bg-cream/20"
+            }`}
+          >
+            <span
+              className={`w-4 h-4 rounded-full bg-cream transition-transform ${
+                isSuperChat ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
+
+        {/* Tier preview (si super-chat actif) */}
+        {isSuperChat && amountCents >= 100 ? (
+          <div
+            className={`mb-3 rounded-xl px-3 py-2 ${TIER_BADGE_BG[computeSuperChatTier(amountCents)] ?? "bg-cream/10"}`}
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-white">
+              Tier {computeSuperChatTier(amountCents)} · épinglé{" "}
+              {pinDurationLabel(computeSuperChatTier(amountCents))}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Message (obligatoire si super-chat) */}
         <label className="block mb-4">
           <span className="block text-[10px] font-bold uppercase tracking-wider text-cream/60 mb-1.5">
-            Message (optionnel)
+            {isSuperChat ? "Message (obligatoire)" : "Message (optionnel)"}
           </span>
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, 200))}
-            placeholder="Un petit mot pour le host…"
+            placeholder={
+              isSuperChat
+                ? "Ton message sera épinglé dans le chat du live…"
+                : "Un petit mot pour le host…"
+            }
             rows={2}
             maxLength={200}
+            required={isSuperChat}
             className="w-full px-3 py-2 rounded-xl bg-cream/10 text-cream text-[13px] placeholder:text-cream/40 focus:outline-none focus:bg-cream/15 border border-transparent focus:border-cream/30 resize-none"
           />
           <span className="block mt-1 text-[10px] text-cream/40 text-right tabular-nums">
@@ -236,11 +333,22 @@ export function LiveTipsModal({ sessionId, open, onClose }: Props) {
           </button>
           <button
             type="submit"
-            disabled={isPending || amountCents < 100 || amountCents > 50000}
-            className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-rose-500 text-cream text-[12px] font-bold hover:bg-rose-600 transition-colors disabled:opacity-60"
+            disabled={
+              isPending ||
+              amountCents < 100 ||
+              amountCents > 50000 ||
+              (isSuperChat && message.trim().length === 0)
+            }
+            className={`inline-flex items-center gap-1.5 h-10 px-5 rounded-full text-cream text-[12px] font-bold transition-colors disabled:opacity-60 ${
+              isSuperChat
+                ? "bg-fuchsia-600 hover:bg-fuchsia-700"
+                : "bg-rose-500 hover:bg-rose-600"
+            }`}
           >
             {isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+            ) : isSuperChat ? (
+              <Sparkles className="w-3.5 h-3.5" aria-hidden />
             ) : (
               <Heart className="w-3.5 h-3.5" aria-hidden />
             )}

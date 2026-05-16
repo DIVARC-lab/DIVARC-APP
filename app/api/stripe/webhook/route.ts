@@ -81,12 +81,38 @@ export async function POST(req: NextRequest) {
           /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
           const { data: tip } = await (admin as any)
             .from("live_tips")
-            .select("id, amount_cents")
+            .select("id, amount_cents, is_super_chat, tier")
             .eq("stripe_checkout_session_id", session.id)
             .maybeSingle();
 
           if (tip) {
-            const t = tip as { id: string; amount_cents: number };
+            const t = tip as {
+              id: string;
+              amount_cents: number;
+              is_super_chat: boolean;
+              tier: number | null;
+            };
+
+            /* Étape 14 — Super-chat : calcule pinned_until_at depuis tier.
+               Durées synchronisées avec migration 0158 (en secondes) :
+               tier 7=3600, 6=1800, 5=600, 4=300, 3=120, 2=30, 1=0. */
+            let pinnedUntilAt: string | null = null;
+            if (t.is_super_chat && t.tier !== null) {
+              const pinSecondsByTier: Record<number, number> = {
+                7: 3600,
+                6: 1800,
+                5: 600,
+                4: 300,
+                3: 120,
+                2: 30,
+                1: 0,
+              };
+              const pinSec = pinSecondsByTier[t.tier] ?? 0;
+              if (pinSec > 0) {
+                pinnedUntilAt = new Date(Date.now() + pinSec * 1000).toISOString();
+              }
+            }
+
             /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             await (admin as any)
               .from("live_tips")
@@ -96,6 +122,7 @@ export async function POST(req: NextRequest) {
                   ? String(session.payment_intent)
                   : null,
                 paid_at: new Date().toISOString(),
+                pinned_until_at: pinnedUntilAt,
               })
               .eq("id", t.id);
 

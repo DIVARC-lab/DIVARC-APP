@@ -21,7 +21,19 @@ const tipSchema = z.object({
   sessionId: z.string().uuid(),
   amountCents: z.number().int().min(100).max(50000),
   message: z.string().trim().max(200).optional(),
+  isSuperChat: z.boolean().optional(),
 });
+
+/* Étape 14 — Tiers super-chat (synchro avec migration 0158). */
+function computeSuperChatTier(amountCents: number): number {
+  if (amountCents >= 10000) return 7;
+  if (amountCents >= 5000) return 6;
+  if (amountCents >= 2000) return 5;
+  if (amountCents >= 1000) return 4;
+  if (amountCents >= 500) return 3;
+  if (amountCents >= 200) return 2;
+  return 1;
+}
 
 export async function createLiveTipCheckout(
   args: z.infer<typeof tipSchema>,
@@ -108,6 +120,16 @@ export async function createLiveTipCheckout(
   );
   const hostAmount = parsed.data.amountCents - appFeeAmount;
 
+  /* Étape 14 — Super-chat : message obligatoire si flag activé. */
+  const isSuperChat = parsed.data.isSuperChat === true;
+  if (isSuperChat && (!parsed.data.message || parsed.data.message.length === 0)) {
+    return {
+      ok: false as const,
+      error: "Le message est obligatoire pour un super-chat.",
+    };
+  }
+  const tier = isSuperChat ? computeSuperChatTier(parsed.data.amountCents) : null;
+
   /* URLs Stripe pour redirection. */
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ??
@@ -144,6 +166,7 @@ export async function createLiveTipCheckout(
           divarc_host_id: r.host_id,
           divarc_viewer_id: user.id,
           divarc_message: parsed.data.message ?? "",
+          divarc_is_super_chat: isSuperChat ? "1" : "0",
         },
       },
       metadata: {
@@ -151,6 +174,7 @@ export async function createLiveTipCheckout(
         divarc_session_id: r.id,
         divarc_host_id: r.host_id,
         divarc_viewer_id: user.id,
+        divarc_is_super_chat: isSuperChat ? "1" : "0",
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
@@ -171,6 +195,8 @@ export async function createLiveTipCheckout(
     platform_amount_cents: appFeeAmount,
     message: parsed.data.message ?? null,
     status: "pending",
+    is_super_chat: isSuperChat,
+    tier,
   });
 
   return { ok: true as const, url: session.url };

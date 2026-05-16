@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTipsModal } from "./LiveTipsModal";
+import { SuperChatTicker } from "./SuperChatTicker";
 
 type Host = {
   id: string;
@@ -187,6 +188,11 @@ export function LiveViewerClient({
         {/* Étape 11 — Widget poll live (overlay top-right, polling 2s) */}
         <div className="absolute top-3 right-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <LivePollWidget sessionId={sessionId} />
+        </div>
+
+        {/* Étape 14 — Ticker super-chats (overlay top-left, polling 5s) */}
+        <div className="absolute top-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+          <SuperChatTicker sessionId={sessionId} />
         </div>
       </div>
 

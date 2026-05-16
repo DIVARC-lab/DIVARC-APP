@@ -30,6 +30,7 @@ import {
   endLiveStreamSession,
   startLiveStreamSession,
 } from "../../actions";
+import { SuperChatTicker } from "../SuperChatTicker";
 import { CreatePollModal } from "./CreatePollModal";
 
 type Props = {
@@ -205,6 +206,11 @@ export function LiveStudioClient({
         }}
       >
         <VideoConference />
+
+        {/* Étape 14 — Ticker super-chats (overlay top-left, polling 5s) */}
+        <div className="absolute top-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+          <SuperChatTicker sessionId={sessionId} />
+        </div>
 
         {/* Overlay top-right : Nouveau sondage (si live) + Démarrer/Terminer */}
         <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
