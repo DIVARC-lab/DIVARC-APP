@@ -14,6 +14,8 @@ const settingsSchema = z.object({
     "rising_voices",
     "inner_circle",
     "raw",
+    /* DSA art. 38 — Mode strictement chronologique, bypass total ranker. */
+    "chronological",
   ]),
 });
 

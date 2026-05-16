@@ -59,15 +59,21 @@ export async function rankFeedForUser(
 ): Promise<{ items: RankedPostItem[]; nextCursor: string | null }> {
   const limit = options.limit ?? 15;
 
-  /* Settings — détermine si chronological mode forcé. */
+  /* Settings — détermine si chronological mode forcé.
+     DSA art. 38 : on respecte 2 sources de vérité :
+       - chronological_mode (boolean legacy)
+       - default_feed_mode === 'chronological' (mode strict)
+     L'une OU l'autre = bypass ranker. */
   const { data: settings } = await supabase
     .from("user_algorithm_settings")
-    .select("chronological_mode, hidden_users")
+    .select("chronological_mode, default_feed_mode, hidden_users")
     .eq("user_id", userId)
     .maybeSingle();
 
   const isChrono =
-    options.chronologicalMode ?? settings?.chronological_mode ?? false;
+    options.chronologicalMode ??
+    settings?.chronological_mode ??
+    (settings?.default_feed_mode === "chronological" ? true : false);
   const hiddenUsers = settings?.hidden_users ?? [];
 
   /* Friend ids (utilisé en mode chrono ET algorithmique). */

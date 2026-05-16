@@ -403,13 +403,15 @@ export type NotificationType =
 
 export type PostVisibility = "public" | "friends" | "private";
 
-/* Chantier Feed v2.3 — modes du feed transparent. Cf. /about/feed-algorithm. */
+/* Chantier Feed v2.3 — modes du feed transparent. Cf. /about/feed-algorithm.
+ * "chronological" = DSA art. 38 (bypass total ranker, ORDER BY created_at DESC). */
 export type FeedMode =
   | "fresh"
   | "conversations"
   | "rising_voices"
   | "inner_circle"
-  | "raw";
+  | "raw"
+  | "chronological";
 
 export type FeedV2Item = {
   post_id: string;

@@ -58,6 +58,12 @@ const MODES: Array<{ id: FeedMode; label: string; desc: string }> = [
     desc: "amis + messages 30j",
   },
   { id: "raw", label: "Brut", desc: "chronologique strict, 0 filtre" },
+  /* DSA art. 38 — alternative obligatoire au ranking algorithmique. */
+  {
+    id: "chronological",
+    label: "Chronologique pur (DSA)",
+    desc: "ORDER BY date uniquement. Aucun ranker ni filtre. Conforme DSA art. 38.",
+  },
 ];
 
 const GUARDRAILS: Array<{
