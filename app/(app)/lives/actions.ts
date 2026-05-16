@@ -244,6 +244,52 @@ export async function startLiveStreamSession(
     .eq("id", parsed.data.sessionId);
   if (error) return { ok: false as const, error: error.message };
 
+  /* Étape 20 — Notif push aux followers + amis (uniquement à la
+     première transition scheduled → live, pas sur re-call). */
+  if (status === "scheduled") {
+    try {
+      const { data: roomDetails } = await (supabase as SupabaseAny)
+        .from("circle_live_rooms")
+        .select("title, category, visibility")
+        .eq("id", parsed.data.sessionId)
+        .maybeSingle();
+      const room2 = roomDetails as {
+        title: string;
+        category: string | null;
+        visibility: string;
+      } | null;
+      /* Ne notifie pas pour les lives privés / cercle / amis-only — la
+         découverte n'a pas de sens là. Notif seulement pour public et
+         unlisted (= lien partagé volontairement). */
+      const notifVisibilities = new Set(["public", "unlisted"]);
+      if (room2 && notifVisibilities.has(room2.visibility)) {
+        const { data: hostProfile } = await supabase
+          .from("profiles")
+          .select("full_name, username")
+          .eq("id", user.id)
+          .maybeSingle();
+        const hp = hostProfile as {
+          full_name: string | null;
+          username: string | null;
+        } | null;
+        const { pushLiveStartToFollowers } = await import(
+          "@/lib/push/liveStartAnnouncement"
+        );
+        await pushLiveStartToFollowers({
+          sessionId: parsed.data.sessionId,
+          hostId: user.id,
+          hostName: hp?.full_name ?? null,
+          hostUsername: hp?.username ?? null,
+          title: room2.title,
+          category: room2.category,
+        });
+      }
+    } catch (err) {
+      /* Fire-and-forget : ne bloque jamais le démarrage du live. */
+      console.error("[startLiveStreamSession] push failed", err);
+    }
+  }
+
   revalidatePath("/lives");
   revalidatePath(`/lives/${parsed.data.sessionId}`);
   return { ok: true as const };
