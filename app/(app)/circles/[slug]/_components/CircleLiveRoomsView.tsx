@@ -18,6 +18,7 @@
 
 import { CircleDot, Mic, Plus, Users, Video, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
@@ -48,6 +49,7 @@ export function CircleLiveRoomsView({
   currentUserId,
   initialRooms,
 }: Props) {
+  const router = useRouter();
   const [rooms, setRooms] = useState(initialRooms);
   const [creating, setCreating] = useState(false);
 
@@ -60,22 +62,15 @@ export function CircleLiveRoomsView({
   }
 
   async function handleJoin(roomId: string) {
+    /* Sprint E (LiveKit) — Marque l'user comme participant côté DB
+       (best-effort) puis redirige vers la salle live qui handle le
+       reste (token + WebRTC SFU). */
     const res = await joinCircleLiveRoom(roomId);
     if (!res.ok) {
       toast.error(res.error);
       return;
     }
-    /* V1 : on n'a pas encore de page live-room intégrée. On affiche
-       juste un toast et incrémente le compteur local. La vraie
-       intégration WebRTC viendra dans un commit suivant. */
-    toast.success("Tu as rejoint la room — UI WebRTC à venir (V2)");
-    setRooms((prev) =>
-      prev.map((r) =>
-        r.id === roomId
-          ? { ...r, participants_count: r.participants_count + 1 }
-          : r,
-      ),
-    );
+    router.push(`/circles/${circleSlug}/live/${roomId}`);
   }
 
   async function handleEnd(roomId: string) {
