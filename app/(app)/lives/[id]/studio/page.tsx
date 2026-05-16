@@ -1,15 +1,11 @@
-/* Étape 5 — Studio broadcaster pour le host.
- *
- * SSR : auth + check host_id = user.id (sinon redirect viewer).
- * Lecture session + transmis au client.
- */
+/* Étape 31/60 — Studio host V2 (page server fullscreen TikTok). */
 
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CircleDot } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isLiveKitConfigured } from "@/lib/livekit/server";
-import { LiveStudioClient } from "./LiveStudioClient";
+import { LiveStudioV2 } from "../v2/LiveStudioV2";
 
 type Params = Promise<{ id: string }>;
 
@@ -29,7 +25,7 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, kind, title, status, visibility, category, tags, language, started_at, is_recording",
+      "id, host_id, kind, title, status, visibility, category, tags, language, started_at, is_recording, viewers_current, peak_participants, participants_count, like_count, total_gifts_coins, revenue_total_cents, new_followers_count, layout",
     )
     .eq("id", id)
     .maybeSingle();
@@ -47,6 +43,21 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
     language: string;
     started_at: string | null;
     is_recording: boolean | null;
+    viewers_current: number;
+    peak_participants: number;
+    participants_count: number;
+    like_count: number;
+    total_gifts_coins: number;
+    revenue_total_cents: number;
+    new_followers_count: number;
+    layout:
+      | "solo"
+      | "panel_2"
+      | "panel_4"
+      | "panel_6"
+      | "panel_8"
+      | "pk_battle"
+      | "audio_only";
   };
 
   /* Pas l'host → renvoie vers la page viewer. */
@@ -56,78 +67,97 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
 
   if (r.status === "ended" || r.status === "cancelled") {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center bg-night text-cream p-6 text-center">
+      <div className="absolute inset-0 bg-black text-cream flex flex-col items-center justify-center p-6 text-center">
         <p className="text-[14px] font-bold mb-2">Ce live est terminé.</p>
         <Link
           href="/lives"
-          className="mt-3 text-[12px] text-gold font-bold hover:underline"
+          className="mt-3 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-gold text-night text-[12px] font-bold"
         >
-          ← Découvrir d&apos;autres lives
+          <ArrowLeft className="w-3 h-3" aria-hidden /> Retour
         </Link>
       </div>
     );
   }
 
-  const configured = isLiveKitConfigured();
-
-  return (
-    <div className="flex flex-col min-h-[calc(100dvh-56px)] bg-night text-cream">
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-cream/10">
+  if (!isLiveKitConfigured()) {
+    return (
+      <div className="absolute inset-0 bg-black text-cream flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-[14px] font-bold">LiveKit non configuré.</p>
         <Link
           href="/lives"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cream/10 hover:bg-cream/20 transition-colors"
-          aria-label="Quitter le studio"
+          className="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-gold text-night text-[12px] font-bold"
         >
-          <ArrowLeft className="w-4 h-4" aria-hidden />
+          <ArrowLeft className="w-3 h-3" aria-hidden /> Retour
         </Link>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-cream/60">
-              Studio · {r.kind === "audio" ? "Audio" : "Vidéo"}
-            </span>
-            <span className="text-cream/30 text-[10px]">·</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-cream/60">
-              {r.visibility}
-            </span>
-          </div>
-          <h1 className="text-[15px] font-bold truncate">{r.title}</h1>
-        </div>
-        {r.status === "live" ? (
-          <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-rose-600 text-white text-[10px] font-bold uppercase tracking-wider">
-            <CircleDot className="w-3 h-3 animate-pulse" aria-hidden />
-            Live
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2 h-6 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider">
-            Préparation
-          </span>
-        )}
-      </header>
+      </div>
+    );
+  }
 
-      <main className="flex-1 relative">
-        {!configured ? (
-          <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-            <p className="text-[14px] font-bold text-cream">
-              LiveKit non configuré
-            </p>
-            <p className="mt-2 text-[12px] text-cream/60 max-w-md leading-relaxed">
-              Les variables d&apos;environnement LIVEKIT_API_KEY,
-              LIVEKIT_API_SECRET, NEXT_PUBLIC_LIVEKIT_URL doivent être
-              définies côté serveur.
-            </p>
-          </div>
-        ) : (
-          <LiveStudioClient
-            sessionId={r.id}
-            kind={r.kind}
-            title={r.title}
-            currentStatus={r.status}
-            hostId={r.host_id}
-            startedAt={r.started_at ?? null}
-            isRecording={r.is_recording ?? false}
-          />
-        )}
-      </main>
+  /* Host profile dénormalisé pour LiveTopBar. */
+  const { data: hostProfile } = await supabase
+    .from("profiles")
+    .select("id, full_name, username, avatar_url")
+    .eq("id", r.host_id)
+    .maybeSingle();
+  const host = hostProfile as {
+    id: string;
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  } | null;
+  if (!host) return null;
+
+  /* Guests panel actif. */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data: panelData } = await (supabase as any)
+    .from("live_panel_participants")
+    .select(
+      "user_id, username, avatar_url, position, is_muted, is_video_off, gifts_received_during_session",
+    )
+    .eq("session_id", r.id)
+    .is("left_panel_at", null)
+    .order("position", { ascending: true });
+  const guests = (panelData ?? []) as Array<{
+    user_id: string;
+    username: string | null;
+    avatar_url: string | null;
+    position: number;
+    is_muted: boolean;
+    is_video_off: boolean;
+    gifts_received_during_session: number;
+  }>;
+
+  const validLayouts = [
+    "solo",
+    "panel_2",
+    "panel_4",
+    "panel_6",
+    "panel_8",
+    "audio_only",
+  ] as const;
+  type LayoutKind = (typeof validLayouts)[number];
+  const layout: LayoutKind = validLayouts.includes(r.layout as LayoutKind)
+    ? (r.layout as LayoutKind)
+    : "solo";
+
+  return (
+    <div className="relative h-[100dvh] w-full bg-black overflow-hidden">
+      <LiveStudioV2
+        sessionId={r.id}
+        kind={r.kind}
+        title={r.title}
+        host={host}
+        currentStatus={r.status}
+        startedAt={r.started_at ?? null}
+        isRecording={r.is_recording ?? false}
+        initialViewers={r.viewers_current ?? r.participants_count ?? 0}
+        initialLikeCount={r.like_count ?? 0}
+        initialPeak={r.peak_participants ?? 0}
+        initialCoins={r.total_gifts_coins ?? r.revenue_total_cents ?? 0}
+        initialNewFollowers={r.new_followers_count ?? 0}
+        layout={layout}
+        initialGuests={guests}
+      />
     </div>
   );
 }
