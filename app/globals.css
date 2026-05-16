@@ -396,6 +396,19 @@ input:focus-visible,
   animation: heart-float 2200ms ease-out forwards;
 }
 
+/* Live — Reduced motion : désactive toutes les animations marquées. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-heart-float,
+  .animate-gift-rise,
+  .animate-gift-burst,
+  .animate-gift-mythic,
+  .animate-gift-mythic-bg,
+  .animate-gift-particle,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
+
 /* Live — Guest request card glow pulse gold. */
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 40px -4px rgba(244, 185, 66, 0.5); }
