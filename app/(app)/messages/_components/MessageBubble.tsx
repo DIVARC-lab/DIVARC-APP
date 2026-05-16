@@ -36,6 +36,9 @@ import {
 import { AudioPlayer } from "./AudioPlayer";
 import { ForwardPicker } from "./ForwardPicker";
 import { LinkifiedText } from "./LinkifiedText";
+import { PaymentMessageInline } from "./PaymentMessageInline";
+import { PollMessageInline } from "./PollMessageInline";
+import { ShareMessageInline } from "./ShareMessageInline";
 import { MessageActionsSheet } from "./MessageActionsSheet";
 import { MessageReactions } from "./MessageReactions";
 import { ReactionPicker } from "./ReactionPicker";
@@ -708,9 +711,48 @@ export function MessageBubble({
                     </span>
                   ) : null}
                 </div>
-                <p className="whitespace-pre-wrap break-words">
-                  <LinkifiedText text={displayBody ?? ""} />
-                </p>
+                {/* Rendu spécifique selon type. Si type custom (poll,
+                    payment, post_share, …) → composant inline dédié.
+                    Sinon → LinkifiedText classique. */}
+                {(() => {
+                  /* Cast string : les nouveaux types (poll, payment,
+                     post_share, etc.) ne sont pas encore dans le union
+                     TS, donc on compare en string brut. Cohérent avec
+                     l'extension du check constraint SQL (migration 0177). */
+                  const t = message.type as string;
+                  if (t === "poll") {
+                    return <PollMessageInline messageId={message.id} />;
+                  }
+                  if (t === "payment") {
+                    return (
+                      <PaymentMessageInline
+                        messageId={message.id}
+                        currentUserId={currentUserId}
+                      />
+                    );
+                  }
+                  const shareKinds = [
+                    "post_share",
+                    "profile_share",
+                    "listing_share",
+                    "job_share",
+                    "circle_invite",
+                    "event_invite",
+                  ] as const;
+                  if (shareKinds.includes(t as (typeof shareKinds)[number])) {
+                    return (
+                      <ShareMessageInline
+                        kind={t as (typeof shareKinds)[number]}
+                        body={displayBody ?? ""}
+                      />
+                    );
+                  }
+                  return (
+                    <p className="whitespace-pre-wrap break-words">
+                      <LinkifiedText text={displayBody ?? ""} />
+                    </p>
+                  );
+                })()}
                 {message.edited_at ? (
                   <p
                     className={cn(
