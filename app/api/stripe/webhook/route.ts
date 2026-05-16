@@ -197,6 +197,32 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        /* Message payment P2P checkout. */
+        if (session.metadata?.divarc_kind === "message_payment") {
+          const msgId = session.metadata?.divarc_message_id;
+          if (!msgId) break;
+
+          let admin;
+          try {
+            admin = createAdminClient();
+          } catch {
+            admin = supabase;
+          }
+
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          await (admin as any)
+            .from("message_payments")
+            .update({
+              status: "paid",
+              stripe_payment_intent_id: session.payment_intent
+                ? String(session.payment_intent)
+                : null,
+              paid_at: new Date().toISOString(),
+            })
+            .eq("stripe_checkout_session_id", session.id);
+          break;
+        }
+
         /* Existing : marketplace order checkout. */
         const orderId = session.metadata?.order_id;
         if (!orderId) break;
