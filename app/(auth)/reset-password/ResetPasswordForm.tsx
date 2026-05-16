@@ -1,57 +1,32 @@
 "use client";
 
-import { ArrowRight, Mail, Lock } from "lucide-react";
-import Link from "next/link";
+import { ArrowRight, Lock } from "lucide-react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   Field,
   FieldError,
+  FieldHint,
   FieldLabel,
 } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { signIn } from "./actions";
+import { updatePassword } from "./actions";
 
-export function LoginForm() {
-  const [state, formAction, pending] = useActionState(signIn, undefined);
+type State = { error?: string } | undefined;
+
+export function ResetPasswordForm() {
+  const [state, formAction, pending] = useActionState<State, FormData>(
+    updatePassword,
+    undefined,
+  );
   const hasError = Boolean(state?.error);
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
       <Field>
-        <FieldLabel htmlFor="email" required>
-          Email
+        <FieldLabel htmlFor="password" required>
+          Nouveau mot de passe
         </FieldLabel>
-        <div className="relative">
-          <Mail
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
-            aria-hidden
-          />
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="toi@exemple.com"
-            className="pl-11"
-            invalid={hasError}
-          />
-        </div>
-      </Field>
-
-      <Field>
-        <div className="flex items-center justify-between">
-          <FieldLabel htmlFor="password" required>
-            Mot de passe
-          </FieldLabel>
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-night-muted hover:text-night transition-colors"
-          >
-            Mot de passe oublié ?
-          </Link>
-        </div>
         <div className="relative">
           <Lock
             className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
@@ -62,8 +37,33 @@ export function LoginForm() {
             name="password"
             type="password"
             required
-            autoComplete="current-password"
-            placeholder="••••••••"
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="8 caractères minimum"
+            className="pl-11"
+            invalid={hasError}
+          />
+        </div>
+        <FieldHint>Au moins 8 caractères. Mélange lettres et chiffres.</FieldHint>
+      </Field>
+
+      <Field>
+        <FieldLabel htmlFor="confirm" required>
+          Confirme le mot de passe
+        </FieldLabel>
+        <div className="relative">
+          <Lock
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none"
+            aria-hidden
+          />
+          <Input
+            id="confirm"
+            name="confirm"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="Re-saisis ton mot de passe"
             className="pl-11"
             invalid={hasError}
           />
@@ -73,10 +73,10 @@ export function LoginForm() {
 
       <Button type="submit" loading={pending} size="lg" className="w-full">
         {pending ? (
-          "Connexion..."
+          "Mise à jour..."
         ) : (
           <>
-            Se connecter
+            Mettre à jour mon mot de passe
             <ArrowRight className="w-4 h-4" aria-hidden />
           </>
         )}
