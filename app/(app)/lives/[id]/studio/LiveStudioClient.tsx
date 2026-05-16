@@ -36,6 +36,7 @@ import { LiveGoalBar } from "../LiveGoalBar";
 import { SuperChatTicker } from "../SuperChatTicker";
 import { CreateGoalModal } from "./CreateGoalModal";
 import { CreatePollModal } from "./CreatePollModal";
+import { LiveDurationBadge } from "./LiveDurationBadge";
 
 type Props = {
   sessionId: string;
@@ -43,6 +44,8 @@ type Props = {
   title: string;
   currentStatus: "scheduled" | "live" | "ended" | "cancelled";
   hostId: string;
+  startedAt: string | null;
+  isRecording: boolean;
 };
 
 type TokenResponse = {
@@ -57,6 +60,8 @@ export function LiveStudioClient({
   kind,
   currentStatus,
   hostId,
+  startedAt: initialStartedAt,
+  isRecording,
 }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
@@ -67,6 +72,7 @@ export function LiveStudioClient({
   const [pollModalOpen, setPollModalOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [startedAt, setStartedAt] = useState<string | null>(initialStartedAt);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -103,7 +109,12 @@ export function LiveStudioClient({
         return;
       }
       setStatus("live");
-      toast.success("Tu es en direct !");
+      setStartedAt(new Date().toISOString());
+      /* Étape 25 — Récap actions effectuées au démarrage. */
+      const pieces = ["Tu es en direct"];
+      if (isRecording) pieces.push("enregistrement actif");
+      pieces.push("notifs aux followers envoyées");
+      toast.success(`${pieces.join(" · ")} !`, { duration: 4000 });
     });
   }
 
@@ -229,6 +240,16 @@ export function LiveStudioClient({
         <div className="absolute bottom-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <LiveGoalBar sessionId={sessionId} />
         </div>
+
+        {/* Étape 25 — Badge durée live + REC indicator (top-center). */}
+        {status === "live" ? (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+            <LiveDurationBadge
+              startedAt={startedAt}
+              isRecording={isRecording}
+            />
+          </div>
+        ) : null}
 
         {/* Overlay top-right : Objectif + Sondage (si live) + Démarrer/Terminer */}
         <div className="absolute top-3 right-3 z-30 flex items-center gap-2">

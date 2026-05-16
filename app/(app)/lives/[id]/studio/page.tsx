@@ -29,7 +29,7 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, kind, title, status, visibility, category, tags, language",
+      "id, host_id, kind, title, status, visibility, category, tags, language, started_at, is_recording",
     )
     .eq("id", id)
     .maybeSingle();
@@ -45,6 +45,8 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
     category: string | null;
     tags: string[];
     language: string;
+    started_at: string | null;
+    is_recording: boolean | null;
   };
 
   /* Pas l'host → renvoie vers la page viewer. */
@@ -121,6 +123,8 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
             title={r.title}
             currentStatus={r.status}
             hostId={r.host_id}
+            startedAt={r.started_at ?? null}
+            isRecording={r.is_recording ?? false}
           />
         )}
       </main>
