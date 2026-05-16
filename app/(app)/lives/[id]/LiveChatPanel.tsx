@@ -11,7 +11,10 @@
 
 import {
   Loader2,
+  LogOut,
   MessageSquare,
+  Pin,
+  PinOff,
   Send,
   Trash2,
   X,
@@ -20,6 +23,11 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { createClient } from "@/lib/supabase/client";
+import {
+  kickFromLive,
+  pinChatMessage,
+  unpinChatMessage,
+} from "../admin-actions";
 import {
   deleteLiveChatMessage,
   sendLiveChatMessage,
@@ -214,6 +222,48 @@ export function LiveChatPanel({
     });
   }
 
+  function handlePin(message: Msg) {
+    startTransition(async () => {
+      if (message.is_pinned) {
+        const res = await unpinChatMessage({ messageId: message.id });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        setMessages((prev) =>
+          prev.map((m) => (m.id === message.id ? { ...m, is_pinned: false } : m)),
+        );
+      } else {
+        const res = await pinChatMessage({ messageId: message.id });
+        if (!res.ok) {
+          toast.error(res.error);
+          return;
+        }
+        setMessages((prev) =>
+          prev.map((m) => ({
+            ...m,
+            is_pinned: m.id === message.id,
+          })),
+        );
+        toast.success("Message épinglé en haut du chat.");
+      }
+    });
+  }
+
+  function handleKick(userId: string, name: string) {
+    if (!confirm(`Exclure ${name} du live ?`)) return;
+    startTransition(async () => {
+      const res = await kickFromLive({ sessionId, userId });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(`${name} a été exclu·e du live.`);
+    });
+  }
+
+  const pinnedMessage = messages.find((m) => m.is_pinned) ?? null;
+
   if (!open) return null;
 
   return (
@@ -245,6 +295,37 @@ export function LiveChatPanel({
             <X className="w-4 h-4" aria-hidden />
           </button>
         </header>
+
+        {/* Message épinglé en bandeau top (TikTok-style) */}
+        {pinnedMessage ? (
+          <div className="px-3 py-2 bg-gold/15 border-b border-gold/30 flex items-start gap-2">
+            <Pin
+              className="w-3.5 h-3.5 text-gold mt-0.5 shrink-0"
+              aria-hidden
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gold mb-0.5">
+                Épinglé · {pinnedMessage.full_name ??
+                  pinnedMessage.username ??
+                  "Spectateur"}
+              </p>
+              <p className="text-[12px] text-cream/90 leading-snug break-words">
+                {pinnedMessage.content}
+              </p>
+            </div>
+            {isHost ? (
+              <button
+                type="button"
+                onClick={() => handlePin(pinnedMessage)}
+                disabled={isPending}
+                aria-label="Désépingler"
+                className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-cream/60 hover:bg-cream/10 hover:text-cream transition-colors"
+              >
+                <PinOff className="w-3 h-3" aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <ul
           ref={listRef}
@@ -294,18 +375,48 @@ export function LiveChatPanel({
                       {m.content}
                     </p>
                   </div>
-                  {canDelete ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(m.id)}
-                      disabled={isPending}
-                      aria-label="Supprimer le message"
-                      title="Supprimer"
-                      className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center w-6 h-6 rounded-full text-cream/60 hover:bg-rose-500/20 hover:text-rose-300"
-                    >
-                      <Trash2 className="w-3 h-3" aria-hidden />
-                    </button>
-                  ) : null}
+                  <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                    {isHost && !isFromHost ? (
+                      <button
+                        type="button"
+                        onClick={() => handlePin(m)}
+                        disabled={isPending}
+                        aria-label={m.is_pinned ? "Désépingler" : "Épingler"}
+                        title={m.is_pinned ? "Désépingler" : "Épingler"}
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-cream/60 hover:bg-gold/20 hover:text-gold"
+                      >
+                        {m.is_pinned ? (
+                          <PinOff className="w-3 h-3" aria-hidden />
+                        ) : (
+                          <Pin className="w-3 h-3" aria-hidden />
+                        )}
+                      </button>
+                    ) : null}
+                    {isHost && !isMine ? (
+                      <button
+                        type="button"
+                        onClick={() => handleKick(m.user_id, name)}
+                        disabled={isPending}
+                        aria-label="Exclure du live"
+                        title="Exclure du live"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-cream/60 hover:bg-rose-500/20 hover:text-rose-300"
+                      >
+                        <LogOut className="w-3 h-3" aria-hidden />
+                      </button>
+                    ) : null}
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(m.id)}
+                        disabled={isPending}
+                        aria-label="Supprimer le message"
+                        title="Supprimer"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full text-cream/60 hover:bg-rose-500/20 hover:text-rose-300"
+                      >
+                        <Trash2 className="w-3 h-3" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 </li>
               );
             })
