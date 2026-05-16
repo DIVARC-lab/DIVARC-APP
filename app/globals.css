@@ -396,6 +396,15 @@ input:focus-visible,
   animation: heart-float 2200ms ease-out forwards;
 }
 
+/* Live — Guest request card glow pulse gold. */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 40px -4px rgba(244, 185, 66, 0.5); }
+  50%      { box-shadow: 0 0 56px -2px rgba(244, 185, 66, 0.85); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 /* Live — cadeaux tier 4-5 : burst center scale + fade. */
 @keyframes gift-burst {
   0%   { opacity: 0; transform: scale(0.3) rotate(-15deg); }
