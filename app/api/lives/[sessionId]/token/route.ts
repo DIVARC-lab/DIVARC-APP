@@ -108,10 +108,17 @@ export async function GET(
         canJoin = Boolean(member);
         break;
       }
-      case "subscribers_only":
-        /* V2 : check abonnement streamer. */
-        canJoin = false;
+      case "subscribers_only": {
+        /* Étape 15 — Check abonnement actif vers le host via RPC
+           SECURITY DEFINER has_active_creator_subscription. */
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const { data: hasSub } = await (supabase as any).rpc(
+          "has_active_creator_subscription",
+          { p_creator_id: r.host_id },
+        );
+        canJoin = hasSub === true;
         break;
+      }
       case "private":
       default:
         canJoin = false;

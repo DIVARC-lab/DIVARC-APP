@@ -14,13 +14,14 @@
 import "@livekit/components-styles";
 
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
-import { Flag, Heart, Loader2, Share2, UserPlus } from "lucide-react";
+import { Flag, Heart, Loader2, Share2, Sparkles, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTipsModal } from "./LiveTipsModal";
+import { SubscribeCreatorModal } from "./SubscribeCreatorModal";
 import { SuperChatTicker } from "./SuperChatTicker";
 
 type Host = {
@@ -62,6 +63,7 @@ export function LiveViewerClient({
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
+  const [subOpen, setSubOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -220,14 +222,27 @@ export function LiveViewerClient({
           ) : (
             <div className="flex-1" />
           )}
-          <button
-            type="button"
-            onClick={handleFollow}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-gold text-night text-[11px] font-bold hover:bg-gold/90 transition-colors"
-          >
-            <UserPlus className="w-3.5 h-3.5" aria-hidden />
-            Suivre
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleFollow}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-cream/10 text-cream hover:bg-cream/20 transition-colors"
+              aria-label="Suivre"
+              title="Suivre"
+            >
+              <UserPlus className="w-3.5 h-3.5" aria-hidden />
+            </button>
+            {host ? (
+              <button
+                type="button"
+                onClick={() => setSubOpen(true)}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-gold text-night text-[11px] font-bold hover:bg-gold/90 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" aria-hidden />
+                S&apos;abonner
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {description ? (
@@ -284,6 +299,15 @@ export function LiveViewerClient({
         open={tipsOpen}
         onClose={() => setTipsOpen(false)}
       />
+
+      {host ? (
+        <SubscribeCreatorModal
+          creatorId={host.id}
+          creatorName={host.full_name ?? host.username ?? "Créateur"}
+          open={subOpen}
+          onClose={() => setSubOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

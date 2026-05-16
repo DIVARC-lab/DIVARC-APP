@@ -218,14 +218,24 @@ export async function POST(req: NextRequest) {
       }
       /* ============================================================
        * Sprint C — Subscription cercle (compte connecté)
+       * Étape 15 — Subscription creator (compte connecté)
        * ============================================================ */
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+        const kind = sub.metadata?.divarc_kind ?? null;
         const circleId = sub.metadata?.divarc_circle_id ?? null;
         const userId = sub.metadata?.divarc_user_id ?? null;
-        if (!circleId || !userId) {
+        const creatorId = sub.metadata?.divarc_creator_id ?? null;
+        const subscriberId = sub.metadata?.divarc_subscriber_id ?? null;
+        const tierStr = sub.metadata?.divarc_tier ?? null;
+
+        const isCreatorSub =
+          kind === "creator_subscription" || (creatorId && subscriberId);
+        const isCircleSub = !isCreatorSub && circleId && userId;
+
+        if (!isCreatorSub && !isCircleSub) {
           /* Pas une subscription DIVARC — ignore. */
           break;
         }
@@ -276,6 +286,40 @@ export async function POST(req: NextRequest) {
         const canceledAt = sub.canceled_at
           ? new Date(sub.canceled_at * 1000).toISOString()
           : null;
+
+        if (isCreatorSub) {
+          /* Étape 15 — sync creator_subscriptions.
+             Le pré-INSERT côté Server Action a créé une ligne
+             (subscriber_id, creator_id) status='incomplete'. On UPSERT
+             ON CONFLICT (subscriber_id, creator_id). */
+          const tier = tierStr ? Number.parseInt(tierStr, 10) : null;
+          const amountCents = firstItem?.price?.unit_amount ?? 0;
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          await (admin as any)
+            .from("creator_subscriptions")
+            .upsert(
+              {
+                subscriber_id: subscriberId,
+                creator_id: creatorId,
+                tier: tier && [1, 2, 3].includes(tier) ? tier : 1,
+                stripe_subscription_id: sub.id,
+                stripe_customer_id:
+                  typeof sub.customer === "string"
+                    ? sub.customer
+                    : sub.customer?.id ?? "",
+                stripe_price_id: stripePriceId,
+                status: sub.status,
+                amount_cents: amountCents,
+                currency: "EUR",
+                current_period_start: periodStart,
+                current_period_end: periodEnd,
+                cancel_at_period_end: sub.cancel_at_period_end ?? false,
+                canceled_at: canceledAt,
+              },
+              { onConflict: "subscriber_id,creator_id" },
+            );
+          break;
+        }
 
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
         await (admin as any)
