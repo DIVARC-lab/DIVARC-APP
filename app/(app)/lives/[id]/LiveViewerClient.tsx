@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { GiftAnimationOverlay } from "./GiftAnimationOverlay";
 import { GiftPanel } from "./GiftPanel";
+import { LiveGoalBar } from "./LiveGoalBar";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTipsModal } from "./LiveTipsModal";
 import { SubscribeCreatorModal } from "./SubscribeCreatorModal";
@@ -203,6 +204,11 @@ export function LiveViewerClient({
         {/* Étape 16 — Animations cadeaux qui montent (overlay full, polling 3s) */}
         <div className="absolute inset-0 z-20 pointer-events-none">
           <GiftAnimationOverlay sessionId={sessionId} />
+        </div>
+
+        {/* Étape 17 — Barre objectif (overlay bottom-left, polling 6s) */}
+        <div className="absolute bottom-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+          <LiveGoalBar sessionId={sessionId} />
         </div>
       </div>
 

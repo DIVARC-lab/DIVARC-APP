@@ -22,7 +22,7 @@ import {
   VideoConference,
   type LocalUserChoices,
 } from "@livekit/components-react";
-import { Loader2, Radio, Square, Vote } from "lucide-react";
+import { Loader2, Radio, Square, Target, Vote } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -31,7 +31,9 @@ import {
   startLiveStreamSession,
 } from "../../actions";
 import { GiftAnimationOverlay } from "../GiftAnimationOverlay";
+import { LiveGoalBar } from "../LiveGoalBar";
 import { SuperChatTicker } from "../SuperChatTicker";
+import { CreateGoalModal } from "./CreateGoalModal";
 import { CreatePollModal } from "./CreatePollModal";
 
 type Props = {
@@ -60,6 +62,7 @@ export function LiveStudioClient({
   const [choices, setChoices] = useState<LocalUserChoices | null>(null);
   const [status, setStatus] = useState(currentStatus);
   const [pollModalOpen, setPollModalOpen] = useState(false);
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -218,8 +221,23 @@ export function LiveStudioClient({
           <GiftAnimationOverlay sessionId={sessionId} />
         </div>
 
-        {/* Overlay top-right : Nouveau sondage (si live) + Démarrer/Terminer */}
+        {/* Étape 17 — Barre objectif côté host (bottom-left, polling 6s) */}
+        <div className="absolute bottom-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
+          <LiveGoalBar sessionId={sessionId} />
+        </div>
+
+        {/* Overlay top-right : Objectif + Sondage (si live) + Démarrer/Terminer */}
         <div className="absolute top-3 right-3 z-30 flex items-center gap-2">
+          {status === "live" ? (
+            <button
+              type="button"
+              onClick={() => setGoalModalOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-cream/15 text-cream border border-cream/20 backdrop-blur text-[11px] font-bold hover:bg-cream/25 transition-colors"
+            >
+              <Target className="w-3.5 h-3.5" aria-hidden />
+              Objectif
+            </button>
+          ) : null}
           {status === "live" ? (
             <button
               type="button"
@@ -267,6 +285,13 @@ export function LiveStudioClient({
         sessionId={sessionId}
         open={pollModalOpen}
         onClose={() => setPollModalOpen(false)}
+      />
+
+      {/* Modal création objectif (étape 17) */}
+      <CreateGoalModal
+        sessionId={sessionId}
+        open={goalModalOpen}
+        onClose={() => setGoalModalOpen(false)}
       />
     </div>
   );
