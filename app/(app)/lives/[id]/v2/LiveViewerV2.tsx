@@ -29,8 +29,10 @@ import { GiftPanel } from "../GiftPanel";
 import { CommentsStream } from "./CommentsStream";
 import { FloatingLikesLayer } from "./FloatingLikesLayer";
 import { GiftCinematicOverlay } from "./GiftCinematicOverlay";
+import { JoinedPanelPrompt } from "./JoinedPanelPrompt";
 import { LiveBottomBar } from "./LiveBottomBar";
 import { LiveCanvas } from "./LiveCanvas";
+import { LiveLikesCounter } from "./LiveLikesCounter";
 import { LiveTopBar } from "./LiveTopBar";
 import { TopGiftersPanel } from "./TopGiftersPanel";
 
@@ -324,6 +326,9 @@ export function LiveViewerV2({
 
           {/* Tap zone double-tap = like. */}
           <LiveTapToLikeOverlay />
+
+          {/* Modal qui s'ouvre quand viewer est accepté sur le panel. */}
+          <JoinedPanelPrompt sessionId={sessionId} />
         </LiveKitRoom>
 
         {/* Top bar */}
@@ -333,6 +338,14 @@ export function LiveViewerV2({
           isFollowing={false}
           onFollow={handleFollow}
         />
+
+        {/* Compteur likes prominent — sous le top bar, center. */}
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+          <LiveLikesCounter
+            sessionId={sessionId}
+            initialCount={initialLikeCount}
+          />
+        </div>
 
         {/* Top gifters overlay gauche milieu. */}
         <div className="absolute left-2 top-1/3 z-20 pointer-events-none">
