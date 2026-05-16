@@ -266,8 +266,10 @@ export async function startLiveStreamSession(
               host_id: user.id,
               egress_id: startRes.egressId,
               file_path: startRes.filepath,
+              thumbnail_url: null,
               status: "starting",
               storage_provider: "supabase",
+              raw_egress_info: { thumbnail_prefix: startRes.thumbnailPrefix },
             });
           } else {
             console.error(

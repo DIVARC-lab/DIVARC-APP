@@ -75,6 +75,30 @@ export async function POST(req: NextRequest) {
     const finalSize = fileResult?.size ? Number(fileResult.size) : null;
     const finalLocation = (fileResult?.location as string | undefined) ?? null;
 
+    /* Étape 23 — Thumbnail : prend la première image générée si dispo.
+       Pattern : filename_prefix + INDEX 6 digits + ".jpg" → ex.
+       thumbnails/{room}/{stamp}__000000.jpg.
+       Build URL publique Supabase Storage. */
+    let thumbnailUrl: string | null = null;
+    const imageResults = (egressInfo as any).imageResults as
+      | Array<{
+          filenamePrefix?: string;
+          imageCount?: bigint | number;
+        }>
+      | undefined;
+    if (
+      imageResults &&
+      imageResults.length > 0 &&
+      Number(imageResults[0]?.imageCount ?? 0) > 0
+    ) {
+      const prefix = imageResults[0]?.filenamePrefix ?? "";
+      const bucket = process.env.SUPABASE_STORAGE_VOD_BUCKET ?? "live-vod";
+      const supabasePublic = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (prefix && supabasePublic) {
+        thumbnailUrl = `${supabasePublic.replace(/\/$/, "")}/storage/v1/object/public/${bucket}/${prefix}000000.jpg`;
+      }
+    }
+
     const updates: Record<string, unknown> = {
       raw_egress_info: egressInfo as unknown,
     };
@@ -91,6 +115,7 @@ export async function POST(req: NextRequest) {
         updates.duration_seconds = finalDuration;
         updates.size_bytes = finalSize;
         updates.completed_at = new Date().toISOString();
+        if (thumbnailUrl) updates.thumbnail_url = thumbnailUrl;
       } else if (statusCode === 4) {
         updates.status = "failed";
         updates.error_message =
@@ -106,16 +131,17 @@ export async function POST(req: NextRequest) {
       .from("live_recordings")
       .update(updates)
       .eq("egress_id", egressId)
-      .select("session_id, duration_seconds, file_url")
+      .select("session_id, duration_seconds, file_url, thumbnail_url")
       .maybeSingle();
 
-    /* Propage l'URL VOD vers la table circle_live_rooms pour affichage
-       dans le viewer ended state. */
+    /* Propage l'URL VOD + thumbnail vers la table circle_live_rooms
+       pour affichage dans le viewer ended state. */
     if (rec && updates.status === "completed") {
       const r = rec as {
         session_id: string;
         duration_seconds: number | null;
         file_url: string | null;
+        thumbnail_url: string | null;
       };
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       await (admin as any)
@@ -123,6 +149,7 @@ export async function POST(req: NextRequest) {
         .update({
           vod_url: r.file_url,
           vod_duration_seconds: r.duration_seconds,
+          vod_thumbnail_url: r.thumbnail_url,
         })
         .eq("id", r.session_id);
     }

@@ -19,6 +19,8 @@ import {
   EgressClient,
   EncodedFileOutput,
   EncodedFileType,
+  ImageFileSuffix,
+  ImageOutput,
   S3Upload,
 } from "livekit-server-sdk";
 
@@ -52,7 +54,12 @@ export function isEgressConfigured(): boolean {
 }
 
 type StartResult =
-  | { ok: true; egressId: string; filepath: string }
+  | {
+      ok: true;
+      egressId: string;
+      filepath: string;
+      thumbnailPrefix: string;
+    }
   | { ok: false; error: string };
 
 export async function startRoomRecording(
@@ -66,8 +73,22 @@ export async function startRoomRecording(
   /* Filename horodaté + roomName slug pour éviter collisions. */
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const filepath = `vod/${roomName}/${stamp}.mp4`;
+  /* Étape 23 — Capture parallèle d'images pour thumbnails.
+     filename_prefix = thumbnails/{room}/{stamp}_
+     filename_suffix = INDEX → _000000.jpg, _000001.jpg, ... */
+  const thumbnailPrefix = `thumbnails/${roomName}/${stamp}_`;
 
   const s3Upload = new S3Upload({
+    accessKey: storage.accessKey,
+    secret: storage.secret,
+    region: storage.region,
+    bucket: storage.bucket,
+    endpoint: storage.endpoint,
+    forcePathStyle: true,
+  });
+
+  /* Second upload pour les images (même bucket, même creds). */
+  const s3UploadThumbs = new S3Upload({
     accessKey: storage.accessKey,
     secret: storage.secret,
     region: storage.region,
@@ -82,17 +103,26 @@ export async function startRoomRecording(
     output: { case: "s3", value: s3Upload },
   });
 
+  const imageOutput = new ImageOutput({
+    captureInterval: 30 /* 1 image toutes les 30 secondes */,
+    width: 640,
+    height: 360,
+    filenamePrefix: thumbnailPrefix,
+    filenameSuffix: ImageFileSuffix.IMAGE_SUFFIX_INDEX,
+    output: { case: "s3", value: s3UploadThumbs },
+  });
+
   try {
     const info = await client.startRoomCompositeEgress(
       roomName,
-      { file: fileOutput },
+      { file: fileOutput, images: imageOutput },
       {
         layout: "grid",
         audioOnly: false,
         videoOnly: false,
       },
     );
-    return { ok: true, egressId: info.egressId, filepath };
+    return { ok: true, egressId: info.egressId, filepath, thumbnailPrefix };
   } catch (err) {
     return {
       ok: false,
