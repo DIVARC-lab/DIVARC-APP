@@ -36,7 +36,7 @@ export default async function LiveViewerPage({
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled",
+      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled, is_tips_enabled",
     )
     .eq("id", id)
     .maybeSingle();
@@ -58,6 +58,7 @@ export default async function LiveViewerPage({
     participants_count: number;
     peak_participants: number;
     chat_enabled: boolean;
+    is_tips_enabled: boolean;
   };
 
   /* Host doit aller au studio. */
@@ -142,6 +143,7 @@ export default async function LiveViewerPage({
             description={r.description}
             tags={r.tags}
             chatEnabled={r.chat_enabled}
+            tipsEnabled={r.is_tips_enabled}
             host={host}
           />
         )}

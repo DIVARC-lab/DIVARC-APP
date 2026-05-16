@@ -14,12 +14,13 @@
 import "@livekit/components-styles";
 
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
-import { Flag, Loader2, Share2, UserPlus } from "lucide-react";
+import { Flag, Heart, Loader2, Share2, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
 import { LivePollWidget } from "./LivePollWidget";
+import { LiveTipsModal } from "./LiveTipsModal";
 
 type Host = {
   id: string;
@@ -35,6 +36,7 @@ type Props = {
   description: string | null;
   tags: string[];
   chatEnabled: boolean;
+  tipsEnabled: boolean;
   host: Host;
 };
 
@@ -47,16 +49,18 @@ type TokenResponse = {
 
 export function LiveViewerClient({
   sessionId,
-  kind,
+  kind: _kind,
   title,
   description,
   tags,
+  tipsEnabled,
   host,
 }: Props) {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tipsOpen, setTipsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -248,6 +252,16 @@ export function LiveViewerClient({
             <Share2 className="w-3.5 h-3.5" aria-hidden />
             Partager
           </button>
+          {tipsEnabled ? (
+            <button
+              type="button"
+              onClick={() => setTipsOpen(true)}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-rose-500 text-cream hover:bg-rose-600 text-[11px] font-bold transition-colors"
+            >
+              <Heart className="w-3.5 h-3.5" aria-hidden />
+              Tip
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={handleReport}
@@ -258,6 +272,12 @@ export function LiveViewerClient({
           </button>
         </div>
       </div>
+
+      <LiveTipsModal
+        sessionId={sessionId}
+        open={tipsOpen}
+        onClose={() => setTipsOpen(false)}
+      />
     </div>
   );
 }
