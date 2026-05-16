@@ -231,8 +231,8 @@ export function NewLiveForm({ presetCircle }: Props) {
           />
         </Field>
 
-        {/* Kind audio/video */}
-        <Field id="kind" label="Format" required>
+        {/* Kind audio/video — groupe de boutons custom, pas un input. */}
+        <Field id="kind" label="Format" required asGroup>
           <div className="grid grid-cols-2 gap-2">
             <KindOption
               label="Vidéo"
@@ -450,19 +450,36 @@ function Field({
   id,
   label,
   required,
+  asGroup,
   children,
 }: {
   id: string;
   label: string;
   required?: boolean;
+  /* asGroup : true quand les enfants ne sont PAS un input/select/textarea
+     simple (ex. groupe de boutons custom). Évite le warning a11y
+     "label htmlFor pointe vers un id inexistant". */
+  asGroup?: boolean;
   children: React.ReactNode;
 }) {
+  const labelClass =
+    "block text-[11px] font-bold uppercase tracking-wider text-night-dim mb-1.5";
+
+  if (asGroup) {
+    return (
+      <div role="group" aria-labelledby={`${id}-label`}>
+        <span id={`${id}-label`} className={labelClass}>
+          {label}
+          {required ? <span className="text-rose-600 ml-0.5">*</span> : null}
+        </span>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="block text-[11px] font-bold uppercase tracking-wider text-night-dim mb-1.5"
-      >
+      <label htmlFor={id} className={labelClass}>
         {label}
         {required ? <span className="text-rose-600 ml-0.5">*</span> : null}
       </label>
