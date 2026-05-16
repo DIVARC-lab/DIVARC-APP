@@ -385,6 +385,17 @@ input:focus-visible,
   animation: ping-once 0.7s ease-out forwards;
 }
 
+/* Live — cadeaux virtuels qui montent et disparaissent (étape 16). */
+@keyframes gift-rise {
+  0%   { opacity: 0; transform: translateY(0)     scale(0.5); }
+  15%  { opacity: 1; transform: translateY(-10px) scale(1.05); }
+  80%  { opacity: 1; transform: translateY(-200px) scale(1); }
+  100% { opacity: 0; transform: translateY(-260px) scale(0.85); }
+}
+.animate-gift-rise {
+  animation: gift-rise 4500ms ease-out forwards;
+}
+
 /* Hide scrollbar (utilisé sur le feed Reels en snap-scroll). */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

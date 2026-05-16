@@ -145,6 +145,58 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        /* Étape 16 — Virtual gift checkout. */
+        if (session.metadata?.divarc_kind === "virtual_gift") {
+          const giftSessionId = session.metadata?.divarc_session_id;
+          if (!giftSessionId) break;
+
+          let admin;
+          try {
+            admin = createAdminClient();
+          } catch {
+            admin = supabase;
+          }
+
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+          const { data: send } = await (admin as any)
+            .from("live_gift_sends")
+            .select("id, amount_cents")
+            .eq("stripe_checkout_session_id", session.id)
+            .maybeSingle();
+
+          if (send) {
+            const s = send as { id: string; amount_cents: number };
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            await (admin as any)
+              .from("live_gift_sends")
+              .update({
+                status: "paid",
+                stripe_payment_intent_id: session.payment_intent
+                  ? String(session.payment_intent)
+                  : null,
+                paid_at: new Date().toISOString(),
+              })
+              .eq("id", s.id);
+
+            /* Incrémente revenue_total_cents sur la session. */
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            const { data: r2 } = await (admin as any)
+              .from("circle_live_rooms")
+              .select("revenue_total_cents")
+              .eq("id", giftSessionId)
+              .maybeSingle();
+            const current =
+              (r2 as { revenue_total_cents?: number } | null)
+                ?.revenue_total_cents ?? 0;
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            await (admin as any)
+              .from("circle_live_rooms")
+              .update({ revenue_total_cents: current + s.amount_cents })
+              .eq("id", giftSessionId);
+          }
+          break;
+        }
+
         /* Existing : marketplace order checkout. */
         const orderId = session.metadata?.order_id;
         if (!orderId) break;

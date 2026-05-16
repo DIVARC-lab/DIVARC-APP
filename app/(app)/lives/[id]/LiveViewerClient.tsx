@@ -14,11 +14,13 @@
 import "@livekit/components-styles";
 
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
-import { Flag, Heart, Loader2, Share2, Sparkles, UserPlus } from "lucide-react";
+import { Flag, Gift, Heart, Loader2, Share2, Sparkles, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/Avatar";
+import { GiftAnimationOverlay } from "./GiftAnimationOverlay";
+import { GiftPanel } from "./GiftPanel";
 import { LivePollWidget } from "./LivePollWidget";
 import { LiveTipsModal } from "./LiveTipsModal";
 import { SubscribeCreatorModal } from "./SubscribeCreatorModal";
@@ -64,6 +66,7 @@ export function LiveViewerClient({
   const [error, setError] = useState<string | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
+  const [giftsOpen, setGiftsOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -196,6 +199,11 @@ export function LiveViewerClient({
         <div className="absolute top-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <SuperChatTicker sessionId={sessionId} />
         </div>
+
+        {/* Étape 16 — Animations cadeaux qui montent (overlay full, polling 3s) */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <GiftAnimationOverlay sessionId={sessionId} />
+        </div>
       </div>
 
       {/* Info bar : avatar host + actions */}
@@ -285,6 +293,14 @@ export function LiveViewerClient({
           ) : null}
           <button
             type="button"
+            onClick={() => setGiftsOpen(true)}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-amber-400 text-amber-950 hover:bg-amber-300 text-[11px] font-bold transition-colors"
+          >
+            <Gift className="w-3.5 h-3.5" aria-hidden />
+            Cadeau
+          </button>
+          <button
+            type="button"
             onClick={handleReport}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-cream/10 text-cream/70 hover:bg-rose-500/20 hover:text-rose-300 text-[11px] font-bold transition-colors ml-auto"
           >
@@ -298,6 +314,12 @@ export function LiveViewerClient({
         sessionId={sessionId}
         open={tipsOpen}
         onClose={() => setTipsOpen(false)}
+      />
+
+      <GiftPanel
+        sessionId={sessionId}
+        open={giftsOpen}
+        onClose={() => setGiftsOpen(false)}
       />
 
       {host ? (

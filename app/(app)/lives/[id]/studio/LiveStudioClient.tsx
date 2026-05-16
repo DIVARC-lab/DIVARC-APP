@@ -30,6 +30,7 @@ import {
   endLiveStreamSession,
   startLiveStreamSession,
 } from "../../actions";
+import { GiftAnimationOverlay } from "../GiftAnimationOverlay";
 import { SuperChatTicker } from "../SuperChatTicker";
 import { CreatePollModal } from "./CreatePollModal";
 
@@ -210,6 +211,11 @@ export function LiveStudioClient({
         {/* Étape 14 — Ticker super-chats (overlay top-left, polling 5s) */}
         <div className="absolute top-3 left-3 z-30 w-72 max-w-[calc(100%-1.5rem)] pointer-events-auto">
           <SuperChatTicker sessionId={sessionId} />
+        </div>
+
+        {/* Étape 16 — Animations cadeaux (host voit aussi le flux entrant) */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <GiftAnimationOverlay sessionId={sessionId} />
         </div>
 
         {/* Overlay top-right : Nouveau sondage (si live) + Démarrer/Terminer */}
