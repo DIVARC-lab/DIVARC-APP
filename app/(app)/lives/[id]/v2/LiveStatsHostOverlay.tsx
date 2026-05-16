@@ -57,14 +57,19 @@ export function LiveStatsHostOverlay({ sessionId, initial }: Props) {
         (payload) => {
           /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
           const r = payload.new as any;
-          setStats({
-            viewers_current: r.viewers_current ?? r.participants_count ?? 0,
-            peak_participants: r.peak_participants ?? 0,
-            total_likes_count: r.total_likes_count ?? r.like_count ?? 0,
+          /* Merge avec le state précédent — UPDATE Realtime peut ne
+             contenir que les colonnes modifiées (REPLICA IDENTITY DEFAULT). */
+          setStats((prev) => ({
+            viewers_current:
+              r.viewers_current ?? r.participants_count ?? prev.viewers_current,
+            peak_participants: r.peak_participants ?? prev.peak_participants,
+            total_likes_count:
+              r.total_likes_count ?? r.like_count ?? prev.total_likes_count,
             total_gifts_coins:
-              r.total_gifts_coins ?? r.revenue_total_cents ?? 0,
-            new_followers_count: r.new_followers_count ?? 0,
-          });
+              r.total_gifts_coins ?? r.revenue_total_cents ?? prev.total_gifts_coins,
+            new_followers_count:
+              r.new_followers_count ?? prev.new_followers_count,
+          }));
         },
       )
       .subscribe();

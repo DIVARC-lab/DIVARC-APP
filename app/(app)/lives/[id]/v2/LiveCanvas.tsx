@@ -51,19 +51,33 @@ export function LiveCanvas({ hostId, hostMeta, layout, guests }: Props) {
         room.localParticipant,
         ...Array.from(room.remoteParticipants.values()),
       ];
-      setParticipants(all);
+      /* Force new array identity → re-render même si participants
+         identiques (cas track publish/unpublish local). */
+      setParticipants([...all]);
     }
     updateParticipants();
     room.on("participantConnected", updateParticipants);
     room.on("participantDisconnected", updateParticipants);
     room.on("trackSubscribed", updateParticipants);
     room.on("trackUnsubscribed", updateParticipants);
+    room.on("trackPublished", updateParticipants);
+    room.on("trackUnpublished", updateParticipants);
+    room.on("localTrackPublished", updateParticipants);
+    room.on("localTrackUnpublished", updateParticipants);
+    room.on("trackMuted", updateParticipants);
+    room.on("trackUnmuted", updateParticipants);
     room.on("activeSpeakersChanged", updateParticipants);
     return () => {
       room.off("participantConnected", updateParticipants);
       room.off("participantDisconnected", updateParticipants);
       room.off("trackSubscribed", updateParticipants);
       room.off("trackUnsubscribed", updateParticipants);
+      room.off("trackPublished", updateParticipants);
+      room.off("trackUnpublished", updateParticipants);
+      room.off("localTrackPublished", updateParticipants);
+      room.off("localTrackUnpublished", updateParticipants);
+      room.off("trackMuted", updateParticipants);
+      room.off("trackUnmuted", updateParticipants);
       room.off("activeSpeakersChanged", updateParticipants);
     };
   }, [room]);

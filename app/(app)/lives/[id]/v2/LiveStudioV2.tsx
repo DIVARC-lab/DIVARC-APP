@@ -20,7 +20,15 @@ import {
   PreJoin,
   type LocalUserChoices,
 } from "@livekit/components-react";
-import { Loader2, Radio, Square } from "lucide-react";
+import {
+  Hand,
+  Loader2,
+  MessageSquare,
+  Radio,
+  Square,
+  Target,
+  Vote,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -30,7 +38,11 @@ import {
   startLiveStreamSession,
 } from "../../actions";
 import { LiveLikesProvider } from "../LiveLikesContext";
+import { LiveChatPanel } from "../LiveChatPanel";
 import { LiveDurationBadge } from "../studio/LiveDurationBadge";
+import { CreateGoalModal } from "../studio/CreateGoalModal";
+import { CreatePollModal } from "../studio/CreatePollModal";
+import { StageRequestsPanel } from "../studio/StageRequestsPanel";
 import { CommentsStream } from "./CommentsStream";
 import { FloatingLikesLayer } from "./FloatingLikesLayer";
 import { GiftCinematicOverlay } from "./GiftCinematicOverlay";
@@ -113,6 +125,11 @@ export function LiveStudioV2({
   const [guests, setGuests] = useState<PanelGuest[]>(initialGuests);
   const [viewersCount, setViewersCount] = useState(initialViewers);
   const [isPending, startTransition] = useTransition();
+  const [pollOpen, setPollOpen] = useState(false);
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [stageOpen, setStageOpen] = useState(false);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   /* Fetch token. */
   useEffect(() => {
@@ -377,6 +394,35 @@ export function LiveStudioV2({
           </>
         ) : null}
 
+        {/* Barre d'actions HOST (live actif) : Demandes, Sondage, Objectif, Chat. */}
+        {status === "live" ? (
+          <div
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 pointer-events-auto"
+          >
+            <HostActionPill
+              icon={<Hand className="w-3.5 h-3.5" aria-hidden />}
+              label="Demandes"
+              onClick={() => setStageOpen(true)}
+              badge={pendingRequestsCount}
+            />
+            <HostActionPill
+              icon={<MessageSquare className="w-3.5 h-3.5" aria-hidden />}
+              label="Chat"
+              onClick={() => setChatOpen(true)}
+            />
+            <HostActionPill
+              icon={<Vote className="w-3.5 h-3.5" aria-hidden />}
+              label="Sondage"
+              onClick={() => setPollOpen(true)}
+            />
+            <HostActionPill
+              icon={<Target className="w-3.5 h-3.5" aria-hidden />}
+              label="Objectif"
+              onClick={() => setGoalOpen(true)}
+            />
+          </div>
+        ) : null}
+
         {/* Bouton Démarrer / Terminer bottom-center. */}
         <div
           className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
@@ -412,7 +458,60 @@ export function LiveStudioV2({
             </button>
           )}
         </div>
+
+        {/* Modals admin */}
+        <CreatePollModal
+          sessionId={sessionId}
+          open={pollOpen}
+          onClose={() => setPollOpen(false)}
+        />
+        <CreateGoalModal
+          sessionId={sessionId}
+          open={goalOpen}
+          onClose={() => setGoalOpen(false)}
+        />
+        <LiveChatPanel
+          sessionId={sessionId}
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          currentUserId={host.id}
+          hostId={host.id}
+        />
+        <StageRequestsPanel
+          sessionId={sessionId}
+          open={stageOpen}
+          onClose={() => setStageOpen(false)}
+          onPendingCountChange={setPendingRequestsCount}
+        />
       </div>
     </LiveLikesProvider>
+  );
+}
+
+function HostActionPill({
+  icon,
+  label,
+  onClick,
+  badge,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  badge?: number;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-black/65 backdrop-blur-md border border-cream/15 text-cream hover:bg-black/80 text-[11px] font-bold transition-colors active:scale-95"
+    >
+      {icon}
+      {label}
+      {typeof badge === "number" && badge > 0 ? (
+        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold ring-2 ring-black">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null}
+    </button>
   );
 }

@@ -86,18 +86,28 @@ export function CommentsStream({ sessionId, hostId, currentUserId }: Props) {
     async function loadInitial() {
       try {
         const supabase = createClient();
+        /* JOIN profiles via PostgREST pour récupérer full_name + avatar
+           toujours (fallback si snapshot username était null). */
         /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
         const { data } = await (supabase as any)
           .from("live_chat_messages")
           .select(
-            "id, user_id, username, avatar_url, content, comment_type, is_pinned, gift_id, gift_quantity, gift_emoji, gift_color, likes_count, user_level, is_subscriber, is_moderator, created_at",
+            "id, user_id, username, avatar_url, content, comment_type, is_pinned, gift_id, gift_quantity, gift_emoji, gift_color, likes_count, user_level, is_subscriber, is_moderator, created_at, profiles!live_chat_messages_user_id_fkey(full_name, username, avatar_url)",
           )
           .eq("session_id", sessionId)
           .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .limit(MAX_VISIBLE);
         if (!alive) return;
-        const list = ((data ?? []) as Comment[]).reverse();
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const list = ((data ?? []) as any[])
+          .map((row) => ({
+            ...row,
+            username: row.username ?? row.profiles?.username ?? null,
+            full_name: row.profiles?.full_name ?? null,
+            avatar_url: row.avatar_url ?? row.profiles?.avatar_url ?? null,
+          }))
+          .reverse() as Comment[];
         setComments(list.filter((c) => !c.is_pinned));
         const pin = list.find((c) => c.is_pinned);
         if (pin) setPinned(pin);
@@ -119,17 +129,41 @@ export function CommentsStream({ sessionId, hostId, currentUserId }: Props) {
           table: "live_chat_messages",
           filter: `session_id=eq.${sessionId}`,
         },
-        (payload) => {
+        async (payload) => {
           if (!alive) return;
           /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
           const row = payload.new as any;
           if (row.deleted_at) return;
+
+          /* Fetch profile à la volée si username manquant. */
+          let username = row.username as string | null;
+          let avatarUrl = row.avatar_url as string | null;
+          let fullName: string | null = null;
+          if (!username || !avatarUrl) {
+            try {
+              const sb = createClient();
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              const { data: prof } = await (sb as any)
+                .from("profiles")
+                .select("username, full_name, avatar_url")
+                .eq("id", row.user_id)
+                .maybeSingle();
+              if (prof) {
+                username = username ?? prof.username ?? prof.full_name;
+                avatarUrl = avatarUrl ?? prof.avatar_url;
+                fullName = prof.full_name;
+              }
+            } catch {
+              /* silencieux */
+            }
+          }
+
           const c: Comment = {
             id: row.id,
             user_id: row.user_id,
-            username: row.username,
-            full_name: row.full_name,
-            avatar_url: row.avatar_url,
+            username,
+            full_name: fullName,
+            avatar_url: avatarUrl,
             content: row.content,
             comment_type: row.comment_type ?? "normal",
             is_pinned: row.is_pinned ?? false,

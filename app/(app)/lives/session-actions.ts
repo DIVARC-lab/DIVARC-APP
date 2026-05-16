@@ -484,17 +484,21 @@ export async function acceptGuestRequest(args: z.infer<typeof acceptSchema>) {
     };
   }
 
-  /* Récupère la session pour layout + max guests. */
-  const { data: room } = await (supabase as SupabaseAny)
+  /* Récupère la session pour max guests. LiveKit room = session.id directement. */
+  const { data: room, error: roomErr } = await (supabase as SupabaseAny)
     .from("circle_live_rooms")
-    .select("id, max_guests_on_panel, livekit_room_id")
+    .select("id, max_guests_on_panel")
     .eq("id", req.session_id)
     .maybeSingle();
-  if (!room) return { ok: false as const, error: "Live introuvable." };
+  if (roomErr || !room) {
+    return {
+      ok: false as const,
+      error: `Live introuvable${roomErr ? ` : ${roomErr.message}` : ""}.`,
+    };
+  }
   const r = room as {
     id: string;
     max_guests_on_panel: number;
-    livekit_room_id: string | null;
   };
 
   /* Panel pas plein. */
