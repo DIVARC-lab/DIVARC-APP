@@ -48,6 +48,9 @@ const PROFILE_DEFAULTS: Omit<
   | "current_streak"
   | "longest_streak"
   | "last_active_day"
+  /* Sprint Auth Onboarding (migration 0148) — DOB/gender. */
+  | "date_of_birth"
+  | "gender"
 > = {
   locale: "fr-FR",
   currency: "EUR",
@@ -253,6 +256,13 @@ export async function getCurrentProfile(): Promise<Profile | null> {
       (data as { longest_streak?: number }).longest_streak ?? 0,
     last_active_day:
       (data as { last_active_day?: string | null }).last_active_day ?? null,
+    /* Sprint Auth Onboarding (migration 0148). */
+    date_of_birth:
+      (data as { date_of_birth?: string | null }).date_of_birth ?? null,
+    gender:
+      ((data as { gender?: Profile["gender"] }).gender ?? null) as
+        | Profile["gender"]
+        | null,
     created_at:
       (data as { created_at?: string }).created_at ?? new Date().toISOString(),
     updated_at:

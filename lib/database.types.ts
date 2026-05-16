@@ -147,9 +147,19 @@ export type Profile = {
   current_streak: number;
   longest_streak: number;
   last_active_day: string | null;
+  /* Sprint Auth Onboarding (migration 0148) — Champs signup étendu. */
+  date_of_birth: string | null; /* ISO YYYY-MM-DD */
+  gender: ProfileGender | null;
   created_at: string;
   updated_at: string;
 };
+
+export type ProfileGender =
+  | "female"
+  | "male"
+  | "non_binary"
+  | "other"
+  | "prefer_not_to_say";
 
 export type PresenceInfo = {
   user_id: string;
