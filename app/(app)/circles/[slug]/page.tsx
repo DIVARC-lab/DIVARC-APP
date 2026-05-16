@@ -14,6 +14,7 @@ import { PostCard } from "@/app/(app)/feed/_components/PostCard";
 import { canPostInChannel } from "@/lib/utils/circleChannelPermissions";
 import { userHasPaidAccessToCircle } from "@/lib/queries/circles";
 import { ChannelsBar } from "./_components/ChannelsBar";
+import { CircleActiveLivesBanner } from "./_components/CircleActiveLivesBanner";
 import { CircleFeedSortFilters } from "./_components/CircleFeedSortFilters";
 import { CirclePaywall } from "./_components/CirclePaywall";
 import { CircleWelcomeModal } from "./_components/CircleWelcomeModal";
@@ -224,6 +225,15 @@ export default async function CirclePostsTab({
           {activeChannel ? `# ${activeChannel.name}` : "Discussions"}
         </KickerLabel>
       </div>
+
+      {/* Étape 24 — Banner lives du cercle (cercle uniquement, membres). */}
+      {circle.is_member ? (
+        <CircleActiveLivesBanner
+          circleId={circle.id}
+          circleSlug={slug}
+          canCreate={Boolean(circle.my_role)}
+        />
+      ) : null}
 
       {/* Sprint B.2 — barre channels (mobile + desktop, horizontale). */}
       <ChannelsBar
