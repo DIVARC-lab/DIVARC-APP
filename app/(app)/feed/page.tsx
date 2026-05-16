@@ -25,6 +25,7 @@ import { PostChipTrigger } from "@/components/creator/PostChipTrigger";
 import { StoriesRow } from "./_components/StoriesRow";
 import type { FeedMode, PostWithDetails } from "@/lib/database.types";
 import { FeedModeSelector } from "./_components/FeedModeSelector";
+import { ColdStartBanner } from "./_components/ColdStartBanner";
 import { FeedPostList } from "./_components/FeedPostList";
 import { KeyboardShortcuts } from "./_components/KeyboardShortcuts";
 import { PullToRefresh } from "./_components/PullToRefresh";
@@ -108,6 +109,12 @@ export default async function FeedPage({
 
   const profile = await getCurrentProfile();
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
+
+  /* Sprint Recsys — Étape 21 : cold start banner (caché si phase
+     stabilized ou si l'user a dismiss). Fail silently si la migration
+     0153 n'est pas appliquée. */
+  const { getUserColdStartInfo } = await import("@/lib/queries/coldStart");
+  const coldStartInfo = await getUserColdStartInfo(user.id).catch(() => null);
 
   let posts: PostWithDetails[] = [];
   /* Map post_id → ranking_metadata pour le tab "for-you", utilisé par
@@ -230,6 +237,14 @@ export default async function FeedPage({
                 authorAvatarUrl={profile?.avatar_url ?? null}
               />
             </div>
+
+            {/* Sprint Recsys Étape 21 — Banner cold start (caché si
+                phase stabilized, dismissable par localStorage). */}
+            {coldStartInfo ? (
+              <div className="px-4 sm:px-6">
+                <ColdStartBanner info={coldStartInfo} />
+              </div>
+            ) : null}
 
             {/* Chantier Feed v2.3 — sélecteur de mode si tab=transparent. */}
             {tab === "transparent" ? (
