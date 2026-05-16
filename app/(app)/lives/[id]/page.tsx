@@ -37,7 +37,7 @@ export default async function LiveViewerPage({
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, viewers_current, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds, like_count, layout",
+      "id, host_id, circle_id, kind, title, description, status, visibility, category, tags, language, started_at, participants_count, peak_participants, chat_enabled, is_tips_enabled, vod_url, vod_thumbnail_url, vod_duration_seconds, like_count",
     )
     .eq("id", id)
     .maybeSingle();
@@ -58,21 +58,26 @@ export default async function LiveViewerPage({
     started_at: string | null;
     participants_count: number;
     peak_participants: number;
-    viewers_current: number;
     chat_enabled: boolean;
     is_tips_enabled: boolean;
     vod_url: string | null;
     vod_thumbnail_url: string | null;
     vod_duration_seconds: number | null;
     like_count: number;
-    layout:
-      | "solo"
-      | "panel_2"
-      | "panel_4"
-      | "panel_6"
-      | "panel_8"
-      | "pk_battle"
-      | "audio_only";
+  };
+
+  /* Fetch V2 columns separately (best-effort fallback). */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data: roomV2 } = await (supabase as any)
+    .from("circle_live_rooms")
+    .select("viewers_current, layout")
+    .eq("id", id)
+    .maybeSingle()
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    .then((res: any) => res, () => ({ data: null }));
+  const v2 = (roomV2 ?? {}) as {
+    viewers_current?: number;
+    layout?: string;
   };
 
   /* Host doit aller au studio. */
@@ -221,10 +226,8 @@ export default async function LiveViewerPage({
     "audio_only",
   ] as const;
   type LayoutKind = (typeof validLayouts)[number];
-  const layout: LayoutKind = validLayouts.includes(
-    r.layout as LayoutKind,
-  )
-    ? (r.layout as LayoutKind)
+  const layout: LayoutKind = validLayouts.includes(v2.layout as LayoutKind)
+    ? (v2.layout as LayoutKind)
     : "solo";
 
   return (
@@ -235,7 +238,7 @@ export default async function LiveViewerPage({
         host={host}
         chatEnabled={r.chat_enabled}
         tipsEnabled={r.is_tips_enabled}
-        initialViewers={r.viewers_current ?? r.participants_count ?? 0}
+        initialViewers={v2.viewers_current ?? r.participants_count ?? 0}
         initialLikeCount={r.like_count ?? 0}
         layout={layout}
         initialGuests={guests}

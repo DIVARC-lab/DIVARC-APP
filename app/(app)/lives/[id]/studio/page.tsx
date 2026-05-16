@@ -21,11 +21,15 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/lives/${id}/studio`);
 
+  /* SELECT minimal : colonnes garanties depuis 0155.
+     Les nouvelles colonnes V2 (layout enum, viewers_current,
+     total_gifts_coins, new_followers_count) sont chargées en query
+     séparée avec fallback graceful si migrations pas appliquées. */
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const { data: room } = await (supabase as any)
     .from("circle_live_rooms")
     .select(
-      "id, host_id, kind, title, status, visibility, category, tags, language, started_at, is_recording, viewers_current, peak_participants, participants_count, like_count, total_gifts_coins, revenue_total_cents, new_followers_count, layout",
+      "id, host_id, kind, title, status, visibility, category, tags, language, started_at, is_recording, peak_participants, participants_count, like_count, revenue_total_cents",
     )
     .eq("id", id)
     .maybeSingle();
@@ -43,21 +47,27 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
     language: string;
     started_at: string | null;
     is_recording: boolean | null;
-    viewers_current: number;
     peak_participants: number;
     participants_count: number;
     like_count: number;
-    total_gifts_coins: number;
     revenue_total_cents: number;
-    new_followers_count: number;
-    layout:
-      | "solo"
-      | "panel_2"
-      | "panel_4"
-      | "panel_6"
-      | "panel_8"
-      | "pk_battle"
-      | "audio_only";
+  };
+
+  /* Fetch colonnes V2 séparément (best-effort, ne bloque pas le 404). */
+  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+  const { data: roomV2 } = await (supabase as any)
+    .from("circle_live_rooms")
+    .select("viewers_current, total_gifts_coins, new_followers_count, layout")
+    .eq("id", id)
+    .maybeSingle()
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    .then((res: any) => res, () => ({ data: null }));
+
+  const v2 = (roomV2 ?? {}) as {
+    viewers_current?: number;
+    total_gifts_coins?: number;
+    new_followers_count?: number;
+    layout?: string;
   };
 
   /* Pas l'host → renvoie vers la page viewer. */
@@ -107,7 +117,7 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
   } | null;
   if (!host) return null;
 
-  /* Guests panel actif. */
+  /* Guests panel actif (V2). Si la table n'existe pas, fallback []. */
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
   const { data: panelData } = await (supabase as any)
     .from("live_panel_participants")
@@ -116,7 +126,9 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
     )
     .eq("session_id", r.id)
     .is("left_panel_at", null)
-    .order("position", { ascending: true });
+    .order("position", { ascending: true })
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    .then((res: any) => res, () => ({ data: [] }));
   const guests = (panelData ?? []) as Array<{
     user_id: string;
     username: string | null;
@@ -136,8 +148,8 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
     "audio_only",
   ] as const;
   type LayoutKind = (typeof validLayouts)[number];
-  const layout: LayoutKind = validLayouts.includes(r.layout as LayoutKind)
-    ? (r.layout as LayoutKind)
+  const layout: LayoutKind = validLayouts.includes(v2.layout as LayoutKind)
+    ? (v2.layout as LayoutKind)
     : "solo";
 
   return (
@@ -150,11 +162,11 @@ export default async function LiveStudioPage({ params }: { params: Params }) {
         currentStatus={r.status}
         startedAt={r.started_at ?? null}
         isRecording={r.is_recording ?? false}
-        initialViewers={r.viewers_current ?? r.participants_count ?? 0}
+        initialViewers={v2.viewers_current ?? r.participants_count ?? 0}
         initialLikeCount={r.like_count ?? 0}
         initialPeak={r.peak_participants ?? 0}
-        initialCoins={r.total_gifts_coins ?? r.revenue_total_cents ?? 0}
-        initialNewFollowers={r.new_followers_count ?? 0}
+        initialCoins={v2.total_gifts_coins ?? r.revenue_total_cents ?? 0}
+        initialNewFollowers={v2.new_followers_count ?? 0}
         layout={layout}
         initialGuests={guests}
       />
