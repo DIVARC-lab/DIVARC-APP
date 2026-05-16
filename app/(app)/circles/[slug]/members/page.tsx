@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import type { CircleMemberWithProfile } from "@/lib/database.types";
 import { cn } from "@/lib/utils/cn";
+import { MemberAdminMenu } from "./MemberAdminMenu";
 
 type Params = Promise<{ slug: string }>;
 
@@ -76,6 +77,13 @@ export default async function CircleMembersTab({
     circle.id,
   );
 
+  /* Sprint Members admin — qui peut sanctionner. */
+  const canModerate =
+    circle.owner_id === user.id ||
+    circle.my_role === "admin" ||
+    circle.my_role === "moderator" ||
+    circle.my_role === "mod";
+
   return (
     <section className="px-5 sm:px-8 pb-8">
       <header className="pb-4 flex items-center gap-2">
@@ -95,7 +103,14 @@ export default async function CircleMembersTab({
           <ul className="space-y-2">
             {team.map((m) => (
               <li key={m.user_id}>
-                <MemberRow member={m} variant="full" />
+                <MemberRow
+                  member={m}
+                  variant="full"
+                  circleId={circle.id}
+                  circleOwnerId={circle.owner_id}
+                  currentUserId={user.id}
+                  canModerate={canModerate}
+                />
               </li>
             ))}
           </ul>
@@ -130,7 +145,14 @@ export default async function CircleMembersTab({
           <ul className="grid sm:grid-cols-2 gap-2">
             {all.map((m) => (
               <li key={m.user_id}>
-                <MemberRow member={m} variant="compact" />
+                <MemberRow
+                  member={m}
+                  variant="compact"
+                  circleId={circle.id}
+                  circleOwnerId={circle.owner_id}
+                  currentUserId={user.id}
+                  canModerate={canModerate}
+                />
               </li>
             ))}
           </ul>
@@ -149,55 +171,81 @@ export default async function CircleMembersTab({
 function MemberRow({
   member,
   variant,
+  circleId,
+  circleOwnerId,
+  currentUserId,
+  canModerate,
 }: {
   member: CircleMemberWithProfile;
   variant: "full" | "compact";
+  circleId: string;
+  circleOwnerId: string;
+  currentUserId: string;
+  canModerate: boolean;
 }) {
   const profile = member.profile;
   const name = profile?.full_name ?? profile?.username ?? "Utilisateur";
   const roleMeta = ROLE_META[member.role];
   const RoleIcon = roleMeta?.icon;
 
+  /* Le owner du cercle est intouchable. On ne peut pas non plus
+     se sanctionner soi-même. */
+  const showAdminMenu =
+    canModerate &&
+    member.user_id !== circleOwnerId &&
+    member.user_id !== currentUserId;
+
   return (
-    <Link
-      href={profile?.username ? `/u/${profile.username}` : "#"}
+    <div
       className={cn(
         "flex items-center gap-3 rounded-2xl bg-white border border-line hover:border-gold/40 transition-colors",
         variant === "full" ? "p-3" : "p-2.5",
       )}
     >
-      <Avatar
-        src={profile?.avatar_url ?? null}
-        fullName={name}
-        size={variant === "full" ? "md" : "sm"}
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-bold text-night truncate">{name}</p>
-        {profile?.username ? (
-          <p className="text-[11px] text-night-dim truncate">
-            @{profile.username}
-          </p>
+      <Link
+        href={profile?.username ? `/u/${profile.username}` : "#"}
+        className="flex-1 flex items-center gap-3 min-w-0"
+      >
+        <Avatar
+          src={profile?.avatar_url ?? null}
+          fullName={name}
+          size={variant === "full" ? "md" : "sm"}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] font-bold text-night truncate">{name}</p>
+          {profile?.username ? (
+            <p className="text-[11px] text-night-dim truncate">
+              @{profile.username}
+            </p>
+          ) : null}
+          {(
+            member as unknown as { badge?: string | null }
+          ).badge ? (
+            <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wider text-gold-deep">
+              {(member as unknown as { badge?: string | null }).badge}
+            </p>
+          ) : null}
+        </div>
+        {roleMeta && member.role !== "member" ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider shrink-0",
+              roleMeta.class,
+            )}
+          >
+            {RoleIcon ? <RoleIcon className="w-3 h-3" aria-hidden /> : null}
+            {roleMeta.label}
+          </span>
         ) : null}
-        {(
-          member as unknown as { badge?: string | null }
-        ).badge ? (
-          <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wider text-gold-deep">
-            {(member as unknown as { badge?: string | null }).badge}
-          </p>
-        ) : null}
-      </div>
-      {roleMeta && member.role !== "member" ? (
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider shrink-0",
-            roleMeta.class,
-          )}
-        >
-          {RoleIcon ? <RoleIcon className="w-3 h-3" aria-hidden /> : null}
-          {roleMeta.label}
-        </span>
+      </Link>
+      {showAdminMenu ? (
+        <MemberAdminMenu
+          circleId={circleId}
+          targetUserId={member.user_id}
+          targetName={name}
+        />
       ) : null}
-    </Link>
+    </div>
   );
 }
 
