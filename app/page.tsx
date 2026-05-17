@@ -24,7 +24,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export default function Home() {
   return (
-    <div className="flex flex-col bg-bg-soft text-night">
+    <div className="flex flex-col bg-cream text-night">
       <SiteNav />
       <Hero />
       <ProofBar />
@@ -34,7 +34,7 @@ export default function Home() {
       <Vs />
       <Roadmap />
       <Vision />
-      <Marquee items={CITIES} className="py-12 bg-white" />
+      <Marquee items={CITIES} className="py-12 bg-cream" />
       <FAQSection />
       <CTASection />
       <SiteFooter />
@@ -44,7 +44,7 @@ export default function Home() {
 
 function SiteNav() {
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-bg-soft border-b border-line">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-cream border-b border-line">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
         <Wordmark />
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-night-muted">
@@ -78,7 +78,7 @@ function SiteNav() {
 
 function Hero() {
   return (
-    <section className="relative grain overflow-hidden bg-white">
+    <section className="relative grain overflow-hidden bg-cream">
       <div className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-gold/40 via-gold/10 to-transparent blur-3xl halo-drift" />
       <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-night/20 via-night/5 to-transparent blur-3xl halo-drift" />
 
@@ -191,7 +191,7 @@ const HERO_STATS = [
 
 function ProofBar() {
   return (
-    <section className="border-y border-line bg-bg-soft">
+    <section className="border-y border-line bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10">
         <p className="text-sm font-medium text-muted shrink-0">
           Construire{" "}
@@ -277,7 +277,7 @@ const PILLARS = [
 
 function Pillars() {
   return (
-    <section id="produit" className="py-24 sm:py-32 bg-white">
+    <section id="produit" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Le produit</KickerLabel>
@@ -378,7 +378,7 @@ function Pillars() {
 
 function Personas() {
   return (
-    <section className="py-24 sm:py-32 bg-bg-soft">
+    <section className="py-24 sm:py-32 bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Pour qui</KickerLabel>
@@ -419,7 +419,7 @@ function Personas() {
 
 function Vs() {
   return (
-    <section id="vs" className="py-24 sm:py-32 bg-white">
+    <section id="vs" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-12">
           <KickerLabel>Comparaison</KickerLabel>
@@ -440,7 +440,7 @@ function Vs() {
 
 function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 sm:py-32 bg-bg-soft">
+    <section id="roadmap" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-14">
           <KickerLabel>Roadmap publique</KickerLabel>
@@ -529,7 +529,7 @@ const CITIES = [
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-24 sm:py-32 bg-white">
+    <section id="faq" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-3xl mx-auto px-6 sm:px-10">
         <header className="mb-10">
           <KickerLabel>Questions fréquentes</KickerLabel>
@@ -579,7 +579,7 @@ function FAQSection() {
 
 function CTASection() {
   return (
-    <section className="px-6 sm:px-10 pb-24 bg-white">
+    <section className="px-6 sm:px-10 pb-24 bg-cream">
       <div className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain">
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
@@ -640,7 +640,7 @@ function CTASection() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-white">
+    <footer className="border-t border-line bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
