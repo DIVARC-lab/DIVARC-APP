@@ -49,9 +49,9 @@ export function PhoneMockChat({ tone = "light" }: { tone?: Tone }) {
         </div>
 
         <div className="px-5 pt-3 pb-3 flex items-center gap-3 border-b border-line/30">
-          <Avatar src={null} fullName="Aïssatou Diop" size="md" />
+          <Avatar src={null} fullName="Léa Martin" size="md" />
           <div className="flex-1">
-            <p className={`font-semibold text-sm ${t.text}`}>Aïssatou Diop</p>
+            <p className={`font-semibold text-sm ${t.text}`}>Léa Martin</p>
             <p
               className={`text-[10px] ${tone === "dark" ? "text-emerald-300" : "text-emerald-600"} flex items-center gap-1`}
             >

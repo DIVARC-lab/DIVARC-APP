@@ -379,7 +379,7 @@ function EmptyHint() {
         Personnes, annonces, posts. Tape au moins 2 caractères.
       </p>
       <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-muted">
-        <Suggestion>Aïssatou</Suggestion>
+        <Suggestion>Léa</Suggestion>
         <Suggestion>tissu wax</Suggestion>
         <Suggestion>Paris</Suggestion>
       </div>

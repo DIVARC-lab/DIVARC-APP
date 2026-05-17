@@ -24,7 +24,7 @@ import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export default function Home() {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-cream text-night">
       <SiteNav />
       <Hero />
       <ProofBar />
@@ -34,7 +34,7 @@ export default function Home() {
       <Vs />
       <Roadmap />
       <Vision />
-      <Marquee items={CITIES} className="py-12" />
+      <Marquee items={CITIES} className="py-12 bg-cream" />
       <FAQSection />
       <CTASection />
       <SiteFooter />
@@ -44,7 +44,7 @@ export default function Home() {
 
 function SiteNav() {
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-bg/80 border-b border-line">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-cream/80 border-b border-line">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
         <Wordmark />
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-night-muted">
@@ -78,7 +78,7 @@ function SiteNav() {
 
 function Hero() {
   return (
-    <section className="relative grain overflow-hidden">
+    <section className="relative grain overflow-hidden bg-cream">
       <div className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-gold/40 via-gold/10 to-transparent blur-3xl halo-drift" />
       <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-night/20 via-night/5 to-transparent blur-3xl halo-drift" />
 
@@ -90,11 +90,14 @@ function Hero() {
           </span>
 
           <h1 className="mt-6 text-[clamp(2.8rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.92] text-night text-balance">
-            Une <em className="font-display italic font-normal text-night-soft">seule</em>{" "}
-            app pour
+            Tout ce que tu fais{" "}
+            <em className="font-display italic font-normal text-night-soft">
+              en ligne
+            </em>
+            ,
             <br />
-            ta vie <span className="relative inline-block">
-              entière.
+            dans <span className="relative inline-block">
+              une app.
               <svg
                 className="absolute -bottom-3 left-0 w-full"
                 viewBox="0 0 300 12"
@@ -113,15 +116,15 @@ function Hero() {
           </h1>
 
           <p className="mt-8 text-lg sm:text-xl text-muted-strong max-w-xl text-pretty leading-relaxed">
-            DIVARC réunit{" "}
+            Discuter, vendre, travailler, payer, partager — DIVARC réunit{" "}
             <strong className="text-night font-semibold">
-              messagerie, marketplace, emploi, contenu et paiements
+              tout ce qui compte
             </strong>{" "}
-            dans une seule application — pensée pour les{" "}
+            dans une seule application. Pensée pour les{" "}
             <strong className="text-night font-semibold">
               320 millions de francophones
-            </strong>{" "}
-            répartis entre Paris, Dakar, Abidjan, Casablanca et Montréal.
+            </strong>
+            , partout dans le monde.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -132,7 +135,7 @@ function Hero() {
               </Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
-              <Link href="#produit">Voir le produit</Link>
+              <Link href="#produit">Découvrir DIVARC</Link>
             </Button>
           </div>
 
@@ -166,10 +169,10 @@ function Hero() {
             </div>
             <div className="absolute -right-10 bottom-12 z-20 hidden lg:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-night text-cream shadow-[0_20px_60px_-20px_rgba(10,31,68,0.55)]">
               <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-night font-bold">
-                Y
+                L
               </div>
               <div className="leading-tight">
-                <p className="text-[11px] text-cream/70">Yann · Paris</p>
+                <p className="text-[11px] text-cream/70">Léa · Lyon</p>
                 <p className="text-sm font-medium">Vu ton annonce ✨</p>
               </div>
             </div>
@@ -183,19 +186,22 @@ function Hero() {
 const HERO_STATS = [
   { value: "320M", label: "Francophones" },
   { value: "54", label: "Pays" },
-  { value: "1", label: "Application" },
+  { value: "1", label: "App" },
 ];
 
 function ProofBar() {
   return (
-    <section className="border-y border-line bg-white">
+    <section className="border-y border-line bg-cream/50">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10">
         <p className="text-sm font-medium text-muted shrink-0">
-          Bâtir <em className="font-display not-italic text-night">ce qui manquait</em> à
-          l&apos;internet francophone.
+          Construire{" "}
+          <em className="font-display not-italic text-night">
+            ce qui manquait
+          </em>{" "}
+          à l&apos;internet francophone.
         </p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          {["Paris", "Dakar", "Yaoundé", "Abidjan", "Montréal", "Casablanca"].map(
+          {["Paris", "Lyon", "Bruxelles", "Genève", "Montréal", "Dakar"].map(
             (city) => (
               <div key={city} className="flex items-center gap-2 text-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
@@ -218,20 +224,18 @@ function Manifesto() {
           Manifeste
         </span>
         <p className="mt-6 font-display text-[clamp(2rem,5vw,4rem)] leading-[1.1] text-balance">
-          Pendant que la Silicon Valley pense pour New York,
+          Les meilleures apps ont été pensées ailleurs,
           <em className="italic block sm:inline text-gold-soft">
             {" "}
-            personne ne pense pour Paris-Dakar.
+            pour quelqu&apos;un d&apos;autre.
           </em>
         </p>
         <p className="mt-6 max-w-2xl text-cream/75 text-lg leading-relaxed">
-          Les apps américaines traitent la francophonie comme un{" "}
-          <em className="text-cream font-semibold not-italic">marché secondaire</em>.
-          Une traduction approximative, des paiements qui ne marchent qu&apos;en
-          dollar, des modérateurs qui ne comprennent pas nos références.
-          DIVARC inverse l&apos;équation : on construit{" "}
+          Une traduction approximative, des paiements bridés, des modérateurs
+          qui ne comprennent pas nos références, des interfaces conçues à
+          10 000 kilomètres. DIVARC inverse l&apos;équation : on construit{" "}
           <em className="text-gold not-italic font-semibold">d&apos;abord</em>
-          {" "}pour nous.
+          {" "}pour la francophonie — et on l&apos;ouvre au monde ensuite.
         </p>
       </div>
     </section>
@@ -242,48 +246,48 @@ const PILLARS = [
   {
     icon: MessageSquareText,
     title: "Discuter",
-    body: "Messagerie chiffrée pour tes proches. Photos, audios, groupes, appels.",
+    body: "Messagerie chiffrée. Photos, audios, groupes, appels — sans limite.",
   },
   {
     icon: ShoppingBag,
     title: "Vendre & acheter",
-    body: "Marketplace de quartier. Vinted, mais autour de toi.",
+    body: "Marketplace de quartier. Comme Vinted, mais avec tes voisins.",
   },
   {
     icon: Briefcase,
     title: "Travailler",
-    body: "Profil pro, annonces d'emploi, missions courtes.",
+    body: "Profil pro, offres d'emploi, missions courtes payées vite.",
   },
   {
     icon: Wallet,
     title: "Payer",
-    body: "Stripe, Wave, Orange Money. Sans frais, instantané.",
+    body: "Carte, virement, mobile money. Sans frais cachés, instantané.",
   },
   {
     icon: Globe2,
     title: "Partager",
-    body: "Stories, posts, vidéos. Sans algorithme toxique.",
+    body: "Posts, stories, lives. Tu choisis ton fil, pas l'algorithme.",
   },
   {
     icon: Sparkles,
     title: "Découvrir",
-    body: "Mini-apps, services locaux, divertissement.",
+    body: "Cercles d'intérêt, services locaux, mini-apps utiles.",
   },
 ];
 
 function Pillars() {
   return (
-    <section id="produit" className="py-24 sm:py-32">
+    <section id="produit" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Le produit</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-7xl text-night text-balance leading-[1.02]">
-            Six piliers, <em className="italic text-gold-deep">un seul écosystème</em>.
+            Six piliers,{" "}
+            <em className="italic text-gold-deep">un seul écosystème</em>.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
-            Chaque pilier de DIVARC remplace une app que tu utilises déjà — et
-            les fait dialoguer entre elles, ce qui n&apos;est pas possible
-            ailleurs.
+            Chaque pilier remplace une app que tu utilises déjà. Mais surtout,
+            ils dialoguent entre eux — ce qui n&apos;existe nulle part ailleurs.
           </p>
         </header>
 
@@ -297,18 +301,19 @@ function Pillars() {
                   Pilier 1
                 </div>
                 <h3 className="mt-4 font-display text-4xl text-balance">
-                  Discuter, comme une <em className="italic text-gold-deep">vraie</em>{" "}
+                  Discuter, comme une{" "}
+                  <em className="italic text-gold-deep">vraie</em>{" "}
                   conversation.
                 </h3>
                 <p className="mt-4 text-cream/80 leading-relaxed">
-                  Messagerie chiffrée bout-en-bout, audios, photos haute
-                  qualité, groupes familiaux, appels gratuits.
+                  Messagerie chiffrée bout-en-bout, audios haute qualité, lives
+                  vidéo, appels gratuits. Sans collecte de tes données.
                 </p>
                 <ul className="mt-6 space-y-2 text-sm">
                   {[
-                    "Indicateurs de lecture optionnels",
-                    "Multi-appareils synchronisés",
-                    "Réactions emoji + threads",
+                    "Lectures optionnelles, statut en ligne désactivable",
+                    "Multi-appareils synchronisés en temps réel",
+                    "Réactions, threads, messages éphémères",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-gold" />
@@ -331,10 +336,12 @@ function Pillars() {
               Pilier 2
             </div>
             <h3 className="mt-4 font-display text-3xl text-night text-balance">
-              Marketplace de <em className="italic text-gold-deep">quartier</em>.
+              Marketplace de{" "}
+              <em className="italic text-gold-deep">quartier</em>.
             </h3>
             <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-sm">
-              Vends, achète, échange. Avec ta vraie communauté, autour de toi.
+              Achète, vends, échange avec ta vraie communauté. Sans publicité,
+              sans frais cachés, en confiance.
             </p>
             <div className="mt-6 flex justify-center">
               <div className="scale-90 origin-top">
@@ -371,36 +378,37 @@ function Pillars() {
 
 function Personas() {
   return (
-    <section className="py-24 sm:py-32 bg-bg-deep">
+    <section className="py-24 sm:py-32 bg-cream/80">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Pour qui</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Construit <em className="italic text-gold-deep">avec</em> celles et ceux qui
+            Construit{" "}
+            <em className="italic text-gold-deep">avec</em> celles et ceux qui
             l&apos;utilisent.
           </h2>
         </header>
 
         <div className="mt-14 grid md:grid-cols-3 gap-4">
           <PersonaCard
-            name="Aïssatou Diop"
-            role="Étudiante en mode"
-            city="Dakar"
-            quote="Je commande mon tissu wax à Belleville et je le reçois chez ma cousine à Paris en 3 jours."
+            name="Léa"
+            role="Étudiante en design"
+            city="Lyon"
+            quote="Je trouve mes locations, mes petits jobs et mes amis dans la même app. Plus besoin de jongler entre cinq plateformes."
             accent="gold"
           />
           <PersonaCard
-            name="Yann Mvondo"
+            name="Sami"
             role="Freelance vidéaste"
-            city="Yaoundé"
-            quote="Je trouve mes contrats à Paris, je suis payé en EUR, mon père reçoit en XAF en 3 secondes."
+            city="Bruxelles"
+            quote="Je décroche mes contrats, j'envoie mes factures, je suis payé. Tout en français, tout instantané."
             accent="night"
           />
           <PersonaCard
-            name="Nadia Benhaddou"
+            name="Camille"
             role="Mère de famille"
-            city="Casablanca"
-            quote="Toute la famille est sur DIVARC : mes enfants à Marseille, ma sœur à Montréal, mes parents à Tanger."
+            city="Montréal"
+            quote="Toute la famille est sur DIVARC, où qu'on soit dans le monde. Les enfants, mes parents, mes cousins."
             accent="cream"
           />
         </div>
@@ -411,12 +419,12 @@ function Personas() {
 
 function Vs() {
   return (
-    <section id="vs" className="py-24 sm:py-32">
+    <section id="vs" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-12">
           <KickerLabel>Comparaison</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Pourquoi pas <em className="italic text-gold-deep">une seule</em> app, mais{" "}
+            Pas <em className="italic text-gold-deep">une de plus</em>, mais{" "}
             <em className="italic text-gold-deep">la bonne</em>.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
@@ -432,17 +440,18 @@ function Vs() {
 
 function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 sm:py-32 bg-bg-deep">
+    <section id="roadmap" className="py-24 sm:py-32 bg-cream/80">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-14">
           <KickerLabel>Roadmap publique</KickerLabel>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Construit <em className="italic text-gold-deep">en transparence</em>, sprint après
-            sprint.
+            Construit{" "}
+            <em className="italic text-gold-deep">en transparence</em>, sprint
+            après sprint.
           </h2>
           <p className="mt-5 text-lg text-muted-strong max-w-xl">
-            Tu peux suivre exactement où nous en sommes. Chaque sprint = 4 à 6
-            semaines. Un livrable visible à chaque fois.
+            Suis exactement où nous en sommes. Chaque sprint = 4 à 6 semaines.
+            Un livrable concret à chaque étape.
           </p>
         </header>
         <RoadmapTimeline />
@@ -462,13 +471,14 @@ function Vision() {
             Notre vision
           </span>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
-            Le pont entre <em className="italic text-gold-deep">deux mondes</em>.
+            Une app pour <em className="italic text-gold-deep">tous</em>,
+            partout.
           </h2>
           <p className="mt-6 text-lg text-cream/80 max-w-xl leading-relaxed">
-            DIVARC n&apos;est pas une app pour la France ni une app pour
-            l&apos;Afrique. C&apos;est <strong className="text-gold">la</strong>{" "}
-            app qui connecte les deux — et tous les territoires francophones du
-            monde, du Québec à la Suisse.
+            DIVARC connecte la francophonie mondiale —
+            <strong className="text-gold"> 320 millions de personnes</strong>{" "}
+            qui parlent la même langue, partagent les mêmes valeurs, et méritent
+            une app à leur hauteur. De Paris à Dakar, de Montréal à Genève.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -494,37 +504,38 @@ function Vision() {
 
 const VISION_POINTS = [
   {
-    title: "Mobile Money intégré dès le sprint 5",
-    body: "Wave, Orange Money, MTN — au même titre que Stripe.",
+    title: "Paiements universels",
+    body: "Carte, virement, mobile money. Aucune frontière, aucun délai.",
   },
   {
     title: "Multi-devise réelle",
-    body: "EUR, XAF, XOF, MAD, CAD. Conversion en temps réel.",
+    body: "EUR, CHF, CAD, XOF, XAF, MAD. Conversion en temps réel sans frais cachés.",
   },
   {
-    title: "Interface en français — pas une traduction",
-    body: "Pensée en français, écrite par des francophones.",
+    title: "Interface pensée en français",
+    body: "Pas une traduction. Écrite par et pour des francophones.",
   },
   {
-    title: "Modération adaptée à nos cultures",
-    body: "Nos références, nos sujets, notre humour.",
+    title: "Modération humaine et juste",
+    body: "Pas d'algorithme aveugle. De vraies personnes qui comprennent.",
   },
 ];
 
 const CITIES = [
-  "Paris", "·", "Dakar", "·", "Abidjan", "·", "Yaoundé", "·",
-  "Montréal", "·", "Casablanca", "·", "Bruxelles", "·", "Cotonou", "·",
-  "Lomé", "·", "Kinshasa", "·", "Tunis", "·", "Lausanne", "·", "Bamako",
+  "Paris", "·", "Lyon", "·", "Marseille", "·", "Bruxelles", "·", "Genève",
+  "·", "Montréal", "·", "Dakar", "·", "Abidjan", "·", "Casablanca", "·",
+  "Yaoundé", "·", "Tunis", "·", "Kinshasa", "·", "Beyrouth", "·", "Lausanne",
 ];
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-24 sm:py-32">
+    <section id="faq" className="py-24 sm:py-32 bg-cream">
       <div className="max-w-3xl mx-auto px-6 sm:px-10">
         <header className="mb-10">
           <KickerLabel>Questions fréquentes</KickerLabel>
           <h2 className="mt-3 font-display text-5xl text-night text-balance leading-[1.05]">
-            Ce que tu te demandes <em className="italic text-gold-deep">peut-être</em>.
+            Ce que tu te demandes{" "}
+            <em className="italic text-gold-deep">peut-être</em>.
           </h2>
         </header>
         <FAQ
@@ -532,32 +543,32 @@ function FAQSection() {
             {
               question: "Pourquoi une nouvelle app ? On en a déjà trop.",
               answer:
-                "Justement. Aujourd'hui, tu jongles entre WhatsApp, Vinted, LinkedIn, Instagram, Lydia, Wave, Indeed... DIVARC les remplace toutes en une seule, mieux pensée pour les francophones. Moins d'apps, plus de cohérence.",
+                "Justement. Aujourd'hui, tu jongles entre WhatsApp, Vinted, LinkedIn, Instagram, Lydia, Wave, Indeed… DIVARC les remplace toutes en une seule, mieux pensée pour ta vie. Moins d'apps, plus de cohérence, plus de sens.",
             },
             {
-              question: "Mes données restent-elles en Europe ?",
+              question: "Mes données restent-elles privées ?",
               answer:
-                "Oui. Notre infrastructure (Supabase + Vercel) est hébergée en Europe avec conformité RGPD stricte. Tu peux exporter ou supprimer toutes tes données à tout moment.",
+                "Oui. Hébergement en Europe, conformité RGPD stricte, messagerie chiffrée. Pas de revente de données, jamais. Tu peux exporter ou supprimer tout ce qui te concerne à tout moment, en un clic.",
             },
             {
               question: "C'est gratuit ?",
               answer:
-                "L'app est gratuite. Aucune publicité algorithmique. Le modèle économique repose sur des frais minimes (1%) sur certaines transactions marketplace, et un abonnement DIVARC Premium optionnel (à venir).",
+                "L'app est gratuite. Pas de publicité ciblée, pas d'algorithme qui te garde captif·ve. Notre modèle économique repose sur des frais minimes (1 %) sur certaines transactions marketplace, et un abonnement DIVARC Premium optionnel à venir.",
             },
             {
               question: "Quand sortira la version finale ?",
               answer:
-                "La beta privée est en cours. Le lancement public est prévu après le sprint 5 (paiements). Suis la roadmap ci-dessus pour les jalons.",
+                "La beta privée est en cours. Le lancement public est prévu après le sprint paiements. Tu peux suivre la roadmap publique ci-dessus pour voir précisément où nous en sommes.",
             },
             {
               question: "Comment être beta-testeur ?",
               answer:
-                "Crée un compte. Les premiers inscrits reçoivent automatiquement le badge 'Fondateur' et accèdent à toutes les fonctionnalités au fur et à mesure de leur sortie.",
+                "Crée ton compte. Les premiers inscrits reçoivent automatiquement le badge « Fondateur » et accèdent à toutes les nouvelles fonctionnalités en avant-première, dès qu'elles sortent.",
             },
             {
               question: "Qui est derrière DIVARC ?",
               answer:
-                "DIVARC Lab, une équipe française avec des racines dans la diaspora africaine et maghrébine. Bâtie à Paris pour le monde francophone.",
+                "DIVARC Lab, une équipe indépendante basée à Paris. Notre mission : bâtir l'app que la francophonie mérite, sans dépendre d'aucun géant tech américain ou chinois.",
             },
           ]}
         />
@@ -568,7 +579,7 @@ function FAQSection() {
 
 function CTASection() {
   return (
-    <section className="px-6 sm:px-10 pb-24">
+    <section className="px-6 sm:px-10 pb-24 bg-cream">
       <div className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain">
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
@@ -577,12 +588,13 @@ function CTASection() {
               Beta privée
             </span>
             <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
-              Rejoins le <em className="italic text-gold-deep">cercle des fondateurs</em>.
+              Rejoins le{" "}
+              <em className="italic text-gold-deep">cercle des fondateurs</em>.
             </h2>
             <p className="mt-5 text-lg text-cream/80 max-w-xl">
               Accès anticipé à toutes les nouveautés. Badge fondateur permanent.
-              Voix dans la roadmap. Et la satisfaction d&apos;avoir construit
-              cette app avec nous.
+              Une voix dans la roadmap. Et la satisfaction d&apos;avoir
+              construit cette app avec nous.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button
@@ -591,7 +603,7 @@ function CTASection() {
                 className="bg-gold text-night hover:bg-gold-soft"
               >
                 <Link href="/signup">
-                  Créer mon compte fondateur
+                  Créer mon compte
                   <ArrowRight className="w-4 h-4" aria-hidden />
                 </Link>
               </Button>
@@ -607,14 +619,14 @@ function CTASection() {
           </div>
           <div className="hidden lg:flex flex-col items-center gap-4">
             <div className="flex -space-x-2">
-              {["Aïssatou", "Yann", "Nadia", "Pierre", "Fatou"].map((name) => (
+              {["Léa", "Sami", "Camille", "Noah", "Maya"].map((name) => (
                 <div key={name} className="ring-4 ring-night-soft rounded-full">
                   <Avatar src={null} fullName={name} size="md" />
                 </div>
               ))}
             </div>
             <p className="text-sm text-cream/60 text-center">
-              <strong className="text-cream">Plusieurs centaines</strong> de
+              <strong className="text-cream">Des centaines</strong> de
               fondateurs déjà inscrits.
               <br />
               Sois parmi les premiers de ta ville.
@@ -628,7 +640,7 @@ function CTASection() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-white">
+    <footer className="border-t border-line bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
@@ -637,8 +649,8 @@ function SiteFooter() {
               <span className="font-display text-2xl text-night">DIVARC</span>
             </div>
             <p className="mt-4 text-sm text-muted max-w-xs leading-relaxed">
-              La super-app francophone. Bâtie à Paris, pensée pour les
-              francophones du monde entier.
+              La super-app francophone. Bâtie à Paris, pensée pour toutes les
+              francophones et tous les francophones du monde.
             </p>
           </div>
           <FooterColumn
@@ -663,7 +675,7 @@ function SiteFooter() {
             © {new Date().getFullYear()} DIVARC Lab — Tous droits réservés.
           </p>
           <p className="text-xs text-muted">
-            Bâti avec ✦ par et pour la francophonie.
+            Construit avec ✦ pour la francophonie mondiale.
           </p>
         </div>
       </div>

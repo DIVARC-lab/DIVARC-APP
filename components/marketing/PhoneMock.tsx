@@ -89,7 +89,7 @@ export function PhoneMock() {
 
 const chats = [
   {
-    name: "Aïssatou D.",
+    name: "Léa M.",
     message: "Tu peux passer chercher le colis ce soir ?",
     time: "14:32",
     unread: 2,
@@ -101,7 +101,7 @@ const chats = [
     unread: 5,
   },
   {
-    name: "Yann Mvondo",
+    name: "Sami Léon",
     message: "Vu ton annonce, ça m'intéresse !",
     time: "12:10",
   },
