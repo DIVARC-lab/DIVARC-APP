@@ -115,7 +115,7 @@ function Hero() {
             </span>
           </h1>
 
-          <p className="mt-8 text-lg sm:text-xl text-muted-strong max-w-xl text-pretty leading-relaxed">
+          <p className="mt-8 text-lg sm:text-xl text-night-soft max-w-xl text-pretty leading-relaxed">
             Discuter, vendre, travailler, payer, partager — DIVARC réunit{" "}
             <strong className="text-night font-semibold">
               tout ce qui compte
@@ -145,7 +145,7 @@ function Hero() {
                 <dt className="font-display text-4xl text-night">
                   {stat.value}
                 </dt>
-                <dd className="text-xs text-muted uppercase tracking-widest mt-1">
+                <dd className="text-xs text-night-dim uppercase tracking-widest mt-1">
                   {stat.label}
                 </dd>
               </div>
@@ -193,7 +193,7 @@ function ProofBar() {
   return (
     <section className="border-y border-line bg-cream">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10">
-        <p className="text-sm font-medium text-muted shrink-0">
+        <p className="text-sm font-medium text-night-dim shrink-0">
           Construire{" "}
           <em className="font-display not-italic text-night">
             ce qui manquait
@@ -285,7 +285,7 @@ function Pillars() {
             Six piliers,{" "}
             <em className="italic text-gold-deep">un seul écosystème</em>.
           </h2>
-          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+          <p className="mt-5 text-lg text-night-soft max-w-xl">
             Chaque pilier remplace une app que tu utilises déjà. Mais surtout,
             ils dialoguent entre eux — ce qui n&apos;existe nulle part ailleurs.
           </p>
@@ -427,7 +427,7 @@ function Vs() {
             Pas <em className="italic text-gold-deep">une de plus</em>, mais{" "}
             <em className="italic text-gold-deep">la bonne</em>.
           </h2>
-          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+          <p className="mt-5 text-lg text-night-soft max-w-xl">
             Les autres ont été pensées ailleurs, pour quelqu&apos;un
             d&apos;autre. Voici ce que ça change concrètement.
           </p>
@@ -449,7 +449,7 @@ function Roadmap() {
             <em className="italic text-gold-deep">en transparence</em>, sprint
             après sprint.
           </h2>
-          <p className="mt-5 text-lg text-muted-strong max-w-xl">
+          <p className="mt-5 text-lg text-night-soft max-w-xl">
             Suis exactement où nous en sommes. Chaque sprint = 4 à 6 semaines.
             Un livrable concret à chaque étape.
           </p>
@@ -648,7 +648,7 @@ function SiteFooter() {
               <Logo size={36} />
               <span className="font-display text-2xl text-night">DIVARC</span>
             </div>
-            <p className="mt-4 text-sm text-muted max-w-xs leading-relaxed">
+            <p className="mt-4 text-sm text-night-dim max-w-xs leading-relaxed">
               La super-app francophone. Bâtie à Paris, pensée pour toutes les
               francophones et tous les francophones du monde.
             </p>
@@ -671,10 +671,10 @@ function SiteFooter() {
           />
         </div>
         <div className="mt-12 pt-8 border-t border-line flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <p className="text-xs text-muted">
+          <p className="text-xs text-night-dim">
             © {new Date().getFullYear()} DIVARC Lab — Tous droits réservés.
           </p>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-night-dim">
             Construit avec ✦ pour la francophonie mondiale.
           </p>
         </div>
