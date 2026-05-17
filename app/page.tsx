@@ -22,35 +22,54 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 
-export default function Home() {
-  /* Force light theme sur la landing peu importe le mode système /
-     ThemeProvider. Override des CSS vars critiques en inline pour
-     bypasser tout dark mode browser. */
-  const forcedLightStyle = {
-    "--night": "#0a1f44",
-    "--night-soft": "#142a55",
-    "--night-muted": "#2a3d6b",
-    "--night-dim": "#4b5b87",
-    "--gold-deep": "#b88a2a",
-    "--bg": "#ffffff",
-    "--bg-deep": "#fff8e8",
-    "--bg-soft": "#f8f9fb",
-    "--fg": "#0a1f44",
-    "--fg-muted": "#4b5b87",
-    "--fg-subtle": "#8993a8",
-    "--line": "#e6e9f0",
-    "--line-strong": "#d2d7e2",
-    "--muted": "#6b7280",
-    "--muted-strong": "#4b5563",
-    "--surface": "#ffffff",
-    "--surface-2": "#f8f9fb",
-    "--color-night": "#0a1f44",
-    "--color-night-soft": "#142a55",
-    "--color-night-muted": "#2a3d6b",
-    "--color-night-dim": "#4b5b87",
-    colorScheme: "light",
-  } as React.CSSProperties;
+/* Style forcé light : sections claires (cream/white). */
+const forcedLightStyle = {
+  "--night": "#0a1f44",
+  "--night-soft": "#142a55",
+  "--night-muted": "#2a3d6b",
+  "--night-dim": "#4b5b87",
+  "--gold-deep": "#b88a2a",
+  "--bg": "#ffffff",
+  "--bg-deep": "#fff8e8",
+  "--bg-soft": "#f8f9fb",
+  "--fg": "#0a1f44",
+  "--fg-muted": "#4b5b87",
+  "--fg-subtle": "#8993a8",
+  "--line": "#e6e9f0",
+  "--line-strong": "#d2d7e2",
+  "--muted": "#6b7280",
+  "--muted-strong": "#4b5563",
+  "--surface": "#ffffff",
+  "--surface-2": "#f8f9fb",
+  "--color-night": "#0a1f44",
+  "--color-night-soft": "#142a55",
+  "--color-night-muted": "#2a3d6b",
+  "--color-night-dim": "#4b5b87",
+  colorScheme: "light",
+} as React.CSSProperties;
 
+/* Style forcé dark : à appliquer sur les sections SOMBRES (bg-night).
+   Inverse les vars text-night/X pour qu'elles deviennent cream par
+   défaut dans ces zones (sinon navy sur navy = invisible). */
+const forcedDarkStyle = {
+  "--night": "#fff8e8",
+  "--night-soft": "rgba(255,248,232,0.92)",
+  "--night-muted": "rgba(255,248,232,0.72)",
+  "--night-dim": "rgba(255,248,232,0.55)",
+  "--gold-deep": "#f8cd76",
+  "--fg": "#fff8e8",
+  "--fg-muted": "rgba(255,248,232,0.7)",
+  "--fg-subtle": "rgba(255,248,232,0.5)",
+  "--muted": "rgba(255,248,232,0.6)",
+  "--muted-strong": "rgba(255,248,232,0.85)",
+  "--color-night": "#fff8e8",
+  "--color-night-soft": "rgba(255,248,232,0.92)",
+  "--color-night-muted": "rgba(255,248,232,0.72)",
+  "--color-night-dim": "rgba(255,248,232,0.55)",
+  colorScheme: "dark",
+} as React.CSSProperties;
+
+export default function Home() {
   return (
     <div
       data-theme="light"
@@ -116,7 +135,10 @@ function Hero() {
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-28 sm:pt-32 sm:pb-40 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
         <div className="lg:col-span-7 reveal-up">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-night text-cream text-[11px] font-semibold tracking-widest uppercase">
+          <span
+            style={{ color: "#fff8e8" }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-night text-[11px] font-semibold tracking-widest uppercase"
+          >
             <Sparkles className="w-3.5 h-3.5 text-gold" aria-hidden />
             Beta privée — places limitées
           </span>
@@ -249,7 +271,11 @@ function ProofBar() {
 
 function Manifesto() {
   return (
-    <section className="relative py-28 sm:py-36 bg-night text-cream overflow-hidden grain">
+    <section
+      data-theme="dark"
+      style={forcedDarkStyle}
+      className="relative py-28 sm:py-36 bg-night text-cream overflow-hidden grain"
+    >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,185,66,0.18),transparent_60%)]" />
       <div className="relative max-w-5xl mx-auto px-6 sm:px-10">
         <span className="text-xs font-semibold tracking-widest uppercase text-gold">
@@ -325,7 +351,11 @@ function Pillars() {
 
         <div className="mt-16 grid lg:grid-cols-12 gap-4 lg:gap-5">
           {/* Big chat showcase */}
-          <article className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-night via-night-soft to-night text-cream p-8 sm:p-12 grain min-h-[420px]">
+          <article
+            data-theme="dark"
+            style={forcedDarkStyle}
+            className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-night via-night-soft to-night text-cream p-8 sm:p-12 grain min-h-[420px]"
+          >
             <div className="pointer-events-none absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-gold/30 blur-3xl halo-drift" />
             <div className="relative grid sm:grid-cols-2 gap-8 items-center">
               <div>
@@ -494,7 +524,11 @@ function Roadmap() {
 
 function Vision() {
   return (
-    <section className="py-24 sm:py-32 bg-night text-cream relative overflow-hidden grain">
+    <section
+      data-theme="dark"
+      style={forcedDarkStyle}
+      className="py-24 sm:py-32 bg-night text-cream relative overflow-hidden grain"
+    >
       <div className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-gold/30 via-gold/5 to-transparent blur-3xl halo-drift" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-12 items-center">
@@ -612,7 +646,11 @@ function FAQSection() {
 function CTASection() {
   return (
     <section className="px-6 sm:px-10 pb-24 bg-cream">
-      <div className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain">
+      <div
+        data-theme="dark"
+        style={forcedDarkStyle}
+        className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain"
+      >
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
           <div>
