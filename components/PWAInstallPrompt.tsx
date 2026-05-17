@@ -129,35 +129,35 @@ export function PWAInstallPrompt() {
       <div
         role="dialog"
         aria-label="Installer DIVARC sur iPhone"
-        className="fixed bottom-4 left-4 right-4 z-50 rounded-3xl bg-night text-cream border border-night/40 shadow-[0_30px_80px_-20px_rgba(10,31,68,0.55)] p-4"
+        className="fixed bottom-4 left-4 right-4 z-50 rounded-3xl bg-[#0a1f44] text-[#fff8e8] border border-night/40 shadow-[0_30px_80px_-20px_rgba(10,31,68,0.55)] p-4"
       >
         <button
           type="button"
           onClick={dismissIOS}
           aria-label="Fermer"
-          className="absolute top-3 right-3 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-cream/70"
+          className="absolute top-3 right-3 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-[#fff8e8]/70"
         >
           <X className="w-3.5 h-3.5" aria-hidden />
         </button>
         <div className="flex items-start gap-3 pr-6">
-          <div className="w-10 h-10 rounded-2xl bg-gold/20 flex items-center justify-center shrink-0">
-            <Download className="w-5 h-5 text-gold" aria-hidden />
+          <div className="w-10 h-10 rounded-2xl bg-[#f4b942]/20 flex items-center justify-center shrink-0">
+            <Download className="w-5 h-5 text-[#f4b942]" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display text-base">Installer DIVARC</p>
-            <p className="mt-0.5 text-xs text-cream/70 leading-snug">
+            <p className="mt-0.5 text-xs text-[#fff8e8]/70 leading-snug">
               Pour recevoir les notifications d&apos;appels et de messages,
               installe l&apos;app sur ton écran d&apos;accueil :
             </p>
-            <ol className="mt-3 space-y-2 text-xs text-cream/90">
+            <ol className="mt-3 space-y-2 text-xs text-[#fff8e8]/90">
               <li className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gold/20 text-[10px] font-bold text-gold shrink-0">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#f4b942]/20 text-[10px] font-bold text-[#f4b942] shrink-0">
                   1
                 </span>
                 <span>
                   Touche l&apos;icône{" "}
                   <Share
-                    className="inline w-3.5 h-3.5 -mt-0.5 text-gold"
+                    className="inline w-3.5 h-3.5 -mt-0.5 text-[#f4b942]"
                     aria-hidden
                   />{" "}
                   <span className="font-semibold">Partager</span> en bas de
@@ -165,13 +165,13 @@ export function PWAInstallPrompt() {
                 </span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gold/20 text-[10px] font-bold text-gold shrink-0">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#f4b942]/20 text-[10px] font-bold text-[#f4b942] shrink-0">
                   2
                 </span>
                 <span>
                   Choisis{" "}
                   <Plus
-                    className="inline w-3.5 h-3.5 -mt-0.5 text-gold"
+                    className="inline w-3.5 h-3.5 -mt-0.5 text-[#f4b942]"
                     aria-hidden
                   />{" "}
                   <span className="font-semibold">
@@ -180,7 +180,7 @@ export function PWAInstallPrompt() {
                 </span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gold/20 text-[10px] font-bold text-gold shrink-0">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#f4b942]/20 text-[10px] font-bold text-[#f4b942] shrink-0">
                   3
                 </span>
                 <span>
@@ -192,7 +192,7 @@ export function PWAInstallPrompt() {
             <button
               type="button"
               onClick={dismissIOS}
-              className="mt-3 text-xs font-semibold text-cream/70 hover:text-cream"
+              className="mt-3 text-xs font-semibold text-[#fff8e8]/70 hover:text-[#fff8e8]"
             >
               Plus tard
             </button>
@@ -207,15 +207,15 @@ export function PWAInstallPrompt() {
       <div
         role="dialog"
         aria-label="Installer DIVARC"
-        className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-40 rounded-3xl bg-night text-cream border border-night/40 shadow-[0_30px_80px_-20px_rgba(10,31,68,0.55)] p-4 grain reveal-up"
+        className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-40 rounded-3xl bg-[#0a1f44] text-[#fff8e8] border border-night/40 shadow-[0_30px_80px_-20px_rgba(10,31,68,0.55)] p-4 grain reveal-up"
       >
         <div className="relative flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gold/20 flex items-center justify-center shrink-0">
-            <Download className="w-5 h-5 text-gold" aria-hidden />
+          <div className="w-10 h-10 rounded-2xl bg-[#f4b942]/20 flex items-center justify-center shrink-0">
+            <Download className="w-5 h-5 text-[#f4b942]" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display text-base">Installer DIVARC</p>
-            <p className="mt-0.5 text-xs text-cream/70 leading-snug">
+            <p className="mt-0.5 text-xs text-[#fff8e8]/70 leading-snug">
               Une icône sur ton écran d&apos;accueil, accès direct, et
               notifications natives.
             </p>
@@ -223,7 +223,7 @@ export function PWAInstallPrompt() {
               <button
                 type="button"
                 onClick={installAndroid}
-                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-gold text-night text-xs font-semibold hover:bg-gold-soft transition"
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-[#f4b942] text-[#0a1f44] text-xs font-semibold hover:bg-[#f8cd76] transition"
               >
                 <Download className="w-3.5 h-3.5" aria-hidden />
                 Installer
@@ -231,7 +231,7 @@ export function PWAInstallPrompt() {
               <button
                 type="button"
                 onClick={dismissAndroid}
-                className="text-xs font-semibold text-cream/70 hover:text-cream"
+                className="text-xs font-semibold text-[#fff8e8]/70 hover:text-[#fff8e8]"
               >
                 Plus tard
               </button>
@@ -241,7 +241,7 @@ export function PWAInstallPrompt() {
             type="button"
             onClick={dismissAndroid}
             aria-label="Fermer"
-            className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-cream/70"
+            className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-[#fff8e8]/70"
           >
             <X className="w-3.5 h-3.5" aria-hidden />
           </button>

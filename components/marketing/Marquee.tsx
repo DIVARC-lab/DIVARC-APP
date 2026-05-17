@@ -14,7 +14,7 @@ export function Marquee({ items, className }: MarqueeProps) {
         {doubled.map((item, idx) => (
           <span
             key={`${item}-${idx}`}
-            className="font-display text-3xl sm:text-4xl text-night/40 hover:text-night transition-colors"
+            className="font-display text-3xl sm:text-4xl text-[#0a1f44]/40 hover:text-[#0a1f44] transition-colors"
           >
             {item}
           </span>

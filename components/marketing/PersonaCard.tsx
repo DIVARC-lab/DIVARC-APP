@@ -11,19 +11,19 @@ type PersonaCardProps = {
 
 const ACCENTS = {
   night: {
-    bg: "bg-night text-cream",
-    quote: "text-gold",
-    role: "text-cream/60",
+    bg: "bg-[#0a1f44] text-[#fff8e8]",
+    quote: "text-[#f4b942]",
+    role: "text-[#fff8e8]/60",
   },
   gold: {
-    bg: "bg-gradient-to-br from-cream to-gold/20 text-night border border-gold/30",
-    quote: "text-gold-deep",
-    role: "text-night-muted",
+    bg: "bg-gradient-to-br from-[#fff8e8] to-gold/20 text-[#0a1f44] border border-gold/30",
+    quote: "text-[#b88a2a]",
+    role: "text-[#2a3d6b]",
   },
   cream: {
-    bg: "bg-white text-night border border-line",
-    quote: "text-night-muted",
-    role: "text-muted",
+    bg: "bg-white text-[#0a1f44] border border-[#e6e9f0]",
+    quote: "text-[#2a3d6b]",
+    role: "text-[#6b7280]",
   },
 } as const;
 

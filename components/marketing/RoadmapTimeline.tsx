@@ -62,18 +62,18 @@ export function RoadmapTimeline() {
             m.status === "done"
               ? "bg-emerald-50/40 border-emerald-100"
               : m.status === "in-progress"
-                ? "bg-gradient-to-br from-cream to-bg border-gold/40 shadow-soft"
-                : "bg-white border-line border-dashed"
+                ? "bg-gradient-to-br from-[#fff8e8] to-bg border-gold/40 shadow-soft"
+                : "bg-white border-[#e6e9f0] border-dashed"
           }`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-night-muted">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#2a3d6b]">
               Sprint {m.sprint}
             </span>
             <Pill status={m.status} />
           </div>
-          <h3 className="mt-3 font-display text-2xl text-night">{m.title}</h3>
-          <p className="mt-2 text-sm text-night-muted leading-relaxed">
+          <h3 className="mt-3 font-display text-2xl text-[#0a1f44]">{m.title}</h3>
+          <p className="mt-2 text-sm text-[#2a3d6b] leading-relaxed">
             {m.description}
           </p>
         </li>
@@ -93,14 +93,14 @@ function Pill({ status }: { status: Milestone["status"] }) {
   }
   if (status === "in-progress") {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gold/20 text-gold-deep text-[10px] font-bold uppercase tracking-widest">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#f4b942]/20 text-[#b88a2a] text-[10px] font-bold uppercase tracking-widest">
         <Loader2 className="w-3 h-3 animate-spin" aria-hidden />
         En cours
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-night/10 text-night-muted text-[10px] font-bold uppercase tracking-widest">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#0a1f44]/10 text-[#2a3d6b] text-[10px] font-bold uppercase tracking-widest">
       <Sparkles className="w-3 h-3" aria-hidden />
       À venir
     </span>

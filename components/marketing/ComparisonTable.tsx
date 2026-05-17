@@ -21,11 +21,11 @@ const CAPS: Capability[] = [
 
 export function ComparisonTable() {
   return (
-    <div className="overflow-hidden rounded-3xl bg-white border border-line shadow-soft">
+    <div className="overflow-hidden rounded-3xl bg-white border border-[#e6e9f0] shadow-soft">
       <table className="w-full">
-        <thead className="bg-night/[0.03] border-b border-line">
+        <thead className="bg-[#0a1f44]/[0.03] border-b border-[#e6e9f0]">
           <tr>
-            <th className="text-left px-5 sm:px-7 py-4 text-xs font-semibold uppercase tracking-widest text-muted">
+            <th className="text-left px-5 sm:px-7 py-4 text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
               Capacité
             </th>
             <Th label="DIVARC" highlight />
@@ -39,10 +39,10 @@ export function ComparisonTable() {
             <tr
               key={cap.label}
               className={
-                idx % 2 === 1 ? "bg-night/[0.015]" : ""
+                idx % 2 === 1 ? "bg-[#0a1f44]/[0.015]" : ""
               }
             >
-              <td className="px-5 sm:px-7 py-4 text-sm font-medium text-night">
+              <td className="px-5 sm:px-7 py-4 text-sm font-medium text-[#0a1f44]">
                 {cap.label}
               </td>
               <Cell value={cap.divarc} highlight />
@@ -61,7 +61,7 @@ function Th({ label, highlight }: { label: string; highlight?: boolean }) {
   return (
     <th
       className={`text-center px-3 py-4 text-xs font-semibold uppercase tracking-widest ${
-        highlight ? "text-gold-deep" : "text-muted"
+        highlight ? "text-[#b88a2a]" : "text-[#6b7280]"
       }`}
     >
       {label}
@@ -82,10 +82,10 @@ function Cell({
         className={`inline-flex w-7 h-7 rounded-full items-center justify-center ${
           value === true
             ? highlight
-              ? "bg-night text-cream"
+              ? "bg-[#0a1f44] text-[#fff8e8]"
               : "bg-emerald-50 text-emerald-600"
             : value === "partial"
-              ? "bg-gold/15 text-gold-deep"
+              ? "bg-[#f4b942]/15 text-[#b88a2a]"
               : "bg-red-50 text-red-500"
         }`}
         aria-label={
