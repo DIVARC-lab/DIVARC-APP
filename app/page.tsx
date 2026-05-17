@@ -48,8 +48,8 @@ const forcedLightStyle = {
   colorScheme: "light",
 } as React.CSSProperties;
 
-/* Style forcé dark : à appliquer sur les sections SOMBRES (bg-night).
-   Inverse les vars text-night/X pour qu'elles deviennent cream par
+/* Style forcé dark : à appliquer sur les sections SOMBRES (bg-[#0a1f44]).
+   Inverse les vars text-[#0a1f44]/X pour qu'elles deviennent cream par
    défaut dans ces zones (sinon navy sur navy = invisible). */
 const forcedDarkStyle = {
   "--night": "#fff8e8",
@@ -74,7 +74,7 @@ export default function Home() {
     <div
       data-theme="light"
       style={forcedLightStyle}
-      className="flex flex-col bg-cream text-night"
+      className="flex flex-col bg-[#fff8e8] text-[#0a1f44]"
     >
       <SiteNav />
       <Hero />
@@ -85,7 +85,7 @@ export default function Home() {
       <Vs />
       <Roadmap />
       <Vision />
-      <Marquee items={CITIES} className="py-12 bg-cream" />
+      <Marquee items={CITIES} className="py-12 bg-[#fff8e8]" />
       <FAQSection />
       <CTASection />
       <SiteFooter />
@@ -95,20 +95,20 @@ export default function Home() {
 
 function SiteNav() {
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-cream border-b border-line">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#fff8e8] border-b border-[#e6e9f0]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
         <Wordmark />
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-night-muted">
-          <a href="#produit" className="hover:text-night transition-colors">
+        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#2a3d6b]">
+          <a href="#produit" className="hover:text-[#0a1f44] transition-colors">
             Produit
           </a>
-          <a href="#vs" className="hover:text-night transition-colors">
+          <a href="#vs" className="hover:text-[#0a1f44] transition-colors">
             Comparaison
           </a>
-          <a href="#roadmap" className="hover:text-night transition-colors">
+          <a href="#roadmap" className="hover:text-[#0a1f44] transition-colors">
             Roadmap
           </a>
-          <a href="#faq" className="hover:text-night transition-colors">
+          <a href="#faq" className="hover:text-[#0a1f44] transition-colors">
             FAQ
           </a>
         </nav>
@@ -129,23 +129,23 @@ function SiteNav() {
 
 function Hero() {
   return (
-    <section className="relative grain overflow-hidden bg-cream">
+    <section className="relative grain overflow-hidden bg-[#fff8e8]">
       <div className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-gold/40 via-gold/10 to-transparent blur-3xl halo-drift" />
-      <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-night/20 via-night/5 to-transparent blur-3xl halo-drift" />
+      <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#0a1f44]/20 via-[#0a1f44]/5 to-transparent blur-3xl halo-drift" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-28 sm:pt-32 sm:pb-40 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
         <div className="lg:col-span-7 reveal-up">
           <span
             style={{ color: "#fff8e8" }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-night text-[11px] font-semibold tracking-widest uppercase"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0a1f44] text-[11px] font-semibold tracking-widest uppercase"
           >
-            <Sparkles className="w-3.5 h-3.5 text-gold" aria-hidden />
+            <Sparkles className="w-3.5 h-3.5 text-[#f4b942]" aria-hidden />
             Beta privée — places limitées
           </span>
 
-          <h1 className="mt-6 text-[clamp(2.8rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.92] text-night text-balance">
+          <h1 className="mt-6 text-[clamp(2.8rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.92] text-[#0a1f44] text-balance">
             Tout ce que tu fais{" "}
-            <em className="font-display italic font-normal text-night-soft">
+            <em className="font-display italic font-normal text-[#142a55]">
               en ligne
             </em>
             ,
@@ -169,13 +169,13 @@ function Hero() {
             </span>
           </h1>
 
-          <p className="mt-8 text-lg sm:text-xl text-night-soft max-w-xl text-pretty leading-relaxed">
+          <p className="mt-8 text-lg sm:text-xl text-[#142a55] max-w-xl text-pretty leading-relaxed">
             Discuter, vendre, travailler, payer, partager — DIVARC réunit{" "}
-            <strong className="text-night font-semibold">
+            <strong className="text-[#0a1f44] font-semibold">
               tout ce qui compte
             </strong>{" "}
             dans une seule application. Pensée pour les{" "}
-            <strong className="text-night font-semibold">
+            <strong className="text-[#0a1f44] font-semibold">
               320 millions de francophones
             </strong>
             , partout dans le monde.
@@ -196,10 +196,10 @@ function Hero() {
           <dl className="mt-14 grid grid-cols-3 gap-6 max-w-md">
             {HERO_STATS.map((stat) => (
               <div key={stat.label}>
-                <dt className="font-display text-4xl text-night">
+                <dt className="font-display text-4xl text-[#0a1f44]">
                   {stat.value}
                 </dt>
-                <dd className="text-xs text-night-dim uppercase tracking-widest mt-1">
+                <dd className="text-xs text-[#4b5b87] uppercase tracking-widest mt-1">
                   {stat.label}
                 </dd>
               </div>
@@ -221,12 +221,12 @@ function Hero() {
                 <PaymentReceipt />
               </div>
             </div>
-            <div className="absolute -right-10 bottom-12 z-20 hidden lg:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-night text-cream shadow-[0_20px_60px_-20px_rgba(10,31,68,0.55)]">
-              <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center text-night font-bold">
+            <div className="absolute -right-10 bottom-12 z-20 hidden lg:flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#0a1f44] text-[#fff8e8] shadow-[0_20px_60px_-20px_rgba(10,31,68,0.55)]">
+              <div className="w-8 h-8 rounded-full bg-[#f4b942] flex items-center justify-center text-[#0a1f44] font-bold">
                 L
               </div>
               <div className="leading-tight">
-                <p className="text-[11px] text-cream/70">Léa · Lyon</p>
+                <p className="text-[11px] text-[#fff8e8]/70">Léa · Lyon</p>
                 <p className="text-sm font-medium">Vu ton annonce ✨</p>
               </div>
             </div>
@@ -245,11 +245,11 @@ const HERO_STATS = [
 
 function ProofBar() {
   return (
-    <section className="border-y border-line bg-cream">
+    <section className="border-y border-[#e6e9f0] bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10">
-        <p className="text-sm font-medium text-night-dim shrink-0">
+        <p className="text-sm font-medium text-[#4b5b87] shrink-0">
           Construire{" "}
-          <em className="font-display not-italic text-night">
+          <em className="font-display not-italic text-[#0a1f44]">
             ce qui manquait
           </em>{" "}
           à l&apos;internet francophone.
@@ -258,8 +258,8 @@ function ProofBar() {
           {["Paris", "Lyon", "Bruxelles", "Genève", "Montréal", "Dakar"].map(
             (city) => (
               <div key={city} className="flex items-center gap-2 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                <span className="font-semibold text-night">{city}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f4b942] animate-pulse" />
+                <span className="font-semibold text-[#0a1f44]">{city}</span>
               </div>
             ),
           )}
@@ -274,25 +274,25 @@ function Manifesto() {
     <section
       data-theme="dark"
       style={forcedDarkStyle}
-      className="relative py-28 sm:py-36 bg-night text-cream overflow-hidden grain"
+      className="relative py-28 sm:py-36 bg-[#0a1f44] text-[#fff8e8] overflow-hidden grain"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,185,66,0.18),transparent_60%)]" />
       <div className="relative max-w-5xl mx-auto px-6 sm:px-10">
-        <span className="text-xs font-semibold tracking-widest uppercase text-gold">
+        <span className="text-xs font-semibold tracking-widest uppercase text-[#f4b942]">
           Manifeste
         </span>
         <p className="mt-6 font-display text-[clamp(2rem,5vw,4rem)] leading-[1.1] text-balance">
           Les meilleures apps ont été pensées ailleurs,
-          <em className="italic block sm:inline text-gold-soft">
+          <em className="italic block sm:inline text-[#f8cd76]">
             {" "}
             pour quelqu&apos;un d&apos;autre.
           </em>
         </p>
-        <p className="mt-6 max-w-2xl text-cream/75 text-lg leading-relaxed">
+        <p className="mt-6 max-w-2xl text-[#fff8e8]/75 text-lg leading-relaxed">
           Une traduction approximative, des paiements bridés, des modérateurs
           qui ne comprennent pas nos références, des interfaces conçues à
           10 000 kilomètres. DIVARC inverse l&apos;équation : on construit{" "}
-          <em className="text-gold not-italic font-semibold">d&apos;abord</em>
+          <em className="text-[#f4b942] not-italic font-semibold">d&apos;abord</em>
           {" "}pour la francophonie — et on l&apos;ouvre au monde ensuite.
         </p>
       </div>
@@ -335,15 +335,15 @@ const PILLARS = [
 
 function Pillars() {
   return (
-    <section id="produit" className="py-24 sm:py-32 bg-cream">
+    <section id="produit" className="py-24 sm:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Le produit</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-7xl text-night text-balance leading-[1.02]">
+          <h2 className="mt-3 font-display text-5xl sm:text-7xl text-[#0a1f44] text-balance leading-[1.02]">
             Six piliers,{" "}
-            <em className="italic text-gold-deep">un seul écosystème</em>.
+            <em className="italic text-[#b88a2a]">un seul écosystème</em>.
           </h2>
-          <p className="mt-5 text-lg text-night-soft max-w-xl">
+          <p className="mt-5 text-lg text-[#142a55] max-w-xl">
             Chaque pilier remplace une app que tu utilises déjà. Mais surtout,
             ils dialoguent entre eux — ce qui n&apos;existe nulle part ailleurs.
           </p>
@@ -354,20 +354,20 @@ function Pillars() {
           <article
             data-theme="dark"
             style={forcedDarkStyle}
-            className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-night via-night-soft to-night text-cream p-8 sm:p-12 grain min-h-[420px]"
+            className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#0a1f44] text-[#fff8e8] p-8 sm:p-12 grain min-h-[420px]"
           >
-            <div className="pointer-events-none absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-gold/30 blur-3xl halo-drift" />
+            <div className="pointer-events-none absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-[#f4b942]/30 blur-3xl halo-drift" />
             <div className="relative grid sm:grid-cols-2 gap-8 items-center">
               <div>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cream/10 text-cream text-[10px] font-bold uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#fff8e8]/10 text-[#fff8e8] text-[10px] font-bold uppercase tracking-widest">
                   Pilier 1
                 </div>
                 <h3 className="mt-4 font-display text-4xl text-balance">
                   Discuter, comme une{" "}
-                  <em className="italic text-gold-deep">vraie</em>{" "}
+                  <em className="italic text-[#b88a2a]">vraie</em>{" "}
                   conversation.
                 </h3>
-                <p className="mt-4 text-cream/80 leading-relaxed">
+                <p className="mt-4 text-[#fff8e8]/80 leading-relaxed">
                   Messagerie chiffrée bout-en-bout, audios haute qualité, lives
                   vidéo, appels gratuits. Sans collecte de tes données.
                 </p>
@@ -378,7 +378,7 @@ function Pillars() {
                     "Réactions, threads, messages éphémères",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#f4b942]" />
                       {item}
                     </li>
                   ))}
@@ -393,15 +393,15 @@ function Pillars() {
           </article>
 
           {/* Marketplace */}
-          <article className="lg:col-span-5 relative overflow-hidden rounded-3xl bg-gradient-to-br from-cream to-gold/10 border border-gold/20 p-8 grain min-h-[420px]">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-night text-cream text-[10px] font-bold uppercase tracking-widest">
+          <article className="lg:col-span-5 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fff8e8] to-gold/10 border border-gold/20 p-8 grain min-h-[420px]">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#0a1f44] text-[#fff8e8] text-[10px] font-bold uppercase tracking-widest">
               Pilier 2
             </div>
-            <h3 className="mt-4 font-display text-3xl text-night text-balance">
+            <h3 className="mt-4 font-display text-3xl text-[#0a1f44] text-balance">
               Marketplace de{" "}
-              <em className="italic text-gold-deep">quartier</em>.
+              <em className="italic text-[#b88a2a]">quartier</em>.
             </h3>
-            <p className="mt-3 text-night-muted text-sm leading-relaxed max-w-sm">
+            <p className="mt-3 text-[#2a3d6b] text-sm leading-relaxed max-w-sm">
               Achète, vends, échange avec ta vraie communauté. Sans publicité,
               sans frais cachés, en confiance.
             </p>
@@ -418,15 +418,15 @@ function Pillars() {
             return (
               <article
                 key={pillar.title}
-                className="lg:col-span-3 p-7 rounded-3xl bg-white border border-line hover:border-night/30 hover:shadow-soft transition-all"
+                className="lg:col-span-3 p-7 rounded-3xl bg-white border border-[#e6e9f0] hover:border-night/30 hover:shadow-soft transition-all"
               >
-                <div className="w-11 h-11 rounded-2xl bg-night/5 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-night" aria-hidden />
+                <div className="w-11 h-11 rounded-2xl bg-[#0a1f44]/5 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-[#0a1f44]" aria-hidden />
                 </div>
-                <h3 className="mt-5 font-display text-2xl text-night">
+                <h3 className="mt-5 font-display text-2xl text-[#0a1f44]">
                   {pillar.title}
                 </h3>
-                <p className="mt-2 text-sm text-night-muted leading-relaxed">
+                <p className="mt-2 text-sm text-[#2a3d6b] leading-relaxed">
                   {pillar.body}
                 </p>
               </article>
@@ -440,13 +440,13 @@ function Pillars() {
 
 function Personas() {
   return (
-    <section className="py-24 sm:py-32 bg-cream">
+    <section className="py-24 sm:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Pour qui</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
             Construit{" "}
-            <em className="italic text-gold-deep">avec</em> celles et ceux qui
+            <em className="italic text-[#b88a2a]">avec</em> celles et ceux qui
             l&apos;utilisent.
           </h2>
         </header>
@@ -481,15 +481,15 @@ function Personas() {
 
 function Vs() {
   return (
-    <section id="vs" className="py-24 sm:py-32 bg-cream">
+    <section id="vs" className="py-24 sm:py-32 bg-[#fff8e8]">
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-12">
           <KickerLabel>Comparaison</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
-            Pas <em className="italic text-gold-deep">une de plus</em>, mais{" "}
-            <em className="italic text-gold-deep">la bonne</em>.
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
+            Pas <em className="italic text-[#b88a2a]">une de plus</em>, mais{" "}
+            <em className="italic text-[#b88a2a]">la bonne</em>.
           </h2>
-          <p className="mt-5 text-lg text-night-soft max-w-xl">
+          <p className="mt-5 text-lg text-[#142a55] max-w-xl">
             Les autres ont été pensées ailleurs, pour quelqu&apos;un
             d&apos;autre. Voici ce que ça change concrètement.
           </p>
@@ -502,16 +502,16 @@ function Vs() {
 
 function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 sm:py-32 bg-cream">
+    <section id="roadmap" className="py-24 sm:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-14">
           <KickerLabel>Roadmap publique</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-night text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
             Construit{" "}
-            <em className="italic text-gold-deep">en transparence</em>, sprint
+            <em className="italic text-[#b88a2a]">en transparence</em>, sprint
             après sprint.
           </h2>
-          <p className="mt-5 text-lg text-night-soft max-w-xl">
+          <p className="mt-5 text-lg text-[#142a55] max-w-xl">
             Suis exactement où nous en sommes. Chaque sprint = 4 à 6 semaines.
             Un livrable concret à chaque étape.
           </p>
@@ -527,22 +527,22 @@ function Vision() {
     <section
       data-theme="dark"
       style={forcedDarkStyle}
-      className="py-24 sm:py-32 bg-night text-cream relative overflow-hidden grain"
+      className="py-24 sm:py-32 bg-[#0a1f44] text-[#fff8e8] relative overflow-hidden grain"
     >
       <div className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-gold/30 via-gold/5 to-transparent blur-3xl halo-drift" />
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-6">
-          <span className="text-xs font-semibold tracking-widest uppercase text-gold">
+          <span className="text-xs font-semibold tracking-widest uppercase text-[#f4b942]">
             Notre vision
           </span>
           <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
-            Une app pour <em className="italic text-gold-deep">tous</em>,
+            Une app pour <em className="italic text-[#b88a2a]">tous</em>,
             partout.
           </h2>
-          <p className="mt-6 text-lg text-cream/80 max-w-xl leading-relaxed">
+          <p className="mt-6 text-lg text-[#fff8e8]/80 max-w-xl leading-relaxed">
             DIVARC connecte la francophonie mondiale —
-            <strong className="text-gold"> 320 millions de personnes</strong>{" "}
+            <strong className="text-[#f4b942]"> 320 millions de personnes</strong>{" "}
             qui parlent la même langue, partagent les mêmes valeurs, et méritent
             une app à leur hauteur. De Paris à Dakar, de Montréal à Genève.
           </p>
@@ -550,10 +550,10 @@ function Vision() {
           <ul className="mt-10 space-y-4">
             {VISION_POINTS.map((point) => (
               <li key={point.title} className="flex items-start gap-4">
-                <span className="mt-1.5 w-2 h-2 rounded-full bg-gold shrink-0" />
+                <span className="mt-1.5 w-2 h-2 rounded-full bg-[#f4b942] shrink-0" />
                 <div>
-                  <p className="font-semibold text-cream">{point.title}</p>
-                  <p className="text-sm text-cream/70 mt-0.5">{point.body}</p>
+                  <p className="font-semibold text-[#fff8e8]">{point.title}</p>
+                  <p className="text-sm text-[#fff8e8]/70 mt-0.5">{point.body}</p>
                 </div>
               </li>
             ))}
@@ -595,13 +595,13 @@ const CITIES = [
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-24 sm:py-32 bg-cream">
+    <section id="faq" className="py-24 sm:py-32 bg-[#fff8e8]">
       <div className="max-w-3xl mx-auto px-6 sm:px-10">
         <header className="mb-10">
           <KickerLabel>Questions fréquentes</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl text-night text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-5xl text-[#0a1f44] text-balance leading-[1.05]">
             Ce que tu te demandes{" "}
-            <em className="italic text-gold-deep">peut-être</em>.
+            <em className="italic text-[#b88a2a]">peut-être</em>.
           </h2>
         </header>
         <FAQ
@@ -645,23 +645,23 @@ function FAQSection() {
 
 function CTASection() {
   return (
-    <section className="px-6 sm:px-10 pb-24 bg-cream">
+    <section className="px-6 sm:px-10 pb-24 bg-[#fff8e8]">
       <div
         data-theme="dark"
         style={forcedDarkStyle}
-        className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-night via-night-soft to-night-muted text-cream p-10 sm:p-16 grain"
+        className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#2a3d6b] text-[#fff8e8] p-10 sm:p-16 grain"
       >
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
           <div>
-            <span className="text-xs font-semibold tracking-widest uppercase text-gold">
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#f4b942]">
               Beta privée
             </span>
             <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
               Rejoins le{" "}
-              <em className="italic text-gold-deep">cercle des fondateurs</em>.
+              <em className="italic text-[#b88a2a]">cercle des fondateurs</em>.
             </h2>
-            <p className="mt-5 text-lg text-cream/80 max-w-xl">
+            <p className="mt-5 text-lg text-[#fff8e8]/80 max-w-xl">
               Accès anticipé à toutes les nouveautés. Badge fondateur permanent.
               Une voix dans la roadmap. Et la satisfaction d&apos;avoir
               construit cette app avec nous.
@@ -670,7 +670,7 @@ function CTASection() {
               <Button
                 size="lg"
                 asChild
-                className="bg-gold text-night hover:bg-gold-soft"
+                className="bg-[#f4b942] text-[#0a1f44] hover:bg-[#f8cd76]"
               >
                 <Link href="/signup">
                   Créer mon compte
@@ -681,7 +681,7 @@ function CTASection() {
                 size="lg"
                 variant="ghost"
                 asChild
-                className="text-cream hover:bg-white/10"
+                className="text-[#fff8e8] hover:bg-white/10"
               >
                 <Link href="/login">J&apos;ai déjà un compte</Link>
               </Button>
@@ -695,8 +695,8 @@ function CTASection() {
                 </div>
               ))}
             </div>
-            <p className="text-sm text-cream/60 text-center">
-              <strong className="text-cream">Des centaines</strong> de
+            <p className="text-sm text-[#fff8e8]/60 text-center">
+              <strong className="text-[#fff8e8]">Des centaines</strong> de
               fondateurs déjà inscrits.
               <br />
               Sois parmi les premiers de ta ville.
@@ -710,15 +710,15 @@ function CTASection() {
 
 function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-cream">
+    <footer className="border-t border-[#e6e9f0] bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">
               <Logo size={36} />
-              <span className="font-display text-2xl text-night">DIVARC</span>
+              <span className="font-display text-2xl text-[#0a1f44]">DIVARC</span>
             </div>
-            <p className="mt-4 text-sm text-night-dim max-w-xs leading-relaxed">
+            <p className="mt-4 text-sm text-[#4b5b87] max-w-xs leading-relaxed">
               La super-app francophone. Bâtie à Paris, pensée pour toutes les
               francophones et tous les francophones du monde.
             </p>
@@ -740,11 +740,11 @@ function SiteFooter() {
             ]}
           />
         </div>
-        <div className="mt-12 pt-8 border-t border-line flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-          <p className="text-xs text-night-dim">
+        <div className="mt-12 pt-8 border-t border-[#e6e9f0] flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <p className="text-xs text-[#4b5b87]">
             © {new Date().getFullYear()} DIVARC Lab — Tous droits réservés.
           </p>
-          <p className="text-xs text-night-dim">
+          <p className="text-xs text-[#4b5b87]">
             Construit avec ✦ pour la francophonie mondiale.
           </p>
         </div>
@@ -762,7 +762,7 @@ function FooterColumn({
 }) {
   return (
     <div>
-      <h4 className="text-xs font-semibold tracking-widest uppercase text-night-muted">
+      <h4 className="text-xs font-semibold tracking-widest uppercase text-[#2a3d6b]">
         {title}
       </h4>
       <ul className="mt-4 space-y-2.5">
@@ -770,7 +770,7 @@ function FooterColumn({
           <li key={label}>
             <Link
               href={href}
-              className="text-sm text-night hover:text-gold-deep transition-colors"
+              className="text-sm text-[#0a1f44] hover:text-[#b88a2a] transition-colors"
             >
               {label}
             </Link>
