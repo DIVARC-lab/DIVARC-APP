@@ -74,7 +74,7 @@ export default function Home() {
     <div
       data-theme="light"
       style={forcedLightStyle}
-      className="flex flex-col bg-[#fff8e8] text-[#0a1f44]"
+      className="flex flex-col bg-[#fff8e8] text-[#0a1f44] overflow-x-hidden"
     >
       <SiteNav />
       <Hero />
@@ -85,7 +85,7 @@ export default function Home() {
       <Vs />
       <Roadmap />
       <Vision />
-      <Marquee items={CITIES} className="py-12 bg-[#fff8e8]" />
+      <Marquee items={CITIES} className="py-8 sm:py-12 bg-[#fff8e8]" />
       <FAQSection />
       <CTASection />
       <SiteFooter />
@@ -133,7 +133,7 @@ function Hero() {
       <div className="pointer-events-none absolute -top-40 -right-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-gold/40 via-gold/10 to-transparent blur-3xl halo-drift" />
       <div className="pointer-events-none absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#0a1f44]/20 via-[#0a1f44]/5 to-transparent blur-3xl halo-drift" />
 
-      <div className="relative max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-28 sm:pt-32 sm:pb-40 grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-10 pt-14 pb-16 sm:pt-32 sm:pb-40 grid lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-16 items-center">
         <div className="lg:col-span-7 reveal-up">
           <span
             style={{ color: "#fff8e8" }}
@@ -143,7 +143,7 @@ function Hero() {
             Beta privée — places limitées
           </span>
 
-          <h1 className="mt-6 text-[clamp(2.8rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.92] text-[#0a1f44] text-balance">
+          <h1 className="mt-6 text-[clamp(2.4rem,8vw,6.4rem)] font-bold tracking-[-0.045em] leading-[0.95] text-[#0a1f44] text-balance">
             Tout ce que tu fais{" "}
             <em className="font-display italic font-normal text-[#142a55]">
               en ligne
@@ -207,13 +207,21 @@ function Hero() {
           </dl>
         </div>
 
-        <div className="lg:col-span-5 relative flex justify-center reveal-up [animation-delay:200ms]">
+        <div className="lg:col-span-5 relative flex justify-center reveal-up [animation-delay:200ms] mt-4 lg:mt-0">
           <div className="relative">
-            <ArcMark
-              size={460}
-              className="absolute -top-12 -right-16 opacity-90"
-            />
-            <div className="relative z-10 translate-y-6">
+            <div className="hidden sm:block">
+              <ArcMark
+                size={460}
+                className="absolute -top-12 -right-16 opacity-90 pointer-events-none"
+              />
+            </div>
+            <div className="sm:hidden">
+              <ArcMark
+                size={280}
+                className="absolute -top-6 -right-6 opacity-70 pointer-events-none"
+              />
+            </div>
+            <div className="relative z-10 translate-y-6 scale-90 sm:scale-100">
               <PhoneMockChat />
             </div>
             <div className="absolute -left-16 top-32 z-20 hidden md:block">
@@ -274,7 +282,7 @@ function Manifesto() {
     <section
       data-theme="dark"
       style={forcedDarkStyle}
-      className="relative py-28 sm:py-36 bg-[#0a1f44] text-[#fff8e8] overflow-hidden grain"
+      className="relative py-20 sm:py-28 lg:py-36 bg-[#0a1f44] text-[#fff8e8] overflow-hidden grain"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,185,66,0.18),transparent_60%)]" />
       <div className="relative max-w-5xl mx-auto px-6 sm:px-10">
@@ -335,11 +343,11 @@ const PILLARS = [
 
 function Pillars() {
   return (
-    <section id="produit" className="py-24 sm:py-32 bg-[#fff8e8]">
+    <section id="produit" className="py-16 sm:py-24 lg:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Le produit</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-7xl text-[#0a1f44] text-balance leading-[1.02]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#0a1f44] text-balance leading-[1.05]">
             Six piliers,{" "}
             <em className="italic text-[#b88a2a]">un seul écosystème</em>.
           </h2>
@@ -354,7 +362,7 @@ function Pillars() {
           <article
             data-theme="dark"
             style={forcedDarkStyle}
-            className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#0a1f44] text-[#fff8e8] p-8 sm:p-12 grain min-h-[420px]"
+            className="lg:col-span-7 relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#0a1f44] text-[#fff8e8] p-6 sm:p-8 lg:p-12 grain min-h-[420px]"
           >
             <div className="pointer-events-none absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-[#f4b942]/30 blur-3xl halo-drift" />
             <div className="relative grid sm:grid-cols-2 gap-8 items-center">
@@ -418,7 +426,7 @@ function Pillars() {
             return (
               <article
                 key={pillar.title}
-                className="lg:col-span-3 p-7 rounded-3xl bg-[#ffffff] border border-[#e6e9f0] hover:border-night/30 hover:shadow-soft transition-all"
+                className="lg:col-span-3 p-5 sm:p-7 rounded-3xl bg-[#ffffff] border border-[#e6e9f0] hover:border-night/30 hover:shadow-soft transition-all"
               >
                 <div className="w-11 h-11 rounded-2xl bg-[#0a1f44]/5 flex items-center justify-center">
                   <Icon className="w-5 h-5 text-[#0a1f44]" aria-hidden />
@@ -440,11 +448,11 @@ function Pillars() {
 
 function Personas() {
   return (
-    <section className="py-24 sm:py-32 bg-[#fff8e8]">
+    <section className="py-16 sm:py-24 lg:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl">
           <KickerLabel>Pour qui</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
             Construit{" "}
             <em className="italic text-[#b88a2a]">avec</em> celles et ceux qui
             l&apos;utilisent.
@@ -481,11 +489,11 @@ function Personas() {
 
 function Vs() {
   return (
-    <section id="vs" className="py-24 sm:py-32 bg-[#fff8e8]">
+    <section id="vs" className="py-16 sm:py-24 lg:py-32 bg-[#fff8e8]">
       <div className="max-w-6xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-12">
           <KickerLabel>Comparaison</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
             Pas <em className="italic text-[#b88a2a]">une de plus</em>, mais{" "}
             <em className="italic text-[#b88a2a]">la bonne</em>.
           </h2>
@@ -502,11 +510,11 @@ function Vs() {
 
 function Roadmap() {
   return (
-    <section id="roadmap" className="py-24 sm:py-32 bg-[#fff8e8]">
+    <section id="roadmap" className="py-16 sm:py-24 lg:py-32 bg-[#fff8e8]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10">
         <header className="max-w-3xl mb-14">
           <KickerLabel>Roadmap publique</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl text-[#0a1f44] text-balance leading-[1.05]">
             Construit{" "}
             <em className="italic text-[#b88a2a]">en transparence</em>, sprint
             après sprint.
@@ -527,7 +535,7 @@ function Vision() {
     <section
       data-theme="dark"
       style={forcedDarkStyle}
-      className="py-24 sm:py-32 bg-[#0a1f44] text-[#fff8e8] relative overflow-hidden grain"
+      className="py-16 sm:py-24 lg:py-32 bg-[#0a1f44] text-[#fff8e8] relative overflow-hidden grain"
     >
       <div className="pointer-events-none absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-gold/30 via-gold/5 to-transparent blur-3xl halo-drift" />
 
@@ -536,7 +544,7 @@ function Vision() {
           <span className="text-xs font-semibold tracking-widest uppercase text-[#f4b942]">
             Notre vision
           </span>
-          <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl text-balance leading-[1.1]">
             Une app pour <em className="italic text-[#b88a2a]">tous</em>,
             partout.
           </h2>
@@ -595,11 +603,11 @@ const CITIES = [
 
 function FAQSection() {
   return (
-    <section id="faq" className="py-24 sm:py-32 bg-[#fff8e8]">
+    <section id="faq" className="py-16 sm:py-24 lg:py-32 bg-[#fff8e8]">
       <div className="max-w-3xl mx-auto px-6 sm:px-10">
         <header className="mb-10">
           <KickerLabel>Questions fréquentes</KickerLabel>
-          <h2 className="mt-3 font-display text-5xl text-[#0a1f44] text-balance leading-[1.05]">
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl text-[#0a1f44] text-balance leading-[1.05]">
             Ce que tu te demandes{" "}
             <em className="italic text-[#b88a2a]">peut-être</em>.
           </h2>
@@ -649,7 +657,7 @@ function CTASection() {
       <div
         data-theme="dark"
         style={forcedDarkStyle}
-        className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#2a3d6b] text-[#fff8e8] p-10 sm:p-16 grain"
+        className="relative max-w-7xl mx-auto rounded-[36px] overflow-hidden bg-gradient-to-br from-[#0a1f44] via-[#142a55] to-[#2a3d6b] text-[#fff8e8] p-6 sm:p-10 lg:p-16 grain"
       >
         <div className="pointer-events-none absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-gold/40 to-transparent blur-3xl halo-drift" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
@@ -657,7 +665,7 @@ function CTASection() {
             <span className="text-xs font-semibold tracking-widest uppercase text-[#f4b942]">
               Beta privée
             </span>
-            <h2 className="mt-3 font-display text-5xl sm:text-6xl text-balance leading-[1.05]">
+            <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-6xl text-balance leading-[1.1]">
               Rejoins le{" "}
               <em className="italic text-[#b88a2a]">cercle des fondateurs</em>.
             </h2>
@@ -711,7 +719,7 @@ function CTASection() {
 function SiteFooter() {
   return (
     <footer className="border-t border-[#e6e9f0] bg-[#fff8e8]">
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-12 sm:py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3">

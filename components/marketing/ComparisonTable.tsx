@@ -21,8 +21,8 @@ const CAPS: Capability[] = [
 
 export function ComparisonTable() {
   return (
-    <div className="overflow-hidden rounded-3xl bg-[#ffffff] border border-[#e6e9f0] shadow-soft">
-      <table className="w-full">
+    <div className="overflow-x-auto rounded-3xl bg-[#ffffff] border border-[#e6e9f0] shadow-soft -mx-2 sm:mx-0">
+      <table className="w-full min-w-[560px]">
         <thead className="bg-[#0a1f44]/[0.03] border-b border-[#e6e9f0]">
           <tr>
             <th className="text-left px-5 sm:px-7 py-4 text-xs font-semibold uppercase tracking-widest text-[#6b7280]">
