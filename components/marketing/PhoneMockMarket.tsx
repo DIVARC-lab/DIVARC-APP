@@ -14,7 +14,7 @@ export function PhoneMockMarket() {
           {ITEMS.map((item) => (
             <article
               key={item.title}
-              className="rounded-2xl overflow-hidden bg-white border border-[#e6e9f0]"
+              className="rounded-2xl overflow-hidden bg-[#ffffff] border border-[#e6e9f0]"
             >
               <div
                 className={`h-20 ${item.bg} relative flex items-center justify-center text-3xl`}
@@ -23,7 +23,7 @@ export function PhoneMockMarket() {
                 <button
                   type="button"
                   aria-label="Ajouter aux favoris"
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center"
+                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#ffffff]/90 flex items-center justify-center"
                 >
                   <Heart className="w-3 h-3 text-[#0a1f44]" aria-hidden />
                 </button>

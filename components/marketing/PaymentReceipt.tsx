@@ -2,9 +2,9 @@ import { Check } from "lucide-react";
 
 export function PaymentReceipt() {
   return (
-    <div className="w-[280px] rounded-3xl bg-white border border-[#e6e9f0] shadow-[0_30px_80px_-30px_rgba(10,31,68,0.4)] overflow-hidden">
+    <div className="w-[280px] rounded-3xl bg-[#ffffff] border border-[#e6e9f0] shadow-[0_30px_80px_-30px_rgba(10,31,68,0.4)] overflow-hidden">
       <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 text-[#fff8e8]">
-        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full bg-[#ffffff]/20 backdrop-blur-sm flex items-center justify-center">
           <Check className="w-5 h-5" aria-hidden />
         </div>
         <p className="mt-4 text-xs uppercase tracking-widest opacity-80">

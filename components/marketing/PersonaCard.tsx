@@ -21,7 +21,7 @@ const ACCENTS = {
     role: "text-[#2a3d6b]",
   },
   cream: {
-    bg: "bg-white text-[#0a1f44] border border-[#e6e9f0]",
+    bg: "bg-[#ffffff] text-[#0a1f44] border border-[#e6e9f0]",
     quote: "text-[#2a3d6b]",
     role: "text-[#6b7280]",
   },

@@ -135,7 +135,7 @@ export function PWAInstallPrompt() {
           type="button"
           onClick={dismissIOS}
           aria-label="Fermer"
-          className="absolute top-3 right-3 w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-[#fff8e8]/70"
+          className="absolute top-3 right-3 w-7 h-7 rounded-full hover:bg-[#ffffff]/10 flex items-center justify-center text-[#fff8e8]/70"
         >
           <X className="w-3.5 h-3.5" aria-hidden />
         </button>
@@ -241,7 +241,7 @@ export function PWAInstallPrompt() {
             type="button"
             onClick={dismissAndroid}
             aria-label="Fermer"
-            className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center text-[#fff8e8]/70"
+            className="w-7 h-7 rounded-full hover:bg-[#ffffff]/10 flex items-center justify-center text-[#fff8e8]/70"
           >
             <X className="w-3.5 h-3.5" aria-hidden />
           </button>

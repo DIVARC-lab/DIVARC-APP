@@ -63,7 +63,7 @@ export function RoadmapTimeline() {
               ? "bg-emerald-50/40 border-emerald-100"
               : m.status === "in-progress"
                 ? "bg-gradient-to-br from-[#fff8e8] to-bg border-gold/40 shadow-soft"
-                : "bg-white border-[#e6e9f0] border-dashed"
+                : "bg-[#ffffff] border-[#e6e9f0] border-dashed"
           }`}
         >
           <div className="flex items-center gap-2">

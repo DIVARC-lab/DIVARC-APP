@@ -21,7 +21,7 @@ const CAPS: Capability[] = [
 
 export function ComparisonTable() {
   return (
-    <div className="overflow-hidden rounded-3xl bg-white border border-[#e6e9f0] shadow-soft">
+    <div className="overflow-hidden rounded-3xl bg-[#ffffff] border border-[#e6e9f0] shadow-soft">
       <table className="w-full">
         <thead className="bg-[#0a1f44]/[0.03] border-b border-[#e6e9f0]">
           <tr>

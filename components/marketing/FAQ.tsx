@@ -7,7 +7,7 @@ export function FAQ({ items }: { items: ReadonlyArray<FAQItem> }) {
     <ul className="space-y-3">
       {items.map((item) => (
         <li key={item.question}>
-          <details className="group rounded-2xl bg-white border border-[#e6e9f0] p-5 [&_summary]:cursor-pointer">
+          <details className="group rounded-2xl bg-[#ffffff] border border-[#e6e9f0] p-5 [&_summary]:cursor-pointer">
             <summary className="flex items-center justify-between gap-4 list-none">
               <h3 className="font-display text-lg text-[#0a1f44]">{item.question}</h3>
               <span

@@ -418,7 +418,7 @@ function Pillars() {
             return (
               <article
                 key={pillar.title}
-                className="lg:col-span-3 p-7 rounded-3xl bg-white border border-[#e6e9f0] hover:border-night/30 hover:shadow-soft transition-all"
+                className="lg:col-span-3 p-7 rounded-3xl bg-[#ffffff] border border-[#e6e9f0] hover:border-night/30 hover:shadow-soft transition-all"
               >
                 <div className="w-11 h-11 rounded-2xl bg-[#0a1f44]/5 flex items-center justify-center">
                   <Icon className="w-5 h-5 text-[#0a1f44]" aria-hidden />
@@ -681,7 +681,7 @@ function CTASection() {
                 size="lg"
                 variant="ghost"
                 asChild
-                className="text-[#fff8e8] hover:bg-white/10"
+                className="text-[#fff8e8] hover:bg-[#ffffff]/10"
               >
                 <Link href="/login">J&apos;ai déjà un compte</Link>
               </Button>

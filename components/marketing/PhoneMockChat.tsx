@@ -92,7 +92,7 @@ export function PhoneMockChat({ tone = "light" }: { tone?: Tone }) {
           </div>
         </div>
 
-        <div className="absolute bottom-3 left-3 right-3 h-12 rounded-full bg-white/90 backdrop-blur-sm border border-[#e6e9f0] flex items-center px-4 gap-3">
+        <div className="absolute bottom-3 left-3 right-3 h-12 rounded-full bg-[#ffffff]/90 backdrop-blur-sm border border-[#e6e9f0] flex items-center px-4 gap-3">
           <span className="text-xs text-[#6b7280] flex-1">Écris un message…</span>
           <span className="w-7 h-7 rounded-full bg-[#0a1f44] text-[#fff8e8] flex items-center justify-center text-xs font-bold">
             ↑
@@ -116,7 +116,7 @@ function ChatBubble({
   const styles = isLeft
     ? tone === "dark"
       ? "bg-[#2a3d6b] text-[#fff8e8]"
-      : "bg-white text-[#0a1f44] border border-[#e6e9f0]"
+      : "bg-[#ffffff] text-[#0a1f44] border border-[#e6e9f0]"
     : "bg-[#0a1f44] text-[#fff8e8]";
 
   return (
