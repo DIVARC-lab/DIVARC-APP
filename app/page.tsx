@@ -23,8 +23,40 @@ import { Button } from "@/components/ui/Button";
 import { KickerLabel } from "@/components/ui/KickerLabel";
 
 export default function Home() {
+  /* Force light theme sur la landing peu importe le mode système /
+     ThemeProvider. Override des CSS vars critiques en inline pour
+     bypasser tout dark mode browser. */
+  const forcedLightStyle = {
+    "--night": "#0a1f44",
+    "--night-soft": "#142a55",
+    "--night-muted": "#2a3d6b",
+    "--night-dim": "#4b5b87",
+    "--gold-deep": "#b88a2a",
+    "--bg": "#ffffff",
+    "--bg-deep": "#fff8e8",
+    "--bg-soft": "#f8f9fb",
+    "--fg": "#0a1f44",
+    "--fg-muted": "#4b5b87",
+    "--fg-subtle": "#8993a8",
+    "--line": "#e6e9f0",
+    "--line-strong": "#d2d7e2",
+    "--muted": "#6b7280",
+    "--muted-strong": "#4b5563",
+    "--surface": "#ffffff",
+    "--surface-2": "#f8f9fb",
+    "--color-night": "#0a1f44",
+    "--color-night-soft": "#142a55",
+    "--color-night-muted": "#2a3d6b",
+    "--color-night-dim": "#4b5b87",
+    colorScheme: "light",
+  } as React.CSSProperties;
+
   return (
-    <div className="flex flex-col bg-cream text-night">
+    <div
+      data-theme="light"
+      style={forcedLightStyle}
+      className="flex flex-col bg-cream text-night"
+    >
       <SiteNav />
       <Hero />
       <ProofBar />
