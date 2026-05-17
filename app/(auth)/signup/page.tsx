@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { SignupForm } from "./SignupForm";
 
 export default function SignupPage() {
@@ -28,8 +29,18 @@ export default function SignupPage() {
           </p>
 
           <div className="mt-7">
-            <SignupForm />
+            <SocialAuthButtons next="/dashboard" prefix="S'inscrire avec" />
           </div>
+
+          <div className="my-7 flex items-center gap-3">
+            <div className="flex-1 h-px bg-line" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              ou par email
+            </span>
+            <div className="flex-1 h-px bg-line" />
+          </div>
+
+          <SignupForm />
 
           <p className="mt-6 text-sm text-muted text-center">
             Déjà membre ?{" "}

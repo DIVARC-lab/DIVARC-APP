@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { changePassword, type PasswordFormState } from "./actions";
+import { LinkedIdentitiesSection } from "./_components/LinkedIdentitiesSection";
 import { MFASection } from "./_components/MFASection";
+import { PhoneSection } from "./_components/PhoneSection";
 
 const INITIAL: PasswordFormState = { status: "idle" };
 
@@ -88,6 +90,10 @@ export function SecurityPanel({ email, lastSignInAt }: SecurityPanelProps) {
       </section>
 
       <MFASection />
+
+      <PhoneSection />
+
+      <LinkedIdentitiesSection />
 
       <section className="p-6 sm:p-8 rounded-3xl bg-white border border-line shadow-soft">
         <div className="flex items-center gap-3 mb-5">

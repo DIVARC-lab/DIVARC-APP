@@ -1,16 +1,32 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { LoginForm } from "./LoginForm";
 
-type SearchParams = Promise<{ confirmation?: string }>;
+type SearchParams = Promise<{
+  confirmation?: string;
+  error?: string;
+  provider?: string;
+}>;
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { confirmation } = await searchParams;
+  const { confirmation, error, provider } = await searchParams;
   const showConfirmationNotice = confirmation === "sent";
+
+  let oauthError: string | null = null;
+  if (error === "oauth_failed") {
+    oauthError = `Connexion ${
+      provider ? `via ${provider}` : "OAuth"
+    } impossible pour le moment. Réessaie ou utilise ton mot de passe.`;
+  } else if (error === "provider_invalid") {
+    oauthError = "Fournisseur de connexion inconnu.";
+  } else if (error === "auth_failed") {
+    oauthError = "Le lien de connexion est invalide ou a expiré.";
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -43,8 +59,42 @@ export default async function LoginPage({
             </div>
           ) : null}
 
+          {oauthError ? (
+            <div
+              role="alert"
+              className="mt-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-900"
+            >
+              {oauthError}
+            </div>
+          ) : null}
+
           <div className="mt-7">
-            <LoginForm />
+            <SocialAuthButtons next="/dashboard" prefix="Continuer avec" />
+          </div>
+
+          <div className="my-7 flex items-center gap-3">
+            <div className="flex-1 h-px bg-line" />
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
+              ou par email
+            </span>
+            <div className="flex-1 h-px bg-line" />
+          </div>
+
+          <LoginForm />
+
+          <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-between">
+            <Link
+              href="/magic-link"
+              className="text-sm font-medium text-gold-deep hover:text-night transition-colors"
+            >
+              Recevoir un lien magique →
+            </Link>
+            <Link
+              href="/phone-login"
+              className="text-sm font-medium text-gold-deep hover:text-night transition-colors"
+            >
+              Connexion par SMS →
+            </Link>
           </div>
 
           <p className="mt-6 text-sm text-muted text-center">
