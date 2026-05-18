@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   flattenZodErrors,
@@ -171,19 +170,42 @@ export async function saveInterestsStep(
   return { status: "success" };
 }
 
-export async function completeOnboarding() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+/* Marque onboarded_at sans rediriger. La redirection est faite côté
+   client après pour que toute erreur downstream (ex: /dashboard qui
+   crash) ne se manifeste pas en 503 sur /welcome. */
+export async function completeOnboarding(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { ok: false, error: "Non authentifié." };
+    }
 
-  await supabase
-    .from("profiles")
-    .update({ onboarded_at: new Date().toISOString() })
-    .eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarded_at: new Date().toISOString() })
+      .eq("id", user.id);
 
-  revalidatePath("/welcome");
-  revalidatePath("/dashboard");
-  redirect("/dashboard");
+    if (error) {
+      console.error("[divarc:completeOnboarding] update failed", error);
+      return { ok: false, error: error.message };
+    }
+
+    try {
+      revalidatePath("/welcome");
+      revalidatePath("/dashboard");
+    } catch (revErr) {
+      console.error("[divarc:completeOnboarding] revalidate failed", revErr);
+      /* Non bloquant : la session a bien `onboarded_at` côté DB. */
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("[divarc:completeOnboarding] fatal", err);
+    return { ok: false, error: "Erreur serveur." };
+  }
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 import {
   useActionState,
   useEffect,
@@ -74,7 +73,6 @@ export function WelcomeWizard({
   fullName,
   founderRank,
 }: WelcomeWizardProps) {
-  const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url);
 
@@ -146,16 +144,26 @@ export function WelcomeWizard({
 
   function handleSkip() {
     startCompleting(async () => {
-      await completeOnboarding();
-      router.push("/dashboard");
+      const res = await completeOnboarding();
+      if (!res.ok) {
+        toast.error(res.error || "Impossible de continuer.");
+        return;
+      }
+      /* Hard navigation pour bypass le cache layout et forcer Vercel
+         à rerender /dashboard avec onboarded_at à jour. */
+      window.location.href = "/dashboard";
     });
   }
 
   function handleFinish() {
     startCompleting(async () => {
-      await completeOnboarding();
+      const res = await completeOnboarding();
+      if (!res.ok) {
+        toast.error(res.error || "Impossible de continuer.");
+        return;
+      }
       toast.success("Bienvenue dans DIVARC ✨");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     });
   }
 
