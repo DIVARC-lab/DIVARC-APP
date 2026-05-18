@@ -50,20 +50,37 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const profile = await getCurrentProfile();
+  let profile: Awaited<ReturnType<typeof getCurrentProfile>> | null = null;
+  try {
+    profile = await getCurrentProfile();
+  } catch (err) {
+    console.error("[divarc:layout] getCurrentProfile failed", err);
+  }
   if (profile && !profile.onboarded_at) redirect("/welcome");
 
   const fullName = profile?.full_name ?? user.email?.split("@")[0] ?? null;
   const username = profile?.username ?? null;
   const avatarUrl = profile?.avatar_url ?? null;
 
+  /* Chaque query est wrappée pour ne pas casser le layout si l'une plante
+     (RLS subtile, table vide, migration manquante…). Pour un user fraîchement
+     onboardé via OAuth, certaines données peuvent ne pas exister encore. */
+  async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`[divarc:layout] ${label} failed`, err);
+      return fallback;
+    }
+  }
+
   const [unreadMessages, unreadNotifications, myCircles, recentNotifications] =
     await Promise.all([
-      getTotalUnreadCount(user.id),
-      countUnreadNotifications(user.id),
-      listMyCircles(user.id),
+      safe("getTotalUnreadCount", () => getTotalUnreadCount(user.id), 0),
+      safe("countUnreadNotifications", () => countUnreadNotifications(user.id), 0),
+      safe("listMyCircles", () => listMyCircles(user.id), []),
       /* 5 plus récentes pour le dropdown TopBar (le reste est dans /notifications) */
-      listNotificationsForUser(user.id, 5),
+      safe("listNotificationsForUser", () => listNotificationsForUser(user.id, 5), []),
     ]);
 
   /* Cercles épinglés pour la sidebar gauche (max 6, les plus récents). */
