@@ -163,7 +163,7 @@ export function WelcomeWizard({
   const isIntro = visibleStep.id === "intro";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-cream via-bg-deep to-bg">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#fff8e8] via-[#f3eddc] to-[#fff8e8]">
       {/* ArcDeco gold filigrane — caché sur intro (l'intro a son propre hero navy). */}
       {!isIntro ? (
         <>
@@ -185,7 +185,7 @@ export function WelcomeWizard({
       <div className="relative mx-auto w-full max-w-[640px] px-5 sm:px-6 py-8 sm:py-10">
         {/* Header sticky : progression + skip — caché sur l'intro. */}
         {!isIntro ? (
-          <header className="sticky top-2 z-10 flex items-center gap-4 mb-8 rounded-2xl bg-white/80 backdrop-blur-md border border-line px-4 py-3 shadow-soft">
+          <header className="sticky top-2 z-10 flex items-center gap-4 mb-8 rounded-2xl bg-[#ffffff]/80 backdrop-blur-md border border-[#e6e9f0] px-4 py-3 shadow-soft">
             <div className="flex-1 min-w-0">
               <StepProgress steps={STEPS} currentStep={stepIndex} />
             </div>
@@ -193,7 +193,7 @@ export function WelcomeWizard({
               type="button"
               onClick={handleSkip}
               disabled={completing}
-              className="shrink-0 text-xs font-bold uppercase tracking-widest text-night-muted hover:text-night transition-colors disabled:opacity-50"
+              className="shrink-0 text-xs font-bold uppercase tracking-widest text-[#4b5b87] hover:text-[#0a1f44] transition-colors disabled:opacity-50"
             >
               {completing ? "..." : "Passer"}
             </button>
@@ -280,7 +280,7 @@ function Intro({
 }) {
   const FEATURES = ["Cercles", "Jobs", "Marketplace", "Stories", "Wallet"];
   return (
-    <div className="relative -mx-5 sm:mx-0 sm:rounded-[36px] overflow-hidden bg-night text-cream px-7 sm:px-12 py-12 sm:py-16 min-h-[calc(100vh-80px)] sm:min-h-0 flex flex-col justify-center">
+    <div className="relative -mx-5 sm:mx-0 sm:rounded-[36px] overflow-hidden bg-[#0a1f44] text-[#fff8e8] px-7 sm:px-12 py-12 sm:py-16 min-h-[calc(100vh-80px)] sm:min-h-0 flex flex-col justify-center">
       <div
         aria-hidden
         className="absolute -right-24 -top-28 pointer-events-none"
@@ -298,20 +298,20 @@ function Intro({
         <div className="relative w-20 h-20 mx-auto mb-7">
           <Logo size={80} />
         </div>
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-gold">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[#f4b942]">
           · Bienvenue
         </span>
-        <h1 className="mt-4 font-display italic text-[44px] sm:text-[56px] text-cream text-balance leading-[1.05] tracking-[-0.02em]">
+        <h1 className="mt-4 font-display italic text-[44px] sm:text-[56px] text-[#fff8e8] text-balance leading-[1.05] tracking-[-0.02em]">
           Le réseau de ton{" "}
-          <span className="text-gold">quartier</span>.
+          <span className="text-[#f4b942]">quartier</span>.
         </h1>
-        <p className="mt-5 text-cream/75 leading-relaxed max-w-md mx-auto text-[14.5px]">
+        <p className="mt-5 text-[#fff8e8]/75 leading-relaxed max-w-md mx-auto text-[14.5px]">
           Voisins, jobs locaux, bons plans, entraide. Pas de pub, pas
           d&apos;algo opaque.
           {founderRank ? (
             <>
               <br />
-              <span className="text-gold font-semibold">
+              <span className="text-[#f4b942] font-semibold">
                 Tu es fondateur · #{founderRank}
               </span>
             </>
@@ -327,8 +327,8 @@ function Intro({
               key={label}
               className={
                 i === 1
-                  ? "px-3.5 h-9 inline-flex items-center rounded-full bg-gold/20 text-gold text-xs font-extrabold border border-gold/40"
-                  : "px-3.5 h-9 inline-flex items-center rounded-full bg-cream/[0.06] text-cream/80 text-xs font-semibold border border-cream/15"
+                  ? "px-3.5 h-9 inline-flex items-center rounded-full bg-[#f4b942]/20 text-[#f4b942] text-xs font-extrabold border border-[#f4b942]/40"
+                  : "px-3.5 h-9 inline-flex items-center rounded-full bg-[#fff8e8]/[0.06] text-[#fff8e8]/80 text-xs font-semibold border border-[#fff8e8]/15"
               }
             >
               {label}
@@ -340,7 +340,7 @@ function Intro({
           <button
             type="button"
             onClick={onNext}
-            className="inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto sm:px-10 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
+            className="inline-flex items-center justify-center gap-2 h-14 w-full sm:w-auto sm:px-10 rounded-full bg-[#f4b942] text-[#0a1f44] font-extrabold text-[15px] hover:bg-[#fbd987] transition-colors shadow-[0_16px_36px_-10px_rgba(244,185,66,0.5)]"
           >
             Commencer
             <ArrowRight className="w-4 h-4" aria-hidden strokeWidth={2.6} />
@@ -349,14 +349,14 @@ function Intro({
             type="button"
             onClick={onSkip}
             disabled={skipping}
-            className="text-xs font-bold uppercase tracking-widest text-cream/50 hover:text-cream/80 transition-colors disabled:opacity-50"
+            className="text-xs font-bold uppercase tracking-widest text-[#fff8e8]/50 hover:text-[#fff8e8]/80 transition-colors disabled:opacity-50"
           >
             {skipping ? "..." : "Passer pour l'instant"}
           </button>
         </div>
-        <p className="mt-5 text-xs text-cream/55">
+        <p className="mt-5 text-xs text-[#fff8e8]/55">
           Salut{" "}
-          <em className="italic font-display text-cream">
+          <em className="italic font-display text-[#fff8e8]">
             {fullName.split(" ")[0]}
           </em>{" "}
           · 2 min suffisent
@@ -388,17 +388,17 @@ function Identity({
   return (
     <div className="space-y-8">
       <header>
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#b88a2a]">
           · Identité
         </span>
-        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-[#0a1f44] text-balance leading-[1.05] tracking-[-0.02em]">
           Comment veux-tu{" "}
-          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-[#f4b942] to-[#b88a2a] bg-clip-text text-transparent">
             apparaître
           </em>{" "}
           ?
         </h2>
-        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
+        <p className="mt-3 text-[15px] text-[#4b5b87] leading-relaxed max-w-md">
           Ton nom, ton pseudo, une photo et une mini-bio.
         </p>
       </header>
@@ -432,7 +432,7 @@ function Identity({
             Pseudo
           </FieldLabel>
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-muted pointer-events-none">
+            <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-[#6b7280] pointer-events-none">
               @
             </span>
             <Input
@@ -497,17 +497,17 @@ function Preferences({
   return (
     <div className="space-y-8">
       <header>
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#b88a2a]">
           · Région
         </span>
-        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-[#0a1f44] text-balance leading-[1.05] tracking-[-0.02em]">
           Tu habites{" "}
-          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-[#f4b942] to-[#b88a2a] bg-clip-text text-transparent">
             où
           </em>{" "}
           ?
         </h2>
-        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
+        <p className="mt-3 text-[15px] text-[#4b5b87] leading-relaxed max-w-md">
           Pour t&apos;afficher les bons cercles, événements et offres locales.
           Tu pourras toujours changer dans tes préférences.
         </p>
@@ -571,7 +571,7 @@ function Preferences({
           </Select>
         </Field>
 
-        <p className="text-xs text-muted">
+        <p className="text-xs text-[#6b7280]">
           DIVARC affichera les prix et les annonces dans la devise choisie par
           défaut. Tu pourras toujours en sélectionner d&apos;autres.
         </p>
@@ -592,17 +592,17 @@ function FriendsScreen({
   return (
     <div className="space-y-8">
       <header>
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#b88a2a]">
           · Tes premières connexions
         </span>
-        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-[#0a1f44] text-balance leading-[1.05] tracking-[-0.02em]">
           Voici qui est{" "}
-          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-[#f4b942] to-[#b88a2a] bg-clip-text text-transparent">
             déjà
           </em>{" "}
           chez toi
         </h2>
-        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
+        <p className="mt-3 text-[15px] text-[#4b5b87] leading-relaxed max-w-md">
           Cherche-les par nom ou pseudo. Sans amis, l&apos;app reste calme — tu
           pourras toujours en ajouter plus tard.
         </p>
@@ -631,7 +631,7 @@ function StepActions({
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors"
+        className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-[#4b5b87] hover:text-[#0a1f44] hover:bg-[#0a1f44]/5 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" aria-hidden />
         Retour
@@ -640,7 +640,7 @@ function StepActions({
         <button
           type="button"
           onClick={onNext}
-          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)]"
+          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-[#f4b942] text-[#0a1f44] font-extrabold text-[15px] hover:bg-[#fbd987] transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)]"
         >
           Continuer
           <ArrowRight className="w-4 h-4" aria-hidden />
@@ -649,7 +649,7 @@ function StepActions({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-[#f4b942] text-[#0a1f44] font-extrabold text-[15px] hover:bg-[#fbd987] transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
         >
           {pending ? "..." : "Continuer"}
           {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}

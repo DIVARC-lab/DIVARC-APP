@@ -94,14 +94,14 @@ export function AvatarStep({
   return (
     <div className="flex flex-col items-center gap-5 py-2">
       {/* Ring gold solide 4px aligné sur le hero /u/[username] (Session 6). */}
-      <div className="relative rounded-full ring-4 ring-gold ring-offset-4 ring-offset-bg-deep">
+      <div className="relative rounded-full ring-4 ring-[#f4b942] ring-offset-4 ring-offset-[#f3eddc]">
         <Avatar src={avatar} fullName={fullName} size="xl" />
         {uploading ? (
           <span
             aria-hidden
-            className="absolute inset-0 rounded-full bg-night/40 flex items-center justify-center"
+            className="absolute inset-0 rounded-full bg-[#0a1f44]/40 flex items-center justify-center"
           >
-            <Loader2 className="w-6 h-6 text-cream animate-spin" />
+            <Loader2 className="w-6 h-6 text-[#fff8e8] animate-spin" />
           </span>
         ) : null}
       </div>
@@ -111,7 +111,7 @@ export function AvatarStep({
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-night text-cream font-semibold text-sm hover:bg-night-soft transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-[#0a1f44] text-[#fff8e8] font-semibold text-sm hover:bg-[#142a55] transition-colors disabled:opacity-60"
         >
           <Camera className="w-4 h-4" aria-hidden />
           {avatar ? "Changer la photo" : "Ajouter une photo"}
@@ -121,7 +121,7 @@ export function AvatarStep({
             type="button"
             disabled={uploading}
             onClick={handleRemove}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors disabled:opacity-60"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-full text-sm font-semibold text-[#4b5b87] hover:text-[#0a1f44] hover:bg-[#0a1f44]/5 transition-colors disabled:opacity-60"
           >
             <ImageOff className="w-4 h-4" aria-hidden />
             Retirer
@@ -137,7 +137,7 @@ export function AvatarStep({
         className="sr-only"
       />
 
-      <p className="text-xs text-muted text-center">
+      <p className="text-xs text-[#6b7280] text-center">
         JPG, PNG ou WebP — 4 Mo max · facultatif mais recommandé
       </p>
     </div>

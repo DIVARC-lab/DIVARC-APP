@@ -8,11 +8,11 @@ type StepProgressProps = {
 };
 
 /* Refonte audit S9 (handoff feed-onboarding L19-44) — ProgressDots morphing :
-   - dot actif : w-[22px] h-[6px] r-3 bg-gold
-   - dots passés : w-[6px] h-[6px] r-3 bg-gold (light) ou cream/25 (dark)
+   - dot actif : w-[22px] h-[6px] r-3 bg-[#f4b942]
+   - dots passés : w-[6px] h-[6px] r-3 bg-[#f4b942] (light) ou cream/25 (dark)
      ne rentrent pas dans cette logique du proto qui marque past + current
      comme actifs (i <= step → gold)
-   - dots futurs : w-[6px] h-[6px] r-3 bg-night/10 (light) ou cream/25 (dark)
+   - dots futurs : w-[6px] h-[6px] r-3 bg-[#0a1f44]/10 (light) ou cream/25 (dark)
    - transition all 200ms
 
    Trois infos visibles au-dessus :
@@ -34,7 +34,7 @@ export function StepProgress({
         <span
           className={cn(
             "text-[11px] font-extrabold uppercase tracking-[0.18em]",
-            isDark ? "text-gold" : "text-gold-deep",
+            isDark ? "text-[#f4b942]" : "text-[#b88a2a]",
           )}
         >
           · Étape {safeIndex + 1} · {total}
@@ -42,7 +42,7 @@ export function StepProgress({
         <span
           className={cn(
             "font-display italic text-[15px] leading-none truncate",
-            isDark ? "text-cream" : "text-night",
+            isDark ? "text-[#fff8e8]" : "text-[#0a1f44]",
           )}
         >
           {current.label}
@@ -66,10 +66,10 @@ export function StepProgress({
                   "block h-[6px] rounded-[3px] transition-all duration-200",
                   isCurrent ? "w-[22px]" : "w-[6px]",
                   isPastOrCurrent
-                    ? "bg-gold"
+                    ? "bg-[#f4b942]"
                     : isDark
-                      ? "bg-cream/25"
-                      : "bg-night/10",
+                      ? "bg-[#fff8e8]/25"
+                      : "bg-[#0a1f44]/10",
                 )}
               />
               <span className="sr-only">

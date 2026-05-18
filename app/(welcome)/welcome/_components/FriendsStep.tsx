@@ -79,7 +79,7 @@ export function FriendsStep() {
     <div className="space-y-5">
       <div className="relative">
         <Search
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted"
+          className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280]"
           aria-hidden
         />
         <input
@@ -88,22 +88,22 @@ export function FriendsStep() {
           placeholder="Cherche par nom ou pseudo..."
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          className="w-full h-12 rounded-xl border border-line bg-white pl-11 pr-4 text-fg placeholder:text-muted focus:outline-none focus:border-night focus:ring-2 focus:ring-night/15"
+          className="w-full h-12 rounded-xl border border-[#e6e9f0] bg-[#ffffff] pl-11 pr-4 text-[#0a1f44] placeholder:text-[#6b7280] focus:outline-none focus:border-[#0a1f44] focus:ring-2 focus:ring-night/15"
         />
         {isSearching ? (
           <Loader2
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted animate-spin"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6b7280] animate-spin"
             aria-hidden
           />
         ) : null}
       </div>
 
       {debounced.length < 2 ? (
-        <p className="text-center text-xs text-muted py-8">
+        <p className="text-center text-xs text-[#6b7280] py-8">
           Tape le nom d&apos;un proche pour démarrer ton réseau.
         </p>
       ) : !isSearching && visibleResults.length === 0 ? (
-        <p className="text-center text-sm text-muted py-8">
+        <p className="text-center text-sm text-[#6b7280] py-8">
           Aucun résultat. Tu pourras toujours en ajouter plus tard.
         </p>
       ) : (
@@ -120,7 +120,7 @@ export function FriendsStep() {
             return (
               <li
                 key={result.id}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-line"
+                className="flex items-center gap-3 p-3 rounded-2xl bg-[#ffffff] border border-[#e6e9f0]"
               >
                 <Avatar
                   src={result.avatar_url}
@@ -128,10 +128,10 @@ export function FriendsStep() {
                   size="md"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-night truncate">
+                  <p className="text-sm font-semibold text-[#0a1f44] truncate">
                     {displayName}
                   </p>
-                  <p className="text-xs text-muted truncate">
+                  <p className="text-xs text-[#6b7280] truncate">
                     {result.username ? `@${result.username}` : ""}
                     {result.location ? (
                       <>
@@ -147,11 +147,11 @@ export function FriendsStep() {
                     Ami
                   </span>
                 ) : sent ? (
-                  <span className="px-3 py-1 rounded-full bg-night/5 text-night-muted text-xs font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-[#0a1f44]/5 text-[#4b5b87] text-xs font-semibold">
                     Envoyée
                   </span>
                 ) : incoming ? (
-                  <span className="px-3 py-1 rounded-full bg-gold/15 text-gold-deep text-xs font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-[#f4b942]/15 text-[#b88a2a] text-xs font-semibold">
                     À accepter
                   </span>
                 ) : (

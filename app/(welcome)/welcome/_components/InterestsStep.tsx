@@ -65,32 +65,32 @@ export function InterestsStep({
   return (
     <div className="space-y-8">
       <header>
-        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-gold-deep">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#b88a2a]">
           · Tes centres d&apos;intérêt
         </span>
-        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-night text-balance leading-[1.05] tracking-[-0.02em]">
+        <h2 className="mt-3 font-display italic text-[36px] sm:text-[44px] text-[#0a1f44] text-balance leading-[1.05] tracking-[-0.02em]">
           Tu aimes{" "}
-          <em className="italic bg-gradient-to-br from-gold to-gold-deep bg-clip-text text-transparent">
+          <em className="italic bg-gradient-to-br from-[#f4b942] to-[#b88a2a] bg-clip-text text-transparent">
             quoi
           </em>
           , toi ?
         </h2>
-        <p className="mt-3 text-[15px] text-night-muted leading-relaxed max-w-md">
+        <p className="mt-3 text-[15px] text-[#4b5b87] leading-relaxed max-w-md">
           Choisis-en au moins {MIN_RECOMMENDED}. On t&apos;aidera à trouver les
           bonnes personnes et les bons cercles.
         </p>
       </header>
 
       <div className="flex items-baseline gap-2">
-        <span className="font-display italic text-[40px] text-gold-deep leading-none">
+        <span className="font-display italic text-[40px] text-[#b88a2a] leading-none">
           {count}
         </span>
-        <span className="text-sm text-night-muted">
+        <span className="text-sm text-[#4b5b87]">
           sur {INTEREST_OPTIONS.length} sélectionné{count > 1 ? "s" : ""}
           {remaining > 0 ? (
             <>
               {" · "}
-              <span className="text-gold-deep font-semibold">
+              <span className="text-[#b88a2a] font-semibold">
                 encore {remaining}
               </span>
             </>
@@ -115,8 +115,8 @@ export function InterestsStep({
                 className={cn(
                   "px-3.5 h-10 rounded-full text-sm font-semibold inline-flex items-center gap-2 transition-all",
                   on
-                    ? "bg-night text-cream shadow-[0_6px_16px_rgba(10,31,68,0.2)]"
-                    : "bg-white border border-line text-night-muted hover:border-gold/40",
+                    ? "bg-[#0a1f44] text-[#fff8e8] shadow-[0_6px_16px_rgba(10,31,68,0.2)]"
+                    : "bg-[#ffffff] border border-[#e6e9f0] text-[#4b5b87] hover:border-[#f4b942]/40",
                 )}
               >
                 <span aria-hidden className="text-base">
@@ -124,7 +124,7 @@ export function InterestsStep({
                 </span>
                 {opt.label}
                 {on ? (
-                  <Check className="w-3.5 h-3.5 text-gold" aria-hidden />
+                  <Check className="w-3.5 h-3.5 text-[#f4b942]" aria-hidden />
                 ) : null}
               </button>
             );
@@ -139,7 +139,7 @@ export function InterestsStep({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-night-muted hover:text-night hover:bg-night/5 transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-full text-sm font-semibold text-[#4b5b87] hover:text-[#0a1f44] hover:bg-[#0a1f44]/5 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" aria-hidden />
             Retour
@@ -147,7 +147,7 @@ export function InterestsStep({
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-gold text-night font-extrabold text-[15px] hover:bg-gold-soft transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-[#f4b942] text-[#0a1f44] font-extrabold text-[15px] hover:bg-[#fbd987] transition-colors shadow-[0_12px_28px_-10px_rgba(244,185,66,0.55)] disabled:opacity-60"
           >
             {pending ? "..." : "Continuer"}
             {!pending ? <ArrowRight className="w-4 h-4" aria-hidden /> : null}
