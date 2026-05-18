@@ -69,7 +69,35 @@ const forcedDarkStyle = {
   colorScheme: "dark",
 } as React.CSSProperties;
 
-export default function Home() {
+type SearchParams = Promise<{
+  code?: string;
+  error?: string;
+  error_description?: string;
+  next?: string;
+}>;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  /* Récupération défensive : si Supabase tombe en fallback sur le Site URL
+     au lieu de /auth/callback (souvent parce que l'URL n'est pas whitelistée
+     dans Redirect URLs), on relaie le `?code=...` vers le bon handler. */
+  const params = await searchParams;
+  if (params.code) {
+    const { redirect } = await import("next/navigation");
+    const target = `/auth/callback?code=${encodeURIComponent(params.code)}${
+      params.next ? `&next=${encodeURIComponent(params.next)}` : ""
+    }`;
+    redirect(target);
+  }
+  if (params.error) {
+    const { redirect } = await import("next/navigation");
+    const desc = params.error_description ?? params.error;
+    redirect(`/login?error=auth_failed&reason=${encodeURIComponent(desc)}`);
+  }
+
   return (
     <div
       data-theme="light"
